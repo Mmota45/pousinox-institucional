@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin — Pousinox</title>
+  <link rel="icon" type="image/svg+xml" href="../static/favicon.svg">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="../static/admin.css">
+</head>
+<body>
+
+<!-- ── TOPBAR ── -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-logo">P</div>
+    <div>
+      <div class="topbar-title">Painel Admin — Pousinox</div>
+      <div class="topbar-sub">Gerenciar landing page</div>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <a href="../index.html" target="_blank" class="btn-preview">
+      <i class="fas fa-external-link-alt"></i> Ver Landing Page
+    </a>
+    <button class="btn-save-top btn-save">
+      <i class="fas fa-save"></i> Salvar Alterações
+    </button>
+  </div>
+</header>
+
+<!-- ── LAYOUT ── -->
+<div class="layout">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-section-title">Configurações</div>
+
+    <button class="sidebar-item active" data-section="whatsapp">
+      <svg class="si-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      WhatsApp
+      <span class="si-badge green">1</span>
+    </button>
+
+    <button class="sidebar-item" data-section="hero">
+      <svg class="si-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Imagem Principal (Hero)
+    </button>
+
+    <div class="sidebar-section-title">Instalação</div>
+
+    <button class="sidebar-item" data-section="etapas">
+      <svg class="si-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Etapas de Instalação
+      <span class="si-badge">4</span>
+    </button>
+
+    <button class="sidebar-item" data-section="videos">
+      <svg class="si-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+      Vídeos do YouTube
+      <span class="si-badge blue">4</span>
+    </button>
+
+    <div class="sidebar-section-title">Produto</div>
+
+    <button class="sidebar-item" data-section="produto">
+      <svg class="si-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+      Fotos do Produto
+      <span class="si-badge">2</span>
+    </button>
+
+    <button class="sidebar-item" data-section="aplicacoes">
+      <svg class="si-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>
+      Aplicações
+      <span class="si-badge">6</span>
+    </button>
+
+    <div class="sidebar-section-title">Ferramentas</div>
+
+    <button class="sidebar-item" onclick="exportConfig()">
+      <svg class="si-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exportar Config
+    </button>
+
+    <button class="sidebar-item" onclick="importConfig()">
+      <svg class="si-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Importar Config
+    </button>
+
+    <button class="sidebar-item" onclick="resetConfig()" style="color:#ef4444;">
+      <svg class="si-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#ef4444;"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+      Redefinir Tudo
+    </button>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main">
+
+    <!-- Status bar -->
+    <div id="status-bar" class="status-bar saved">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      Configurações salvas
+    </div>
+
+    <!-- Mini stats -->
+    <div class="mini-stats">
+      <div class="mini-stat">
+        <div class="mini-stat-icon" style="background:rgba(232,117,26,0.1);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e8751a" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </div>
+        <div>
+          <div class="mini-stat-value" id="stat-img">0/13</div>
+          <div class="mini-stat-label">Imagens</div>
+        </div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-icon" style="background:rgba(14,165,233,0.1);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" stroke-width="2.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+        </div>
+        <div>
+          <div class="mini-stat-value" id="stat-vid">0/4</div>
+          <div class="mini-stat-label">Vídeos</div>
+        </div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-icon" style="background:rgba(16,185,129,0.1);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#10b981"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        </div>
+        <div>
+          <div class="mini-stat-value" id="stat-wa" style="font-size:0.9rem;">—</div>
+          <div class="mini-stat-label">WhatsApp</div>
+        </div>
+      </div>
+      <div class="mini-stat">
+        <div class="mini-stat-icon" style="background:rgba(99,102,241,0.1);">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div>
+          <div class="mini-stat-value" id="stat-status">—</div>
+          <div class="mini-stat-label">Status</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════
+         SEÇÃO: WHATSAPP
+    ════════════════════════════════════════ -->
+    <div id="sec-whatsapp" class="section-view active">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <div class="panel-icon green">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            </div>
+            <div>
+              <div class="panel-title">WhatsApp</div>
+              <div class="panel-desc">Configure o número e a mensagem padrão de todos os botões</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="wa-numero">
+                Número do WhatsApp <span>somente dígitos, com DDI</span>
+              </label>
+              <input type="tel" id="wa-numero" class="form-input"
+                placeholder="5535999999999"
+                maxlength="15">
+              <p class="form-hint">
+                ✅ Formato correto: <strong>5535999999999</strong><br>
+                DDI (55) + DDD (35) + número (9 dígitos)<br>
+                Não use +, ( ), - ou espaços
+              </p>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="wa-mensagem">
+                Mensagem automática
+              </label>
+              <textarea id="wa-mensagem" class="form-textarea"
+                placeholder="Olá! Tenho interesse no Fixador de Porcelanato da Pousinox. Pode me ajudar?"></textarea>
+              <p class="form-hint">Esta mensagem aparece automaticamente quando o cliente clicar no botão do WhatsApp.</p>
+            </div>
+          </div>
+
+          <!-- Preview -->
+          <div class="wa-preview-box">
+            <div class="wa-preview-icon">
+              <svg viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            </div>
+            <div class="wa-preview-text">
+              <strong>WhatsApp configurado: <span id="wa-number-display">—</span></strong>
+              <span>Clique para testar o link gerado:</span><br>
+              <a id="wa-link-preview" href="#" target="_blank" rel="noopener">
+                Abrir link de teste ↗
+              </a>
+            </div>
+          </div>
+
+          <div style="margin-top:20px;display:flex;gap:12px;">
+            <button id="btn-test-wa" class="btn btn-green">
+              <i class="fas fa-external-link-alt"></i> Testar WhatsApp
+            </button>
+            <button class="btn btn-primary btn-save">
+              <i class="fas fa-save"></i> Salvar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════
+         SEÇÃO: HERO
+    ════════════════════════════════════════ -->
+    <div id="sec-hero" class="section-view">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <div class="panel-icon orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+            <div>
+              <div class="panel-title">Imagem Principal (Hero)</div>
+              <div class="panel-desc">Primeira imagem que aparece no topo da landing page</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div style="max-width:500px;">
+            
+    <div class="img-card" data-card-key="hero">
+      <img class="img-preview" src="" alt="Hero — Foto de instalação" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="hero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">Hero — Foto de instalação</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="hero"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="hero">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="hero">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Imagem ideal: foto de porcelanato sendo instalado em parede. Proporção recomendada: 16:9 ou 4:3. Mínimo: 800x500px.</p>
+      </div>
+    </div>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;gap:12px;">
+            <button class="btn btn-primary btn-save"><i class="fas fa-save"></i> Salvar</button>
+            <a href="/" target="_blank" class="btn btn-secondary"><i class="fas fa-eye"></i> Ver resultado</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════
+         SEÇÃO: ETAPAS
+    ════════════════════════════════════════ -->
+    <div id="sec-etapas" class="section-view">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <div class="panel-icon orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div>
+              <div class="panel-title">Etapas de Instalação</div>
+              <div class="panel-desc">4 fotos que ilustram o processo de instalação passo a passo</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="img-grid">
+            
+    <div class="img-card" data-card-key="etapa1">
+      <img class="img-preview" src="" alt="Etapa 1 — Preparação" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="etapa1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">Etapa 1 — Preparação</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="etapa1"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="etapa1">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="etapa1">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Incisão no verso do porcelanato com esmerilhadeira em 45°</p>
+      </div>
+    </div>
+            
+    <div class="img-card" data-card-key="etapa2">
+      <img class="img-preview" src="" alt="Etapa 2 — Aplicação" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="etapa2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">Etapa 2 — Aplicação</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="etapa2"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="etapa2">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="etapa2">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Fixador metálico colado no verso da placa com argamassa estrutural</p>
+      </div>
+    </div>
+            
+    <div class="img-card" data-card-key="etapa3">
+      <img class="img-preview" src="" alt="Etapa 3 — Placas preparadas" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="etapa3">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">Etapa 3 — Placas preparadas</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="etapa3"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="etapa3">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="etapa3">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Placas com os fixadores posicionados e prontas para instalação</p>
+      </div>
+    </div>
+            
+    <div class="img-card" data-card-key="etapa4">
+      <img class="img-preview" src="" alt="Etapa 4 — Fixação na parede" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="etapa4">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">Etapa 4 — Fixação na parede</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="etapa4"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="etapa4">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="etapa4">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Fixador ancorado na parede com bucha prego 6×38mm</p>
+      </div>
+    </div>
+          </div>
+          <div class="divider"></div>
+          <div style="display:flex;gap:12px;">
+            <button class="btn btn-primary btn-save"><i class="fas fa-save"></i> Salvar</button>
+            <a href="/#como-funciona" target="_blank" class="btn btn-secondary"><i class="fas fa-eye"></i> Ver seção</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════
+         SEÇÃO: VÍDEOS
+    ════════════════════════════════════════ -->
+    <div id="sec-videos" class="section-view">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <div class="panel-icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+            </div>
+            <div>
+              <div class="panel-title">Vídeos do YouTube</div>
+              <div class="panel-desc">Cole aqui os links dos vídeos do YouTube. O sistema converte automaticamente.</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+
+          <!-- Instrução -->
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:16px 20px;margin-bottom:24px;display:flex;gap:12px;align-items:flex-start;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div>
+              <strong style="font-size:0.85rem;color:#1d4ed8;display:block;margin-bottom:4px;">Como adicionar vídeos do YouTube</strong>
+              <p style="font-size:0.8rem;color:#1e40af;line-height:1.5;">
+                1. Abra o vídeo no YouTube<br>
+                2. Clique em <strong>Compartilhar</strong> → <strong>Copiar link</strong><br>
+                3. Cole o link no campo abaixo. O sistema converte automaticamente.<br>
+                <span style="opacity:0.7;">Formatos aceitos: youtube.com/watch?v=... · youtu.be/... · youtube.com/shorts/...</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="video-config-grid">
+            
+    <div class="video-config-card featured" data-video-card="principal" style="grid-column:span 2;">
+      <div class="video-thumb">
+        <div class="video-play-icon">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <span class="video-thumb-label">Nenhum vídeo configurado</span>
+        <span class="video-thumb-ok">
+          <span class="vt-badge" style="display:none;">✓ Configurado</span>
+        </span>
+      </div>
+      <div class="video-config-body">
+        <div class="video-name">🎬 Processo Completo</div>
+        <div class="video-input-wrap">
+          <input type="url" class="form-input" data-video-key="principal"
+            placeholder="Cole o link do YouTube aqui...">
+          <button class="btn-test-video" data-video-key="principal">
+            <i class="fas fa-play"></i> Testar
+          </button>
+        </div>
+        <p class="video-hint">Vídeo principal que aparece em destaque (ocupa largura total)</p>
+      </div>
+    </div>
+            
+    <div class="video-config-card" data-video-card="preparacao" style="">
+      <div class="video-thumb">
+        <div class="video-play-icon">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <span class="video-thumb-label">Nenhum vídeo configurado</span>
+        <span class="video-thumb-ok">
+          <span class="vt-badge" style="display:none;">✓ Configurado</span>
+        </span>
+      </div>
+      <div class="video-config-body">
+        <div class="video-name">🔧 Preparação do Porcelanato</div>
+        <div class="video-input-wrap">
+          <input type="url" class="form-input" data-video-key="preparacao"
+            placeholder="Cole o link do YouTube aqui...">
+          <button class="btn-test-video" data-video-key="preparacao">
+            <i class="fas fa-play"></i> Testar
+          </button>
+        </div>
+        <p class="video-hint">Incisão no verso com esmerilhadeira</p>
+      </div>
+    </div>
+            
+    <div class="video-config-card" data-video-card="aplicacao" style="">
+      <div class="video-thumb">
+        <div class="video-play-icon">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <span class="video-thumb-label">Nenhum vídeo configurado</span>
+        <span class="video-thumb-ok">
+          <span class="vt-badge" style="display:none;">✓ Configurado</span>
+        </span>
+      </div>
+      <div class="video-config-body">
+        <div class="video-name">⚙️ Aplicação do Fixador</div>
+        <div class="video-input-wrap">
+          <input type="url" class="form-input" data-video-key="aplicacao"
+            placeholder="Cole o link do YouTube aqui...">
+          <button class="btn-test-video" data-video-key="aplicacao">
+            <i class="fas fa-play"></i> Testar
+          </button>
+        </div>
+        <p class="video-hint">Colagem do fixador com argamassa</p>
+      </div>
+    </div>
+            
+    <div class="video-config-card" data-video-card="obra_real" style="">
+      <div class="video-thumb">
+        <div class="video-play-icon">
+          <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+        <span class="video-thumb-label">Nenhum vídeo configurado</span>
+        <span class="video-thumb-ok">
+          <span class="vt-badge" style="display:none;">✓ Configurado</span>
+        </span>
+      </div>
+      <div class="video-config-body">
+        <div class="video-name">🏗️ Obra Real</div>
+        <div class="video-input-wrap">
+          <input type="url" class="form-input" data-video-key="obra_real"
+            placeholder="Cole o link do YouTube aqui...">
+          <button class="btn-test-video" data-video-key="obra_real">
+            <i class="fas fa-play"></i> Testar
+          </button>
+        </div>
+        <p class="video-hint">Aplicação em obra real residencial/comercial</p>
+      </div>
+    </div>
+          </div>
+
+          <div class="divider"></div>
+          <div style="display:flex;gap:12px;">
+            <button class="btn btn-primary btn-save"><i class="fas fa-save"></i> Salvar vídeos</button>
+            <a href="/#videos" target="_blank" class="btn btn-secondary"><i class="fas fa-eye"></i> Ver seção de vídeos</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════
+         SEÇÃO: PRODUTO
+    ════════════════════════════════════════ -->
+    <div id="sec-produto" class="section-view">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <div class="panel-icon orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+            </div>
+            <div>
+              <div class="panel-title">Fotos do Produto</div>
+              <div class="panel-desc">Foto para a ficha técnica e foto de destaque do produto</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="img-grid">
+            
+    <div class="img-card" data-card-key="produto_specs">
+      <img class="img-preview" src="" alt="Produto — Ficha Técnica" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="produto_specs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">Produto — Ficha Técnica</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="produto_specs"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="produto_specs">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="produto_specs">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Foto do fixador para a seção de especificações técnicas. Fundo escuro ou neutro recomendado.</p>
+      </div>
+    </div>
+            
+    <div class="img-card" data-card-key="produto_destaque">
+      <img class="img-preview" src="" alt="Produto — Destaque" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="produto_destaque">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">Produto — Destaque</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="produto_destaque"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="produto_destaque">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="produto_destaque">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Foto principal do produto na seção "O Produto". Pode ser em uso ou estúdio.</p>
+      </div>
+    </div>
+          </div>
+          <div class="divider"></div>
+          <button class="btn btn-primary btn-save"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════
+         SEÇÃO: APLICAÇÕES
+    ════════════════════════════════════════ -->
+    <div id="sec-aplicacoes" class="section-view">
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-header-left">
+            <div class="panel-icon orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>
+            </div>
+            <div>
+              <div class="panel-title">Fotos de Aplicações</div>
+              <div class="panel-desc">6 fotos ilustrando os diferentes locais de uso do fixador</div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="img-grid">
+            
+    <div class="img-card" data-card-key="aplic_fachada">
+      <img class="img-preview" src="" alt="🏢 Fachadas" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="aplic_fachada">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">🏢 Fachadas</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="aplic_fachada"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="aplic_fachada">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="aplic_fachada">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Porcelanato em fachada externa de edifício ou casa</p>
+      </div>
+    </div>
+            
+    <div class="img-card" data-card-key="aplic_interna">
+      <img class="img-preview" src="" alt="🪟 Paredes Internas/Externas" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="aplic_interna">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">🪟 Paredes Internas/Externas</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="aplic_interna"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="aplic_interna">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="aplic_interna">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Revestimento em parede interna ou externa</p>
+      </div>
+    </div>
+            
+    <div class="img-card" data-card-key="aplic_externa">
+      <img class="img-preview" src="" alt="🌿 Áreas Externas" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="aplic_externa">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">🌿 Áreas Externas</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="aplic_externa"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="aplic_externa">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="aplic_externa">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Porcelanato em varanda, área de lazer ou área externa</p>
+      </div>
+    </div>
+            
+    <div class="img-card" data-card-key="aplic_residencial">
+      <img class="img-preview" src="" alt="🏠 Residencial" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="aplic_residencial">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">🏠 Residencial</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="aplic_residencial"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="aplic_residencial">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="aplic_residencial">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Obra residencial com porcelanato instalado</p>
+      </div>
+    </div>
+            
+    <div class="img-card" data-card-key="aplic_comercial">
+      <img class="img-preview" src="" alt="🏪 Comercial" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="aplic_comercial">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">🏪 Comercial</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="aplic_comercial"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="aplic_comercial">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="aplic_comercial">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Obra comercial: loja, hotel, escritório, shopping</p>
+      </div>
+    </div>
+            
+    <div class="img-card" data-card-key="aplic_grande_formato">
+      <img class="img-preview" src="" alt="📐 Grande Formato" style="display:none;" loading="lazy">
+      <div class="img-placeholder" data-img-key="aplic_grande_formato">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span>Clique para adicionar<br>imagem</span>
+      </div>
+      <div class="img-info">
+        <div class="img-label">📐 Grande Formato</div>
+        <span class="img-status empty">● Sem imagem</span>
+      </div>
+      <div class="img-url-wrap">
+        <input type="url" class="img-url-input" data-img-key="aplic_grande_formato"
+          placeholder="https://... ou arraste uma imagem">
+      </div>
+      <div class="img-actions">
+        <button class="btn-img btn-load-url" data-img-key="aplic_grande_formato">✓ Carregar URL</button>
+        <button class="btn-img danger btn-remove-img" data-img-key="aplic_grande_formato">✕</button>
+      </div>
+      <div style="padding:0 12px 12px;">
+        <p style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Placa de porcelanato grande formato (60x60 ou maior)</p>
+      </div>
+    </div>
+          </div>
+          <div class="divider"></div>
+          <button class="btn btn-primary btn-save"><i class="fas fa-save"></i> Salvar</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div><!-- /layout -->
+
+<!-- ── MODAL DE IMAGEM ── -->
+<div id="img-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="img-modal-title">Adicionar Imagem</span>
+      <button class="modal-close" id="img-modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Upload por arquivo -->
+      <div id="drop-zone" class="drop-zone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <p><strong>Arraste uma imagem aqui</strong></p>
+        <span>ou clique para selecionar do computador</span>
+        <input type="file" id="modal-file-input" accept="image/*" style="display:none">
+      </div>
+
+      <div class="or-divider"><span>OU cole uma URL</span></div>
+
+      <!-- URL -->
+      <div class="form-group" style="margin:0">
+        <label class="form-label">URL da imagem</label>
+        <input type="url" id="modal-img-url" class="form-input"
+          placeholder="https://exemplo.com/foto-instalacao.jpg">
+        <p class="form-hint">
+          Cole o link direto de uma imagem da internet (deve terminar em .jpg, .png, .webp etc.)<br>
+          Ou faça upload acima e a imagem será convertida automaticamente.
+        </p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="img-modal-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="img-modal-confirm">
+        <i class="fas fa-check"></i> Aplicar imagem
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST CONTAINER ── -->
+<div id="toast-container" class="toast-container"></div>
+
+<script src="../static/admin.js"></script>
+</body>
+</html>
