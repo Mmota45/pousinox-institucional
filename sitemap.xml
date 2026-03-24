@@ -25,4 +25,44 @@
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
+  <url>
+    <loc>https://pousinox.com.br/segmentos/restaurantes</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://pousinox.com.br/segmentos/panificacao</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://pousinox.com.br/segmentos/hospitalar</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://pousinox.com.br/segmentos/laboratorio</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://pousinox.com.br/segmentos/hotelaria</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://pousinox.com.br/segmentos/varejo</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://pousinox.com.br/segmentos/arquitetura</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
+  <url>
+    <loc>https://pousinox.com.br/segmentos/construcao</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+  </url>
 </urlset>
