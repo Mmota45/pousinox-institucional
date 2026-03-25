@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /admin/
 
 Sitemap: https://pousinox.com.br/sitemap.xml
