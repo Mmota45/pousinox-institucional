@@ -8,9 +8,9 @@ interface DashData {
   valorEstoque: number
   vendasMes: number
   ticketMedio: number
+  interessesMes: number
   estoquesBaixo: { titulo: string; quantidade: number }[]
   topProdutos: { titulo: string; total: number; valor: number }[]
-  interessesMes: number
 }
 
 export default function AdminDashboard() {
@@ -52,15 +52,7 @@ export default function AdminDashboard() {
       .sort((a, b) => b.total - a.total)
       .slice(0, 5)
 
-    setData({
-      totalProdutos,
-      valorEstoque,
-      vendasMes: totalMes,
-      ticketMedio,
-      estoquesBaixo: estoqueBaixo,
-      topProdutos,
-      interessesMes: (interesses.data ?? []).length,
-    })
+    setData({ totalProdutos, valorEstoque, vendasMes: totalMes, ticketMedio, interessesMes: (interesses.data ?? []).length, estoquesBaixo: estoqueBaixo, topProdutos })
     setLoading(false)
   }
 
@@ -70,10 +62,9 @@ export default function AdminDashboard() {
   if (loading) return <div className={styles.loading}>Carregando dashboard...</div>
   if (!data) return null
 
-  const d = data
-
   return (
     <div className={styles.wrap}>
+      <h3 className={styles.secTitle}>Outlet & Estoque</h3>
       <div className={styles.cards}>
         <div className={styles.card}>
           <span className={styles.cardLabel}>Produtos disponíveis</span>
@@ -98,10 +89,10 @@ export default function AdminDashboard() {
       </div>
 
       <div className={styles.grid2}>
-        {d.estoquesBaixo?.length > 0 && (
+        {data.estoquesBaixo?.length > 0 && (
           <div className={styles.box}>
             <h3 className={styles.boxTitle}>⚠️ Estoque baixo</h3>
-            {d.estoquesBaixo.map((p) => (
+            {data.estoquesBaixo.map((p) => (
               <div key={p.titulo} className={styles.alertaItem}>
                 <span>{p.titulo}</span>
                 <span className={styles.alertaQtd}>{p.quantidade === 0 ? 'Esgotado' : 'Última unidade'}</span>
@@ -109,7 +100,6 @@ export default function AdminDashboard() {
             ))}
           </div>
         )}
-
         {data.topProdutos.length > 0 && (
           <div className={styles.box}>
             <h3 className={styles.boxTitle}>Top produtos vendidos</h3>

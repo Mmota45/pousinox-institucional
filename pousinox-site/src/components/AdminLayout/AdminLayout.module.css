@@ -310,10 +310,50 @@
   padding: 32px;
 }
 
+/* ── Overlay (mobile drawer backdrop) ── */
+.overlay {
+  display: none;
+}
+
+/* ── Mobile: drawer ── */
 @media (max-width: 768px) {
-  .sidebar { width: 56px; }
-  .navLabel { display: none; }
-  .navBadge { display: none; }
+  /* Sidebar sai do fluxo e vira drawer */
+  .sidebar {
+    position: fixed;
+    top: 56px;
+    left: 0;
+    height: calc(100dvh - 56px);
+    width: 260px;
+    transform: translateX(-260px);
+    transition: transform 0.25s ease;
+    z-index: 200;
+    overflow-y: auto;
+  }
+
+  /* Drawer aberto */
+  .shellDrawerOpen .sidebar {
+    transform: translateX(0);
+    box-shadow: 4px 0 32px rgba(0,0,0,0.35);
+  }
+
+  /* Backdrop */
+  .shellDrawerOpen .overlay {
+    display: block;
+    position: fixed;
+    inset: 56px 0 0 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 199;
+  }
+
+  /* Labels visíveis no drawer */
+  .navLabel { display: flex; }
+  .navBadge { display: flex; }
+
+  /* Topbar compacto */
   .topbarTitle { display: none; }
-  .content { padding: 20px 16px; }
+  .topbarUser { display: none; }
+  .topbarLinkText { display: none; }
+
+  /* Conteúdo ocupa tela cheia */
+  .content { padding: 16px 14px; }
 }

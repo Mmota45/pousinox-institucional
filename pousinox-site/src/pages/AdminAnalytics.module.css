@@ -1,0 +1,286 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.loading {
+  padding: 40px 0;
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+}
+
+/* ── Filtro ── */
+.filtroBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+}
+
+.presets {
+  display: flex;
+  gap: 6px;
+}
+
+.presetBtn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: #f8fafc;
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.presetBtn:hover { background: #f1f5f9; border-color: #94a3b8; }
+
+.presetBtnAtivo {
+  background: var(--color-primary, #1e3a5f);
+  color: #fff;
+  border-color: var(--color-primary, #1e3a5f);
+}
+
+.dataPicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.dateInput {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.82rem;
+  color: var(--color-text);
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.dataSep {
+  font-size: 0.82rem;
+  color: var(--color-text-light);
+}
+
+.aplicarBtn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--color-primary, #1e3a5f);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.aplicarBtn:hover { opacity: 0.85; }
+
+/* ── Label período ── */
+.sectionLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-light);
+}
+
+/* ── Cards ── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cardIcon { font-size: 1.2rem; }
+
+.cardValue {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--color-heading);
+  line-height: 1;
+}
+
+.cardLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+/* ── Grid 3 colunas ── */
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.box {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.boxTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  margin: 0 0 14px;
+}
+
+.vazio {
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+  margin: 0;
+}
+
+/* ── Ranking (páginas) ── */
+.rankItem {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.83rem;
+}
+
+.rankItem:last-child { border-bottom: none; }
+
+.rankPos {
+  font-weight: 800;
+  color: var(--color-text-light);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.rankLabel {
+  color: var(--color-text);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rankVal {
+  font-size: 0.78rem;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+/* ── Barras (canais / cidades) ── */
+.barItem {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.82rem;
+}
+
+.barItem:last-child { border-bottom: none; }
+
+.barLabel {
+  color: var(--color-text);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  grid-column: 1 / -1;
+}
+
+.barTrack {
+  grid-column: 1 / 3;
+  background: #f1f5f9;
+  border-radius: 4px;
+  height: 5px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  background: var(--color-primary, #1e3a5f);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.barPct {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.barNum {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── Erro ── */
+.erroBox {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  color: #b91c1c;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.retryBtn {
+  font-size: 0.8rem;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #b91c1c;
+}
+
+@media (max-width: 1100px) {
+  .grid3 { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 900px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .grid3 { grid-template-columns: 1fr; }
+  .dataPicker { margin-left: 0; }
+  .filtroBar { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+
+@media (max-width: 600px) {
+  .card { padding: 14px 12px; }
+  .cardValue { font-size: 1.3rem; }
+  .box { padding: 14px; }
+  .dataPicker { flex-wrap: wrap; gap: 6px; }
+  .dateInput { flex: 1; min-width: 120px; }
+  .aplicarBtn { width: 100%; }
+}
+
+@media (max-width: 400px) {
+  .cards { grid-template-columns: 1fr; }
+  .presets { flex-wrap: wrap; }
+}

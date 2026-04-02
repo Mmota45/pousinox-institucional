@@ -22,9 +22,10 @@ const ROTA_PERMISSAO: Record<string, string> = {
   orcamento: 'orcamento',
   usuarios: 'usuarios',
   conteudo: 'conteudo',
+  analytics: 'analytics',
 }
 
-const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo']
+const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics']
 
 const NAV_ITEMS = [
   {
@@ -133,6 +134,19 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    to: '/admin/analytics',
+    label: 'Analytics',
+    permissao: 'analytics',
+    badge: undefined,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+        <polyline points="22 12 18 16 14 12"/>
+      </svg>
+    ),
+  },
 ]
 
 export default function AdminLayout() {
@@ -140,6 +154,7 @@ export default function AdminLayout() {
   const [user, setUser] = useState<User | null>(null)
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [collapsed, setCollapsed] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const [tabelaPendente, setTabelaPendente] = useState(false)
   const [ocultarValores, setOcultarValores] = useState(false)
 
@@ -158,6 +173,9 @@ export default function AdminLayout() {
 
   const navigate = useNavigate()
   const location = useLocation()
+
+  // Fecha drawer ao navegar
+  useEffect(() => { setDrawerOpen(false) }, [location.pathname])
 
   useEffect(() => {
     let isMounted = true
@@ -437,10 +455,17 @@ export default function AdminLayout() {
 
   return (
     <AdminContext.Provider value={{ ocultarValores, toggleOcultarValores: () => setOcultarValores(v => !v) }}>
-    <div className={`${styles.shell} ${collapsed ? styles.shellCollapsed : ''}`}>
+    <div className={`${styles.shell} ${collapsed ? styles.shellCollapsed : ''} ${drawerOpen ? styles.shellDrawerOpen : ''}`}>
       <header className={styles.topbar}>
         <div className={styles.topbarLeft}>
-          <button className={styles.collapseBtn} onClick={() => setCollapsed(c => !c)} title="Recolher sidebar">
+          <button
+            className={styles.collapseBtn}
+            onClick={() => {
+              if (window.innerWidth <= 768) setDrawerOpen(d => !d)
+              else setCollapsed(c => !c)
+            }}
+            title="Menu"
+          >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
@@ -473,7 +498,7 @@ export default function AdminLayout() {
               <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/>
               <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
             </svg>
-            Ver site
+            <span className={styles.topbarLinkText}>Ver site</span>
           </a>
           <button className={styles.logoutBtn} onClick={logout} title="Sair">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -485,6 +510,7 @@ export default function AdminLayout() {
       </header>
 
       <div className={styles.body}>
+        <div className={styles.overlay} onClick={() => setDrawerOpen(false)} />
         <aside className={styles.sidebar}>
           <nav className={styles.nav}>
             {navVisivel.map(item => (
@@ -492,6 +518,7 @@ export default function AdminLayout() {
                 key={item.to}
                 to={item.to}
                 end={item.end}
+                onClick={() => setDrawerOpen(false)}
                 className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
               >
                 <span className={styles.navIcon}>{item.icon}</span>

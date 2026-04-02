@@ -1,7 +1,12 @@
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SEO from '../components/SEO/SEO'
 
 export default function Obrigado() {
+  useEffect(() => {
+    window.gtag?.('event', 'form_submit', { form_name: 'orcamento', page: 'contato' })
+  }, [])
+
   return (
     <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 24px' }}>
       <SEO
