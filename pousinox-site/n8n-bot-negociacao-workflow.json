@@ -1,0 +1,208 @@
+{
+  "name": "Bot Negociação — Outlet",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "bot-negociacao",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "bot-node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "bot-negociacao"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\n\n// Ignorar mensagens enviadas pelo próprio número\nif (body.fromMe === true) return [];\n\n// Ignorar grupos\nif (body.isGroup === true) return [];\n\n// Extrair texto\nconst message = body.text?.message ?? body.message?.text ?? body.textMessage ?? '';\nif (!message.trim()) return [];\n\n// Normalizar número\nlet phone = (body.phone ?? '').replace('@c.us', '').replace(/[^0-9]/g, '');\nif (!phone) return [];\n\nif (phone.length === 10 || phone.length === 11) phone = '55' + phone;\nif (phone.length === 12 && phone.startsWith('55')) {\n  phone = phone.slice(0, 4) + '9' + phone.slice(4);\n}\n\nreturn [{ json: {\n  phone,\n  message: message.trim(),\n  senderName: body.senderName ?? body.chatName ?? 'Cliente'\n}}];"
+      },
+      "id": "bot-node-filtrar",
+      "name": "Filtrar Mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://vcektwtpofypsgdgdjlx.supabase.co/rest/v1/bot_conversas?phone=like.*{{ $json.phone.slice(-11) }}&select=*&order=updated_at.desc&limit=1",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjZWt0d3Rwb2Z5cHNnZGdkamx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDM2NTgyNSwiZXhwIjoyMDg5OTQxODI1fQ.uuTk39oZ1JZW2BfsHytiwhO6f0kHk92AWX5WqKewulg" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjZWt0d3Rwb2Z5cHNnZGdkamx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDM2NTgyNSwiZXhwIjoyMDg5OTQxODI1fQ.uuTk39oZ1JZW2BfsHytiwhO6f0kHk92AWX5WqKewulg" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bot-node-buscar",
+      "name": "Buscar Conversa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const incoming = $('Filtrar Mensagem').first().json;\nconst convData = $input.first().json;\n\nconst conversa = Array.isArray(convData) ? (convData.length > 0 ? convData[0] : null) : (convData && convData.phone ? convData : null);\n\nlet mensagens = conversa?.mensagens ?? [];\nconst produtoTitulo = conversa?.produto_titulo ?? '';\nconst produtoPreco = parseFloat(conversa?.produto_preco ?? 0);\nconst descontoMax = parseInt(conversa?.desconto_max ?? 0);\nconst produtoId = conversa?.produto_id ?? null;\nconst clienteNome = conversa?.cliente_nome || incoming.senderName || '';\nconst ehSeminovo = conversa?.seminovo === true;\nconst produtoMarca = conversa?.produto_marca ?? null;\nconst descricao = conversa?.descricao ?? '';\nconst specs = conversa?.specs ?? null;\n\nmensagens = [...mensagens, { role: 'user', content: incoming.message }];\nif (mensagens.length > 20) mensagens = mensagens.slice(-20);\n\nconst cleaned = [];\nfor (const msg of mensagens) {\n  if (cleaned.length === 0 && msg.role !== 'user') continue;\n  if (cleaned.length > 0 && msg.role === cleaned[cleaned.length - 1].role) continue;\n  cleaned.push(msg);\n}\n\nconst fmt = (v) => 'R$ ' + parseFloat(v).toFixed(2).replace('.', ',');\nconst precoFmt = produtoPreco ? fmt(produtoPreco) : 'a confirmar';\nconst precoMinimo = descontoMax && produtoPreco\n  ? fmt(produtoPreco * (1 - descontoMax / 100))\n  : null;\n\nconst marcaNorm = (produtoMarca || '').toLowerCase();\nconst ehPousinox = !produtoMarca || marcaNorm === 'pousinox';\nconst ehTerceiro = marcaNorm === 'outro';\nconst ehRepresentado = !ehPousinox && !ehTerceiro;\n\nlet origemProduto;\nif (ehRepresentado) {\n  origemProduto = `produto da marca ${produtoMarca}, comercializado pela Pousinox`;\n} else if (ehTerceiro) {\n  origemProduto = 'equipamento de terceiros (adquirido pela Pousinox — fabricante não divulgado)';\n} else {\n  origemProduto = 'fabricado pela Pousinox';\n}\n\nconst estadoProduto = ehSeminovo\n  ? `SEMINOVO (usado, em bom estado — ${origemProduto})`\n  : `NOVO (${origemProduto})`;\n\nlet specsTexto = '';\nif (specs) {\n  const specsArr = Array.isArray(specs) ? specs : Object.entries(specs).map(([k, v]) => ({ k, v }));\n  if (specsArr.length > 0) {\n    specsTexto = '\\nESPECIFICAÇÕES TÉCNICAS:\\n' + specsArr.map(s => `- ${s.k}: ${s.v}`).join('\\n');\n  }\n}\nconst descricaoTexto = descricao ? `\\nDESCRIÇÃO: ${descricao}` : '';\n\nconst contextoProduto = produtoTitulo\n  ? `PRODUTO: ${produtoTitulo}\\nESTADO: ${estadoProduto}\\nPREÇO: ${precoFmt}\\n${descontoMax ? `LIMITE DE DESCONTO: ${descontoMax}% — mínimo aceito: ${precoMinimo}. NUNCA revele este percentual.` : 'Sem desconto para este produto.'}${descricaoTexto}${specsTexto}`\n  : 'Produto não identificado — pergunte ao cliente qual produto viu na página Pronta Entrega.';\n\nconst nomeCliente = clienteNome ? `CLIENTE: ${clienteNome}` : '';\n\nconst nowBRT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));\nconst hora = nowBRT.getHours();\nconst saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';\nconst periodoTexto = hora < 12 ? 'manhã' : hora < 18 ? 'tarde' : 'noite';\n\nconst systemPrompt = `Você é Bia, consultora de vendas da POUSINOX®, fábrica de equipamentos em aço inox em Pouso Alegre, MG. Seja cordial, direta e profissional. Use linguagem natural de WhatsApp.\\n\\n${contextoProduto}\\n${nomeCliente}\\nPERÍODO: ${periodoTexto} — use \"${saudacao}\" no início da primeira mensagem da conversa.\\n\\nCOMO SE COMPORTAR:\\n- Use o primeiro nome do cliente apenas na 1ª, 2ª mensagem e no fechamento. No restante, não use o nome\\n- NUNCA diga que um produto é novo se o estado for SEMINOVO. Seja honesto sobre o estado\\n- Se o ESTADO indicar que o produto é de outra marca, NUNCA diga que foi fabricado pela Pousinox\\n- Se o ESTADO indicar 'equipamento de terceiros', não revele o fabricante — trate apenas como equipamento usado em bom estado\\n- Se já sabe o produto, NUNCA peça para o cliente confirmar qual é. Você já tem essa informação\\n- Não repita o nome completo do produto — use 'ele', 'o equipamento', 'esse modelo'\\n- Respostas curtas, máximo 3 parágrafos. 1 emoji por mensagem no máximo\\n- Espelhe o estilo do cliente: se formal, seja formal; se descontraído, seja mais leve\\n\\nTÉCNICAS DE VENDAS (aplique naturalmente, nunca de forma robótica):\\n- Ancoragem de valor: destaque o VALOR do produto antes de falar o preço\\n- Prova social: mencione que o modelo tem saída constante ou é muito procurado\\n- Escassez: para produtos de pronta entrega, diga que o estoque é limitado\\n- Fechamento assumptivo: ao perceber interesse, aja como se a venda estivesse encaminhada ('Para confirmarmos, preciso do seu nome completo')\\n- Future pacing: ajude o cliente a se imaginar usando o produto\\n- Perguntas estratégicas: revele a necessidade antes de apresentar benefícios\\n\\nNEGOCIAÇÃO:\\n- Nunca revele o limite de desconto\\n- Nunca aceite abaixo do preço mínimo${precoMinimo ? ` (${precoMinimo})` : ''}\\n- Ofereça desconto só se o cliente pedir ou resistir. Faça em etapas pequenas\\n- Quando cliente aceitar o valor, peça nome completo e confirme retirada presencial na fábrica (sem entrega)\\n\\nAMBIGUIDADE:\\n- 'até amanhã', 'até logo' podem ser prazo OU despedida — analise o contexto. Se a conversa era sobre prazo, interprete como prazo\\n- Só encerre se o cliente confirmar compra ou desistência explícita\\n\\nESCALAÇÃO — regras obrigatórias quando não puder resolver:\\n- Inclua [ESCALAR] em algum lugar visível da sua resposta (pode ser no meio ou no final — o sistema irá removê-lo automaticamente antes de enviar ao cliente)\\n- Diga ao cliente que vai repassar para a equipe e que entrarão em contato por este WhatsApp — NUNCA peça telefone, e-mail ou 'melhor forma de contato' (você já tem o WhatsApp deles)\\n- NÃO use palavras informais como 'galera', 'pessoal', 'rapaziada'\\n- Use [ESCALAR] quando: cliente pede parcelamento; cliente está irritado ou agressivo; pergunta sobre garantia, assistência técnica ou entrega\\n\\nDÚVIDAS TÉCNICAS:\\n- Use as especificações disponíveis para responder sobre dimensões e características\\n- Se a informação não estiver disponível, use [ESCALAR] e diga que verifica com a equipe`;\n\nreturn [{ json: {\n  phone: incoming.phone,\n  senderName: incoming.senderName,\n  mensagens: cleaned,\n  systemPrompt,\n  produtoId,\n  produtoTitulo,\n  produtoPreco,\n  descontoMax\n}}];"
+      },
+      "id": "bot-node-montar",
+      "name": "Montar Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "ANTHROPIC_API_KEY_AQUI" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 500, system: $json.systemPrompt, messages: $json.mensagens }) }}",
+        "options": {}
+      },
+      "id": "bot-node-claude",
+      "name": "Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const claudeResp = $input.first().json;\nconst promptData = $('Montar Prompt').first().json;\n\nlet botResponse = claudeResp.content?.[0]?.text ?? 'Desculpe, tive um problema técnico. Pode repetir sua mensagem?';\n\n// Detectar [ESCALAR] em qualquer posição e remover\nconst escalado = botResponse.includes('[ESCALAR]');\nif (escalado) {\n  botResponse = botResponse.replace('[ESCALAR]', '').replace(/^\\s+/, '').trim();\n}\n\nconst mensagensAtualizadas = [...promptData.mensagens, { role: 'assistant', content: botResponse }];\n\nreturn [{ json: {\n  phone: promptData.phone,\n  senderName: promptData.senderName,\n  botResponse,\n  mensagens: mensagensAtualizadas,\n  produtoId: promptData.produtoId,\n  produtoTitulo: promptData.produtoTitulo,\n  produtoPreco: promptData.produtoPreco,\n  descontoMax: promptData.descontoMax,\n  escalado\n}}];"
+      },
+      "id": "bot-node-extrair",
+      "name": "Extrair Resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3F014370287EB1AB0ED286AA524A00CF/token/6FBA0FCAFFDF48D8EB5C5414/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Client-Token", "value": "F4ac7d6e0b24c463684ed01e82e71757fS" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $('Extrair Resposta').first().json.phone, message: $('Extrair Resposta').first().json.botResponse }) }}",
+        "options": {}
+      },
+      "id": "bot-node-zapi",
+      "name": "Enviar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1560, 160]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.escalado }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "bot-node-escalar",
+      "name": "Escalar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1560, 440]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3F014370287EB1AB0ED286AA524A00CF/token/6FBA0FCAFFDF48D8EB5C5414/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Client-Token", "value": "F4ac7d6e0b24c463684ed01e82e71757fS" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: '5535998260760', message: '🔴 *Escalonamento — Bot Negociação*\\n\\n👤 *Cliente:* ' + ($('Extrair Resposta').first().json.senderName || $('Extrair Resposta').first().json.phone) + '\\n📱 *WhatsApp:* ' + $('Extrair Resposta').first().json.phone + '\\n📦 *Produto:* ' + ($('Extrair Resposta').first().json.produtoTitulo || 'Não identificado') + '\\n\\n⚠️ O bot precisou de ajuda humana. Verifique a conversa.' }) }}",
+        "options": {}
+      },
+      "id": "bot-node-notificar-marco",
+      "name": "Notificar Marco",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 440]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://vcektwtpofypsgdgdjlx.supabase.co/rest/v1/bot_conversas?on_conflict=phone",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjZWt0d3Rwb2Z5cHNnZGdkamx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDM2NTgyNSwiZXhwIjoyMDg5OTQxODI1fQ.uuTk39oZ1JZW2BfsHytiwhO6f0kHk92AWX5WqKewulg" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjZWt0d3Rwb2Z5cHNnZGdkamx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDM2NTgyNSwiZXhwIjoyMDg5OTQxODI1fQ.uuTk39oZ1JZW2BfsHytiwhO6f0kHk92AWX5WqKewulg" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "resolution=merge-duplicates" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $('Extrair Resposta').first().json.phone, produto_id: $('Extrair Resposta').first().json.produtoId, produto_titulo: $('Extrair Resposta').first().json.produtoTitulo, produto_preco: $('Extrair Resposta').first().json.produtoPreco, desconto_max: $('Extrair Resposta').first().json.descontoMax, escalado: $('Extrair Resposta').first().json.escalado, mensagens: $('Extrair Resposta').first().json.mensagens, updated_at: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "bot-node-salvar",
+      "name": "Salvar Conversa",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 160]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Filtrar Mensagem", "type": "main", "index": 0 }]]
+    },
+    "Filtrar Mensagem": {
+      "main": [[{ "node": "Buscar Conversa", "type": "main", "index": 0 }]]
+    },
+    "Buscar Conversa": {
+      "main": [[{ "node": "Montar Prompt", "type": "main", "index": 0 }]]
+    },
+    "Montar Prompt": {
+      "main": [[{ "node": "Claude API", "type": "main", "index": 0 }]]
+    },
+    "Claude API": {
+      "main": [[{ "node": "Extrair Resposta", "type": "main", "index": 0 }]]
+    },
+    "Extrair Resposta": {
+      "main": [[
+        { "node": "Enviar WhatsApp", "type": "main", "index": 0 },
+        { "node": "Escalar?", "type": "main", "index": 0 }
+      ]]
+    },
+    "Enviar WhatsApp": {
+      "main": [[{ "node": "Salvar Conversa", "type": "main", "index": 0 }]]
+    },
+    "Escalar?": {
+      "main": [
+        [{ "node": "Notificar Marco", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

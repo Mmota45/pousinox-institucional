@@ -1,0 +1,308 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.uploadArea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+}
+
+.uploadInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.uploadTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.uploadDesc {
+  font-size: 0.78rem;
+  color: var(--color-text-light);
+  max-width: 560px;
+  line-height: 1.4;
+}
+
+.uploadBtn {
+  padding: 10px 20px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.uploadBtn:hover {
+  background: var(--color-primary-light);
+}
+
+.erro {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.vazio {
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+  padding: 32px 0;
+  text-align: center;
+}
+
+.arquivoInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+  flex-wrap: wrap;
+}
+
+.btnExport {
+  margin-left: auto;
+  padding: 6px 14px;
+  background: #f3f4f6;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnExport:hover {
+  background: #e5e7eb;
+}
+
+/* Cards */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cardLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cardValue {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--color-heading);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sub-abas */
+.subAbas {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--color-border);
+}
+
+.subAba {
+  padding: 8px 18px;
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+  font-family: var(--font-family);
+}
+
+.subAba:hover { color: var(--color-primary); }
+
+.subAbaAtiva {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* Box */
+.box {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  overflow-x: auto;
+}
+
+.boxTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  margin: 0 0 16px;
+}
+
+/* Mês bar chart */
+.mesRow {
+  display: grid;
+  grid-template-columns: 80px 1fr 140px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.mesRow:last-child { border-bottom: none; }
+
+.mesLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.mesBar {
+  height: 10px;
+  background: #f3f4f6;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.mesBarFill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 5px;
+  transition: width 0.4s ease;
+}
+
+.mesValor {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  text-align: right;
+}
+
+/* Tabela */
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.tabela th {
+  background: var(--color-bg);
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sortable:hover {
+  color: var(--color-primary);
+}
+
+.tabela td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: middle;
+}
+
+.tabela tr:last-child td { border-bottom: none; }
+.tabela tr:hover td { background: #fafafa; }
+
+.pos {
+  font-weight: 800;
+  color: var(--color-text-light);
+  font-size: 0.8rem;
+  width: 28px;
+}
+
+.descCell {
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clienteCell {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cnpj {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+.data {
+  white-space: nowrap;
+  font-size: 0.82rem;
+  color: var(--color-text-light);
+}
+
+.valor {
+  font-weight: 700;
+  color: #16a34a;
+  white-space: nowrap;
+}
+
+.pct {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .uploadArea { flex-direction: column; align-items: flex-start; }
+  .mesRow { grid-template-columns: 70px 1fr 110px; }
+}
+
+@media (max-width: 480px) {
+  .cards { grid-template-columns: 1fr 1fr; }
+}

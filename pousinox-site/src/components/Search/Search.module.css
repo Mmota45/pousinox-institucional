@@ -1,0 +1,319 @@
+/* ── Desktop: input inline na faixa 1 ── */
+.desktopBar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 7px 14px;
+  background: var(--color-bg);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  min-width: 0;
+  cursor: text;
+}
+
+.desktopBar:focus-within {
+  border-color: var(--color-primary);
+  background: var(--color-white);
+  box-shadow: 0 0 0 3px rgba(26, 95, 168, 0.1);
+}
+
+.desktopIcon {
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.desktopBar:focus-within .desktopIcon {
+  color: var(--color-primary);
+}
+
+.desktopInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.88rem;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  min-width: 0;
+}
+
+.desktopInput::placeholder {
+  color: #9ca3af;
+}
+
+.desktopInput::-webkit-search-cancel-button {
+  display: none;
+}
+
+.desktopClear {
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  padding: 2px;
+  border-radius: 50%;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.desktopClear:hover {
+  color: var(--color-text);
+}
+
+/* ── Mobile: ícone de lupa ── */
+.mobileBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-text-light);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.mobileBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ── Backdrop ── */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1099;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+}
+
+/* ── Overlay de resultados ── */
+.overlay {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  z-index: 1100;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  max-height: calc(100vh - var(--header-height));
+  max-height: calc(100dvh - var(--header-height));
+  overflow-y: auto;
+  padding: 20px 0 28px;
+}
+
+/* Input no overlay — visível apenas no mobile */
+.mobileInputRow {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 0 0 4px rgba(26, 95, 168, 0.08);
+}
+
+.mobileInputIcon {
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mobileInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: transparent;
+  min-width: 0;
+}
+
+.mobileInput::placeholder { color: #9ca3af; }
+.mobileInput::-webkit-search-cancel-button { display: none; }
+
+.closeBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 3px 8px;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.closeBtn:hover {
+  border-color: #6b7280;
+  color: var(--color-text);
+}
+
+.escLabel { font-size: 0.68rem; }
+
+/* Dica inicial */
+.hint {
+  font-size: 0.85rem;
+  color: var(--color-text-light);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+/* ── Resultados ── */
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.empty {
+  font-size: 0.9rem;
+  color: var(--color-text-light);
+  padding: 8px 0;
+  margin: 0;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.groupLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--color-text-light);
+  padding: 0 0 6px;
+  display: block;
+}
+
+.resultItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s;
+}
+
+.resultItem:hover {
+  background: var(--color-bg);
+}
+
+.resultIcon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  flex-shrink: 0;
+  color: var(--color-text-light);
+  margin-top: 1px;
+}
+
+.resultText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resultTitle {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.3;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resultSub {
+  font-size: 0.76rem;
+  color: var(--color-text-light);
+  line-height: 1.4;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.resultBadge {
+  font-size: 0.67rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.resultBadge[data-type="blog"]     { background: #eff6ff; color: #1d4ed8; }
+.resultBadge[data-type="segmento"] { background: #f0fdf4; color: #15803d; }
+.resultBadge[data-type="pagina"]   { background: #fdf4ff; color: #7e22ce; }
+.resultBadge[data-type="produto"]  { background: #fff7ed; color: #c2410c; }
+
+/* ── Mobile ── */
+@media (max-width: 900px) {
+  /* Esconde input inline no desktop */
+  .desktopBar {
+    display: none;
+  }
+
+  /* Mostra ícone no mobile */
+  .mobileBtn {
+    display: flex;
+  }
+
+  /* Mostra input dentro do overlay no mobile */
+  .mobileInputRow {
+    display: flex;
+  }
+
+  .overlay {
+    padding: 14px 0 24px;
+  }
+
+  .resultBadge {
+    display: none;
+  }
+
+  .resultSub {
+    display: none;
+  }
+
+  .resultTitle {
+    white-space: normal;
+  }
+}

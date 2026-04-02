@@ -1,0 +1,83 @@
+/* ─── Footer ─────────────────────────────────────────────────── */
+.footer {
+  background-color: #0a1628;
+}
+
+/* ─── Faixa de horário ────────────────────────────────────────── */
+.horarioBar {
+  background: rgba(10, 20, 40, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 12px;
+}
+
+.horarioTitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.3px;
+}
+
+.horarioItem {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.50);
+}
+
+.horarioSep {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* ─── Barra inferior — igual ao heroStatsBar ──────────────────── */
+.bottomBar {
+  background: rgba(10, 20, 40, 0.22);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.copyright {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.dev {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.28);
+  text-align: center;
+}
+
+.devLink {
+  color: rgba(255, 255, 255, 0.40);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.devLink:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ─── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .horarioSep {
+    display: none;
+  }
+
+  .horarioBar {
+    flex-direction: column;
+    gap: 3px;
+  }
+}

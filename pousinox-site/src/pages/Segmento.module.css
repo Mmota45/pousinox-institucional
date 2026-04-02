@@ -1,0 +1,249 @@
+.hero {
+  position: relative;
+  min-height: 480px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  padding: 120px 0 80px;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, rgba(5, 15, 30, 0.82) 0%, rgba(5, 15, 30, 0.5) 100%);
+}
+
+.heroInner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.heroInner h1,
+.heroInner p,
+.heroInner a {
+  max-width: 640px;
+}
+
+.breadcrumb {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.2s;
+  align-self: flex-start;
+}
+
+.breadcrumb:hover {
+  color: #fff;
+}
+
+.heroTitle {
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.15;
+}
+
+.heroTagline {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+  max-width: 520px;
+}
+
+.heroCta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.btnOutlineHero {
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btnOutlineHero:hover {
+  color: var(--color-primary);
+}
+
+/* Intro */
+.introSection {
+  background: var(--color-bg);
+}
+
+.introText {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--color-text);
+  max-width: 800px;
+}
+
+/* Produtos */
+.produtosSection {
+  background: var(--color-white);
+}
+
+.sectionTitle {
+  margin-bottom: 32px;
+}
+
+.produtosGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.produtoItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.produtoItem svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.produtosCta {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 24px;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.produtosCta p {
+  flex: 1;
+  font-size: 0.95rem;
+  color: var(--color-text-light);
+  margin: 0;
+}
+
+/* Benefícios */
+.benefSection {
+  background: var(--color-bg);
+}
+
+.benefGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.benefCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.benefIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
+  background: rgba(var(--color-primary-rgb, 10, 80, 40), 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+}
+
+.benefTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.benefText {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--color-text-light);
+}
+
+/* CTA */
+.ctaSection {
+  background: var(--color-primary);
+  padding: 80px 0;
+}
+
+.ctaBox {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.ctaTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  max-width: 620px;
+}
+
+.ctaSubtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.ctaActions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .produtosGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    min-height: 400px;
+    padding: 100px 0 60px;
+  }
+
+  .heroTitle {
+    font-size: 1.9rem;
+  }
+
+  .produtosGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .produtosCta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .benefGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ctaTitle {
+    font-size: 1.5rem;
+  }
+}

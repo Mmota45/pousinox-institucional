@@ -1,0 +1,263 @@
+.page {
+  padding-top: var(--header-height);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.pageHeader {
+  background: var(--color-primary);
+  padding: 56px 0;
+  text-align: left;
+}
+
+.pageTitle {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--color-white);
+  margin-bottom: 12px;
+}
+
+.pageSubtitle {
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.75);
+  max-width: 480px;
+  margin: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 48px;
+  padding-top: 56px;
+  padding-bottom: 80px;
+  align-items: start;
+}
+
+/* Form section */
+.formSection {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.formTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.formDesc {
+  font-size: 0.95rem;
+  color: var(--color-text-light);
+  line-height: 1.6;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formGroup label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.input {
+  padding: 12px 16px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius);
+  font-family: var(--font-family);
+  font-size: 0.95rem;
+  color: var(--color-text);
+  background: var(--color-white);
+  transition: border-color 0.2s;
+  outline: none;
+  width: 100%;
+  appearance: auto;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+}
+
+.input::placeholder {
+  color: var(--color-silver);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.labelOpcional {
+  font-weight: 400;
+  color: var(--color-text-light);
+  font-size: 0.85rem;
+}
+
+.fileInput {
+  padding: 10px 12px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+
+.fileInput:hover {
+  border-color: var(--color-primary);
+}
+
+.fileHint {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+  margin: 0;
+}
+
+.errorMsg {
+  font-size: 0.9rem;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+
+/* Success */
+.successBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  padding: 48px 32px;
+  background: var(--color-bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.successBox h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.successBox p {
+  font-size: 0.95rem;
+  color: var(--color-text-light);
+}
+
+/* Info sidebar */
+.infoSide {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: sticky;
+  top: calc(var(--header-height) + 24px);
+}
+
+.waCard {
+  background: var(--color-primary);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.waTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-white);
+}
+
+.waCard p {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+}
+
+.contactCard {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+}
+
+.contactCardTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 20px;
+}
+
+.contactList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contactList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.contactList svg {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  margin-top: 2px;
+}
+
+.contactList div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.contactList strong {
+  font-size: 0.85rem;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.contactList span {
+  font-size: 0.9rem;
+  color: var(--color-text-light);
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .infoSide {
+    position: static;
+    order: -1;
+  }
+}
+
+@media (max-width: 600px) {
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "name": "Contato — Lead Formulário",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contato-lead",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "contato-lead"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\nconst form = raw.body?.form_data ? JSON.parse(raw.body.form_data) : (raw.body ?? raw);\nconst now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n\nreturn [{ json: {\n  nome: form.nome ?? form.name ?? '',\n  email: form.email ?? '',\n  telefone: form.telefone ?? form.phone ?? '',\n  segmento: form.segmento ?? '',\n  mensagem: form.mensagem ?? form.message ?? '',\n  timestamp: now\n}}];"
+      },
+      "id": "node-extrair",
+      "name": "Extrair Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1lY3THxgWzrKOaD9b_5CCo40dul7xgNokKCI1ljXpINQ",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $json.telefone }}",
+            "name": "={{ $json.nome }}",
+            "status": "ativo",
+            "stage": "contato",
+            "source": "formulario-site",
+            "tags": "={{ $json.segmento }}",
+            "first_contact_at": "={{ $json.timestamp }}",
+            "last_interaction_at": "={{ $json.timestamp }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "node-upsert",
+      "name": "Salvar Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [680, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "SELECIONE SUA CREDENCIAL GOOGLE"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Extrair Dados", "type": "main", "index": 0 }]]
+    },
+    "Extrair Dados": {
+      "main": [[{ "node": "Salvar Lead", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(cmd /c \"start /B npm run dev -- --host\" 2>&1)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/pousinox-site/)",
+      "Bash(python3:*)",
+      "Bash(node:*)",
+      "Bash(cmd /c \"node -e \\\\\"const fs=require\\('fs'\\);const buf=fs.readFileSync\\('C:/Users/marco/Downloads/Logomarca_Pousinox.png'\\);console.log\\('Color type:',buf[25],buf[25]===6?'RGBA - tem transparencia':'RGB - sem transparencia'\\);\\\\\"\")",
+      "Bash(powershell -Command \"$buf = [System.IO.File]::ReadAllBytes\\('C:\\\\Users\\\\marco\\\\Downloads\\\\Logomarca_Pousinox.png'\\); Write-Host 'Color type byte:' $buf[25]; if \\($buf[25] -eq 6\\) { Write-Host 'RGBA - tem fundo transparente!' } else { Write-Host 'RGB - sem transparencia, fundo branco' }\")",
+      "Bash(powershell -Command \"$buf = [System.IO.File]::ReadAllBytes\\('C:\\\\Users\\\\marco\\\\Downloads\\\\Logomarca_Pousinox.png'\\); $ct = $buf[25]; Write-Host \\\\\"Color type: $ct\\\\\"; if \\($ct -eq 6\\) { Write-Host 'RGBA - tem fundo transparente!' } else { Write-Host 'RGB - sem transparencia' }\")",
+      "Bash(xxd C:/Users/marco/Downloads/Logomarca_Pousinox.png)",
+      "WebFetch(domain:www.hoshizakimacom.com.br)",
+      "WebSearch",
+      "Bash(python -c \"from PIL import Image; img = Image.open\\(''hero4.png''\\); img.save\\(''hero4.webp'', ''WEBP'', quality=82\\); print\\(''OK''\\)\")",
+      "Bash(cwebp -q 82 \"C:/Users/marco/Pousinox_Site/pousinox-site/src/assets/hero4.png\" -o \"C:/Users/marco/Pousinox_Site/pousinox-site/src/assets/hero4.webp\")",
+      "Bash(magick \"C:/Users/marco/Pousinox_Site/pousinox-site/src/assets/hero4.png\" -quality 82 \"C:/Users/marco/Pousinox_Site/pousinox-site/src/assets/hero4.webp\")",
+      "Bash(ASSETS=\"C:/Users/marco/Pousinox_Site/pousinox-site/src/assets\")",
+      "Bash(DL=\"C:/Users/marco/Downloads\")",
+      "Bash(__NEW_LINE_c1edb5e69e9d282e__ cp:*)",
+      "Bash(cp \"$DL/Construção Civil_gradiente.webp\" \"$ASSETS/cat-construcao.webp\")",
+      "Bash(cp \"$DL/Hotelaria e Catering_hero.webp\" \"$ASSETS/hero-hotelaria.webp\")",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)"
+    ]
+  }
+}

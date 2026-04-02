@@ -1,0 +1,386 @@
+/* Hero */
+.hero {
+  position: relative;
+  min-height: 480px;
+  background: url('/laser-corte-pousinox.webp') center top / cover no-repeat;
+  display: flex;
+  align-items: center;
+  padding: 120px 0 80px;
+  overflow: hidden;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(10, 20, 35, 0.82) 0%,
+    rgba(10, 20, 35, 0.45) 55%,
+    rgba(10, 20, 35, 0.15) 100%
+  );
+  z-index: 1;
+}
+
+.heroInner {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 560px;
+}
+
+.heroEyebrow {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-silver);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.heroTitle {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: var(--color-white);
+  line-height: 1.05;
+  letter-spacing: -1px;
+  margin: 0;
+}
+
+.heroSubtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.7;
+  border-left: 3px solid var(--color-silver);
+  padding-left: 12px;
+}
+
+.heroCta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.btnOutlineHero {
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btnOutlineHero:hover {
+  color: var(--color-primary);
+}
+
+/* Aplicações */
+.aplicacoesSection {
+  background: var(--color-white);
+}
+
+.sectionHead {
+  text-align: center;
+  margin-bottom: 48px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.aplicacoesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.aplicacaoCard {
+  padding: 28px 24px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.aplicacaoCard:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+}
+
+.aplicacaoIcon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius);
+  background: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.aplicacaoTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.aplicacaoDesc {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--color-text-light);
+}
+
+/* Materiais */
+.materiaisSection {
+  background: var(--color-bg);
+}
+
+.materiaisGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.materialCard {
+  padding: 28px 24px;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-top: 3px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.materialNome {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.materialDetalhe {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-light);
+  margin: 0;
+}
+
+/* Indústrias */
+.industriasSection {
+  background: var(--color-white);
+}
+
+.industriasInner {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+
+.industriasTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.industriasIntro {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--color-text-light);
+  margin: 0;
+}
+
+.industriasList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.industriasItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.industriasItem svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+/* Vantagens */
+.vantagensSection {
+  background: var(--color-bg);
+}
+
+.vantagensGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+}
+
+.vantagensTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.eyebrow {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.vantagensIntro {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--color-text-light);
+  margin: 0;
+}
+
+.vantagensList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.vantagemItem {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.vantagemItem svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.vantagemItem strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.vantagemItem p {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-light);
+  margin: 0;
+}
+
+.vantagensVideo {
+  position: relative;
+  padding-bottom: 56.25%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.videoFrame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* CTA */
+.ctaSection {
+  background: var(--color-primary);
+  padding: 80px 0;
+}
+
+.ctaBox {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.ctaTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  max-width: 560px;
+}
+
+.ctaSubtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  max-width: 520px;
+}
+
+.ctaActions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .aplicacoesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .materiaisGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    min-height: 380px;
+    padding: 100px 0 60px;
+  }
+
+  .heroTitle {
+    font-size: 2.2rem;
+  }
+
+  .aplicacoesGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .materiaisGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .industriasInner {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .vantagensGrid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .vantagensVideo {
+    order: -1;
+  }
+
+  .ctaTitle {
+    font-size: 1.5rem;
+  }
+}

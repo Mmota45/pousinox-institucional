@@ -1,0 +1,246 @@
+{
+  "name": "Outlet — Interesse WhatsApp",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "outlet-interesse",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "outlet-interesse"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst record = body.record;\n\nreturn [{ json: {\n  produto_id: record.produto_id,\n  cliente_nome: record.cliente_nome,\n  cliente_whatsapp: record.cliente_whatsapp,\n  foto_url: record.foto_url ?? null,\n  produto_titulo: record.produto_titulo ?? null,\n  produto_disponivel: record.produto_disponivel ?? true,\n  produto_marca: record.produto_marca ?? null\n}}];"
+      },
+      "id": "node-extrair",
+      "name": "Extrair Dados",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://vcektwtpofypsgdgdjlx.supabase.co/rest/v1/produtos?id=eq.{{ $json.produto_id }}&select=titulo,preco,preco_original,desconto_max,seminovo,descricao,specs,marca",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjZWt0d3Rwb2Z5cHNnZGdkamx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDM2NTgyNSwiZXhwIjoyMDg5OTQxODI1fQ.uuTk39oZ1JZW2BfsHytiwhO6f0kHk92AWX5WqKewulg"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjZWt0d3Rwb2Z5cHNnZGdkamx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDM2NTgyNSwiZXhwIjoyMDg5OTQxODI1fQ.uuTk39oZ1JZW2BfsHytiwhO6f0kHk92AWX5WqKewulg"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-supabase",
+      "name": "Buscar Produto",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawData = $input.first().json;\nconst produto = Array.isArray(rawData) ? rawData[0] : rawData;\nconst dados = $('Extrair Dados').first().json;\n\nlet phone = dados.cliente_whatsapp.replace(/\\D/g, '');\nif (phone.length === 10 || phone.length === 11) phone = '55' + phone;\nif (phone.length === 12 && phone.startsWith('55')) phone = phone.slice(0,4) + '9' + phone.slice(4);\n\nconst fmt = (v) => 'R$ ' + parseFloat(v).toFixed(2).replace('.', ',');\n\n// Tipo do produto\nconst ehRepresentacao = !dados.produto_disponivel && dados.produto_marca !== null;\nconst ehSobEncomenda  = !dados.produto_disponivel && dados.produto_marca === null;\nconst ehProntaEntrega =  dados.produto_disponivel;\n\n// Preço exibido: sempre o preço original\nconst precoExibido = produto.preco_original || produto.preco;\nlet precoLinha = '';\nif (precoExibido) {\n  precoLinha = `\\n💰 *Valor: ${fmt(precoExibido)}*`;\n}\n\n// Horário de atendimento\nconst nowBRT = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));\nconst day = nowBRT.getDay();\nconst t = nowBRT.getHours() * 60 + nowBRT.getMinutes();\nconst manha = t >= 7*60+30 && t < 11*60+30;\nconst tarde = t >= 13*60+15 && t < (day === 5 ? 17*60 : 18*60);\nconst aberto = day >= 1 && day <= 5 && (manha || tarde);\n\nconst horarioBloco = aberto\n  ? ``\n  : `\\n⏰ *Horário de atendimento:*\\n` +\n    `Seg a Qui: 7h30–11h30 / 13h15–18h\\n` +\n    `Sex: 7h30–11h30 / 13h15–17h\\n` +\n    `Sáb, Dom e Feriados: fechado\\n`;\n\n// Mensagem para o CLIENTE\nlet msgCliente = '';\n\nif (ehRepresentacao) {\n  msgCliente =\n    `Olá, *${dados.cliente_nome}*! 👋\\n\\n` +\n    `Você demonstrou interesse em:\\n` +\n    `📦 *${dados.produto_titulo}* (${dados.produto_marca})` +\n    precoLinha + `\\n\\n` +\n    `Este é um produto de representação — entraremos em contato para confirmar disponibilidade e prazo de entrega.\\n\\n` +\n    `Em breve nossa equipe fala com você! 🏭`;\n} else if (ehSobEncomenda) {\n  msgCliente =\n    `Olá, *${dados.cliente_nome}*! 👋\\n\\n` +\n    `Você demonstrou interesse em:\\n` +\n    `📦 *${dados.produto_titulo}*` +\n    precoLinha + `\\n\\n` +\n    `Fabricamos este produto sob encomenda — entraremos em contato para confirmar detalhes e prazo de fabricação.\\n\\n` +\n    `Em breve nossa equipe fala com você! 🏭`;\n} else {\n  msgCliente =\n    `Olá, *${dados.cliente_nome}*! 👋\\n\\n` +\n    `Você demonstrou interesse em:\\n` +\n    `📦 *${dados.produto_titulo}*` +\n    precoLinha + `\\n\\n` +\n    `📍 *Retire na fábrica:*\\n` +\n    `Pousinox — Pouso Alegre, MG\\n` +\n    `📌 https://maps.app.goo.gl/bNAwCL7Jz4n3pJZx8` +\n    horarioBloco +\n    `\\n⚡ *Estoque limitado — garanta o seu antes que acabe.*\\n\\n` +\n    `Qualquer dúvida estamos à disposição. 😊`;\n}\n\n// Tipo para notificação interna\nconst tipoLabel = ehRepresentacao\n  ? `Representação (${dados.produto_marca})`\n  : ehSobEncomenda\n  ? 'Sob encomenda'\n  : 'Pronta entrega';\n\nconst msgMarco =\n  `🔔 *Novo interesse no Outlet!*\\n\\n` +\n  `📦 *Produto:* ${dados.produto_titulo}\\n` +\n  `🏷️ *Tipo:* ${tipoLabel}\\n` +\n  `👤 *Cliente:* ${dados.cliente_nome}\\n` +\n  `📱 *WhatsApp:* ${dados.cliente_whatsapp}` +\n  (produto.preco ? `\\n💰 *Preço:* ${fmt(produto.preco)}` : '');\n\nconst now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n\nreturn [{ json: {\n  phone_cliente: phone,\n  phone_marco: '5535998260760',\n  msg_cliente: msgCliente,\n  msg_marco: msgMarco,\n  foto_url: dados.foto_url ?? null,\n  sheet_phone: (() => { const d = dados.cliente_whatsapp.replace(/\\D/g, ''); const l = d.startsWith('55') && d.length >= 12 ? d.slice(2) : d; return l.length === 11 ? `(${l.slice(0,2)}) ${l.slice(2,7)}-${l.slice(7)}` : l.length === 10 ? `(${l.slice(0,2)}) ${l.slice(2,6)}-${l.slice(6)}` : dados.cliente_whatsapp; })(),\n  sheet_name: dados.cliente_nome,\n  sheet_tag: dados.produto_titulo,\n  sheet_timestamp: now,\n  produto_id: dados.produto_id,\n  produto_preco: produto.preco_original || produto.preco || 0,\n  desconto_max: produto.desconto_max || 0,\n  seminovo: produto.seminovo || false,\n  descricao: produto.descricao || '',\n  specs: produto.specs || null,\n  produto_marca: produto.marca || dados.produto_marca || null\n}}];"
+      },
+      "id": "node-code",
+      "name": "Formatar Mensagens",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('Formatar Mensagens').first().json.foto_url }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "node-if-foto",
+      "name": "Tem foto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3F014370287EB1AB0ED286AA524A00CF/token/6FBA0FCAFFDF48D8EB5C5414/send-image",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Client-Token",
+              "value": "F4ac7d6e0b24c463684ed01e82e71757fS"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $('Formatar Mensagens').first().json.phone_cliente, image: $('Formatar Mensagens').first().json.foto_url, caption: $('Formatar Mensagens').first().json.msg_cliente }) }}",
+        "options": {}
+      },
+      "id": "node-wa-cliente-img",
+      "name": "WhatsApp Cliente (imagem)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3F014370287EB1AB0ED286AA524A00CF/token/6FBA0FCAFFDF48D8EB5C5414/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Client-Token",
+              "value": "F4ac7d6e0b24c463684ed01e82e71757fS"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $('Formatar Mensagens').first().json.phone_cliente, message: $('Formatar Mensagens').first().json.msg_cliente }) }}",
+        "options": {}
+      },
+      "id": "node-wa-cliente",
+      "name": "WhatsApp Cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1340, 420]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/3F014370287EB1AB0ED286AA524A00CF/token/6FBA0FCAFFDF48D8EB5C5414/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Client-Token",
+              "value": "F4ac7d6e0b24c463684ed01e82e71757fS"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $('Formatar Mensagens').first().json.phone_marco, message: $('Formatar Mensagens').first().json.msg_marco }) }}",
+        "options": {}
+      },
+      "id": "node-wa-marco",
+      "name": "WhatsApp Marco",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 500]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://vcektwtpofypsgdgdjlx.supabase.co/rest/v1/bot_conversas?on_conflict=phone",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjZWt0d3Rwb2Z5cHNnZGdkamx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDM2NTgyNSwiZXhwIjoyMDg5OTQxODI1fQ.uuTk39oZ1JZW2BfsHytiwhO6f0kHk92AWX5WqKewulg" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjZWt0d3Rwb2Z5cHNnZGdkamx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDM2NTgyNSwiZXhwIjoyMDg5OTQxODI1fQ.uuTk39oZ1JZW2BfsHytiwhO6f0kHk92AWX5WqKewulg" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "resolution=merge-duplicates" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone_cliente, cliente_nome: $json.sheet_name, produto_id: $json.produto_id, produto_titulo: $json.sheet_tag, produto_preco: $json.produto_preco, desconto_max: $json.desconto_max, seminovo: $json.seminovo, descricao: $json.descricao, specs: $json.specs, produto_marca: $json.produto_marca, mensagens: [], updated_at: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "node-criar-contexto-bot",
+      "name": "Criar Contexto Bot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 860]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1lY3THxgWzrKOaD9b_5CCo40dul7xgNokKCI1ljXpINQ",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "phone": "={{ $('Formatar Mensagens').first().json.sheet_phone }}",
+            "name": "={{ $('Formatar Mensagens').first().json.sheet_name }}",
+            "status": "ativo",
+            "stage": "interesse",
+            "source": "outlet",
+            "tags": "={{ $('Formatar Mensagens').first().json.sheet_tag }}",
+            "timestamp": "={{ $('Formatar Mensagens').first().json.sheet_timestamp }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "node-upsert",
+      "name": "Salvar Lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1120, 680],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Extrair Dados", "type": "main", "index": 0 }]]
+    },
+    "Extrair Dados": {
+      "main": [[{ "node": "Buscar Produto", "type": "main", "index": 0 }]]
+    },
+    "Buscar Produto": {
+      "main": [[{ "node": "Formatar Mensagens", "type": "main", "index": 0 }]]
+    },
+    "Formatar Mensagens": {
+      "main": [[
+        { "node": "Criar Contexto Bot", "type": "main", "index": 0 }
+      ]]
+    },
+    "Criar Contexto Bot": {
+      "main": [[
+        { "node": "Tem foto?", "type": "main", "index": 0 },
+        { "node": "WhatsApp Marco", "type": "main", "index": 0 },
+        { "node": "Salvar Lead", "type": "main", "index": 0 }
+      ]]
+    },
+    "Tem foto?": {
+      "main": [
+        [{ "node": "WhatsApp Cliente (imagem)", "type": "main", "index": 0 }],
+        [{ "node": "WhatsApp Cliente", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" }
+}

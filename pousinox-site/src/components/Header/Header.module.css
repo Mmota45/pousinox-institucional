@@ -1,0 +1,379 @@
+/* ── Header container ── */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
+  transition: box-shadow 0.2s ease;
+}
+
+.header.scrolled {
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* ── Horário inline (Pronta Entrega, desktop) ── */
+.horarioInline {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.68rem;
+  color: var(--color-text-muted, #64748b);
+  flex: 1;
+  border-left: 1px solid var(--color-border);
+  padding-left: 12px;
+}
+
+/* ── Faixa 1: Logo + Busca + Redes ── */
+.topBar {
+  height: 56px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.topInner {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: 16px;
+}
+
+/* Logo */
+.logo {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.logoImg {
+  height: 100px;
+  width: auto;
+  margin-top: -38px;
+  margin-bottom: -38px;
+  display: block;
+}
+
+/* Redes sociais — desktop only */
+.socialIcons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.socialIconLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.socialIconLink:hover {
+  opacity: 0.75;
+  transform: translateY(-1px);
+}
+
+/* Mobile actions — hidden on desktop */
+.mobileActions {
+  display: none;
+}
+
+/* ── Faixa 2: Navegação (desktop) ── */
+.navBar {
+  height: 48px;
+}
+
+.navInner {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: 0;
+}
+
+/* Nav links */
+.navLink {
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text);
+  border-radius: var(--radius);
+  transition: var(--transition);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.navLink:hover {
+  color: var(--color-primary);
+  background: var(--color-bg);
+}
+
+.navLinkActive {
+  color: var(--color-primary);
+  background: var(--color-bg);
+  font-weight: 600;
+}
+
+@keyframes outletPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.55); }
+  70%  { box-shadow: 0 0 0 8px rgba(249, 115, 22, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+}
+
+.navLinkOutlet {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 13px;
+  background: #fff7ed;
+  color: #f97316;
+  border: 1.5px solid #f97316;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  margin-left: auto;
+  animation: outletPulse 2s ease-out infinite;
+}
+
+.navLinkOutlet:hover {
+  background: #f97316;
+  color: #fff;
+  animation: none;
+}
+
+/* Dropdown Produtos */
+.dropdown {
+  position: relative;
+}
+
+.dropdownTrigger {
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-family: var(--font-family);
+}
+
+.chevron {
+  transition: transform 0.2s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  padding: 8px;
+  min-width: 280px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-4px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 100;
+}
+
+.dropdownMenuOpen {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.dropdownItem {
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-text);
+  border-radius: var(--radius);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.dropdownItem:hover {
+  background: var(--color-bg);
+  color: var(--color-primary);
+}
+
+/* Mobile nav — hidden on desktop, fixed overlay on mobile */
+.mobileNav {
+  display: none;
+}
+
+/* Hamburger — hidden on desktop */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.bar {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--color-primary);
+  border-radius: 2px;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.barOpen1 { transform: translateY(7px) rotate(45deg); }
+.barOpen2 { opacity: 0; transform: scaleX(0); }
+.barOpen3 { transform: translateY(-7px) rotate(-45deg); }
+
+/* Mobile outlet badge — hidden on desktop */
+.mobileOutletBadge {
+  display: none;
+}
+
+/* ── Mobile ── */
+@media (max-width: 900px) {
+  /* Header vira 1 faixa só */
+  .topBar {
+    height: 76px;
+    border-bottom: none;
+  }
+
+  /* Faixa 2 some no mobile */
+  .navBar {
+    display: none;
+  }
+
+  /* Redes sociais somem no mobile */
+  .socialIcons {
+    display: none;
+  }
+
+  /* Mobile actions aparecem */
+  .mobileActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  .mobileOutletBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 11px;
+    background: #fff7ed;
+    color: #f97316;
+    border: 1.5px solid #f97316;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    animation: outletPulse 2s ease-out infinite;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+
+  /* Mobile nav — slide from right */
+  .mobileNav {
+    display: flex;
+    position: fixed;
+    top: 76px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--color-white);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 24px;
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    z-index: 998;
+  }
+
+  .mobileNavOpen {
+    transform: translateX(0);
+  }
+
+  .mobileNav .navLink {
+    padding: 16px;
+    font-size: 1.1rem;
+    border-bottom: 1px solid var(--color-border);
+    border-radius: 0;
+  }
+
+  .mobileNav .navLinkOutlet {
+    background: none;
+    border: none;
+    border-radius: 0;
+    border-bottom: 1px solid var(--color-border);
+    padding: 16px;
+    font-size: 1.1rem;
+    animation: none;
+    margin-left: 0;
+    color: #f97316;
+  }
+
+  .mobileNav .dropdown {
+    width: 100%;
+  }
+
+  .mobileNav .dropdownTrigger {
+    width: 100%;
+    padding: 16px;
+    font-size: 1.1rem;
+    border-bottom: 1px solid var(--color-border);
+    border-radius: 0;
+    justify-content: space-between;
+  }
+
+  .mobileNav .dropdownMenu {
+    position: static;
+    transform: none;
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    grid-template-columns: 1fr;
+    padding: 0 0 0 16px;
+    background: var(--color-bg);
+    opacity: 1;
+    pointer-events: auto;
+    display: none;
+  }
+
+  .mobileNav .dropdownMenuOpen {
+    display: grid;
+    transform: none;
+  }
+
+  .mobileNav .dropdownItem {
+    font-size: 1rem;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--color-border);
+    border-radius: 0;
+    white-space: normal;
+  }
+}

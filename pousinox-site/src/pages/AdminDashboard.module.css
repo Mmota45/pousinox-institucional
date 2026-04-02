@@ -1,0 +1,126 @@
+.loading {
+  padding: 40px 0;
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+}
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cardLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+  min-height: 2.8em;
+}
+
+.cardValue {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--color-heading);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.box {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.boxTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  margin: 0 0 16px;
+}
+
+.alertaItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.88rem;
+}
+
+.alertaItem:last-child { border-bottom: none; }
+
+.alertaQtd {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f97316;
+  background: #fff7ed;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.topItem {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.88rem;
+}
+
+.topItem:last-child { border-bottom: none; }
+
+.topPos {
+  font-weight: 800;
+  color: var(--color-text-light);
+  font-size: 0.8rem;
+}
+
+.topTitulo {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.topInfo {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .grid2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 500px) {
+  .cards { grid-template-columns: 1fr; }
+}
