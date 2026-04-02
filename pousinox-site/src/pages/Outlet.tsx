@@ -58,7 +58,7 @@ export default function Outlet() {
   const [categoriaFiltro, setCategoriaFiltro] = useState('Todos')
 
   async function compartilhar(produto: ProdutoPublico) {
-    const url = `https://vcektwtpofypsgdgdjlx.supabase.co/functions/v1/og-produto?id=${produto.id}`
+    const url = `https://pousinox.com.br/produto/${produto.id}`
     const text = produto.fabricante
       ? `${produto.titulo} — fabricado por ${produto.fabricante}, vendido pela POUSINOX®, Pouso Alegre, MG.`
       : produto.marca
