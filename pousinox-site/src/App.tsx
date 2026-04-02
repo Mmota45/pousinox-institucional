@@ -37,6 +37,14 @@ function App() {
   const location = useLocation()
   const isAdmin = location.pathname.startsWith('/admin')
 
+  // Troca manifest e título PWA conforme seção (site vs admin)
+  useEffect(() => {
+    const link = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null
+    const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement | null
+    if (link) link.href = isAdmin ? '/admin-manifest.json' : '/manifest.json'
+    if (appleTitle) appleTitle.content = isAdmin ? 'Admin' : 'Pousinox'
+  }, [isAdmin])
+
   // Rastreia cliques no WhatsApp
   useEffect(() => {
     function handleClick(e: MouseEvent) {

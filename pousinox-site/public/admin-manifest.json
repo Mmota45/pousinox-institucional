@@ -1,0 +1,27 @@
+{
+  "name": "Pousinox Admin",
+  "short_name": "Admin",
+  "description": "Painel de gestão Pousinox — Outlet, Estoque e Analytics",
+  "start_url": "/admin",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/favicon-pousinox.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-pousinox.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"]
+}
