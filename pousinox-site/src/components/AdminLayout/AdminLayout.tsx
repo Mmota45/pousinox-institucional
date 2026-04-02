@@ -155,6 +155,7 @@ export default function AdminLayout() {
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [verSenha, setVerSenha] = useState(false)
   const [tabelaPendente, setTabelaPendente] = useState(false)
   const [ocultarValores, setOcultarValores] = useState(false)
 
@@ -431,14 +432,30 @@ export default function AdminLayout() {
             onChange={e => { setEmail(e.target.value); setErro('') }}
             className={`${styles.loginInput} ${erro ? styles.loginInputErro : ''}`}
           />
-          <input
-            type="password"
-            placeholder="Senha"
-            value={senha}
-            autoComplete="new-password"
-            onChange={e => { setSenha(e.target.value); setErro('') }}
-            className={`${styles.loginInput} ${erro ? styles.loginInputErro : ''}`}
-          />
+          <div className={styles.senhaWrap}>
+            <input
+              type={verSenha ? 'text' : 'password'}
+              placeholder="Senha"
+              value={senha}
+              autoComplete="current-password"
+              onChange={e => { setSenha(e.target.value); setErro('') }}
+              className={`${styles.loginInput} ${erro ? styles.loginInputErro : ''}`}
+            />
+            <button type="button" className={styles.verSenhaBtn} onClick={() => setVerSenha(v => !v)} tabIndex={-1} title={verSenha ? 'Ocultar senha' : 'Mostrar senha'}>
+              {verSenha ? (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
+                  <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
+                  <line x1="1" y1="1" x2="23" y2="23"/>
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              )}
+            </button>
+          </div>
           {erro && <p className={styles.loginErro}>{erro}</p>}
           <button type="submit" className={styles.loginBtn}>Entrar</button>
         </form>
