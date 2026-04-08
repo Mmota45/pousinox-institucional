@@ -51,8 +51,9 @@ export default function Outlet() {
   const [produtos, setProdutos] = useState<ProdutoPublico[]>([])
   const [loading, setLoading] = useState(true)
   const [selecionado, setSelecionado] = useState<ProdutoPublico | null>(null)
-  const [form, setForm] = useState({ nome: '', whatsapp: '' })
+  const [form, setForm] = useState({ nome: '', whatsapp: '', cep: '', cidade: '', uf: '' })
   const [enviando, setEnviando] = useState(false)
+  const [buscandoCep, setBuscandoCep] = useState(false)
   const [resultado, setResultado] = useState<'sucesso' | 'duplicado' | 'erro' | null>(null)
   const [copiado, setCopiado] = useState(false)
   const [categoriaFiltro, setCategoriaFiltro] = useState('Todos')
@@ -111,9 +112,13 @@ export default function Outlet() {
     setResultado(null)
 
     const { error } = await supabase.from('interesses').insert({
-      produto_id: selecionado.id,
-      cliente_nome: form.nome.trim(),
+      produto_id:      selecionado.id,
+      produto_titulo:  selecionado.titulo,
+      cliente_nome:    form.nome.trim(),
       cliente_whatsapp: form.whatsapp.trim(),
+      cep:             form.cep.replace(/\D/g, '') || null,
+      cidade:          form.cidade || null,
+      uf:              form.uf || null,
     })
 
     if (!error) {
@@ -142,9 +147,23 @@ export default function Outlet() {
     setEnviando(false)
   }
 
+  async function buscarCep(cep: string) {
+    const digits = cep.replace(/\D/g, '')
+    if (digits.length !== 8) return
+    setBuscandoCep(true)
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`)
+      const data = await res.json()
+      if (!data.erro) {
+        setForm(f => ({ ...f, cidade: data.localidade, uf: data.uf }))
+      }
+    } catch { /* sem internet: deixa em branco */ }
+    setBuscandoCep(false)
+  }
+
   function abrirModal(p: ProdutoPublico) {
     setSelecionado(p)
-    setForm({ nome: '', whatsapp: '' })
+    setForm({ nome: '', whatsapp: '', cep: '', cidade: '', uf: '' })
     setResultado(null)
   }
 
@@ -374,6 +393,29 @@ export default function Outlet() {
                         <div className={styles.formRow}>
                           <input id="nome" type="text" placeholder="Seu nome" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} required />
                           <input id="whatsapp" type="tel" placeholder="(35) 99999-9999" value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} required />
+                        </div>
+                        <div className={styles.formRow}>
+                          <input
+                            id="cep"
+                            type="text"
+                            placeholder="CEP (opcional)"
+                            value={form.cep}
+                            maxLength={9}
+                            onChange={e => {
+                              const v = e.target.value.replace(/\D/g, '').slice(0, 8)
+                              const mask = v.length > 5 ? `${v.slice(0,5)}-${v.slice(5)}` : v
+                              setForm(f => ({ ...f, cep: mask, cidade: '', uf: '' }))
+                              if (v.length === 8) buscarCep(v)
+                            }}
+                          />
+                          <input
+                            id="cidade"
+                            type="text"
+                            placeholder={buscandoCep ? 'Buscando...' : 'Cidade/UF (auto)'}
+                            value={form.cidade ? `${form.cidade}${form.uf ? ` — ${form.uf}` : ''}` : ''}
+                            readOnly
+                            style={{ background: '#f8fafc', color: '#64748b' }}
+                          />
                         </div>
                         {resultado === 'duplicado' && <p className={styles.erroMsg}>Você já demonstrou interesse neste produto. Verifique seu WhatsApp!</p>}
                         {resultado === 'erro' && <p className={styles.erroMsg}>Erro ao registrar. Tente novamente.</p>}
