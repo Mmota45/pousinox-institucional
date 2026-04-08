@@ -39,10 +39,12 @@ export default function AdminLeads() {
   const [total, setTotal]         = useState(0)
   const [pagina, setPagina]       = useState(0)
   const [loading, setLoading]     = useState(true)
-  const [busca, setBusca]         = useState('')
+  const [busca, setBusca]               = useState('')
   const [filtroStatus, setFiltroStatus] = useState<string>('todos')
+  const [dataInicio, setDataInicio]     = useState('')
+  const [dataFim, setDataFim]           = useState('')
 
-  async function carregar(pag = 0, termo = busca, fstatus = filtroStatus) {
+  async function carregar(pag = 0, termo = busca, fstatus = filtroStatus, dInicio = dataInicio, dFim = dataFim) {
     setLoading(true)
     let q = supabaseAdmin
       .from('interesses')
@@ -53,6 +55,8 @@ export default function AdminLeads() {
       q = q.or(`cliente_nome.ilike.%${termo.trim()}%,produto_titulo.ilike.%${termo.trim()}%,cidade.ilike.%${termo.trim()}%`)
     }
     if (fstatus !== 'todos') q = q.eq('status', fstatus)
+    if (dInicio) q = q.gte('created_at', dInicio)
+    if (dFim)    q = q.lte('created_at', dFim + 'T23:59:59')
 
     q = q.range(pag * POR_PAGINA, pag * POR_PAGINA + POR_PAGINA - 1)
 
@@ -108,22 +112,38 @@ export default function AdminLeads() {
         <input
           className={styles.buscaInput}
           type="text"
-          placeholder="Buscar por nome, produto ou cidade..."
+          placeholder="Cliente, produto ou cidade..."
           value={busca}
           onChange={e => setBusca(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && carregar(0, busca, filtroStatus)}
+          onKeyDown={e => e.key === 'Enter' && carregar(0, busca, filtroStatus, dataInicio, dataFim)}
         />
         <select
           className={styles.statusFiltro}
           value={filtroStatus}
-          onChange={e => { setFiltroStatus(e.target.value); carregar(0, busca, e.target.value) }}
+          onChange={e => { setFiltroStatus(e.target.value); carregar(0, busca, e.target.value, dataInicio, dataFim) }}
         >
           <option value="todos">Todos os status</option>
           {STATUS_OPCOES.map(s => (
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
-        <button className={styles.buscaBtn} onClick={() => carregar(0, busca, filtroStatus)}>Buscar</button>
+        <div className={styles.dataGrupo}>
+          <span className={styles.dataLabel}>De</span>
+          <input
+            className={styles.dataInput}
+            type="date"
+            value={dataInicio}
+            onChange={e => setDataInicio(e.target.value)}
+          />
+          <span className={styles.dataLabel}>até</span>
+          <input
+            className={styles.dataInput}
+            type="date"
+            value={dataFim}
+            onChange={e => setDataFim(e.target.value)}
+          />
+        </div>
+        <button className={styles.buscaBtn} onClick={() => carregar(0, busca, filtroStatus, dataInicio, dataFim)}>Buscar</button>
       </div>
 
       {/* ── Tabela ── */}

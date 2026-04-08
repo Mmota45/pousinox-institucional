@@ -44,10 +44,12 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .buscaInput {
   flex: 1;
+  min-width: 180px;
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -55,11 +57,14 @@
   color: var(--color-text);
   background: #f8fafc;
   outline: none;
+  height: 38px;
+  box-sizing: border-box;
   transition: border-color 0.15s;
 }
 .buscaInput:focus { border-color: var(--color-primary); background: #fff; }
 
-.statusFiltro {
+.statusFiltro,
+.dataInput {
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: 6px;
@@ -68,10 +73,27 @@
   background: #f8fafc;
   cursor: pointer;
   outline: none;
+  height: 38px;
+  box-sizing: border-box;
+}
+
+.dataInput { min-width: 140px; cursor: text; }
+
+.dataLabel {
+  font-size: 0.78rem;
+  color: var(--color-text-light);
+  white-space: nowrap;
+}
+
+.dataGrupo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .buscaBtn {
-  padding: 8px 18px;
+  padding: 0 18px;
+  height: 38px;
   background: var(--color-primary, #1e3a5f);
   color: #fff;
   border: none;
@@ -79,6 +101,7 @@
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
   transition: opacity 0.15s;
 }
 .buscaBtn:hover { opacity: 0.88; }
