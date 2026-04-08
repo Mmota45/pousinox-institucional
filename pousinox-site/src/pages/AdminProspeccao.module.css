@@ -48,6 +48,41 @@
   background: #fff;
 }
 
+.segDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  z-index: 100;
+  min-width: 180px;
+  padding: 6px 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.segItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  transition: background 0.1s;
+}
+
+.segItem:hover { background: #f8fafc; }
+
+.segItem input[type="checkbox"] {
+  accent-color: var(--color-primary, #1e3a5f);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
 .buscarBtn {
   padding: 8px 20px;
   background: var(--color-primary, #1e3a5f);
@@ -100,6 +135,11 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
+}
+
+.tableScroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tableHeader {
