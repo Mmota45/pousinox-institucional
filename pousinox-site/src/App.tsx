@@ -27,6 +27,7 @@ import AdminOrcamento from './pages/AdminOrcamento'
 import AdminUsuarios from './pages/AdminUsuarios'
 import AdminConteudo from './pages/AdminConteudo'
 import AdminAnalytics from './pages/AdminAnalytics'
+import AdminProspeccao from './pages/AdminProspeccao'
 
 const WA_LINK = 'https://wa.me/553534238994?text=Olá%2C%20gostaria%20de%20solicitar%20um%20orçamento.'
 
@@ -103,6 +104,7 @@ function App() {
             <Route path="usuarios" element={<AdminUsuarios />} />
             <Route path="conteudo" element={<AdminConteudo />} />
             <Route path="analytics" element={<AdminAnalytics />} />
+            <Route path="prospeccao" element={<AdminProspeccao />} />
           </Route>
           <Route path="/obrigado" element={<Obrigado />} />
         </Routes>

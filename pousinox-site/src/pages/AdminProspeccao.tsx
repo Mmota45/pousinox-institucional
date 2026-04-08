@@ -1,0 +1,329 @@
+import { useState } from 'react'
+import { supabaseAdmin } from '../lib/supabase'
+import styles from './AdminProspeccao.module.css'
+
+interface Prospect {
+  id: number
+  cnpj: string
+  razao_social: string | null
+  nome_fantasia: string | null
+  porte: string | null
+  segmento: string | null
+  produto: string | null
+  uf: string | null
+  cidade: string | null
+  bairro: string | null
+  endereco: string | null
+  telefone1: string | null
+  telefone2: string | null
+  email: string | null
+  contatado: boolean
+}
+
+const SEGMENTOS = [
+  'Todos',
+  'Restaurantes', 'Panificação', 'Supermercados', 'Açougues', 'Peixarias',
+  'Hospitalar', 'Laboratórios', 'Veterinária', 'Hotelaria',
+  'Construtoras', 'Revestimentos', 'Arquitetura',
+]
+
+const PORTES = ['Todos', 'Micro Empresa', 'Pequeno Porte', 'Médio/Grande']
+
+const POR_PAGINA = 50
+
+function formatarWA(tel: string) {
+  return tel.replace(/\D/g, '')
+}
+
+export default function AdminProspeccao() {
+  const [produto, setProduto]       = useState('Todos')
+  const [segmento, setSegmento]     = useState('Todos')
+  const [uf, setUf]                 = useState('')
+  const [cidade, setCidade]         = useState('')
+  const [porte, setPorte]           = useState('Todos')
+  const [soSemContato, setSoSemContato] = useState(false)
+
+  const [prospects, setProspects]   = useState<Prospect[]>([])
+  const [total, setTotal]           = useState(0)
+  const [pagina, setPagina]         = useState(0)
+  const [loading, setLoading]       = useState(false)
+  const [buscado, setBuscado]       = useState(false)
+
+  async function buscar(pag = 0) {
+    setLoading(true)
+    setBuscado(true)
+
+    let q = supabaseAdmin.from('prospeccao').select('*', { count: 'exact' })
+
+    if (produto !== 'Todos') q = q.eq('produto', produto)
+    if (segmento !== 'Todos') q = q.eq('segmento', segmento)
+    if (uf.trim()) q = q.ilike('uf', uf.trim())
+    if (cidade.trim()) q = q.ilike('cidade', `%${cidade.trim()}%`)
+    if (porte !== 'Todos') q = q.eq('porte', porte)
+    if (soSemContato) q = q.eq('contatado', false)
+
+    q = q
+      .order('razao_social', { ascending: true })
+      .range(pag * POR_PAGINA, pag * POR_PAGINA + POR_PAGINA - 1)
+
+    const { data, count, error } = await q
+
+    if (!error) {
+      setProspects(data ?? [])
+      setTotal(count ?? 0)
+      setPagina(pag)
+    }
+    setLoading(false)
+  }
+
+  async function toggleContatado(p: Prospect) {
+    const novoValor = !p.contatado
+    await supabaseAdmin
+      .from('prospeccao')
+      .update({ contatado: novoValor, contato_em: novoValor ? new Date().toISOString() : null })
+      .eq('id', p.id)
+
+    setProspects(prev => prev.map(x => x.id === p.id ? { ...x, contatado: novoValor } : x))
+  }
+
+  function exportarCSV() {
+    const header = 'CNPJ;Razão Social;Nome Fantasia;Porte;Segmento;Produto;UF;Cidade;Bairro;Endereço;Telefone 1;Telefone 2;E-mail;Contatado'
+    const linhas = prospects.map(p => [
+      p.cnpj, p.razao_social, p.nome_fantasia, p.porte,
+      p.segmento, p.produto, p.uf, p.cidade, p.bairro, p.endereco,
+      p.telefone1, p.telefone2, p.email, p.contatado ? 'Sim' : 'Não',
+    ].map(v => `"${(v ?? '').toString().replace(/"/g, '""')}"`).join(';'))
+
+    const blob = new Blob([header + '\n' + linhas.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `prospects_pousinox_${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function mensagemWA(p: Prospect) {
+    return encodeURIComponent(
+      `Olá! Sou da Pousinox, fabricante de equipamentos em aço inox de Pouso Alegre/MG.\n\n` +
+      `Trabalhamos com soluções para ${p.segmento?.toLowerCase() || 'o seu segmento'} e gostaríamos de apresentar nossos produtos.\n\n` +
+      `Podemos conversar?`
+    )
+  }
+
+  const totalPaginas = Math.ceil(total / POR_PAGINA)
+  const inox     = prospects.filter(p => p.produto === 'Equipamentos Inox').length
+  const fixador  = prospects.filter(p => p.produto === 'Fixador Porcelanato').length
+  const contatados = prospects.filter(p => p.contatado).length
+
+  return (
+    <div className={styles.wrap}>
+
+      {/* ── Filtros ── */}
+      <div className={styles.filtros}>
+        <div className={styles.filtroGrupo}>
+          <span className={styles.filtroLabel}>Produto</span>
+          <select className={styles.filtroSelect} value={produto} onChange={e => setProduto(e.target.value)}>
+            <option>Todos</option>
+            <option>Equipamentos Inox</option>
+            <option>Fixador Porcelanato</option>
+          </select>
+        </div>
+
+        <div className={styles.filtroGrupo}>
+          <span className={styles.filtroLabel}>Segmento</span>
+          <select className={styles.filtroSelect} value={segmento} onChange={e => setSegmento(e.target.value)}>
+            {SEGMENTOS.map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+
+        <div className={styles.filtroGrupo}>
+          <span className={styles.filtroLabel}>UF</span>
+          <input
+            className={styles.filtroInput}
+            style={{ width: 60 }}
+            placeholder="MG"
+            maxLength={2}
+            value={uf}
+            onChange={e => setUf(e.target.value.toUpperCase())}
+          />
+        </div>
+
+        <div className={styles.filtroGrupo}>
+          <span className={styles.filtroLabel}>Cidade</span>
+          <input
+            className={styles.filtroInput}
+            placeholder="Ex: Pouso Alegre"
+            value={cidade}
+            onChange={e => setCidade(e.target.value)}
+          />
+        </div>
+
+        <div className={styles.filtroGrupo}>
+          <span className={styles.filtroLabel}>Porte</span>
+          <select className={styles.filtroSelect} value={porte} onChange={e => setPorte(e.target.value)}>
+            {PORTES.map(p => <option key={p}>{p}</option>)}
+          </select>
+        </div>
+
+        <div className={styles.filtroGrupo}>
+          <span className={styles.filtroLabel}>Status</span>
+          <select className={styles.filtroSelect} value={soSemContato ? 'nao' : 'todos'} onChange={e => setSoSemContato(e.target.value === 'nao')}>
+            <option value="todos">Todos</option>
+            <option value="nao">Não contatados</option>
+          </select>
+        </div>
+
+        <button className={styles.buscarBtn} onClick={() => buscar(0)} disabled={loading}>
+          {loading ? 'Buscando...' : 'Buscar'}
+        </button>
+      </div>
+
+      {/* ── Stats ── */}
+      {buscado && !loading && (
+        <div className={styles.stats}>
+          <div className={styles.statCard}>
+            <span className={styles.statLabel}>Total encontrado</span>
+            <span className={styles.statVal}>{total.toLocaleString('pt-BR')}</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statLabel}>Equipamentos Inox</span>
+            <span className={styles.statVal}>{inox}</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statLabel}>Fixador Porcelanato</span>
+            <span className={styles.statVal}>{fixador}</span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statLabel}>Contatados (pág.)</span>
+            <span className={styles.statVal}>{contatados}</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tabela ── */}
+      {buscado && (
+        <div className={styles.tableWrap}>
+          <div className={styles.tableHeader}>
+            <span className={styles.tableTitle}>
+              {loading ? 'Carregando...' : `${total.toLocaleString('pt-BR')} prospects`}
+            </span>
+            {prospects.length > 0 && (
+              <button className={styles.exportBtn} onClick={exportarCSV}>
+                ↓ Exportar CSV
+              </button>
+            )}
+          </div>
+
+          {loading ? (
+            <div className={styles.loading}>Buscando prospects...</div>
+          ) : prospects.length === 0 ? (
+            <div className={styles.vazio}>Nenhum prospect encontrado com os filtros selecionados.</div>
+          ) : (
+            <>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Empresa</th>
+                    <th>Produto</th>
+                    <th>Segmento</th>
+                    <th>Cidade/UF</th>
+                    <th>Telefone</th>
+                    <th>E-mail</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prospects.map(p => {
+                    const tel = p.telefone1 || p.telefone2
+                    const waNum = tel ? formatarWA(tel) : null
+                    const waLink = waNum
+                      ? `https://wa.me/55${waNum}?text=${mensagemWA(p)}`
+                      : null
+
+                    return (
+                      <tr key={p.id} style={{ opacity: p.contatado ? 0.55 : 1 }}>
+                        <td>
+                          <div className={styles.nome}>
+                            {p.razao_social || '—'}
+                          </div>
+                          {p.nome_fantasia && p.nome_fantasia !== p.razao_social && (
+                            <div className={styles.fantasia}>{p.nome_fantasia}</div>
+                          )}
+                          <div className={styles.fantasia} style={{ marginTop: 2 }}>
+                            {p.porte} · CNPJ {p.cnpj?.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`${styles.pill} ${p.produto === 'Equipamentos Inox' ? styles.pillInox : styles.pillFixador}`}>
+                            {p.produto === 'Equipamentos Inox' ? 'Inox' : 'Fixador'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={styles.pillSegmento}>{p.segmento}</span>
+                        </td>
+                        <td>
+                          {p.cidade && <div>{p.cidade}</div>}
+                          {p.uf && <div className={styles.fantasia}>{p.uf}</div>}
+                        </td>
+                        <td>
+                          {p.telefone1 && <div>{p.telefone1}</div>}
+                          {p.telefone2 && <div className={styles.fantasia}>{p.telefone2}</div>}
+                        </td>
+                        <td>
+                          {p.email ? (
+                            <a href={`mailto:${p.email}`} style={{ color: 'var(--color-primary)', fontSize: '0.82rem' }}>
+                              {p.email}
+                            </a>
+                          ) : '—'}
+                        </td>
+                        <td>
+                          <div className={styles.acoes}>
+                            {waLink ? (
+                              <a href={waLink} target="_blank" rel="noopener noreferrer" className={styles.waBtn}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                                </svg>
+                                WhatsApp
+                              </a>
+                            ) : (
+                              <span style={{ fontSize: '0.78rem', color: 'var(--color-text-light)' }}>Sem tel.</span>
+                            )}
+                            <button
+                              className={`${styles.contatadoBtn} ${p.contatado ? styles.contatadoBtnAtivo : ''}`}
+                              onClick={() => toggleContatado(p)}
+                              title={p.contatado ? 'Marcar como não contatado' : 'Marcar como contatado'}
+                            >
+                              {p.contatado ? '✓ Contatado' : 'Marcar'}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+
+              {/* Paginação */}
+              {totalPaginas > 1 && (
+                <div className={styles.paginacao}>
+                  <span>
+                    Página {pagina + 1} de {totalPaginas} · {total.toLocaleString('pt-BR')} resultados
+                  </span>
+                  <div className={styles.pagBtns}>
+                    <button className={styles.pagBtn} disabled={pagina === 0} onClick={() => buscar(pagina - 1)}>
+                      ← Anterior
+                    </button>
+                    <button className={styles.pagBtn} disabled={pagina >= totalPaginas - 1} onClick={() => buscar(pagina + 1)}>
+                      Próxima →
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
