@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Outlet as RouterOutlet, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import type { User } from '@supabase/supabase-js'
 import { supabase, supabaseAdmin } from '../../lib/supabase'
@@ -184,8 +184,65 @@ export default function AdminLayout() {
   const [setupErro, setSetupErro] = useState('')
   const [setupSalvando, setSetupSalvando] = useState(false)
 
+  const [notificacoes, setNotificacoes] = useState<{ id: number; texto: string }[]>([])
+  const audioCtxRef = useRef<AudioContext | null>(null)
+
   const navigate = useNavigate()
   const location = useLocation()
+
+  // ── Som de alerta via Web Audio API ──────────────────────────────────────
+  const tocarAlerta = useCallback(() => {
+    try {
+      const ctx = audioCtxRef.current ?? new AudioContext()
+      audioCtxRef.current = ctx
+      if (ctx.state === 'suspended') ctx.resume()
+
+      function nota(freq: number, inicio: number, dur: number) {
+        const osc  = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.type = 'sine'
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0, ctx.currentTime + inicio)
+        gain.gain.linearRampToValueAtTime(0.25, ctx.currentTime + inicio + 0.04)
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + inicio + dur)
+        osc.start(ctx.currentTime + inicio)
+        osc.stop(ctx.currentTime + inicio + dur)
+      }
+
+      nota(880,  0,    0.35)  // A5
+      nota(1108, 0.18, 0.40)  // C#6
+      nota(1318, 0.34, 0.55)  // E6
+    } catch { /* navegador sem suporte */ }
+  }, [])
+
+  // ── Realtime: alerta quando chega novo interesse ──────────────────────────
+  useEffect(() => {
+    if (!user) return
+
+    const channel = supabase
+      .channel('admin-alertas-interesses')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'interesses' },
+        (payload) => {
+          const rec = payload.new as Record<string, string>
+          const nome    = rec.cliente_nome    || 'Cliente'
+          const produto = rec.produto_titulo  || 'produto'
+          const texto   = `${nome} → ${produto}`
+
+          tocarAlerta()
+
+          const id = Date.now()
+          setNotificacoes(prev => [...prev, { id, texto }])
+          setTimeout(() => setNotificacoes(prev => prev.filter(n => n.id !== id)), 8000)
+        }
+      )
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [user, tocarAlerta])
 
   // Fecha drawer ao navegar
   useEffect(() => { setDrawerOpen(false) }, [location.pathname])
@@ -567,6 +624,28 @@ export default function AdminLayout() {
         </main>
       </div>
     </div>
+      {/* ── Toasts de alerta ── */}
+      {notificacoes.length > 0 && (
+        <div className={styles.toastWrap}>
+          {notificacoes.map(n => (
+            <div key={n.id} className={styles.toast}>
+              <div className={styles.toastIcon}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+              </div>
+              <div className={styles.toastBody}>
+                <div className={styles.toastTitle}>Novo interesse — Pousinox Bot</div>
+                <div className={styles.toastMsg}>{n.texto}</div>
+              </div>
+              <button
+                className={styles.toastClose}
+                onClick={() => setNotificacoes(prev => prev.filter(x => x.id !== n.id))}
+              >×</button>
+            </div>
+          ))}
+        </div>
+      )}
     </AdminContext.Provider>
   )
 }
