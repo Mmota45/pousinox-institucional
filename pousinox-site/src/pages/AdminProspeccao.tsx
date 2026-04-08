@@ -104,6 +104,14 @@ const PRODUTOS = ['Equipamentos Inox', 'Fixador Porcelanato']
 
 const PORTES = ['Micro Empresa', 'Pequeno Porte', 'Médio/Grande']
 
+const REGIOES: Record<string, string[]> = {
+  'Sul':           ['PR', 'RS', 'SC'],
+  'Sudeste':       ['ES', 'MG', 'RJ', 'SP'],
+  'Centro-Oeste':  ['DF', 'GO', 'MS', 'MT'],
+  'Nordeste':      ['AL', 'BA', 'CE', 'MA', 'PB', 'PE', 'PI', 'RN', 'SE'],
+  'Norte':         ['AC', 'AM', 'AP', 'PA', 'RO', 'RR', 'TO'],
+}
+
 const POR_PAGINA = 50
 
 function formatarWA(tel: string) {
@@ -120,8 +128,8 @@ export default function AdminProspeccao() {
   const [cidades, setCidades]       = useState<string[]>([])
   const [cidadesSel, setCidadesSel] = useState<string[]>([])
   const [loadingCidades, setLoadingCidades] = useState(false)
-  const [portes, setPortes]         = useState<string[]>([])
-  const [soSemContato, setSoSemContato] = useState(false)
+  const [portes, setPortes]           = useState<string[]>([])
+  const [contatoFiltro, setContatoFiltro] = useState<'todos' | 'sim' | 'nao'>('todos')
 
   const [prospects, setProspects]   = useState<Prospect[]>([])
   const [total, setTotal]           = useState(0)
@@ -154,8 +162,9 @@ export default function AdminProspeccao() {
     if (segmentos.length > 0)  q = q.in('segmento', segmentos)
     if (ufs.length > 0)        q = q.in('uf', ufs)
     if (cidadesSel.length > 0) q = q.in('cidade', cidadesSel)
-    if (portes.length > 0)     q = q.in('porte', portes)
-    if (soSemContato)          q = q.eq('contatado', false)
+    if (portes.length > 0)         q = q.in('porte', portes)
+    if (contatoFiltro === 'sim')   q = q.eq('contatado', true)
+    if (contatoFiltro === 'nao')   q = q.eq('contatado', false)
 
     q = q
       .order('razao_social', { ascending: true })
@@ -275,15 +284,35 @@ export default function AdminProspeccao() {
           onChange={setPortes}
         />
 
+        {/* Região */}
+        <div className={styles.filtroGrupo}>
+          <span className={styles.filtroLabel}>Região</span>
+          <select
+            className={styles.filtroSelect}
+            style={{ minWidth: 130 }}
+            value=""
+            onChange={e => {
+              const regiao = e.target.value
+              if (regiao && REGIOES[regiao]) setUfs(REGIOES[regiao])
+            }}
+          >
+            <option value="">Selecionar região...</option>
+            {Object.keys(REGIOES).map(r => (
+              <option key={r} value={r}>{r}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Contato */}
         <div className={styles.filtroGrupo}>
           <span className={styles.filtroLabel}>Contato</span>
           <select
             className={styles.filtroSelect}
-            value={soSemContato ? 'nao' : 'todos'}
-            onChange={e => setSoSemContato(e.target.value === 'nao')}
+            value={contatoFiltro}
+            onChange={e => setContatoFiltro(e.target.value as 'todos' | 'sim' | 'nao')}
           >
             <option value="todos">Todos</option>
+            <option value="sim">Contatados</option>
             <option value="nao">Não contatados</option>
           </select>
         </div>
