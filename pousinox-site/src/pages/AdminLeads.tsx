@@ -10,28 +10,49 @@ interface Lead {
   cidade: string | null
   uf: string | null
   cep: string | null
+  status: string | null
   created_at: string
+}
+
+type Status = 'novo' | 'em_contato' | 'proposta' | 'fechado' | 'perdido'
+
+const STATUS_OPCOES: { value: Status; label: string }[] = [
+  { value: 'novo',       label: 'Novo' },
+  { value: 'em_contato', label: 'Em contato' },
+  { value: 'proposta',   label: 'Proposta enviada' },
+  { value: 'fechado',    label: 'Fechado' },
+  { value: 'perdido',    label: 'Perdido' },
+]
+
+const STATUS_STYLE: Record<Status, string> = {
+  novo:       styles.statusNovo,
+  em_contato: styles.statusEmContato,
+  proposta:   styles.statusProposta,
+  fechado:    styles.statusFechado,
+  perdido:    styles.statusPerdido,
 }
 
 const POR_PAGINA = 50
 
 export default function AdminLeads() {
-  const [leads, setLeads]       = useState<Lead[]>([])
-  const [total, setTotal]       = useState(0)
-  const [pagina, setPagina]     = useState(0)
-  const [loading, setLoading]   = useState(true)
-  const [busca, setBusca]       = useState('')
+  const [leads, setLeads]         = useState<Lead[]>([])
+  const [total, setTotal]         = useState(0)
+  const [pagina, setPagina]       = useState(0)
+  const [loading, setLoading]     = useState(true)
+  const [busca, setBusca]         = useState('')
+  const [filtroStatus, setFiltroStatus] = useState<string>('todos')
 
-  async function carregar(pag = 0, termo = busca) {
+  async function carregar(pag = 0, termo = busca, fstatus = filtroStatus) {
     setLoading(true)
     let q = supabaseAdmin
       .from('interesses')
-      .select('id, produto_titulo, cliente_nome, cliente_whatsapp, cidade, uf, cep, created_at', { count: 'exact' })
+      .select('id, produto_titulo, cliente_nome, cliente_whatsapp, cidade, uf, cep, status, created_at', { count: 'exact' })
       .order('created_at', { ascending: false })
 
     if (termo.trim()) {
       q = q.or(`cliente_nome.ilike.%${termo.trim()}%,produto_titulo.ilike.%${termo.trim()}%,cidade.ilike.%${termo.trim()}%`)
     }
+    if (fstatus !== 'todos') q = q.eq('status', fstatus)
 
     q = q.range(pag * POR_PAGINA, pag * POR_PAGINA + POR_PAGINA - 1)
 
@@ -44,11 +65,17 @@ export default function AdminLeads() {
 
   useEffect(() => { carregar(0) }, [])
 
+  async function atualizarStatus(id: number, novoStatus: Status) {
+    await supabaseAdmin.from('interesses').update({ status: novoStatus }).eq('id', id)
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, status: novoStatus } : l))
+  }
+
   function exportarCSV() {
-    const header = 'Nome;WhatsApp;Produto;Cidade;UF;CEP;Data'
+    const header = 'Nome;WhatsApp;Produto;Cidade;UF;CEP;Status;Data'
     const linhas = leads.map(l => [
       l.cliente_nome, l.cliente_whatsapp, l.produto_titulo,
       l.cidade, l.uf, l.cep,
+      STATUS_OPCOES.find(s => s.value === l.status)?.label ?? l.status ?? 'novo',
       l.created_at ? new Date(l.created_at).toLocaleString('pt-BR') : '',
     ].map(v => `"${(v ?? '').toString().replace(/"/g, '""')}"`).join(';'))
     const blob = new Blob([header + '\n' + linhas.join('\n')], { type: 'text/csv;charset=utf-8;' })
@@ -76,17 +103,27 @@ export default function AdminLeads() {
         )}
       </div>
 
-      {/* ── Busca ── */}
-      <div className={styles.busca}>
+      {/* ── Filtros ── */}
+      <div className={styles.filtros}>
         <input
           className={styles.buscaInput}
           type="text"
           placeholder="Buscar por nome, produto ou cidade..."
           value={busca}
           onChange={e => setBusca(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && carregar(0, busca)}
+          onKeyDown={e => e.key === 'Enter' && carregar(0, busca, filtroStatus)}
         />
-        <button className={styles.buscaBtn} onClick={() => carregar(0, busca)}>Buscar</button>
+        <select
+          className={styles.statusFiltro}
+          value={filtroStatus}
+          onChange={e => { setFiltroStatus(e.target.value); carregar(0, busca, e.target.value) }}
+        >
+          <option value="todos">Todos os status</option>
+          {STATUS_OPCOES.map(s => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
+        <button className={styles.buscaBtn} onClick={() => carregar(0, busca, filtroStatus)}>Buscar</button>
       </div>
 
       {/* ── Tabela ── */}
@@ -111,6 +148,7 @@ export default function AdminLeads() {
                     <th>Produto</th>
                     <th>Cidade / UF</th>
                     <th>WhatsApp</th>
+                    <th>Status</th>
                     <th>Data</th>
                   </tr>
                 </thead>
@@ -118,6 +156,7 @@ export default function AdminLeads() {
                   {leads.map(l => {
                     const wa = l.cliente_whatsapp?.replace(/\D/g, '')
                     const waLink = wa ? `https://wa.me/55${wa}` : null
+                    const status = (l.status ?? 'novo') as Status
                     return (
                       <tr key={l.id}>
                         <td className={styles.nome}>{l.cliente_nome || '—'}</td>
@@ -135,6 +174,17 @@ export default function AdminLeads() {
                           {waLink
                             ? <a href={waLink} target="_blank" rel="noopener noreferrer" className={styles.waLink}>{l.cliente_whatsapp}</a>
                             : l.cliente_whatsapp || '—'}
+                        </td>
+                        <td>
+                          <select
+                            className={`${styles.statusSelect} ${STATUS_STYLE[status]}`}
+                            value={status}
+                            onChange={e => atualizarStatus(l.id, e.target.value as Status)}
+                          >
+                            {STATUS_OPCOES.map(s => (
+                              <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
+                          </select>
                         </td>
                         <td className={styles.data}>
                           {l.created_at ? new Date(l.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—'}
