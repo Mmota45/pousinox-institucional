@@ -80,6 +80,7 @@ export default function Outlet() {
     setLoading(false)
   }
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchProdutos() }, [])
 
   const byPrecoDesc = (a: ProdutoPublico, b: ProdutoPublico) =>
@@ -337,6 +338,19 @@ export default function Outlet() {
 
                 {selecionado.descricao && <p className={styles.modalDesc}>{selecionado.descricao}</p>}
 
+                {selecionado.exibir_preco && selecionado.preco > 0 && (
+                  <div className={styles.modalPreco}>
+                    {selecionado.preco_original && selecionado.preco_original > selecionado.preco && (
+                      <span className={styles.modalPrecoOriginal}>
+                        R$ {selecionado.preco_original.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    )}
+                    <span className={styles.modalPrecoValor}>
+                      R$ {selecionado.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
+
                 {selecionado.total_interesses > 0 && (
                   <p className={styles.modalInteresse}>
                     🔥 {selecionado.total_interesses} {selecionado.total_interesses === 1 ? 'pessoa interessada' : 'pessoas interessadas'}
@@ -355,7 +369,7 @@ export default function Outlet() {
                     </div>
                   ) : (
                     <>
-                      <h3 className={styles.formTitle}>{isSobEncomenda ? 'Solicitar encomenda' : 'Tenho Interesse'}</h3>
+                      <h3 className={styles.formTitle}>{isSobEncomenda ? 'Solicitar encomenda' : selecionado.exibir_preco ? 'Tenho interesse' : 'Ver preço no WhatsApp'}</h3>
                       <form onSubmit={handleInteresse} className={styles.form}>
                         <div className={styles.formRow}>
                           <input id="nome" type="text" placeholder="Seu nome" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} required />
@@ -364,7 +378,7 @@ export default function Outlet() {
                         {resultado === 'duplicado' && <p className={styles.erroMsg}>Você já demonstrou interesse neste produto. Verifique seu WhatsApp!</p>}
                         {resultado === 'erro' && <p className={styles.erroMsg}>Erro ao registrar. Tente novamente.</p>}
                         <button type="submit" className={styles.submitBtn} disabled={enviando}>
-                          {enviando ? 'Enviando...' : isSobEncomenda ? 'Solicitar encomenda' : 'Ver preço no WhatsApp'}
+                          {enviando ? 'Enviando...' : isSobEncomenda ? 'Solicitar encomenda' : selecionado.exibir_preco ? 'Confirmar interesse' : 'Ver preço no WhatsApp'}
                         </button>
                       </form>
                     </>
@@ -464,13 +478,27 @@ function ProdutoCard({ produto: p, onInteresse, onCompartilhar }: {
             🔥 {p.total_interesses} {p.total_interesses === 1 ? 'pessoa interessada' : 'pessoas interessadas'}
           </p>
         )}
+        {p.exibir_preco && p.preco > 0 && (
+          <div className={styles.cardPreco}>
+            {p.preco_original && p.preco_original > p.preco && (
+              <span className={styles.cardPrecoOriginal}>
+                R$ {p.preco_original.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+            )}
+            <span className={styles.cardPrecoValor}>
+              R$ {p.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        )}
         <div className={styles.cardFooter}>
-          <button className={styles.cardShareBtn} onClick={onCompartilhar} type="button" title="Compartilhar">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            Compartilhar
+          <button
+            className={`${styles.cardBtn} ${p.exibir_preco && !isVendido ? styles.cardBtnInteresse : ''}`}
+            onClick={onInteresse}
+          >
+            {isVendido && p.marca ? 'Consultar →' : isVendido ? 'Solicitar encomenda →' : p.exibir_preco ? 'Tenho interesse →' : 'Ver preço →'}
           </button>
-          <button className={styles.cardBtn} onClick={onInteresse}>
-            {isVendido && p.marca ? 'Consultar →' : isVendido ? 'Solicitar encomenda →' : 'Ver preço →'}
+          <button className={styles.cardShareBtn} onClick={onCompartilhar} type="button" title="Compartilhar">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           </button>
         </div>
       </div>

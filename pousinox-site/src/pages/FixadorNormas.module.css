@@ -1,0 +1,288 @@
+/* ── Page Header ── */
+.pageHeader {
+  background: var(--color-primary);
+  padding: 120px 0 60px;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 16px;
+}
+
+.breadcrumb a {
+  color: var(--color-silver);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.breadcrumb a:hover {
+  color: #fff;
+}
+
+.pageTitle {
+  font-size: 2.8rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 16px;
+  letter-spacing: -0.5px;
+}
+
+.pageSubtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.7;
+  max-width: 640px;
+  margin: 0;
+  text-align: left;
+}
+
+/* ── Shared ── */
+.sectionHead {
+  text-align: center;
+  margin-bottom: 48px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.eyebrow {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* ── Normas ── */
+.normasSection {
+  background: var(--color-white);
+}
+
+.normasLista {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.normaCard {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 32px;
+  padding: 32px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  align-items: start;
+}
+
+.normaCodigo {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+.normaConteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.normaTitulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.normaDesc {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+.normaRelevancia {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: rgba(26, 47, 78, 0.06);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.normaRelevancia svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.normaAplicacao {
+  font-size: 0.82rem;
+  color: var(--color-text-light);
+}
+
+.normaAplicacaoLabel {
+  font-weight: 600;
+  color: var(--color-text);
+  margin-right: 6px;
+}
+
+/* ── Boas Práticas ── */
+.praticasSection {
+  background: var(--color-bg);
+}
+
+.praticasGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.praticaCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.praticaCheck {
+  width: 36px;
+  height: 36px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.praticaTitulo {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 6px;
+}
+
+.praticaDesc {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+/* ── Suporte ── */
+.suporteSection {
+  background: var(--color-white);
+}
+
+.suporteInner {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 64px;
+  align-items: start;
+}
+
+.suporteTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.suporteTexto p {
+  font-size: 0.975rem;
+  line-height: 1.75;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+.suporteActions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.suporteLinks {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.suporteLinksTitulo {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.suporteLinksList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.suporteLink {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 0.875rem;
+  color: var(--color-primary);
+  font-weight: 500;
+  text-decoration: none;
+  padding: 12px;
+  border-radius: var(--radius);
+  transition: background 0.2s;
+}
+
+.suporteLink:hover {
+  background: rgba(26, 47, 78, 0.06);
+}
+
+.suporteLink svg {
+  flex-shrink: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .pageTitle {
+    font-size: 2rem;
+  }
+
+  .normaCard {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 24px;
+  }
+
+  .praticasGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .suporteInner {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}

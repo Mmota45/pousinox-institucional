@@ -9,6 +9,11 @@ import Contato from './pages/Contato'
 import Blog from './pages/Blog'
 import Segmento from './pages/Segmento'
 import CorteLaser from './pages/CorteLaser'
+import FixadorPorcelanato from './pages/FixadorPorcelanato'
+import FixadorFachadas from './pages/FixadorFachadas'
+import FixadorEnsaios from './pages/FixadorEnsaios'
+import FixadorNormas from './pages/FixadorNormas'
+import FixadorOrcamento from './pages/FixadorOrcamento'
 import Outlet from './pages/Outlet'
 import Obrigado from './pages/Obrigado'
 import AdminLayout from './components/AdminLayout/AdminLayout'
@@ -79,6 +84,12 @@ function App() {
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<Blog />} />
           <Route path="/servicos/corte-laser" element={<CorteLaser />} />
+          <Route path="/fixador-porcelanato" element={<FixadorPorcelanato />} />
+          <Route path="/fixador-porcelanato/fachadas" element={<FixadorFachadas />} />
+          <Route path="/fixador-porcelanato/ensaios" element={<FixadorEnsaios />} />
+          <Route path="/fixador-porcelanato/testes-lamat" element={<Navigate to="/fixador-porcelanato/ensaios" replace />} />
+          <Route path="/fixador-porcelanato/normas" element={<FixadorNormas />} />
+          <Route path="/fixador-porcelanato/orcamento" element={<FixadorOrcamento />} />
           <Route path="/pronta-entrega" element={<Outlet />} />
           <Route path="/outlet" element={<Navigate to="/pronta-entrega" replace />} />
           <Route path="/admin" element={<AdminLayout />}>

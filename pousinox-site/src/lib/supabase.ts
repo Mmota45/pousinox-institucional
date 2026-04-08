@@ -34,4 +34,5 @@ export interface ProdutoPublico {
   desconto_percentual: number | null
   desconto_max: number | null
   total_interesses: number
+  exibir_preco: boolean
 }

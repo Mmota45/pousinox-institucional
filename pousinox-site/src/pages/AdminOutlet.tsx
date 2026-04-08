@@ -209,6 +209,7 @@ interface Produto {
   destaque: boolean
   disponivel: boolean
   seminovo: boolean
+  exibir_preco: boolean
 }
 
 const FORM_VAZIO = {
@@ -224,6 +225,7 @@ const FORM_VAZIO = {
   destaque: false,
   disponivel: true,
   seminovo: false,
+  exibir_preco: false,
   specs: [] as { k: string; v: string }[],
   fotos: [] as string[],
 }
@@ -327,6 +329,7 @@ export default function AdminOutlet() {
       destaque: p.destaque,
       disponivel: p.disponivel,
       seminovo: p.seminovo,
+      exibir_preco: p.exibir_preco,
       specs: p.specs
         ? Array.isArray(p.specs)
           ? p.specs
@@ -365,6 +368,7 @@ export default function AdminOutlet() {
       destaque: form.destaque,
       disponivel: form.disponivel,
       seminovo: form.seminovo,
+      exibir_preco: form.exibir_preco,
       specs: specsObj,
       fotos: form.fotos.length > 0 ? form.fotos : null,
     }
@@ -596,6 +600,10 @@ export default function AdminOutlet() {
           <label className={styles.checkLabel}>
             <input type="checkbox" checked={form.seminovo} onChange={e => setForm(f => ({ ...f, seminovo: e.target.checked }))} />
             Seminovo
+          </label>
+          <label className={styles.checkLabel}>
+            <input type="checkbox" checked={form.exibir_preco} onChange={e => setForm(f => ({ ...f, exibir_preco: e.target.checked }))} />
+            Exibir preço público
           </label>
         </div>
 

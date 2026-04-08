@@ -1,0 +1,205 @@
+{
+  "name": "Pousinox — Leads Orçamento",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "orcamento-fixador",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://pousinox.com.br"
+        }
+      },
+      "id": "webhook-fixador",
+      "name": "Webhook Fixador Orçamento",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "pousinox-fixador-orcamento"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "contato-lead",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://pousinox.com.br"
+        }
+      },
+      "id": "webhook-contato",
+      "name": "Webhook Contato Geral",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 500],
+      "webhookId": "pousinox-contato-lead"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "schema": "public",
+        "table": "leads",
+        "columns": "nome,telefone,email,empresa,cidade,segmento,tipo_obra,quantidade,prazo,mensagem,produto,origem,timestamp_envio",
+        "additionalFields": {}
+      },
+      "id": "supabase-insert",
+      "name": "Salvar Lead no Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [480, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUBSTITUA_PELO_ID_DA_CREDENCIAL_SUPABASE",
+          "name": "Supabase Pousinox"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/{{$env.ZAPI_INSTANCE_ID}}/token/{{$env.ZAPI_TOKEN}}/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Client-Token",
+              "value": "={{$env.ZAPI_CLIENT_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $json.telefone.replace(/\\D/g, '') }}"
+            },
+            {
+              "name": "message",
+              "value": "=Olá, {{ $json.nome }}! 👋\n\nRecebemos seu pedido de orçamento do *Fixador de Porcelanato Pousinox*. 🏗️\n\nNossa equipe analisará as informações do seu projeto e entrará em contato em até 1 dia útil.\n\nEnquanto isso, se preferir agilizar, pode responder aqui mesmo!\n\n*Detalhes do seu pedido:*\n• Produto: {{ $json.produto }}\n• Tipo de obra: {{ $json.tipo_obra ?? 'Não informado' }}\n• Quantidade: {{ $json.quantidade ?? 'Não informado' }}\n• Cidade: {{ $json.cidade ?? 'Não informado' }}\n\n📌 POUSINOX® — Pouso Alegre, MG\n📞 (35) 3423-8994"
+            }
+          ]
+        }
+      },
+      "id": "zapi-whatsapp",
+      "name": "Enviar WhatsApp via Z-API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.z-api.io/instances/{{$env.ZAPI_INSTANCE_ID}}/token/{{$env.ZAPI_TOKEN}}/send-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Client-Token",
+              "value": "={{$env.ZAPI_CLIENT_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "phone",
+              "value": "={{ $env.ZAPI_NOTIFICACAO_NUMERO }}"
+            },
+            {
+              "name": "message",
+              "value": "=🔔 *Novo Lead Pousinox!*\n\n👤 Nome: {{ $json.nome }}\n📱 Telefone: {{ $json.telefone }}\n📧 Email: {{ $json.email ?? 'Não informado' }}\n🏢 Empresa: {{ $json.empresa ?? 'Não informado' }}\n📍 Cidade: {{ $json.cidade ?? 'Não informado' }}\n🏗️ Produto: {{ $json.produto }}\n📦 Tipo de obra: {{ $json.tipo_obra ?? '-' }}\n📐 Quantidade: {{ $json.quantidade ?? '-' }}\n⏰ Prazo: {{ $json.prazo ?? '-' }}\n💬 Mensagem: {{ $json.mensagem ?? 'Sem mensagem' }}\n\n🕐 {{ $json.timestamp }}\n📌 Origem: {{ $json.origem }}"
+            }
+          ]
+        }
+      },
+      "id": "zapi-notificacao",
+      "name": "Notificar Equipe Pousinox",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"ok\": true, \"message\": \"Lead recebido com sucesso\" }",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-ok",
+      "name": "Responder OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [920, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Fixador Orçamento": {
+      "main": [
+        [
+          {
+            "node": "Salvar Lead no Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Contato Geral": {
+      "main": [
+        [
+          {
+            "node": "Salvar Lead no Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Lead no Supabase": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp via Z-API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notificar Equipe Pousinox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp via Z-API": {
+      "main": [
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": ["pousinox", "leads", "whatsapp"],
+  "pinData": {}
+}

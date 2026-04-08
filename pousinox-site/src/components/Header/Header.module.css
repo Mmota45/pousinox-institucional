@@ -197,6 +197,11 @@
   transform: translateX(-50%) translateY(0);
 }
 
+.dropdownMenuSingle {
+  grid-template-columns: 1fr;
+  min-width: 220px;
+}
+
 .dropdownItem {
   padding: 10px 12px;
   font-size: 0.85rem;

@@ -1,0 +1,473 @@
+/* ── Hero ── */
+.hero {
+  position: relative;
+  min-height: 480px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  padding: 120px 0 80px;
+  overflow: hidden;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(10, 20, 35, 0.88) 0%,
+    rgba(10, 20, 35, 0.5) 60%,
+    rgba(10, 20, 35, 0.2) 100%
+  );
+  z-index: 1;
+}
+
+.heroInner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.heroBreadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.heroBreadcrumb a {
+  color: var(--color-silver);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.heroBreadcrumb a:hover {
+  color: #fff;
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 600px;
+}
+
+.heroEyebrow {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-silver);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.heroTitle {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--color-white);
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  margin: 0;
+}
+
+.heroHighlight {
+  color: var(--color-silver);
+}
+
+.heroSubtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.7;
+  border-left: 3px solid var(--color-silver);
+  padding-left: 14px;
+  margin: 0;
+}
+
+.heroCta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* ── Section shared ── */
+.sectionHead {
+  text-align: center;
+  margin-bottom: 48px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.eyebrow {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* ── Riscos ── */
+.riscosSection {
+  background: var(--color-bg);
+}
+
+.riscosGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.riscoCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.riscoNum {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-border);
+  line-height: 1;
+}
+
+.riscoTitulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.riscoDesc {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+/* ── Aplicações ── */
+.aplicacoesSection {
+  background: var(--color-white);
+}
+
+.aplicacoesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.aplicacaoCard {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.aplicacaoCard:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+}
+
+.aplicacaoIcon {
+  width: 52px;
+  height: 52px;
+  background: var(--color-primary);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.aplicacaoTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.aplicacaoDesc {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+/* ── Como funciona ── */
+.comoSection {
+  background: var(--color-bg);
+}
+
+.comoGrid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 64px;
+  align-items: center;
+}
+
+.comoTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.comoTexto p {
+  font-size: 0.975rem;
+  line-height: 1.75;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+.comoPassos {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  counter-reset: passo;
+}
+
+.comoPassos li {
+  counter-increment: passo;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.comoPassos li::before {
+  content: counter(passo);
+  min-width: 28px;
+  height: 28px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.comoPassos li div {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--color-text-light);
+  text-align: left;
+}
+
+.comoPassos li strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.comoImagem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.buchaImg {
+  max-width: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.comoCaption {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+  text-align: center;
+}
+
+/* ── Passos de instalação ── */
+.passosSection {
+  background: var(--color-white);
+}
+
+.passosGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.passoCard {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.passoCard:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.passoImgWrap {
+  position: relative;
+}
+
+.passoImg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.passoNum {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 32px;
+  height: 32px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.passoTexto {
+  padding: 16px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.passoTitulo {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.passoDesc {
+  font-size: 0.825rem;
+  line-height: 1.6;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+/* ── CTA ── */
+.ctaSection {
+  background: var(--color-primary);
+  padding: 80px 0;
+}
+
+.ctaBox {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.ctaTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  max-width: 560px;
+  margin: 0;
+}
+
+.ctaSubtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.75);
+  max-width: 520px;
+  margin: 0;
+  text-align: center;
+}
+
+.ctaActions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btnOutlineLight {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius);
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.2s, color 0.2s;
+  text-decoration: none;
+}
+
+.btnOutlineLight:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .aplicacoesGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .passosGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    min-height: 400px;
+    padding: 100px 0 60px;
+  }
+
+  .heroTitle {
+    font-size: 2rem;
+  }
+
+  .riscosGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .aplicacoesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .comoGrid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .comoImagem {
+    order: -1;
+  }
+
+  .ctaTitle {
+    font-size: 1.5rem;
+  }
+}

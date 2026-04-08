@@ -1,0 +1,851 @@
+/* ── Hero ── */
+.hero {
+  position: relative;
+  min-height: 480px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  padding: 120px 0 80px;
+  overflow: hidden;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(10, 20, 35, 0.92) 0%,
+    rgba(10, 20, 35, 0.6) 60%,
+    rgba(10, 20, 35, 0.25) 100%
+  );
+  z-index: 1;
+}
+
+
+.heroInner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 580px;
+}
+
+.heroEyebrow {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-silver);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+
+.heroTitle {
+  font-size: 3.6rem;
+  font-weight: 800;
+  color: var(--color-white);
+  line-height: 1.05;
+  letter-spacing: -1px;
+  margin: 0;
+}
+
+.heroHighlight {
+  color: var(--color-silver);
+}
+
+.heroSubtitle {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.7;
+  border-left: 3px solid var(--color-silver);
+  padding-left: 14px;
+  margin: 0;
+}
+
+.heroCta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+/* ── Stats strip ── */
+.statsStrip {
+  background: var(--color-primary);
+  padding: 28px 0;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  text-align: center;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statValue {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--color-white);
+  letter-spacing: -0.5px;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: var(--color-silver);
+  line-height: 1.4;
+}
+
+/* ── Intro ── */
+.introSection {
+  background: var(--color-white);
+}
+
+.introGrid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 64px;
+  align-items: center;
+}
+
+.introTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.eyebrow {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.introTexto p {
+  font-size: 0.975rem;
+  line-height: 1.75;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+.introBullets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.introBullet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.introBullet svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.introImagem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.produtoImg {
+  max-width: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.introImageCaption {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+  text-align: center;
+}
+
+/* ── Benefícios ── */
+.beneficiosSection {
+  background: var(--color-bg);
+}
+
+.sectionHead {
+  text-align: center;
+  margin-bottom: 48px;
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.beneficiosGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.beneficioCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.beneficioCard:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+}
+
+.beneficioIcon {
+  width: 52px;
+  height: 52px;
+  background: var(--color-primary);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.beneficioTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.beneficioDesc {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+/* ── Specs ── */
+.specsSection {
+  background: var(--color-white);
+}
+
+.specsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: start;
+}
+
+.specsTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.specsTexto p {
+  font-size: 0.975rem;
+  line-height: 1.75;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+.specsActions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.specsTableWrap {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.specsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.specsTable thead tr {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.specsTable th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.specsTable td {
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: top;
+  text-align: left;
+}
+
+.specsTable tr:nth-child(even) td {
+  background: var(--color-bg);
+}
+
+/* ── LAMAT ── */
+.lamatSection {
+  background: var(--color-primary);
+}
+
+.lamatInner {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.eyebrowLight {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-silver);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.lamatTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+  margin: 0 0 20px;
+}
+
+.lamatTitle strong {
+  color: var(--color-silver);
+}
+
+.lamatDesc {
+  font-size: 0.975rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.75;
+  margin: 0 0 32px;
+  text-align: left;
+}
+
+.lamatBullets {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.lamatBullet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.lamatBullet svg {
+  color: var(--color-silver);
+  flex-shrink: 0;
+}
+
+.lamatLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-silver);
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: color 0.2s, gap 0.2s;
+}
+
+.lamatLink:hover {
+  color: var(--color-white);
+  gap: 12px;
+}
+
+/* ── Subpages ── */
+.subpagesSection {
+  background: var(--color-bg);
+}
+
+.subpagesGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.subpageCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-decoration: none;
+  position: relative;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.subpageCard:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+}
+
+.subpageIcon {
+  width: 48px;
+  height: 48px;
+  background: var(--color-bg);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary);
+}
+
+.subpageTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.subpageDesc {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-light);
+  margin: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.subpageArrow {
+  color: var(--color-primary);
+  margin-top: 8px;
+}
+
+/* ── CTA ── */
+.ctaSection {
+  background: var(--color-primary);
+  padding: 80px 0;
+}
+
+.ctaBox {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.ctaTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  max-width: 600px;
+  margin: 0;
+}
+
+.ctaSubtitle {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.75);
+  max-width: 520px;
+  margin: 0;
+  text-align: center;
+}
+
+.ctaActions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ── Aplicações ── */
+.aplicacoesSection {
+  background: var(--color-white);
+}
+
+.aplicacoesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.aplicacaoCard {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+}
+
+.aplicacaoCard:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
+}
+
+.aplicacaoIcon {
+  width: 52px;
+  height: 52px;
+  background: var(--color-primary);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.aplicacaoTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.aplicacaoDesc {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+  flex: 1;
+}
+
+.aplicacoesCta {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.aplicacoesLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: gap 0.2s;
+}
+
+.aplicacoesLink:hover {
+  gap: 10px;
+}
+
+/* ── Como funciona ── */
+.comoSection {
+  background: var(--color-bg);
+}
+
+.comoFlow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.comoPasso {
+  flex: 1;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.comoArrow {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  padding: 36px 8px 0;
+  color: var(--color-primary);
+}
+
+.comoPassoNum {
+  width: 40px;
+  height: 40px;
+  background: var(--color-primary);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.comoPassoTitulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.comoPassoDesc {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+/* ── Compatibilidade ── */
+.compatSection {
+  background: var(--color-white);
+}
+
+.compatGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.compatCard {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 3px solid var(--color-primary);
+}
+
+.compatLabel {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.compatDesc {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+/* ── Empreiteiras ── */
+.empreiteirasSection {
+  background: var(--color-bg);
+}
+
+.empreiteirasGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.empreiteirasCard {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empreiteirasIcon {
+  width: 52px;
+  height: 52px;
+  background: var(--color-primary);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.empreiteirasTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.empreiteirasDesc {
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--color-text-light);
+  margin: 0;
+  text-align: left;
+}
+
+/* ── FAQ ── */
+.faqSection {
+  background: var(--color-white);
+}
+
+.faqList {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.faqItem {
+  border-top: 1px solid var(--color-border);
+}
+
+.faqItem:first-child {
+  border-top: none;
+}
+
+.faqQuestion {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.975rem;
+  font-weight: 600;
+  color: var(--color-text);
+  font-family: var(--font-family);
+  transition: background 0.15s;
+}
+
+.faqQuestion:hover {
+  background: var(--color-bg);
+}
+
+.faqChevron {
+  flex-shrink: 0;
+  color: var(--color-primary);
+  transition: transform 0.2s;
+}
+
+.faqChevronOpen {
+  transform: rotate(180deg);
+}
+
+.faqAnswer {
+  padding: 0 24px 20px;
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: var(--color-text-light);
+  text-align: left;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .beneficiosGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .compatGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .empreiteirasGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    min-height: 420px;
+    padding: 100px 0 60px;
+  }
+
+  .heroTitle {
+    font-size: 2.4rem;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .introGrid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .introImagem {
+    order: -1;
+  }
+
+  .beneficiosGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .specsGrid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .subpagesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .lamatTitle {
+    font-size: 1.5rem;
+  }
+
+  .ctaTitle {
+    font-size: 1.5rem;
+  }
+
+  .aplicacoesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .comoFlow {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .comoArrow {
+    display: none;
+  }
+
+  .compatGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .empreiteirasGrid {
+    grid-template-columns: 1fr;
+  }
+}

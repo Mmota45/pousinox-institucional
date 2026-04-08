@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { NavLink, Link } from 'react-router-dom'
+import { NavLink, Link, useMatch } from 'react-router-dom'
 import logoIcon from '../../assets/logo-icon.png'
 import { segmentos } from '../../data/segmentos'
 import Search from '../Search/Search'
@@ -11,9 +11,10 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [prodOpen, setProdOpen] = useState(false)
+  const [fixadorOpen, setFixadorOpen] = useState(false)
+  const isFixador = !!useMatch({ path: '/fixador-porcelanato', end: false })
 
-
-  const closeAll = () => { setProdOpen(false) }
+  const closeAll = () => { setProdOpen(false); setFixadorOpen(false) }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20)
@@ -52,6 +53,32 @@ export default function Header() {
         Corte a Laser
       </NavLink>
 
+      <div className={styles.dropdown}>
+        <button className={`${styles.navLink} ${styles.dropdownTrigger} ${isFixador ? styles.navLinkActive : ''}`} onClick={() => setFixadorOpen(o => !o)} aria-expanded={fixadorOpen}>
+          Fixador de Porcelanato
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className={`${styles.chevron} ${fixadorOpen ? styles.chevronOpen : ''}`}>
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <div className={`${styles.dropdownMenu} ${styles.dropdownMenuSingle} ${fixadorOpen ? styles.dropdownMenuOpen : ''}`}>
+          <Link to="/fixador-porcelanato" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
+            Visão Geral
+          </Link>
+          <Link to="/fixador-porcelanato/fachadas" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
+            Fachadas e Grandes Formatos
+          </Link>
+          <Link to="/fixador-porcelanato/ensaios" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
+            Ensaios LAMAT/SENAI Itaúna
+          </Link>
+          <Link to="/fixador-porcelanato/normas" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
+            Normas Técnicas
+          </Link>
+          <Link to="/fixador-porcelanato/orcamento" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
+            Solicitar Orçamento
+          </Link>
+        </div>
+      </div>
+
       <NavLink to="/sobre" className={({ isActive }) => `${styles.navLink} ${isActive ? styles.navLinkActive : ''}`} onClick={() => { setMenuOpen(false); closeAll() }}>
         Sobre Nós
       </NavLink>
@@ -68,7 +95,7 @@ export default function Header() {
 
   return (
     <>
-      {prodOpen && <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={closeAll} />}
+      {(prodOpen || fixadorOpen) && <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={closeAll} />}
 
       <header className={`${styles.header} ${scrolled ? styles.scrolled : ''}`}>
 
