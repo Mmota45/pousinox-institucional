@@ -165,8 +165,10 @@ export default function AdminProspeccao() {
 
   const [prospects, setProspects]   = useState<Prospect[]>([])
   const [total, setTotal]           = useState(0)
-  const [totalInox, setTotalInox]       = useState(0)
-  const [totalFixador, setTotalFixador] = useState(0)
+  const [totalInox, setTotalInox]         = useState(0)
+  const [totalInoxCont, setTotalInoxCont] = useState(0)
+  const [totalFixador, setTotalFixador]   = useState(0)
+  const [totalFixCont, setTotalFixCont]   = useState(0)
   const [pagina, setPagina]         = useState(0)
   const [loading, setLoading]       = useState(false)
   const [buscado, setBuscado]       = useState(false)
@@ -233,13 +235,20 @@ export default function AdminProspeccao() {
       .order('razao_social', { ascending: true })
       .range(pag * POR_PAGINA, pag * POR_PAGINA + POR_PAGINA - 1)
 
-    const { data, count, error } = await qPag
+    const qInox     = aplicarFiltrosBase(base().select('*', { count: 'exact', head: true })).eq('produto', 'Equipamentos Inox')
+    const qInoxCont = aplicarFiltrosBase(base().select('*', { count: 'exact', head: true })).eq('produto', 'Equipamentos Inox').eq('contatado', true)
+    const qFix      = aplicarFiltrosBase(base().select('*', { count: 'exact', head: true })).eq('produto', 'Fixador Porcelanato')
+    const qFixCont  = aplicarFiltrosBase(base().select('*', { count: 'exact', head: true })).eq('produto', 'Fixador Porcelanato').eq('contatado', true)
 
-    if (!error) {
-      setProspects(data ?? [])
-      setTotal(count ?? 0)
-      setTotalInox((data ?? []).filter(p => p.produto === 'Equipamentos Inox').length)
-      setTotalFixador((data ?? []).filter(p => p.produto === 'Fixador Porcelanato').length)
+    const [res, resInox, resInoxCont, resFix, resFixCont] = await Promise.all([qPag, qInox, qInoxCont, qFix, qFixCont])
+
+    if (!res.error) {
+      setProspects(res.data ?? [])
+      setTotal(res.count ?? 0)
+      setTotalInox(resInox.count ?? 0)
+      setTotalInoxCont(resInoxCont.count ?? 0)
+      setTotalFixador(resFix.count ?? 0)
+      setTotalFixCont(resFixCont.count ?? 0)
       setPagina(pag)
     }
     setLoading(false)
@@ -406,12 +415,12 @@ export default function AdminProspeccao() {
           <div className={styles.statCard}>
             <span className={styles.statLabel}>Equipamentos Inox</span>
             <span className={styles.statVal}>{totalInox.toLocaleString('pt-BR')}</span>
-            <span className={styles.statSub}>nesta página</span>
+            <span className={styles.statSub}>✓ {totalInoxCont.toLocaleString('pt-BR')} contatados</span>
           </div>
           <div className={styles.statCard}>
             <span className={styles.statLabel}>Fixador Porcelanato</span>
             <span className={styles.statVal}>{totalFixador.toLocaleString('pt-BR')}</span>
-            <span className={styles.statSub}>nesta página</span>
+            <span className={styles.statSub}>✓ {totalFixCont.toLocaleString('pt-BR')} contatados</span>
           </div>
         </div>
       )}
