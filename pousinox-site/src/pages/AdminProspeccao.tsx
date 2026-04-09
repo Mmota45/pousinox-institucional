@@ -149,7 +149,8 @@ export default function AdminProspeccao() {
     setCidadesSel([])
     supabaseAdmin
       .rpc('get_mesorregioes_ufs', { p_ufs: ufs })
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        console.log('[meso] data:', data, 'error:', error)
         const lista = (data ?? []).map((r: { mesorregiao: string }) => r.mesorregiao).filter(Boolean) as string[]
         setMesorregioes(lista)
         setLoadingMeso(false)
