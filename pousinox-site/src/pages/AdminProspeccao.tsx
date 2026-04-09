@@ -136,6 +136,9 @@ export default function AdminProspeccao() {
 
   const [prospects, setProspects]   = useState<Prospect[]>([])
   const [total, setTotal]           = useState(0)
+  const [totalInox, setTotalInox]   = useState(0)
+  const [totalFixador, setTotalFixador] = useState(0)
+  const [totalContatados, setTotalContatados] = useState(0)
   const [pagina, setPagina]         = useState(0)
   const [loading, setLoading]       = useState(false)
   const [buscado, setBuscado]       = useState(false)
@@ -172,31 +175,45 @@ export default function AdminProspeccao() {
     })
   }, [ufs, mesorregioesSel])
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function aplicarFiltros(q: any) {
+    if (busca.trim()) q = q.or(`razao_social.ilike.%${busca.trim()}%,nome_fantasia.ilike.%${busca.trim()}%`)
+    if (produtos.length > 0)         q = q.in('produto', produtos)
+    if (segmentos.length > 0)        q = q.in('segmento', segmentos)
+    if (ufs.length > 0)              q = q.in('uf', ufs)
+    if (mesorregioesSel.length > 0)  q = q.in('mesorregiao', mesorregioesSel)
+    if (cidadesSel.length > 0)       q = q.in('cidade', cidadesSel)
+    if (portes.length > 0)           q = q.in('porte', portes)
+    if (contatoFiltro === 'sim')      q = q.eq('contatado', true)
+    if (contatoFiltro === 'nao')      q = q.eq('contatado', false)
+    return q
+  }
+
   async function buscar(pag = 0) {
     setLoading(true)
     setBuscado(true)
 
-    let q = supabaseAdmin.from('prospeccao').select('*', { count: 'exact' })
-
-    if (busca.trim()) q = q.or(`razao_social.ilike.%${busca.trim()}%,nome_fantasia.ilike.%${busca.trim()}%`)
-    if (produtos.length > 0)   q = q.in('produto', produtos)
-    if (segmentos.length > 0)  q = q.in('segmento', segmentos)
-    if (ufs.length > 0)              q = q.in('uf', ufs)
-    if (mesorregioesSel.length > 0)  q = q.in('mesorregiao', mesorregioesSel)
-    if (cidadesSel.length > 0)       q = q.in('cidade', cidadesSel)
-    if (portes.length > 0)         q = q.in('porte', portes)
-    if (contatoFiltro === 'sim')   q = q.eq('contatado', true)
-    if (contatoFiltro === 'nao')   q = q.eq('contatado', false)
-
-    q = q
+    const qPag = aplicarFiltros(supabaseAdmin.from('prospeccao').select('*', { count: 'exact' }))
       .order('razao_social', { ascending: true })
       .range(pag * POR_PAGINA, pag * POR_PAGINA + POR_PAGINA - 1)
 
-    const { data, count, error } = await q
+    const qInox = aplicarFiltros(supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }))
+      .eq('produto', 'Equipamentos Inox')
 
-    if (!error) {
-      setProspects(data ?? [])
-      setTotal(count ?? 0)
+    const qFix = aplicarFiltros(supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }))
+      .eq('produto', 'Fixador Porcelanato')
+
+    const qCont = aplicarFiltros(supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }))
+      .eq('contatado', true)
+
+    const [res, resInox, resFix, resCont] = await Promise.all([qPag, qInox, qFix, qCont])
+
+    if (!res.error) {
+      setProspects(res.data ?? [])
+      setTotal(res.count ?? 0)
+      setTotalInox(resInox.count ?? 0)
+      setTotalFixador(resFix.count ?? 0)
+      setTotalContatados(resCont.count ?? 0)
       setPagina(pag)
     }
     setLoading(false)
@@ -235,10 +252,7 @@ export default function AdminProspeccao() {
     )
   }
 
-  const totalPaginas  = Math.ceil(total / POR_PAGINA)
-  const inox          = prospects.filter(p => p.produto === 'Equipamentos Inox').length
-  const fixador       = prospects.filter(p => p.produto === 'Fixador Porcelanato').length
-  const contatados    = prospects.filter(p => p.contatado).length
+  const totalPaginas = Math.ceil(total / POR_PAGINA)
 
   return (
     <div className={styles.wrap}>
@@ -365,15 +379,15 @@ export default function AdminProspeccao() {
           </div>
           <div className={styles.statCard}>
             <span className={styles.statLabel}>Equipamentos Inox</span>
-            <span className={styles.statVal}>{inox}</span>
+            <span className={styles.statVal}>{totalInox.toLocaleString('pt-BR')}</span>
           </div>
           <div className={styles.statCard}>
             <span className={styles.statLabel}>Fixador Porcelanato</span>
-            <span className={styles.statVal}>{fixador}</span>
+            <span className={styles.statVal}>{totalFixador.toLocaleString('pt-BR')}</span>
           </div>
           <div className={styles.statCard}>
-            <span className={styles.statLabel}>Contatados (pág.)</span>
-            <span className={styles.statVal}>{contatados}</span>
+            <span className={styles.statLabel}>Contatados</span>
+            <span className={styles.statVal}>{totalContatados.toLocaleString('pt-BR')}</span>
           </div>
         </div>
       )}

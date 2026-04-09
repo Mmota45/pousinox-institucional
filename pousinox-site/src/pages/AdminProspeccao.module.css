@@ -39,6 +39,10 @@
   color: var(--color-text);
   background: #f8fafc;
   min-width: 160px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .filtroSelect:focus,
