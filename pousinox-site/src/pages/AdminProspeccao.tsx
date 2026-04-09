@@ -172,6 +172,7 @@ export default function AdminProspeccao() {
   const [pagina, setPagina]         = useState(0)
   const [loading, setLoading]       = useState(false)
   const [buscado, setBuscado]       = useState(false)
+  const [erroQuery, setErroQuery]   = useState<string | null>(null)
 
   // Carregar mesorregiões quando UFs mudam
   useEffect(() => {
@@ -228,6 +229,7 @@ export default function AdminProspeccao() {
   async function buscar(pag = 0) {
     setLoading(true)
     setBuscado(true)
+    setErroQuery(null)
 
     const base = () => supabaseAdmin.from('prospeccao')
 
@@ -242,7 +244,11 @@ export default function AdminProspeccao() {
 
     const [res, resInox, resInoxCont, resFix, resFixCont] = await Promise.all([qPag, qInox, qInoxCont, qFix, qFixCont])
 
-    if (!res.error) {
+    if (res.error) {
+      setErroQuery('Consulta demorou demais. Refine os filtros (adicione cidade, segmento ou produto).')
+      setProspects([])
+      setTotal(0)
+    } else {
       setProspects(res.data ?? [])
       setTotal(res.count ?? 0)
       setTotalInox(resInox.count ?? 0)
@@ -439,6 +445,8 @@ export default function AdminProspeccao() {
 
           {loading ? (
             <div className={styles.loading}>Buscando prospects...</div>
+          ) : erroQuery ? (
+            <div className={styles.vazio} style={{ color: '#dc2626' }}>⚠ {erroQuery}</div>
           ) : prospects.length === 0 ? (
             <div className={styles.vazio}>Nenhum prospect encontrado com os filtros selecionados.</div>
           ) : (
