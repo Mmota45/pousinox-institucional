@@ -125,6 +125,9 @@ export default function AdminProspeccao() {
   const [produtos, setProdutos]     = useState<string[]>([])
   const [segmentos, setSegmentos]   = useState<string[]>([])
   const [ufs, setUfs]               = useState<string[]>([])
+  const [mesorregioes, setMesorregioes]     = useState<string[]>([])
+  const [mesorregioesSel, setMesorregioesSel] = useState<string[]>([])
+  const [loadingMeso, setLoadingMeso]       = useState(false)
   const [cidades, setCidades]       = useState<string[]>([])
   const [cidadesSel, setCidadesSel] = useState<string[]>([])
   const [loadingCidades, setLoadingCidades] = useState(false)
@@ -137,19 +140,36 @@ export default function AdminProspeccao() {
   const [loading, setLoading]       = useState(false)
   const [buscado, setBuscado]       = useState(false)
 
-  // Carregar cidades quando UFs selecionadas mudam
+  // Carregar mesorregiões quando UFs mudam
   useEffect(() => {
-    if (ufs.length === 0) { setCidades([]); setCidadesSel([]); return }
-    setLoadingCidades(true)
+    if (ufs.length === 0) { setMesorregioes([]); setMesorregioesSel([]); setCidades([]); setCidadesSel([]); return }
+    setLoadingMeso(true)
+    setMesorregioesSel([])
+    setCidades([])
     setCidadesSel([])
     supabaseAdmin
-      .rpc('get_cidades_ufs', { p_ufs: ufs })
+      .rpc('get_mesorregioes_ufs', { p_ufs: ufs })
       .then(({ data }) => {
-        const lista = (data ?? []).map((r: { cidade: string }) => r.cidade).filter(Boolean) as string[]
-        setCidades(lista)
-        setLoadingCidades(false)
+        const lista = (data ?? []).map((r: { mesorregiao: string }) => r.mesorregiao).filter(Boolean) as string[]
+        setMesorregioes(lista)
+        setLoadingMeso(false)
       })
   }, [ufs])
+
+  // Carregar cidades quando mesorregiões (ou UFs sem meso) mudam
+  useEffect(() => {
+    if (ufs.length === 0) return
+    setLoadingCidades(true)
+    setCidadesSel([])
+    const rpc = mesorregioesSel.length > 0
+      ? supabaseAdmin.rpc('get_cidades_meso', { p_ufs: ufs, p_meso: mesorregioesSel })
+      : supabaseAdmin.rpc('get_cidades_ufs', { p_ufs: ufs })
+    rpc.then(({ data }) => {
+      const lista = (data ?? []).map((r: { cidade: string }) => r.cidade).filter(Boolean) as string[]
+      setCidades(lista)
+      setLoadingCidades(false)
+    })
+  }, [ufs, mesorregioesSel])
 
   async function buscar(pag = 0) {
     setLoading(true)
@@ -160,8 +180,9 @@ export default function AdminProspeccao() {
     if (busca.trim()) q = q.or(`razao_social.ilike.%${busca.trim()}%,nome_fantasia.ilike.%${busca.trim()}%`)
     if (produtos.length > 0)   q = q.in('produto', produtos)
     if (segmentos.length > 0)  q = q.in('segmento', segmentos)
-    if (ufs.length > 0)        q = q.in('uf', ufs)
-    if (cidadesSel.length > 0) q = q.in('cidade', cidadesSel)
+    if (ufs.length > 0)              q = q.in('uf', ufs)
+    if (mesorregioesSel.length > 0)  q = q.in('mesorregiao', mesorregioesSel)
+    if (cidadesSel.length > 0)       q = q.in('cidade', cidadesSel)
     if (portes.length > 0)         q = q.in('porte', portes)
     if (contatoFiltro === 'sim')   q = q.eq('contatado', true)
     if (contatoFiltro === 'nao')   q = q.eq('contatado', false)
@@ -265,6 +286,18 @@ export default function AdminProspeccao() {
           onChange={setUfs}
           minWidth={80}
         />
+
+        {ufs.length > 0 && (
+          <MultiDropdown
+            label="Mesorregião"
+            options={mesorregioes}
+            value={mesorregioesSel}
+            onChange={setMesorregioesSel}
+            placeholder="Todas"
+            loading={loadingMeso}
+            minWidth={200}
+          />
+        )}
 
         <MultiDropdown
           label="Cidade"
