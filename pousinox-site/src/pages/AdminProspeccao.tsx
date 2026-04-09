@@ -411,6 +411,13 @@ export default function AdminProspeccao() {
         </button>
       </div>
 
+      {/* ── Aviso de filtro insuficiente ── */}
+      {ufs.length > 0 && mesorregioesSel.length === 0 && cidadesSel.length === 0 && segmentos.length === 0 && produtos.length === 0 && (
+        <div style={{ fontSize: '0.82rem', color: '#92400e', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 14px' }}>
+          ⚠ Com apenas UF selecionada, adicione também mesorregião, cidade, segmento ou produto para evitar timeout.
+        </div>
+      )}
+
       {/* ── Stats ── */}
       {buscado && !loading && (
         <div className={styles.stats}>
