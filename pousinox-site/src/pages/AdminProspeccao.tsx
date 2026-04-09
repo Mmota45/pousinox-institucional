@@ -194,19 +194,25 @@ export default function AdminProspeccao() {
       })
   }, [ufs])
 
-  // Carregar cidades quando mesorregiões (ou UFs sem meso) mudam
+  // Carregar cidades somente após mesorregião selecionada (evita timeout em UFs grandes)
   useEffect(() => {
-    if (ufs.length === 0) return
+    if (ufs.length === 0 || mesorregioesSel.length === 0) {
+      setCidades([])
+      setCidadesSel([])
+      return
+    }
+    let cancelled = false
     setLoadingCidades(true)
     setCidadesSel([])
-    const rpc = mesorregioesSel.length > 0
-      ? supabaseAdmin.rpc('get_cidades_meso', { p_ufs: ufs, p_meso: mesorregioesSel })
-      : supabaseAdmin.rpc('get_cidades_ufs', { p_ufs: ufs })
-    rpc.then(({ data }) => {
-      const lista = (data ?? []).map((r: { cidade: string }) => r.cidade).filter(Boolean) as string[]
-      setCidades(lista)
-      setLoadingCidades(false)
-    })
+    supabaseAdmin
+      .rpc('get_cidades_meso', { p_ufs: ufs, p_meso: mesorregioesSel })
+      .then(({ data }) => {
+        if (cancelled) return
+        const lista = (data ?? []).map((r: { cidade: string }) => r.cidade).filter(Boolean) as string[]
+        setCidades(lista)
+        setLoadingCidades(false)
+      })
+    return () => { cancelled = true }
   }, [ufs, mesorregioesSel])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -363,8 +369,8 @@ export default function AdminProspeccao() {
           options={cidades}
           value={cidadesSel}
           onChange={setCidadesSel}
-          placeholder={ufs.length === 0 ? 'Selecione uma UF' : 'Todas'}
-          disabled={ufs.length === 0}
+          placeholder={ufs.length === 0 ? 'Selecione uma UF' : mesorregioesSel.length === 0 ? 'Selecione mesorregião' : 'Todas'}
+          disabled={ufs.length === 0 || mesorregioesSel.length === 0}
           loading={loadingCidades}
           minWidth={180}
         />
