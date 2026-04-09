@@ -56,8 +56,11 @@ function MultiDropdown({ label, options, value, onChange, placeholder = 'Todos',
     onChange(value.includes(opt) ? value.filter(x => x !== opt) : [...value, opt])
   }
 
+  function norm(s: string) {
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  }
   const filtrados = busca.trim()
-    ? options.filter(o => o.toLowerCase().includes(busca.toLowerCase()))
+    ? options.filter(o => norm(o).includes(norm(busca)))
     : options
 
   const btnLabel = loading
