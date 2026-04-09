@@ -33,19 +33,32 @@ interface MultiDropdownProps {
 
 function MultiDropdown({ label, options, value, onChange, placeholder = 'Todos', disabled, loading, minWidth = 160 }: MultiDropdownProps) {
   const [open, setOpen] = useState(false)
+  const [busca, setBusca] = useState('')
   const ref = useRef<HTMLDivElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+        setBusca('')
+      }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  useEffect(() => {
+    if (open && searchRef.current) searchRef.current.focus()
+  }, [open])
+
   function toggle(opt: string) {
     onChange(value.includes(opt) ? value.filter(x => x !== opt) : [...value, opt])
   }
+
+  const filtrados = busca.trim()
+    ? options.filter(o => o.toLowerCase().includes(busca.toLowerCase()))
+    : options
 
   const btnLabel = loading
     ? 'Carregando...'
@@ -71,16 +84,32 @@ function MultiDropdown({ label, options, value, onChange, placeholder = 'Todos',
       </button>
       {open && (
         <div className={styles.segDropdown}>
+          {options.length >= 8 && (
+            <div className={styles.segSearch}>
+              <input
+                ref={searchRef}
+                type="text"
+                placeholder="Filtrar..."
+                value={busca}
+                onChange={e => setBusca(e.target.value)}
+                onClick={e => e.stopPropagation()}
+                className={styles.segSearchInput}
+              />
+            </div>
+          )}
           <label className={styles.segItem}>
-            <input type="checkbox" checked={value.length === 0} onChange={() => onChange([])} />
+            <input type="checkbox" checked={value.length === 0} onChange={() => { onChange([]); setBusca('') }} />
             <span>Todos</span>
           </label>
-          {options.map(opt => (
+          {filtrados.map(opt => (
             <label key={opt} className={styles.segItem}>
               <input type="checkbox" checked={value.includes(opt)} onChange={() => toggle(opt)} />
               <span>{opt}</span>
             </label>
           ))}
+          {filtrados.length === 0 && (
+            <div style={{ padding: '8px 14px', fontSize: '0.82rem', color: '#94a3b8' }}>Nenhum resultado</div>
+          )}
         </div>
       )}
     </div>
@@ -136,9 +165,10 @@ export default function AdminProspeccao() {
 
   const [prospects, setProspects]   = useState<Prospect[]>([])
   const [total, setTotal]           = useState(0)
-  const [totalInox, setTotalInox]   = useState(0)
-  const [totalFixador, setTotalFixador] = useState(0)
-  const [totalContatados, setTotalContatados] = useState(0)
+  const [totalInox, setTotalInox]           = useState(0)
+  const [totalInoxCont, setTotalInoxCont]   = useState(0)
+  const [totalFixador, setTotalFixador]     = useState(0)
+  const [totalFixCont, setTotalFixCont]     = useState(0)
   const [pagina, setPagina]         = useState(0)
   const [loading, setLoading]       = useState(false)
   const [buscado, setBuscado]       = useState(false)
@@ -176,9 +206,8 @@ export default function AdminProspeccao() {
   }, [ufs, mesorregioesSel])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function aplicarFiltros(q: any) {
+  function aplicarFiltrosBase(q: any) {
     if (busca.trim()) q = q.or(`razao_social.ilike.%${busca.trim()}%,nome_fantasia.ilike.%${busca.trim()}%`)
-    if (produtos.length > 0)         q = q.in('produto', produtos)
     if (segmentos.length > 0)        q = q.in('segmento', segmentos)
     if (ufs.length > 0)              q = q.in('uf', ufs)
     if (mesorregioesSel.length > 0)  q = q.in('mesorregiao', mesorregioesSel)
@@ -189,31 +218,37 @@ export default function AdminProspeccao() {
     return q
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function aplicarFiltros(q: any) {
+    q = aplicarFiltrosBase(q)
+    if (produtos.length > 0) q = q.in('produto', produtos)
+    return q
+  }
+
   async function buscar(pag = 0) {
     setLoading(true)
     setBuscado(true)
 
-    const qPag = aplicarFiltros(supabaseAdmin.from('prospeccao').select('*', { count: 'exact' }))
+    const base = () => supabaseAdmin.from('prospeccao')
+
+    const qPag = aplicarFiltros(base().select('*', { count: 'exact' }))
       .order('razao_social', { ascending: true })
       .range(pag * POR_PAGINA, pag * POR_PAGINA + POR_PAGINA - 1)
 
-    const qInox = aplicarFiltros(supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }))
-      .eq('produto', 'Equipamentos Inox')
+    const qInox     = aplicarFiltrosBase(base().select('*', { count: 'exact', head: true })).eq('produto', 'Equipamentos Inox')
+    const qInoxCont = aplicarFiltrosBase(base().select('*', { count: 'exact', head: true })).eq('produto', 'Equipamentos Inox').eq('contatado', true)
+    const qFix      = aplicarFiltrosBase(base().select('*', { count: 'exact', head: true })).eq('produto', 'Fixador Porcelanato')
+    const qFixCont  = aplicarFiltrosBase(base().select('*', { count: 'exact', head: true })).eq('produto', 'Fixador Porcelanato').eq('contatado', true)
 
-    const qFix = aplicarFiltros(supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }))
-      .eq('produto', 'Fixador Porcelanato')
-
-    const qCont = aplicarFiltros(supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }))
-      .eq('contatado', true)
-
-    const [res, resInox, resFix, resCont] = await Promise.all([qPag, qInox, qFix, qCont])
+    const [res, resInox, resInoxCont, resFix, resFixCont] = await Promise.all([qPag, qInox, qInoxCont, qFix, qFixCont])
 
     if (!res.error) {
       setProspects(res.data ?? [])
       setTotal(res.count ?? 0)
       setTotalInox(resInox.count ?? 0)
+      setTotalInoxCont(resInoxCont.count ?? 0)
       setTotalFixador(resFix.count ?? 0)
-      setTotalContatados(resCont.count ?? 0)
+      setTotalFixCont(resFixCont.count ?? 0)
       setPagina(pag)
     }
     setLoading(false)
@@ -380,14 +415,12 @@ export default function AdminProspeccao() {
           <div className={styles.statCard}>
             <span className={styles.statLabel}>Equipamentos Inox</span>
             <span className={styles.statVal}>{totalInox.toLocaleString('pt-BR')}</span>
+            <span className={styles.statSub}>✓ {totalInoxCont.toLocaleString('pt-BR')} contatados</span>
           </div>
           <div className={styles.statCard}>
             <span className={styles.statLabel}>Fixador Porcelanato</span>
             <span className={styles.statVal}>{totalFixador.toLocaleString('pt-BR')}</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statLabel}>Contatados</span>
-            <span className={styles.statVal}>{totalContatados.toLocaleString('pt-BR')}</span>
+            <span className={styles.statSub}>✓ {totalFixCont.toLocaleString('pt-BR')} contatados</span>
           </div>
         </div>
       )}

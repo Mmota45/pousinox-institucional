@@ -52,6 +52,28 @@
   background: #fff;
 }
 
+.segSearch {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.segSearchInput {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 0.82rem;
+  color: var(--color-text);
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.segSearchInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background: #fff;
+}
+
 .segDropdown {
   position: absolute;
   top: calc(100% + 4px);
@@ -131,6 +153,13 @@
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-primary, #1e3a5f);
+}
+
+.statSub {
+  font-size: 0.75rem;
+  color: #16a34a;
+  font-weight: 500;
+  margin-top: 1px;
 }
 
 /* ── Tabela ── */
