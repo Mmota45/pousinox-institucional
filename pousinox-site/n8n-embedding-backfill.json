@@ -1,0 +1,175 @@
+{
+  "name": "Projetos — Backfill Embeddings",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "embedding-backfill",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook Backfill",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "embedding-backfill"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/rpc/listar_projetos_para_embedding",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "{}",
+        "options": {}
+      },
+      "id": "node-listar",
+      "name": "Listar Sem Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recebe array de projetos sem embedding\n// Transforma cada um em item separado para processamento em loop\nconst rows = Array.isArray($input.first().json) ? $input.first().json : [];\n\nif (rows.length === 0) {\n  return [{ json: { total: 0, mensagem: 'Nenhum projeto sem embedding.' } }];\n}\n\n// Retorna um item por projeto\nreturn rows.map(row => ({ json: row }));"
+      },
+      "id": "node-split",
+      "name": "Separar Projetos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Monta texto_base para este projeto\nconst row = $input.first().json;\n\nconst segmento = row.segmento ?? 'geral';\nconst titulo   = row.titulo ?? '';\nconst atributos = Array.isArray(row.atributos) ? row.atributos : [];\n\nconst attrs = atributos\n  .filter(a => a.chave && a.valor)\n  .sort((a, b) => a.chave.localeCompare(b.chave))\n  .map(a => `${a.chave}=${a.valor}`)\n  .join(', ');\n\nconst texto_base = `${segmento}: ${titulo}${attrs ? '. ' + attrs : ''}`;\n\nconst crypto = require('crypto');\nconst conteudo_hash = crypto.createHash('md5').update(texto_base).digest('hex');\n\nreturn [{ json: {\n  projeto_id:    row.projeto_id,\n  texto_base,\n  conteudo_hash\n}}];"
+      },
+      "id": "node-preparar",
+      "name": "Preparar Texto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={{ $env.GEMINI_KEY }}",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\n  \"model\": \"models/text-embedding-004\",\n  \"content\": {\n    \"parts\": [{ \"text\": \"{{ $json.texto_base }}\" }]\n  }\n}",
+        "options": {}
+      },
+      "id": "node-gemini",
+      "name": "Gemini Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const geminiRes = $input.first().json;\nconst preparado = $('Preparar Texto').first().json;\n\nconst values = geminiRes?.embedding?.values;\nif (!values || values.length !== 768) {\n  // Marca erro no banco e continua o loop\n  return [{ json: {\n    _erro: true,\n    projeto_id: preparado.projeto_id,\n    detalhe: `Resposta Gemini inválida: ${JSON.stringify(geminiRes).slice(0,100)}`\n  }}];\n}\n\nconst embeddingStr = '[' + values.join(',') + ']';\n\nreturn [{ json: {\n  _erro: false,\n  projeto_id:    preparado.projeto_id,\n  embedding:     embeddingStr,\n  modelo:        'text-embedding-004-768',\n  texto_base:    preparado.texto_base,\n  conteudo_hash: preparado.conteudo_hash,\n  status:        'valido',\n  gerado_em:     new Date().toISOString(),\n  updated_at:    new Date().toISOString()\n}}];"
+      },
+      "id": "node-formatar",
+      "name": "Formatar Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{ "value1": "={{ $json._erro }}", "value2": false }]
+        }
+      },
+      "id": "node-if",
+      "name": "Sem Erro?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/projeto_embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "resolution=merge-duplicates" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ projeto_id: $json.projeto_id, embedding: $json.embedding, modelo: $json.modelo, texto_base: $json.texto_base, conteudo_hash: $json.conteudo_hash, status: $json.status, gerado_em: $json.gerado_em, updated_at: $json.updated_at }) }}",
+        "options": {}
+      },
+      "id": "node-upsert",
+      "name": "Upsert Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/projeto_embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "resolution=merge-duplicates" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify({ projeto_id: $json.projeto_id, status: 'erro', updated_at: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "node-erro",
+      "name": "Marcar Erro",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "amount": 400,
+        "unit": "milliseconds"
+      },
+      "id": "node-wait",
+      "name": "Delay 400ms",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [2000, 220]
+    }
+  ],
+  "connections": {
+    "Webhook Backfill":  { "main": [[{ "node": "Listar Sem Embedding", "type": "main", "index": 0 }]] },
+    "Listar Sem Embedding": { "main": [[{ "node": "Separar Projetos",  "type": "main", "index": 0 }]] },
+    "Separar Projetos":  { "main": [[{ "node": "Preparar Texto",      "type": "main", "index": 0 }]] },
+    "Preparar Texto":    { "main": [[{ "node": "Gemini Embedding",    "type": "main", "index": 0 }]] },
+    "Gemini Embedding":  { "main": [[{ "node": "Formatar Payload",    "type": "main", "index": 0 }]] },
+    "Formatar Payload":  { "main": [[{ "node": "Sem Erro?",           "type": "main", "index": 0 }]] },
+    "Sem Erro?": {
+      "main": [
+        [{ "node": "Upsert Supabase", "type": "main", "index": 0 }],
+        [{ "node": "Marcar Erro",     "type": "main", "index": 0 }]
+      ]
+    },
+    "Upsert Supabase": { "main": [[{ "node": "Delay 400ms", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "templateCredsSetupCompleted": true }
+}

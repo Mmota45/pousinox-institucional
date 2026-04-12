@@ -1,0 +1,86 @@
+{
+  "name": "Projetos — Gerar Embedding",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "projeto-embed",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "projeto-embed"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recebe: { projeto_id, titulo, segmento, atributos: [{chave, valor}] }\nconst body = $input.first().json.body ?? $input.first().json;\n\nconst projeto_id = body.projeto_id;\nconst titulo     = body.titulo ?? '';\nconst segmento   = body.segmento ?? 'geral';\nconst atributos  = Array.isArray(body.atributos) ? body.atributos : [];\n\nif (!projeto_id) throw new Error('projeto_id ausente');\n\n// Monta texto_base: formato determinístico para consistência de embeddings\nconst attrs = atributos\n  .filter(a => a.chave && a.valor)\n  .sort((a, b) => a.chave.localeCompare(b.chave))\n  .map(a => `${a.chave}=${a.valor}`)\n  .join(', ');\n\nconst texto_base = `${segmento}: ${titulo}${attrs ? '. ' + attrs : ''}`;\n\n// Hash simples do conteúdo (para detectar mudanças sem chamar API)\nconst crypto = require('crypto');\nconst conteudo_hash = crypto.createHash('md5').update(texto_base).digest('hex');\n\nreturn [{ json: { projeto_id, texto_base, conteudo_hash } }];"
+      },
+      "id": "node-preparar",
+      "name": "Preparar Texto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key={{ $env.GEMINI_KEY }}",
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={\n  \"model\": \"models/text-embedding-004\",\n  \"content\": {\n    \"parts\": [{ \"text\": \"{{ $json.texto_base }}\" }]\n  }\n}",
+        "options": {}
+      },
+      "id": "node-gemini",
+      "name": "Gemini Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const geminiRes  = $input.first().json;\nconst preparado  = $('Preparar Texto').first().json;\n\nconst values = geminiRes?.embedding?.values;\nif (!values || !Array.isArray(values) || values.length !== 768) {\n  throw new Error(`Gemini retornou embedding inválido: ${JSON.stringify(geminiRes).slice(0, 200)}`);\n}\n\n// pgvector aceita string no formato \"[f1,f2,...,fn]\"\nconst embeddingStr = '[' + values.join(',') + ']';\n\nreturn [{ json: {\n  projeto_id:    preparado.projeto_id,\n  embedding:     embeddingStr,\n  modelo:        'text-embedding-004-768',\n  texto_base:    preparado.texto_base,\n  conteudo_hash: preparado.conteudo_hash,\n  status:        'valido',\n  gerado_em:     new Date().toISOString(),\n  updated_at:    new Date().toISOString()\n}}];"
+      },
+      "id": "node-formatar",
+      "name": "Formatar Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/projeto_embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey",        "value": "={{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Prefer",        "value": "resolution=merge-duplicates" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "node-upsert",
+      "name": "Upsert Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1120, 300]
+    }
+  ],
+  "connections": {
+    "Webhook":         { "main": [[{ "node": "Preparar Texto",   "type": "main", "index": 0 }]] },
+    "Preparar Texto":  { "main": [[{ "node": "Gemini Embedding", "type": "main", "index": 0 }]] },
+    "Gemini Embedding":{ "main": [[{ "node": "Formatar Payload", "type": "main", "index": 0 }]] },
+    "Formatar Payload":{ "main": [[{ "node": "Upsert Supabase",  "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "meta": { "templateCredsSetupCompleted": true }
+}
