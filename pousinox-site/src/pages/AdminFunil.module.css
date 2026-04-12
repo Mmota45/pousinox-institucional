@@ -1,0 +1,189 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Filtros ── */
+.filtros {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  align-items: flex-end;
+}
+
+.filtroGrupo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filtroLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filtroSelect, .filtroInput {
+  padding: 7px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  background: #f8fafc;
+  min-width: 160px;
+}
+
+.buscarBtn {
+  padding: 8px 20px;
+  background: var(--color-primary, #1e3a5f);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  align-self: flex-end;
+}
+.buscarBtn:hover { opacity: 0.88; }
+.buscarBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Cards de receita ── */
+.cards {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.cardLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-light);
+  font-weight: 500;
+}
+
+.cardVal {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-primary, #1e3a5f);
+}
+
+.cardSub {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* ── Funil ── */
+.funilWrap {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.funilTitulo {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 24px;
+}
+
+.estagios {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.estagio {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.estagioInfo {
+  width: 160px;
+  flex-shrink: 0;
+}
+
+.estagioLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.estagioCount {
+  font-size: 0.78rem;
+  color: var(--color-text-light);
+  margin-top: 1px;
+}
+
+.barraWrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.barra {
+  flex: 1;
+  height: 36px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.barraFill {
+  height: 100%;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  transition: width 0.5s ease;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.conversao {
+  width: 80px;
+  text-align: right;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  flex-shrink: 0;
+}
+
+.seta {
+  display: flex;
+  align-items: center;
+  padding-left: 176px;
+  gap: 16px;
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.loading {
+  padding: 40px;
+  text-align: center;
+  color: var(--color-text-light);
+}

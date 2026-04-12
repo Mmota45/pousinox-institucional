@@ -23,16 +23,30 @@ const ROTA_PERMISSAO: Record<string, string> = {
   usuarios: 'usuarios',
   conteudo: 'conteudo',
   analytics: 'analytics',
+  produtos: 'produtos',
+  projetos: 'projetos',
 }
 
-const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao']
+const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao', 'cobertura', 'funil', 'clientes', 'produtos', 'projetos']
 
-const NAV_ITEMS = [
+interface NavItem {
+  to: string
+  end?: boolean
+  label: string
+  permissao: string | null
+  badge?: string
+  section?: string  // quando definido, renderiza separador com esse título antes do item
+  icon: React.ReactNode
+}
+
+const NAV_ITEMS: NavItem[] = [
+  // ── Gestão ──────────────────────────────────────────────────────────────────
   {
+    section: 'Gestão',
     to: '/admin',
     end: true,
     label: 'Dashboard',
-    permissao: 'dashboard' as string | null,
+    permissao: 'dashboard',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
@@ -74,6 +88,23 @@ const NAV_ITEMS = [
     ),
   },
   {
+    to: '/admin/orcamento',
+    label: 'Orçamento',
+    permissao: 'orcamento',
+    badge: 'novo' as string | undefined,
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        <line x1="10" y1="9" x2="8" y2="9"/>
+      </svg>
+    ),
+  },
+
+  // ── Análise ─────────────────────────────────────────────────────────────────
+  {
+    section: 'Análise',
     to: '/admin/relatorios',
     label: 'Relatórios',
     permissao: 'relatorios',
@@ -97,24 +128,94 @@ const NAV_ITEMS = [
     ),
   },
   {
-    to: '/admin/orcamento',
-    label: 'Orçamento',
-    permissao: 'orcamento',
-    badge: 'novo' as string | undefined,
+    to: '/admin/produtos',
+    label: 'Produtos',
+    permissao: 'produtos',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/>
-        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
-        <line x1="10" y1="9" x2="8" y2="9"/>
+        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
       </svg>
     ),
   },
   {
-    to: '/admin/usuarios',
-    label: 'Usuários',
-    permissao: 'usuarios',
-    badge: undefined,
+    to: '/admin/analytics',
+    label: 'Analytics',
+    permissao: 'analytics',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+        <polyline points="22 12 18 16 14 12"/>
+      </svg>
+    ),
+  },
+
+  // ── Prospecção B2B ───────────────────────────────────────────────────────────
+  {
+    section: 'Prospecção B2B',
+    to: '/admin/prospeccao',
+    label: 'Prospecção',
+    permissao: 'prospeccao',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+      </svg>
+    ),
+  },
+  {
+    to: '/admin/cobertura',
+    label: 'Cobertura',
+    permissao: 'cobertura',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+        <circle cx="12" cy="9" r="2.5"/>
+      </svg>
+    ),
+  },
+  {
+    to: '/admin/funil',
+    label: 'Funil',
+    permissao: 'funil',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+      </svg>
+    ),
+  },
+  {
+    to: '/admin/leads',
+    label: 'Leads do Site',
+    permissao: 'prospeccao',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+      </svg>
+    ),
+  },
+
+  // ── Projetos Sob Medida ──────────────────────────────────────────────────────
+  {
+    section: 'Projetos',
+    to: '/admin/projetos',
+    label: 'Projetos Sob Medida',
+    permissao: 'projetos',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/>
+        <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
+      </svg>
+    ),
+  },
+
+  // ── Clientes ─────────────────────────────────────────────────────────────────
+  {
+    section: 'Clientes',
+    to: '/admin/clientes',
+    label: 'Clientes',
+    permissao: 'clientes',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
@@ -123,7 +224,10 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+
+  // ── Configuração ─────────────────────────────────────────────────────────────
   {
+    section: 'Configuração',
     to: '/admin/conteudo',
     label: 'Conteúdo',
     permissao: 'conteudo',
@@ -135,41 +239,14 @@ const NAV_ITEMS = [
     ),
   },
   {
-    to: '/admin/analytics',
-    label: 'Analytics',
-    permissao: 'analytics',
-    badge: undefined,
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-        <polyline points="22 12 18 16 14 12"/>
-      </svg>
-    ),
-  },
-  {
-    to: '/admin/leads',
-    label: 'Leads',
-    permissao: 'outlet',
-    badge: undefined,
+    to: '/admin/usuarios',
+    label: 'Usuários',
+    permissao: 'usuarios',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
         <circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-        <path d="M16 3.13a4 4 0 010 7.75"/>
-      </svg>
-    ),
-  },
-  {
-    to: '/admin/prospeccao',
-    label: 'Prospecção',
-    permissao: 'analytics',
-    badge: undefined,
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-        <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
+        <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
       </svg>
     ),
   },
@@ -184,6 +261,12 @@ export default function AdminLayout() {
   const [verSenha, setVerSenha] = useState(false)
   const [tabelaPendente, setTabelaPendente] = useState(false)
   const [ocultarValores, setOcultarValores] = useState(false)
+  const [secoesRecolhidas, setSecoesRecolhidas] = useState<Set<string>>(() => {
+    try {
+      const salvo = localStorage.getItem('pousinox_nav_recolhidas')
+      return salvo ? new Set(JSON.parse(salvo)) : new Set()
+    } catch { return new Set() }
+  })
 
   // Login
   const [email, setEmail] = useState('')
@@ -303,6 +386,16 @@ export default function AdminLayout() {
 
     return () => { isMounted = false; subscription.unsubscribe() }
   }, [])
+
+  function toggleSecao(secao: string) {
+    setSecoesRecolhidas(prev => {
+      const novo = new Set(prev)
+      if (novo.has(secao)) novo.delete(secao)
+      else novo.add(secao)
+      localStorage.setItem('pousinox_nav_recolhidas', JSON.stringify([...novo]))
+      return novo
+    })
+  }
 
   async function carregarPerfil(userId: string, isMounted = true) {
     const { data, error: errPerfil } = await supabaseAdmin
@@ -552,6 +645,9 @@ export default function AdminLayout() {
 
   const navVisivel = NAV_ITEMS.filter(item => !item.permissao || perfil.permissoes.includes(item.permissao))
 
+  // Rastreia qual seção cada item pertence
+  let secaoAtual = ''
+
   const segmento = location.pathname.replace(/^\/admin\/?/, '').split('/')[0]
   const permissaoNecessaria = ROTA_PERMISSAO[segmento]
   const semPermissao = !!(permissaoNecessaria && !perfil.permissoes.includes(permissaoNecessaria))
@@ -617,19 +713,36 @@ export default function AdminLayout() {
         <div className={styles.overlay} onClick={() => setDrawerOpen(false)} />
         <aside className={styles.sidebar}>
           <nav className={styles.nav}>
-            {navVisivel.map(item => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                onClick={() => setDrawerOpen(false)}
-                className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
-              >
-                <span className={styles.navIcon}>{item.icon}</span>
-                <span className={styles.navLabel}>{item.label}</span>
-                {item.badge && <span className={styles.navBadge}>{item.badge}</span>}
-              </NavLink>
-            ))}
+            {navVisivel.map(item => {
+              if (item.section) secaoAtual = item.section
+              const recolhida = secoesRecolhidas.has(secaoAtual)
+              return (
+                <div key={item.to}>
+                  {item.section && (
+                    <button
+                      className={styles.navSection}
+                      onClick={() => toggleSecao(item.section!)}
+                      title={recolhida ? 'Expandir' : 'Recolher'}
+                    >
+                      <span className={styles.navSectionLabel}>{item.section}</span>
+                      <span className={styles.navSectionChevron} style={{ transform: recolhida ? 'rotate(-90deg)' : 'none' }}>▾</span>
+                    </button>
+                  )}
+                  {!recolhida && (
+                    <NavLink
+                      to={item.to}
+                      end={item.end}
+                      onClick={() => setDrawerOpen(false)}
+                      className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+                    >
+                      <span className={styles.navIcon}>{item.icon}</span>
+                      <span className={styles.navLabel}>{item.label}</span>
+                      {item.badge && <span className={styles.navBadge}>{item.badge}</span>}
+                    </NavLink>
+                  )}
+                </div>
+              )
+            })}
           </nav>
         </aside>
 
