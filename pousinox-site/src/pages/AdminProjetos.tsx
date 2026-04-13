@@ -2,10 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminProjetos.module.css'
 
-// Webhook n8n para geração de embedding (fire-and-forget).
-// Configure VITE_N8N_EMBEDDING_WEBHOOK no .env.local com a URL completa do webhook.
-// Deixar vazio desabilita silenciosamente sem afetar o fluxo de salvar.
-const EMBEDDING_WEBHOOK = import.meta.env.VITE_EMBEDDING_WEBHOOK ?? ''
+const EMBEDDING_WEBHOOK     = import.meta.env.VITE_EMBEDDING_WEBHOOK     ?? ''
+const SUPABASE_SERVICE_KEY  = import.meta.env.VITE_SUPABASE_SERVICE_KEY  ?? ''
+
+// ── Hash SHA-256 truncado para consulta_hash do shadow log ───────────────────
+async function hashConsulta(atributos: { chave: string; valor: string }[]): Promise<string> {
+  const str = [...atributos].sort((a, b) => a.chave.localeCompare(b.chave)).map(a => `${a.chave}=${a.valor}`).join('|')
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str))
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16)
+}
 
 function dispararEmbedding(projeto_id: number) {
   if (!EMBEDDING_WEBHOOK) return
@@ -208,6 +213,17 @@ export default function AdminProjetos() {
   const [loadingSimilares, setLoadingSimilares] = useState(false)
   const similaresTiRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // ── Shadow mode (feature flag) ─────────────────────────────────────────────
+  const [shadowEnabled, setShadowEnabled] = useState(false)
+  useEffect(() => {
+    supabaseAdmin
+      .from('feature_flags')
+      .select('habilitado')
+      .eq('flag', 'vector_similarity_shadow')
+      .single()
+      .then(({ data }) => setShadowEnabled(data?.habilitado === true))
+  }, [])
+
   // ── Produtos Padrão ────────────────────────────────────────────────────────
   const [produtosPadrao, setProdutosPadrao] = useState<ProdutoPadrao[]>([])
   const [loadingPP, setLoadingPP] = useState(false)
@@ -343,7 +359,7 @@ export default function AdminProjetos() {
     setProdutosPadrao(prev => prev.map(p => p.id === id ? { ...p, status } : p))
   }
 
-  // ── Buscar similares (debounced, só com ≥2 atributos) ─────────────────────
+  // ── Buscar similares (debounced, ≥2 atributos) + shadow mode ─────────────
   useEffect(() => {
     if (vista !== 'form') return
     if (similaresTiRef.current) clearTimeout(similaresTiRef.current)
@@ -351,19 +367,84 @@ export default function AdminProjetos() {
 
     similaresTiRef.current = setTimeout(async () => {
       setLoadingSimilares(true)
-      const payload = atributos.map(a => ({ chave: a.chave, valor: a.valor }))
-      const { data } = await supabaseAdmin.rpc('buscar_similares', {
+      const payload = atributos.filter(a => a.chave && a.valor).map(a => ({ chave: a.chave, valor: a.valor }))
+
+      // ── Motor atual: Jaccard ───────────────────────────────────────────────
+      const t0Jaccard = Date.now()
+      const { data: jaccardData } = await supabaseAdmin.rpc('buscar_similares', {
         p_atributos:   JSON.stringify(payload),
         p_excluir_id:  projetoAtual?.id ?? null,
         p_limite:      5,
       })
-      setSimilares((data ?? []) as ProjetoSimilar[])
+      const jaccardMs = Date.now() - t0Jaccard
+      const jaccardResults = (jaccardData ?? []) as ProjetoSimilar[]
+      setSimilares(jaccardResults)
       setLoadingSimilares(false)
+
+      // ── Shadow mode: motor vetorial (invisível ao usuário) ─────────────────
+      if (!shadowEnabled || !EMBEDDING_WEBHOOK || !SUPABASE_SERVICE_KEY) return
+
+      // Tudo abaixo roda em background sem afetar a UI
+      ;(async () => {
+        const hash = await hashConsulta(payload)
+        let vectorSkip: string | null = null
+        let vectorIds: number[] = []
+        let vectorScores: number[] = []
+        let vectorMs: number | null = null
+
+        try {
+          const t0Vector = Date.now()
+
+          // 1. Gerar embedding da query via Edge Function
+          const embRes = await fetch(EMBEDDING_WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}` },
+            body: JSON.stringify({
+              mode:      'query',
+              titulo:    form.titulo,
+              segmento:  form.segmento || null,
+              atributos: payload,
+            }),
+          })
+
+          if (!embRes.ok) { vectorSkip = `embedding_error_${embRes.status}`; throw new Error(vectorSkip) }
+          const { embedding } = await embRes.json()
+          if (!embedding?.length) { vectorSkip = 'embedding_vazio'; throw new Error(vectorSkip) }
+
+          // 2. Buscar similares vetoriais
+          const { data: vectorData } = await supabaseAdmin.rpc('buscar_similares_vector', {
+            p_embedding:  `[${embedding.join(',')}]`,
+            p_excluir_id: projetoAtual?.id ?? null,
+            p_limite:     5,
+          })
+          vectorMs = Date.now() - t0Vector
+          vectorIds    = (vectorData ?? []).map((r: { projeto_id: number }) => r.projeto_id)
+          vectorScores = (vectorData ?? []).map((r: { score: number }) => r.score)
+        } catch {
+          vectorSkip = vectorSkip ?? 'erro_desconhecido'
+        }
+
+        // 3. Registrar log comparativo
+        await supabaseAdmin.rpc('registrar_shadow_log', {
+          p_consulta_hash:    hash,
+          p_projeto_id_query: projetoAtual?.id ?? null,
+          p_atributos_json:   payload,
+          p_jaccard_ids:      jaccardResults.map(r => r.projeto_id),
+          p_jaccard_scores:   jaccardResults.map(r => r.score),
+          p_jaccard_ms:       jaccardMs,
+          p_vector_ids:       vectorIds,
+          p_vector_scores:    vectorScores,
+          p_vector_ms:        vectorMs,
+          p_vector_skip:      vectorSkip,
+          p_top_n:            5,
+          p_modelo:           'gemini-embedding-001-3072',
+        })
+      })()
     }, 600)
 
     return () => { if (similaresTiRef.current) clearTimeout(similaresTiRef.current) }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [atributos, vista])
+  }, [atributos, vista, shadowEnabled])
 
   // ── Abrir detalhe ──────────────────────────────────────────────────────────
   function abrirDetalhe(projeto: Projeto) {
