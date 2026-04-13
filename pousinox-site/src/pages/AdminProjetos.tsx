@@ -5,14 +5,17 @@ import styles from './AdminProjetos.module.css'
 // Webhook n8n para geração de embedding (fire-and-forget).
 // Configure VITE_N8N_EMBEDDING_WEBHOOK no .env.local com a URL completa do webhook.
 // Deixar vazio desabilita silenciosamente sem afetar o fluxo de salvar.
-const N8N_EMBEDDING_WEBHOOK = import.meta.env.VITE_N8N_EMBEDDING_WEBHOOK ?? ''
+const EMBEDDING_WEBHOOK = import.meta.env.VITE_EMBEDDING_WEBHOOK ?? ''
 
-function dispararEmbedding(projeto_id: number, titulo: string, segmento: string | null, atributos: { chave: string; valor: string }[]) {
-  if (!N8N_EMBEDDING_WEBHOOK) return
-  fetch(N8N_EMBEDDING_WEBHOOK, {
+function dispararEmbedding(projeto_id: number) {
+  if (!EMBEDDING_WEBHOOK) return
+  fetch(EMBEDDING_WEBHOOK, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ projeto_id, titulo, segmento, atributos }),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_KEY ?? ''}`,
+    },
+    body: JSON.stringify({ projeto_id }),
   }).catch(() => { /* silencioso — embedding é assíncrono, não bloqueia o fluxo */ })
 }
 
@@ -463,12 +466,7 @@ export default function AdminProjetos() {
     await carregarLista()
 
     // Dispara geração de embedding em background (não bloqueia UX)
-    dispararEmbedding(
-      projetoId,
-      form.titulo.trim(),
-      form.segmento || null,
-      atributos.filter(a => a.chave && a.valor).map(a => ({ chave: normalizarChave(a.chave), valor: a.valor.trim() })),
-    )
+    dispararEmbedding(projetoId)
 
     // Após salvar, abre o detalhe do projeto
     const { data: proj } = await supabaseAdmin
