@@ -201,6 +201,125 @@ function labelStatus(s: string): string {
   return { em_andamento: 'Em andamento', concluido: 'Concluído', cancelado: 'Cancelado' }[s] ?? s
 }
 
+interface FichaComponente { nome: string; quantidade: number | null }
+
+async function gerarFichaTecnica(
+  projeto: Projeto,
+  atributos: ProjetoAtributo[],
+  componentes: FichaComponente[],
+) {
+  const logoUrl = new URL('../assets/logomarca.png', import.meta.url).href
+  const dataEmissao = new Date().toLocaleDateString('pt-BR')
+
+  const linhasAtributos = atributos.map(a => `
+    <tr>
+      <td>${a.chave.replace(/_/g, ' ')}</td>
+      <td>${a.valor}${a.unidade ? ' ' + a.unidade : ''}</td>
+    </tr>`).join('')
+
+  const linhasComponentes = componentes.map((c, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${c.nome}</td>
+      <td>${c.quantidade ?? '—'}</td>
+    </tr>`).join('')
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Ficha Técnica — ${projeto.codigo}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; font-size: 11pt; color: #1e293b; background: #fff; padding: 24px; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #1e3a5f; padding-bottom: 12px; }
+    .logo { height: 48px; }
+    .header-right { text-align: right; font-size: 9pt; color: #64748b; }
+    .header-right .doc-code { font-size: 13pt; font-weight: bold; color: #1e3a5f; }
+    h1 { font-size: 14pt; color: #1e3a5f; margin-bottom: 4px; }
+    .subtitle { font-size: 10pt; color: #64748b; margin-bottom: 16px; }
+    .section { margin-bottom: 18px; }
+    .section-title { font-size: 10pt; font-weight: bold; text-transform: uppercase; color: #1e3a5f; letter-spacing: 0.05em; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px; }
+    .dados-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; }
+    .dado { display: flex; gap: 6px; font-size: 10pt; padding: 3px 0; }
+    .dado-label { color: #64748b; min-width: 90px; }
+    .dado-valor { font-weight: 500; }
+    table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+    th { background: #1e3a5f; color: #fff; padding: 6px 8px; text-align: left; font-size: 9.5pt; }
+    td { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    .footer { margin-top: 32px; border-top: 1px solid #cbd5e1; padding-top: 10px; font-size: 8.5pt; color: #94a3b8; display: flex; justify-content: space-between; }
+    @media print {
+      body { padding: 12px; }
+      @page { margin: 15mm; size: A4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="${logoUrl}" class="logo" alt="Pousinox">
+    <div class="header-right">
+      <div class="doc-code">${projeto.codigo}</div>
+      <div>Ficha Técnica Comercial</div>
+      <div>Emissão: ${dataEmissao}</div>
+    </div>
+  </div>
+
+  <h1>${projeto.titulo}</h1>
+  <div class="subtitle">${projeto.segmento ?? ''}</div>
+
+  <div class="section">
+    <div class="section-title">Dados do Projeto</div>
+    <div class="dados-grid">
+      ${projeto.cliente_nome ? `<div class="dado"><span class="dado-label">Cliente</span><span class="dado-valor">${projeto.cliente_nome}</span></div>` : ''}
+      ${projeto.cliente_cnpj ? `<div class="dado"><span class="dado-label">CNPJ</span><span class="dado-valor">${projeto.cliente_cnpj.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')}</span></div>` : ''}
+      ${projeto.projetista ? `<div class="dado"><span class="dado-label">Projetista</span><span class="dado-valor">${projeto.projetista}</span></div>` : ''}
+      ${projeto.norma ? `<div class="dado"><span class="dado-label">Norma</span><span class="dado-valor">${projeto.norma}</span></div>` : ''}
+      ${projeto.escala ? `<div class="dado"><span class="dado-label">Escala</span><span class="dado-valor">${projeto.escala}</span></div>` : ''}
+      ${projeto.revisao ? `<div class="dado"><span class="dado-label">Revisão</span><span class="dado-valor">${projeto.revisao}</span></div>` : ''}
+      ${projeto.data_projeto ? `<div class="dado"><span class="dado-label">Data do Projeto</span><span class="dado-valor">${fmtData(projeto.data_projeto)}</span></div>` : ''}
+      ${projeto.status ? `<div class="dado"><span class="dado-label">Status</span><span class="dado-valor">${labelStatus(projeto.status)}</span></div>` : ''}
+      ${projeto.data_inicio ? `<div class="dado"><span class="dado-label">Período</span><span class="dado-valor">${fmtData(projeto.data_inicio)}${projeto.data_conclusao ? ' → ' + fmtData(projeto.data_conclusao) : ''}</span></div>` : ''}
+      ${projeto.valor_total != null ? `<div class="dado"><span class="dado-label">Valor Total</span><span class="dado-valor">${fmtBRL(projeto.valor_total)}</span></div>` : ''}
+    </div>
+    ${projeto.observacoes ? `<div style="margin-top:8px;font-size:9.5pt;color:#475569;white-space:pre-wrap">${projeto.observacoes}</div>` : ''}
+  </div>
+
+  ${atributos.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Especificações Técnicas</div>
+    <table>
+      <thead><tr><th>Atributo</th><th>Valor</th></tr></thead>
+      <tbody>${linhasAtributos}</tbody>
+    </table>
+  </div>` : ''}
+
+  ${componentes.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Componentes / Peças</div>
+    <table>
+      <thead><tr><th>#</th><th>Descrição</th><th>Qtd</th></tr></thead>
+      <tbody>${linhasComponentes}</tbody>
+    </table>
+  </div>` : ''}
+
+  <div class="footer">
+    <span>Pousinox — Fixadores de Porcelanato em Aço Inox — pousinox.com.br</span>
+    <span>Documento gerado em ${dataEmissao}</span>
+  </div>
+
+  <script>window.onload = () => { window.print() }<\/script>
+</body>
+</html>`
+
+  const janela = window.open('', '_blank', 'width=900,height=700')
+  if (janela) {
+    janela.document.write(html)
+    janela.document.close()
+  }
+}
+
 function classeStatus(s: string): string {
   return { em_andamento: styles.statusAndamento, concluido: styles.statusConcluido, cancelado: styles.statusCancelado }[s] ?? ''
 }
@@ -1032,6 +1151,14 @@ export default function AdminProjetos() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className={styles.btnSecondary} onClick={() => setVista('lista')}>← Lista</button>
+          <button className={styles.btnSecondary} onClick={async () => {
+            const { data: comps } = await supabaseAdmin.from('projeto_componentes').select('*').eq('projeto_id', projetoAtual.id).order('ordem')
+            await gerarFichaTecnica(
+              projetoAtual,
+              atributosDetalhe,
+              (comps ?? []) as FichaComponente[],
+            )
+          }}>🗂️ Ficha Técnica</button>
           <button className={styles.btnSecondary} onClick={async () => {
             const [{ data: comps }, { data: attrs }] = await Promise.all([
               supabaseAdmin.from('projeto_componentes').select('*').eq('projeto_id', projetoAtual.id).order('ordem'),
