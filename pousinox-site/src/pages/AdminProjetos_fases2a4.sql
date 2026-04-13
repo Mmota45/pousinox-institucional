@@ -213,12 +213,17 @@ $$;
 
 -- ── vw_recorrencias ──────────────────────────────────────────────────────────
 -- Campos esperados pelo frontend: projeto_ids, projeto_codigos, projeto_titulos.
+-- atributos_chave: convertido de [{chave,valor}] → {key:value} para Object.entries().
 
 CREATE OR REPLACE VIEW vw_recorrencias AS
 SELECT
   r.id,
   r.hash_atributos,
-  r.atributos_chave,
+  -- Banco armazena [{chave:"x",valor:"y"}]; frontend espera {"x":"y"}
+  (
+    SELECT jsonb_object_agg(elem->>'chave', elem->>'valor')
+    FROM jsonb_array_elements(r.atributos_chave) AS elem
+  ) AS atributos_chave,
   r.contagem,
   r.status,
   r.sugerido_em,

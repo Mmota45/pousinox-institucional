@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import logomarca from '../assets/logomarca.png'
 import { useAdmin } from '../contexts/AdminContext'
 import styles from './AdminOrcamento.module.css'
@@ -79,6 +80,16 @@ function proximoNum() {
 export default function AdminOrcamento() {
   const { ocultarValores } = useAdmin()
   const fmt = (v: number) => ocultarValores ? '••••' : fmtBRL(v)
+  const location = useLocation()
+  const fromProjeto = location.state as {
+    projeto?: { titulo: string; codigo: string; cliente_nome: string | null; cliente_cnpj: string | null; observacoes: string | null }
+    atributos?: { chave: string; valor: string; unidade: string | null }[]
+    componentes?: { nome: string; quantidade: number | null }[]
+  } | null
+
+  const especAtributos = fromProjeto?.atributos ?? []
+  const especComponentes = fromProjeto?.componentes ?? []
+
   const [empresa, setEmpresa] = useState<EmpresaInfo>(() => {
     try { return { ...EMPRESA_DEFAULT, ...JSON.parse(localStorage.getItem(EMPRESA_KEY) || '{}') } }
     catch { return EMPRESA_DEFAULT }
@@ -90,16 +101,25 @@ export default function AdminOrcamento() {
   const [validadeDias, setValidadeDias] = useState('7')
   const [dataValidade, setDataValidade] = useState(() => addDias(7))
 
-  const [cliente, setCliente] = useState<ClienteInfo>({
-    nome: '', empresa: '', cnpj: '', telefone: '', email: '', endereco: ''
-  })
+  const [cliente, setCliente] = useState<ClienteInfo>(() => ({
+    nome:     fromProjeto?.projeto?.cliente_nome ?? '',
+    empresa:  fromProjeto?.projeto?.cliente_nome ?? '',
+    cnpj:     fromProjeto?.projeto?.cliente_cnpj ?? '',
+    telefone: '', email: '', endereco: '',
+  }))
 
-  const [itens, setItens] = useState<Item[]>([{ ...ITEM_VAZIO }])
+  const [itens, setItens] = useState<Item[]>(() =>
+    fromProjeto?.projeto
+      ? [{ descricao: fromProjeto.projeto.titulo, qtd: '1', unidade: 'UN', valorUnit: '' }]
+      : [{ ...ITEM_VAZIO }]
+  )
   const [desconto, setDesconto] = useState('')
   const [tipoDesconto, setTipoDesconto] = useState<'%' | 'R$'>('%')
   const [condicao, setCondicao] = useState('')
   const [prazoEntrega, setPrazoEntrega] = useState('')
-  const [observacoes, setObservacoes] = useState('')
+  const [observacoes, setObservacoes] = useState(() =>
+    fromProjeto?.projeto ? `Ref.: ${fromProjeto.projeto.codigo} — ${fromProjeto.projeto.titulo}${fromProjeto.projeto.observacoes ? '\n' + fromProjeto.projeto.observacoes : ''}` : ''
+  )
   const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -460,6 +480,65 @@ export default function AdminOrcamento() {
                 <span>TOTAL</span><span>{fmt(tot)}</span>
               </div>
             </div>
+
+            {/* Especificações Técnicas */}
+            {(especAtributos.length > 0 || especComponentes.length > 0) && (
+              <div className={styles.pCondicoes} style={{ marginTop: 16 }}>
+                <div className={styles.pClienteTitle} style={{ marginBottom: 8 }}>ESPECIFICAÇÕES TÉCNICAS</div>
+                {especAtributos.length > 0 && (
+                  <table className={styles.pTable} style={{ marginBottom: especComponentes.length > 0 ? 10 : 0 }}>
+                    <thead>
+                      <tr>
+                        <th>Atributo</th>
+                        <th>Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {especAtributos.map((a, i) => {
+                        // Remove sufixos de unidade da chave (_mm, _kg, _un)
+                        const chaveLabel = a.chave
+                          .replace(/_mm$|_kg$|_un$|_m$/, '')
+                          .replace(/_/g, ' ')
+                          .replace(/\b\w/g, c => c.toUpperCase())
+                        // Evita duplicar unidade se já está no valor
+                        const valorStr = String(a.valor)
+                        const unidade = a.unidade ?? ''
+                        const valorFinal = unidade && !valorStr.toLowerCase().includes(unidade.toLowerCase())
+                          ? `${valorStr} ${unidade}`
+                          : valorStr
+                        return (
+                          <tr key={i}>
+                            <td>{chaveLabel}</td>
+                            <td>{valorFinal}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                )}
+                {especComponentes.length > 0 && (
+                  <>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#475569', marginBottom: 4 }}>Componentes</div>
+                    <table className={styles.pTable}>
+                      <thead>
+                        <tr>
+                          <th>Componente</th>
+                          <th style={{ width: 60, textAlign: 'center' }}>Qtd</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {especComponentes.map((c, i) => (
+                          <tr key={i}>
+                            <td>{c.nome}</td>
+                            <td style={{ textAlign: 'center' }}>{c.quantidade ?? '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Condições */}
             {(condicao || prazoEntrega || observacoes) && (

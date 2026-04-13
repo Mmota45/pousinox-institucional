@@ -137,11 +137,20 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    let projeto_id: number | undefined
-    if (req.method === 'POST') {
-      const body = await req.json().catch(() => ({}))
-      projeto_id = body.projeto_id ?? undefined
+    const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
+
+    // Modo query: retorna só o vetor sem salvar (usado pelo shadow mode do frontend)
+    // POST { mode: 'query', titulo, segmento, atributos: [{chave, valor}] }
+    if (body.mode === 'query') {
+      const texto = montarTextoBase(body.segmento ?? null, body.titulo ?? '', body.atributos ?? [])
+      const embedding = await gerarEmbedding(texto)
+      return new Response(
+        JSON.stringify({ ok: true, embedding, texto_base: texto }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
+
+    let projeto_id: number | undefined = body.projeto_id ?? undefined
 
     const projetos = await buscarProjetos(projeto_id)
 

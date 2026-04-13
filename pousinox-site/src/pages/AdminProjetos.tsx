@@ -1,9 +1,33 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminProjetos.module.css'
+import UploadMemorial from '../components/UploadMemorial/UploadMemorial'
+import * as pdfjsLib from 'pdfjs-dist'
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url,
+).toString()
+
+async function extrairTextoPDF(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise
+  const paginas: string[] = []
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const pagina = await pdf.getPage(i)
+    const conteudo = await pagina.getTextContent()
+    const texto = conteudo.items
+      .map((item: unknown) => ('str' in (item as object) ? (item as { str: string }).str : ''))
+      .join(' ')
+    paginas.push(texto)
+  }
+  return paginas.join('\n\n')
+}
 
 const EMBEDDING_WEBHOOK     = import.meta.env.VITE_EMBEDDING_WEBHOOK     ?? ''
 const SUPABASE_SERVICE_KEY  = import.meta.env.VITE_SUPABASE_SERVICE_KEY  ?? ''
+const EXTRAIR_MEMORIAL_URL  = 'https://vcektwtpofypsgdgdjlx.supabase.co/functions/v1/extrair-memorial'
 
 // ── Hash SHA-256 truncado para consulta_hash do shadow log ───────────────────
 async function hashConsulta(atributos: { chave: string; valor: string }[]): Promise<string> {
@@ -38,6 +62,11 @@ interface Projeto {
   data_conclusao: string | null
   valor_total: number | null
   observacoes: string | null
+  projetista: string | null
+  revisao: string | null
+  norma: string | null
+  escala: string | null
+  data_projeto: string | null
   produto_padrao_id: number | null
   created_at: string
   updated_at: string
@@ -46,6 +75,7 @@ interface Projeto {
 }
 
 interface AtributoCatalogo {
+  id: number
   chave: string
   label_pt: string
   tipo_valor: string
@@ -78,6 +108,15 @@ interface AtributoLocal {
   chave: string
   valor: string
   unidade: string
+}
+
+interface ComponenteLocal {
+  id?: number
+  nome: string
+  quantidade: string
+  material: string
+  observacao: string
+  ordem: number
 }
 
 interface Recorrencia {
@@ -121,6 +160,7 @@ interface ProjetoSimilar {
 }
 
 const SEGMENTOS = ['hospitalar', 'alimenticio', 'hotelaria', 'comercio', 'industrial', 'residencial', 'outro']
+const SEGMENTOS_FIXOS = SEGMENTOS.filter(s => s !== 'outro')
 const BUCKET = 'projetos-anexos'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -167,16 +207,19 @@ function classeStatus(s: string): string {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-type Vista = 'lista' | 'form' | 'detalhe' | 'recorrencias' | 'produtos_padrao'
-type AbaForm = 'dados' | 'atributos' | 'anexos'
+type Vista = 'lista' | 'form' | 'detalhe' | 'recorrencias' | 'produtos_padrao' | 'catalogo'
+type AbaForm = 'dados' | 'atributos' | 'componentes' | 'anexos'
 
 const FORM_VAZIO = {
   titulo: '', cliente_nome: '', cliente_cnpj: '', segmento: '',
   status: 'em_andamento', data_inicio: '', data_conclusao: '',
   valor_total: '', observacoes: '',
+  projetista: '', revisao: '', norma: '', escala: '', data_projeto: '',
 }
 
 export default function AdminProjetos() {
+  const navigate = useNavigate()
+
   // ── Vista ──────────────────────────────────────────────────────────────────
   const [vista, setVista] = useState<Vista>('lista')
   const [abaForm, setAbaForm] = useState<AbaForm>('dados')
@@ -197,9 +240,12 @@ export default function AdminProjetos() {
   // ── Formulário ─────────────────────────────────────────────────────────────
   const [form, setForm] = useState({ ...FORM_VAZIO })
   const [atributos, setAtributos] = useState<AtributoLocal[]>([])
+  const [componentes, setComponentes] = useState<ComponenteLocal[]>([])
   const [catalogo, setCatalogo] = useState<AtributoCatalogo[]>([])
+  const [segmentosCustom, setSegmentosCustom] = useState<string[]>([])
   const [novoAtrib, setNovoAtrib] = useState({ chave: '', valor: '', unidade: '' })
   const [atribNovo, setAtribNovo] = useState(false)        // mostra input de novo atrib
+  const [editandoAtrib, setEditandoAtrib] = useState<{ idx: number; chave: string; valor: string; unidade: string } | null>(null)
 
   // ── Anexos (form) ──────────────────────────────────────────────────────────
   const [anexosForm, setAnexosForm] = useState<ProjetoAnexo[]>([])
@@ -207,6 +253,8 @@ export default function AdminProjetos() {
   const [uploadErro, setUploadErro] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const pdfFromListaRef = useRef<HTMLInputElement>(null)
+  const [fasePDF, setFasePDF] = useState<'idle' | 'extraindo' | 'analisando'>('idle')
 
   // ── Similares ──────────────────────────────────────────────────────────────
   const [similares, setSimilares] = useState<ProjetoSimilar[]>([])
@@ -229,7 +277,45 @@ export default function AdminProjetos() {
   const [loadingPP, setLoadingPP] = useState(false)
   const [ppExpandido, setPpExpandido] = useState<number | null>(null)
 
-  // ── Modal conversão ────────────────────────────────────────────────────────
+  // ── Catálogo de atributos ──────────────────────────────────────────────────
+  const [catEditando, setCatEditando] = useState<AtributoCatalogo | null>(null)
+  const [catNovo, setCatNovo]         = useState<{ chave: string; label_pt: string; tipo_valor: string; unidade_padrao: string; valores_enum: string[] | null } | null>(null)
+  const [catSalvando, setCatSalvando] = useState(false)
+  const [catErro, setCatErro]         = useState('')
+
+  async function catCarregar() {
+    const { data } = await supabaseAdmin.from('atributos_catalogo').select('*').order('frequencia_uso', { ascending: false })
+    setCatalogo(data ?? [])
+  }
+
+  async function catSalvarNovo() {
+    if (!catNovo) return
+    if (!catNovo.chave || !catNovo.label_pt) { setCatErro('Chave e label são obrigatórios.'); return }
+    setCatSalvando(true); setCatErro('')
+    const chave = catNovo.chave.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+    const { error } = await supabaseAdmin.from('atributos_catalogo').insert({ ...catNovo, chave, unidade_padrao: catNovo.unidade_padrao || null })
+    if (error) { setCatErro(error.message); setCatSalvando(false); return }
+    setCatNovo(null); await catCarregar(); setCatSalvando(false)
+  }
+
+  async function catSalvarEdicao() {
+    if (!catEditando) return
+    setCatSalvando(true); setCatErro('')
+    const { error } = await supabaseAdmin.from('atributos_catalogo').update({
+      label_pt: catEditando.label_pt, tipo_valor: catEditando.tipo_valor,
+      unidade_padrao: catEditando.unidade_padrao || null, valores_enum: catEditando.valores_enum,
+    }).eq('id', catEditando.id)
+    if (error) { setCatErro(error.message); setCatSalvando(false); return }
+    setCatEditando(null); await catCarregar(); setCatSalvando(false)
+  }
+
+  async function catExcluir(id: number) {
+    if (!confirm('Excluir este atributo do catálogo?')) return
+    await supabaseAdmin.from('atributos_catalogo').delete().eq('id', id)
+    await catCarregar()
+  }
+
+  // Modal conversão ────────────────────────────────────────────────────────
   const [modalConv, setModalConv] = useState<Recorrencia | null>(null)
   const [formConv, setFormConv] = useState({ nome: '', descricao: '', segmento: '' })
   const [convertendo, setConvertendo] = useState(false)
@@ -263,10 +349,24 @@ export default function AdminProjetos() {
   useEffect(() => {
     supabaseAdmin
       .from('atributos_catalogo')
-      .select('chave,label_pt,tipo_valor,unidade_padrao,valores_enum,frequencia_uso')
+      .select('id,chave,label_pt,tipo_valor,unidade_padrao,valores_enum,frequencia_uso')
       .eq('status', 'ativo')
       .order('frequencia_uso', { ascending: false })
       .then(({ data }) => setCatalogo((data ?? []) as AtributoCatalogo[]))
+  }, [])
+
+  // ── Carregar segmentos customizados históricos ─────────────────────────────
+  useEffect(() => {
+    supabaseAdmin
+      .from('projetos')
+      .select('segmento')
+      .not('segmento', 'is', null)
+      .then(({ data }) => {
+        const custom = [...new Set((data ?? []).map(r => r.segmento as string))]
+          .filter(s => s && !SEGMENTOS_FIXOS.includes(s))
+          .sort()
+        setSegmentosCustom(custom)
+      })
   }, [])
 
   // ── Carregar detalhe (atributos + anexos) ──────────────────────────────────
@@ -326,6 +426,8 @@ export default function AdminProjetos() {
 
   useEffect(() => {
     if (vista === 'produtos_padrao') carregarProdutosPadrao()
+    if (vista === 'catalogo') catCarregar()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vista, carregarProdutosPadrao])
 
   // ── Conversão: abre modal ──────────────────────────────────────────────────
@@ -446,6 +548,14 @@ export default function AdminProjetos() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atributos, vista, shadowEnabled])
 
+  // ── Excluir projeto ────────────────────────────────────────────────────────
+  async function excluirProjeto(projeto: Projeto, e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!confirm(`Excluir "${projeto.titulo}"?\n\nEssa ação remove o projeto e todos os seus atributos, componentes e anexos.`)) return
+    await supabaseAdmin.from('projetos').delete().eq('id', projeto.id)
+    await carregarLista()
+  }
+
   // ── Abrir detalhe ──────────────────────────────────────────────────────────
   function abrirDetalhe(projeto: Projeto) {
     setProjetoAtual(projeto)
@@ -453,11 +563,76 @@ export default function AdminProjetos() {
     setVista('detalhe')
   }
 
+  // ── Criar projeto a partir de PDF ─────────────────────────────────────────
+  async function criarDoPDF(file: File) {
+    setFasePDF('extraindo')
+    setErro(null)
+    try {
+      const texto = await extrairTextoPDF(file)
+      setFasePDF('analisando')
+
+      const res = await fetch(EXTRAIR_MEMORIAL_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'apikey':        SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        },
+        body: JSON.stringify({ texto, catalogo }),
+      })
+
+      if (!res.ok) throw new Error(`Erro ${res.status}: ${await res.text()}`)
+      const { campos_basicos, atributos: extraidos, componentes: compExtraidos, error } = await res.json()
+      if (error) throw new Error(error)
+
+      const cb = campos_basicos ?? {}
+      setProjetoAtual(null)
+      setForm({
+        titulo:        cb.titulo        ?? '',
+        cliente_nome:  cb.cliente_nome  ?? '',
+        cliente_cnpj:  '',
+        segmento:      '',
+        status:        'em_andamento',
+        data_inicio:   '',
+        data_conclusao:'',
+        valor_total:   '',
+        observacoes:   '',
+        projetista:    cb.projetista    ?? '',
+        revisao:       cb.revisao       ?? '',
+        norma:         cb.norma         ?? '',
+        escala:        cb.escala        ?? '',
+        data_projeto:  cb.data_projeto  ?? '',
+      })
+      setAtributos((extraidos ?? []).map((a: { chave: string; valor: unknown; confianca: number }) => ({
+        chave: String(a.chave),
+        valor: String(a.valor ?? ''),
+        unidade: catalogo.find(c => c.chave === a.chave)?.unidade_padrao ?? '',
+      })))
+      setComponentes((compExtraidos ?? []).map((c: { nome: string; quantidade: number | null; material: string | null; observacao: string | null }, i: number) => ({
+        nome:       String(c.nome ?? '').trim(),
+        quantidade: c.quantidade != null ? String(c.quantidade) : '',
+        material:   String(c.material ?? '').trim(),
+        observacao: String(c.observacao ?? '').trim(),
+        ordem:      i,
+      })))
+      setAnexosForm([])
+      setAbaForm('dados')
+      setErro(null)
+      setVista('form')
+    } catch (e) {
+      setErro(`Erro ao analisar PDF: ${String(e)}`)
+    } finally {
+      setFasePDF('idle')
+      if (pdfFromListaRef.current) pdfFromListaRef.current.value = ''
+    }
+  }
+
   // ── Abrir form (novo ou editar) ────────────────────────────────────────────
   function abrirFormNovo() {
     setProjetoAtual(null)
     setForm({ ...FORM_VAZIO })
     setAtributos([])
+    setComponentes([])
     setAnexosForm([])
     setAbaForm('dados')
     setErro(null)
@@ -476,16 +651,28 @@ export default function AdminProjetos() {
       data_conclusao: projeto.data_conclusao ?? '',
       valor_total:    projeto.valor_total != null ? String(projeto.valor_total) : '',
       observacoes:    projeto.observacoes ?? '',
+      projetista:     projeto.projetista ?? '',
+      revisao:        projeto.revisao ?? '',
+      norma:          projeto.norma ?? '',
+      escala:         projeto.escala ?? '',
+      data_projeto:   projeto.data_projeto ?? '',
     })
     setAbaForm('dados')
     setErro(null)
-    // Carrega atributos e anexos existentes
-    const [resAtrib, resAnexos] = await Promise.all([
+    // Carrega atributos, componentes e anexos existentes
+    const [resAtrib, resComp, resAnexos] = await Promise.all([
       supabaseAdmin.from('projeto_atributos').select('*').eq('projeto_id', projeto.id).order('chave'),
+      supabaseAdmin.from('projeto_componentes').select('*').eq('projeto_id', projeto.id).order('ordem'),
       supabaseAdmin.from('projeto_anexos').select('*').eq('projeto_id', projeto.id).order('uploaded_at'),
     ])
     setAtributos(((resAtrib.data ?? []) as ProjetoAtributo[]).map(a => ({
       id: a.id, chave: a.chave, valor: a.valor, unidade: a.unidade ?? '',
+    })))
+    setComponentes(((resComp.data ?? []) as ComponenteLocal[]).map(c => ({
+      id: c.id, nome: c.nome, quantidade: c.quantidade != null ? String(c.quantidade) : '',
+      material: (c as unknown as Record<string, string>).material ?? '',
+      observacao: (c as unknown as Record<string, string>).observacao ?? '',
+      ordem: c.ordem,
     })))
     setAnexosForm((resAnexos.data ?? []) as ProjetoAnexo[])
     setVista('form')
@@ -507,6 +694,11 @@ export default function AdminProjetos() {
       data_conclusao: form.data_conclusao || null,
       valor_total:    form.valor_total ? parseFloat(form.valor_total.replace(',', '.')) : null,
       observacoes:    form.observacoes.trim() || null,
+      projetista:     form.projetista.trim() || null,
+      revisao:        form.revisao.trim() || null,
+      norma:          form.norma.trim() || null,
+      escala:         form.escala.trim() || null,
+      data_projeto:   form.data_projeto || null,
     }
 
     let projetoId: number
@@ -529,12 +721,12 @@ export default function AdminProjetos() {
     await supabaseAdmin.from('projeto_atributos').delete().eq('projeto_id', projetoId)
     if (atributos.length > 0) {
       const rows = atributos
-        .filter(a => a.chave && a.valor)
+        .filter(a => a.chave && String(a.valor ?? '').trim())
         .map(a => ({
           projeto_id: projetoId,
           chave: normalizarChave(a.chave),
-          valor: a.valor.trim(),
-          unidade: a.unidade.trim() || null,
+          valor: String(a.valor).trim(),
+          unidade: String(a.unidade ?? '').trim() || null,
           origem: 'manual' as const,
         }))
       if (rows.length > 0) {
@@ -543,8 +735,29 @@ export default function AdminProjetos() {
       }
     }
 
+    // Salvar componentes: delete todos e reinsere
+    await supabaseAdmin.from('projeto_componentes').delete().eq('projeto_id', projetoId)
+    const compRows = componentes
+      .filter(c => c.nome.trim())
+      .map((c, i) => ({
+        projeto_id: projetoId,
+        nome:       c.nome.trim(),
+        quantidade: c.quantidade ? parseFloat(c.quantidade) || null : null,
+        ordem:      i,
+      }))
+    if (compRows.length > 0) {
+      const { error } = await supabaseAdmin.from('projeto_componentes').insert(compRows)
+      if (error) { setErro(error.message); setSalvando(false); return }
+    }
+
     setSalvando(false)
     await carregarLista()
+
+    // Atualiza segmentos customizados se o segmento salvo não era fixo
+    const segSalvo = form.segmento.trim()
+    if (segSalvo && !SEGMENTOS_FIXOS.includes(segSalvo)) {
+      setSegmentosCustom(prev => prev.includes(segSalvo) ? prev : [...prev, segSalvo].sort())
+    }
 
     // Dispara geração de embedding em background (não bloqueia UX)
     dispararEmbedding(projetoId)
@@ -647,6 +860,16 @@ export default function AdminProjetos() {
     setAtributos(prev => prev.filter((_, i) => i !== idx))
   }
 
+  function confirmarEdicaoAtrib() {
+    if (!editandoAtrib) return
+    const chave = normalizarChave(editandoAtrib.chave)
+    if (!chave || !editandoAtrib.valor.trim()) return
+    setAtributos(prev => prev.map((a, i) =>
+      i === editandoAtrib.idx ? { ...a, chave, valor: editandoAtrib.valor.trim(), unidade: editandoAtrib.unidade.trim() } : a
+    ))
+    setEditandoAtrib(null)
+  }
+
   // ── Seleção de chave do catálogo ───────────────────────────────────────────
   function onSelecionarChaveCatalogo(chave: string) {
     const item = catalogo.find(c => c.chave === chave)
@@ -683,6 +906,10 @@ export default function AdminProjetos() {
         className={`${styles.navPrincipalBtn} ${vista === 'produtos_padrao' ? styles.navPrincipalAtivo : ''}`}
         onClick={() => setVista('produtos_padrao')}
       >📦 Produtos Padrão{produtosPadrao.filter(p => p.status === 'ativo').length > 0 && <span className={styles.navCount}>{produtosPadrao.filter(p => p.status === 'ativo').length}</span>}</button>
+      <button
+        className={`${styles.navPrincipalBtn} ${vista === 'catalogo' ? styles.navPrincipalAtivo : ''}`}
+        onClick={() => setVista('catalogo')}
+      >🗂 Catálogo</button>
     </div>
   )
 
@@ -694,8 +921,26 @@ export default function AdminProjetos() {
           <div className={styles.pageTitle}>📐 Projetos Sob Medida</div>
           <div className={styles.pageSubtitle}>Base de conhecimento de projetos executados</div>
         </div>
-        <button className={styles.btnPrimary} onClick={abrirFormNovo}>+ Novo Projeto</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            ref={pdfFromListaRef}
+            type="file"
+            accept=".pdf"
+            style={{ display: 'none' }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) criarDoPDF(f) }}
+          />
+          <button
+            className={styles.btnSecondary}
+            onClick={() => pdfFromListaRef.current?.click()}
+            disabled={fasePDF !== 'idle'}
+            title="Criar projeto preenchido automaticamente a partir de um PDF"
+          >
+            {fasePDF === 'extraindo' ? '⏳ Extraindo PDF…' : fasePDF === 'analisando' ? '🤖 Analisando…' : '📄 Criar do PDF'}
+          </button>
+          <button className={styles.btnPrimary} onClick={abrirFormNovo}>+ Novo Projeto</button>
+        </div>
       </div>
+      {erro && <div className={styles.erroMsg} style={{ margin: '0 0 12px' }}>{erro}</div>}
       {navPrincipal}
 
       <div className={styles.toolbar}>
@@ -737,6 +982,7 @@ export default function AdminProjetos() {
                   <th>Atributos</th>
                   <th>Anexos</th>
                   <th>Atualizado</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -758,6 +1004,14 @@ export default function AdminProjetos() {
                     <td><span className={styles.numBadge}>{p.qtd_atributos ?? 0} atr.</span></td>
                     <td><span className={styles.numBadge}>{p.qtd_anexos ?? 0} arq.</span></td>
                     <td><span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{fmtData(p.updated_at.split('T')[0])}</span></td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <button
+                        className={styles.btnDanger}
+                        style={{ padding: '3px 8px', fontSize: '0.78rem' }}
+                        onClick={e => excluirProjeto(p, e)}
+                        title="Excluir projeto"
+                      >🗑</button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -778,6 +1032,23 @@ export default function AdminProjetos() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button className={styles.btnSecondary} onClick={() => setVista('lista')}>← Lista</button>
+          <button className={styles.btnSecondary} onClick={async () => {
+            const [{ data: comps }, { data: attrs }] = await Promise.all([
+              supabaseAdmin.from('projeto_componentes').select('*').eq('projeto_id', projetoAtual.id).order('ordem'),
+              supabaseAdmin.from('projeto_atributos').select('chave,valor,unidade').eq('projeto_id', projetoAtual.id).order('chave'),
+            ])
+            navigate('/admin/orcamento', { state: {
+              projeto: {
+                titulo:       projetoAtual.titulo,
+                codigo:       projetoAtual.codigo,
+                cliente_nome: projetoAtual.cliente_nome,
+                cliente_cnpj: projetoAtual.cliente_cnpj,
+                observacoes:  projetoAtual.observacoes,
+              },
+              atributos: (attrs ?? []) as { chave: string; valor: string; unidade: string | null }[],
+              componentes: (comps ?? []) as { nome: string; quantidade: number | null }[],
+            }})
+          }}>📄 Gerar Orçamento</button>
           <button className={styles.btnPrimary} onClick={() => abrirFormEditar(projetoAtual)}>✏️ Editar</button>
         </div>
       </div>
@@ -1224,6 +1495,96 @@ export default function AdminProjetos() {
     </div>
   )
 
+  // VISTA: CATÁLOGO
+  if (vista === 'catalogo') {
+    const TIPOS_CAT = ['text', 'number', 'enum', 'boolean']
+    const enumStr = (v: string[] | null) => v?.join(', ') ?? ''
+    const parseEnum = (s: string) => { const a = s.split(',').map(x => x.trim()).filter(Boolean); return a.length ? a : null }
+    return (
+      <div className={styles.wrap}>
+        <div className={styles.pageHeader}>
+          <div>
+            <div className={styles.pageTitle}>📐 Projetos Sob Medida</div>
+            <div className={styles.pageSubtitle}>Catálogo de atributos</div>
+          </div>
+          {navPrincipal}
+        </div>
+        <div style={{ padding: '0 24px 24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>{catalogo.length} atributos cadastrados</span>
+            {!catNovo && (
+              <button className={styles.btnPrimary} onClick={() => { setCatNovo({ chave: '', label_pt: '', tipo_valor: 'text', unidade_padrao: '', valores_enum: null }); setCatEditando(null) }}>
+                + Novo Atributo
+              </button>
+            )}
+          </div>
+
+          {catErro && <div style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', fontSize: '0.85rem', marginBottom: 12 }}>{catErro}</div>}
+
+          {catNovo && (
+            <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#334155', marginBottom: 12 }}>Novo atributo</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px 16px' }}>
+                <label className={styles.formLabel}>Chave<input className={styles.formInput} value={catNovo.chave} onChange={e => setCatNovo(n => n && ({ ...n, chave: e.target.value }))} placeholder="ex: espessura_mm" autoFocus /></label>
+                <label className={styles.formLabel}>Label (pt-BR)<input className={styles.formInput} value={catNovo.label_pt} onChange={e => setCatNovo(n => n && ({ ...n, label_pt: e.target.value }))} placeholder="ex: Espessura (mm)" /></label>
+                <label className={styles.formLabel}>Tipo<select className={styles.formSelect} value={catNovo.tipo_valor} onChange={e => setCatNovo(n => n && ({ ...n, tipo_valor: e.target.value }))}>{TIPOS_CAT.map(t => <option key={t} value={t}>{t}</option>)}</select></label>
+                <label className={styles.formLabel}>Unidade<input className={styles.formInput} value={catNovo.unidade_padrao} onChange={e => setCatNovo(n => n && ({ ...n, unidade_padrao: e.target.value }))} placeholder="ex: mm, kg" /></label>
+                {catNovo.tipo_valor === 'enum' && (
+                  <label className={styles.formLabel} style={{ gridColumn: '1 / -1' }}>Valores permitidos (separados por vírgula)<input className={styles.formInput} value={enumStr(catNovo.valores_enum)} onChange={e => setCatNovo(n => n && ({ ...n, valores_enum: parseEnum(e.target.value) }))} placeholder="ex: polido, escovado, acetinado" /></label>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+                <button className={styles.btnPrimary} onClick={catSalvarNovo} disabled={catSalvando}>Salvar</button>
+                <button className={styles.btnSecondary} onClick={() => { setCatNovo(null); setCatErro('') }}>Cancelar</button>
+              </div>
+            </div>
+          )}
+
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
+            <thead>
+              <tr>
+                {['Chave', 'Label', 'Tipo', 'Unidade', 'Valores enum', 'Uso', ''].map(h => (
+                  <th key={h} style={{ textAlign: 'left', fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', padding: '8px 12px', borderBottom: '2px solid #e2e8f0' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {catalogo.map(item => (
+                catEditando?.id === item.id ? (
+                  <tr key={item.id} style={{ background: '#f0f9ff' }}>
+                    <td style={{ padding: '8px 12px' }}><span style={{ fontFamily: 'monospace', fontSize: '0.82rem', color: '#64748b' }}>{item.chave}</span></td>
+                    <td style={{ padding: '8px 12px' }}><input className={styles.formInput} value={catEditando.label_pt} onChange={e => setCatEditando(v => v && ({ ...v, label_pt: e.target.value }))} autoFocus style={{ padding: '5px 8px' }} /></td>
+                    <td style={{ padding: '8px 12px' }}><select className={styles.formSelect} value={catEditando.tipo_valor} onChange={e => setCatEditando(v => v && ({ ...v, tipo_valor: e.target.value }))} style={{ padding: '5px 8px' }}>{TIPOS_CAT.map(t => <option key={t} value={t}>{t}</option>)}</select></td>
+                    <td style={{ padding: '8px 12px' }}><input className={styles.formInput} value={catEditando.unidade_padrao ?? ''} onChange={e => setCatEditando(v => v && ({ ...v, unidade_padrao: e.target.value }))} style={{ padding: '5px 8px', width: 60 }} /></td>
+                    <td style={{ padding: '8px 12px' }}><input className={styles.formInput} value={enumStr(catEditando.valores_enum)} onChange={e => setCatEditando(v => v && ({ ...v, valores_enum: parseEnum(e.target.value) }))} placeholder="val1, val2" style={{ padding: '5px 8px' }} /></td>
+                    <td style={{ padding: '8px 12px' }}>{item.frequencia_uso}</td>
+                    <td style={{ padding: '8px 12px', display: 'flex', gap: 4 }}>
+                      <button className={styles.btnPrimary} onClick={catSalvarEdicao} disabled={catSalvando} style={{ padding: '4px 10px', fontSize: '0.82rem' }}>✓</button>
+                      <button className={styles.btnSecondary} onClick={() => setCatEditando(null)} style={{ padding: '4px 10px', fontSize: '0.82rem' }}>✕</button>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '10px 12px' }}><span style={{ fontFamily: 'monospace', fontSize: '0.82rem', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, color: '#334155' }}>{item.chave}</span></td>
+                    <td style={{ padding: '10px 12px' }}>{item.label_pt}</td>
+                    <td style={{ padding: '10px 12px' }}><span style={{ fontSize: '0.78rem', background: '#e0f2fe', color: '#0369a1', padding: '2px 7px', borderRadius: 20, fontWeight: 600 }}>{item.tipo_valor}</span></td>
+                    <td style={{ padding: '10px 12px' }}>{item.unidade_padrao || '—'}</td>
+                    <td style={{ padding: '10px 12px', color: '#475569', fontSize: '0.82rem', maxWidth: 200 }}>{item.valores_enum?.join(', ') || '—'}</td>
+                    <td style={{ padding: '10px 12px' }}>{item.frequencia_uso}</td>
+                    <td style={{ padding: '10px 12px', display: 'flex', gap: 4 }}>
+                      <button className={styles.btnIconAdd} onClick={() => { setCatEditando(item); setCatNovo(null) }} title="Editar" style={{ fontSize: '0.8rem', padding: '2px 6px' }}>✏️</button>
+                      <button className={styles.btnIconRemove} onClick={() => catExcluir(item.id)} title="Excluir">×</button>
+                    </td>
+                  </tr>
+                )
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
   // VISTA: FORM (novo ou editar)
   return (
     <>
@@ -1241,13 +1602,16 @@ export default function AdminProjetos() {
 
       <div className={styles.card}>
         <div className={styles.abas}>
-          {(['dados', 'atributos', 'anexos'] as AbaForm[]).map(a => (
+          {(['dados', 'atributos', 'componentes', 'anexos'] as AbaForm[]).map(a => (
             <button
               key={a}
               className={`${styles.aba} ${abaForm === a ? styles.abaAtiva : ''}`}
               onClick={() => setAbaForm(a)}
             >
-              {a === 'dados' ? '📋 Dados Básicos' : a === 'atributos' ? `🔧 Atributos (${atributos.length})` : `📎 Anexos (${anexosForm.length})`}
+              {a === 'dados' ? '📋 Dados Básicos'
+                : a === 'atributos' ? `🔧 Atributos (${atributos.length})`
+                : a === 'componentes' ? `🔩 Componentes (${componentes.length})`
+                : `📎 Anexos (${anexosForm.length})`}
             </button>
           ))}
         </div>
@@ -1272,10 +1636,33 @@ export default function AdminProjetos() {
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Segmento</label>
-                <select className={styles.formSelect} value={form.segmento} onChange={e => setForm(f => ({ ...f, segmento: e.target.value }))}>
+                <select
+                  className={styles.formSelect}
+                  value={SEGMENTOS_FIXOS.includes(form.segmento) || segmentosCustom.includes(form.segmento) || form.segmento === '' ? form.segmento : '__outro__'}
+                  onChange={e => {
+                    if (e.target.value === '__outro__') setForm(f => ({ ...f, segmento: '\x01' }))
+                    else setForm(f => ({ ...f, segmento: e.target.value }))
+                  }}
+                >
                   <option value="">Selecione…</option>
-                  {SEGMENTOS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                  {SEGMENTOS_FIXOS.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                  {segmentosCustom.length > 0 && (
+                    <optgroup label="Personalizados">
+                      {segmentosCustom.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                    </optgroup>
+                  )}
+                  <option value="__outro__">Outro…</option>
                 </select>
+                {(!SEGMENTOS_FIXOS.includes(form.segmento) && form.segmento !== '') && (
+                  <input
+                    className={styles.formInput}
+                    style={{ marginTop: 6 }}
+                    value={form.segmento === '\x01' ? '' : form.segmento}
+                    onChange={e => setForm(f => ({ ...f, segmento: e.target.value }))}
+                    placeholder="Digite o segmento…"
+                    autoFocus
+                  />
+                )}
               </div>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Status</label>
@@ -1301,6 +1688,29 @@ export default function AdminProjetos() {
                 <label className={styles.formLabel}>Observações</label>
                 <textarea className={styles.formTextarea} value={form.observacoes} onChange={e => setForm(f => ({ ...f, observacoes: e.target.value }))} placeholder="Detalhes técnicos, contexto, requisitos especiais…" rows={3} />
               </div>
+              <div className={`${styles.formGroup} ${styles.formGridFull}`} style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '4px' }}>
+                <label className={styles.formLabel} style={{ color: '#64748b', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dados Técnicos do Projeto</label>
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Projetista</label>
+                <input className={styles.formInput} value={form.projetista} onChange={e => setForm(f => ({ ...f, projetista: e.target.value }))} placeholder="Nome do responsável" />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Revisão</label>
+                <input className={styles.formInput} value={form.revisao} onChange={e => setForm(f => ({ ...f, revisao: e.target.value }))} placeholder="Ex: Rev. A, Rev. 01" />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Norma</label>
+                <input className={styles.formInput} value={form.norma} onChange={e => setForm(f => ({ ...f, norma: e.target.value }))} placeholder="Ex: ABNT NBR 13818" />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Escala</label>
+                <input className={styles.formInput} value={form.escala} onChange={e => setForm(f => ({ ...f, escala: e.target.value }))} placeholder="Ex: 1:50, 1:100" />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Data do Projeto</label>
+                <input type="date" className={styles.formInput} value={form.data_projeto} onChange={e => setForm(f => ({ ...f, data_projeto: e.target.value }))} />
+              </div>
             </div>
           </div>
         )}
@@ -1313,6 +1723,19 @@ export default function AdminProjetos() {
               <div className={styles.atributosHeader}>
                 <span className={styles.atributosTitle}>Atributos estruturados</span>
                 <span className={styles.atributosHint}>Material, espessura, dimensões, acabamento…</span>
+                {projetoAtual && (
+                  <UploadMemorial
+                    projetoId={projetoAtual.id}
+                    catalogo={catalogo}
+                    onSalvo={async () => {
+                      const { data } = await supabaseAdmin
+                        .from('projeto_atributos').select('*').eq('projeto_id', projetoAtual.id).order('chave')
+                      setAtributos(((data ?? []) as ProjetoAtributo[]).map(a => ({
+                        id: a.id, chave: a.chave, valor: a.valor, unidade: a.unidade ?? '',
+                      })))
+                    }}
+                  />
+                )}
               </div>
 
               {atributos.length === 0 && !atribNovo && (
@@ -1322,12 +1745,66 @@ export default function AdminProjetos() {
               )}
 
               {atributos.map((a, idx) => (
-                <div key={idx} className={styles.atributoRow}>
-                  <span className={styles.atributoChave}>{a.chave}</span>
-                  <span className={styles.atributoValor}>{a.valor}</span>
-                  <span className={styles.atributoUnidade}>{a.unidade || '—'}</span>
-                  <button className={styles.btnIconRemove} onClick={() => removerAtributo(idx)} title="Remover">×</button>
-                </div>
+                editandoAtrib?.idx === idx ? (
+                  <div key={idx} className={styles.atributoRow}>
+                    <select
+                      className={styles.formSelect}
+                      value={editandoAtrib.chave}
+                      onChange={e => {
+                        const chave = e.target.value
+                        const item = catalogo.find(c => c.chave === chave)
+                        setEditandoAtrib(v => v && ({ ...v, chave, unidade: item?.unidade_padrao ?? v.unidade }))
+                      }}
+                      style={{ flex: '0 0 140px' }}
+                      autoFocus
+                    >
+                      {catalogo.map(c => <option key={c.chave} value={c.chave}>{c.label_pt || c.chave}</option>)}
+                    </select>
+                    {(() => {
+                      const itemCat = catalogo.find(c => c.chave === editandoAtrib.chave)
+                      return itemCat?.valores_enum?.length ? (
+                        <select
+                          className={styles.formSelect}
+                          value={editandoAtrib.valor}
+                          onChange={e => setEditandoAtrib(v => v && ({ ...v, valor: e.target.value }))}
+                          style={{ flex: 1 }}
+                        >
+                          {itemCat.valores_enum.map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          className={styles.formInput}
+                          value={editandoAtrib.valor}
+                          onChange={e => setEditandoAtrib(v => v && ({ ...v, valor: e.target.value }))}
+                          onKeyDown={e => { if (e.key === 'Enter') confirmarEdicaoAtrib(); if (e.key === 'Escape') setEditandoAtrib(null) }}
+                          style={{ flex: 1 }}
+                        />
+                      )
+                    })()}
+                    <input
+                      className={styles.formInput}
+                      value={editandoAtrib.unidade}
+                      onChange={e => setEditandoAtrib(v => v && ({ ...v, unidade: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') confirmarEdicaoAtrib(); if (e.key === 'Escape') setEditandoAtrib(null) }}
+                      placeholder="un"
+                      style={{ flex: '0 0 60px' }}
+                    />
+                    <span style={{ display: 'flex', gap: 4 }}>
+                      <button className={styles.btnIconAdd} onClick={confirmarEdicaoAtrib} title="Confirmar" style={{ fontSize: '0.8rem', padding: '2px 6px' }}>✓</button>
+                      <button className={styles.btnIconRemove} onClick={() => setEditandoAtrib(null)} title="Cancelar">✕</button>
+                    </span>
+                  </div>
+                ) : (
+                  <div key={idx} className={styles.atributoRow}>
+                    <span className={styles.atributoChave}>{a.chave}</span>
+                    <span className={styles.atributoValor}>{a.valor}</span>
+                    <span className={styles.atributoUnidade}>{a.unidade || '—'}</span>
+                    <span style={{ display: 'flex', gap: 4 }}>
+                      <button className={styles.btnIconAdd} onClick={() => setEditandoAtrib({ idx, chave: a.chave, valor: a.valor, unidade: a.unidade })} title="Editar" style={{ fontSize: '0.8rem', padding: '2px 6px' }}>✏️</button>
+                      <button className={styles.btnIconRemove} onClick={() => removerAtributo(idx)} title="Remover">×</button>
+                    </span>
+                  </div>
+                )
               ))}
 
               {/* Formulário de novo atributo */}
@@ -1448,6 +1925,56 @@ export default function AdminProjetos() {
               )}
             </div>
             </div>{/* fim atributosLayout */}
+          </div>
+        )}
+
+        {/* ── ABA: COMPONENTES ── */}
+        {abaForm === 'componentes' && (
+          <div className={styles.formBody}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {componentes.length === 0 && (
+                <div style={{ padding: '20px 0', textAlign: 'center', color: '#94a3b8', fontSize: '0.86rem' }}>
+                  Nenhum componente. Adicione manualmente ou use "Criar do PDF".
+                </div>
+              )}
+              {componentes.map((c, idx) => (
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 80px 1fr auto', gap: 8, alignItems: 'center', background: '#f8fafc', borderRadius: 8, padding: '8px 12px', border: '1px solid #e2e8f0' }}>
+                  <input
+                    className={styles.formInput}
+                    value={c.nome}
+                    onChange={e => setComponentes(prev => prev.map((x, i) => i === idx ? { ...x, nome: e.target.value } : x))}
+                    placeholder="Nome do componente"
+                  />
+                  <input
+                    className={styles.formInput}
+                    value={c.quantidade}
+                    onChange={e => setComponentes(prev => prev.map((x, i) => i === idx ? { ...x, quantidade: e.target.value } : x))}
+                    placeholder="Qtd"
+                    type="number"
+                    min="0"
+                  />
+                  <input
+                    className={styles.formInput}
+                    value={c.material}
+                    onChange={e => setComponentes(prev => prev.map((x, i) => i === idx ? { ...x, material: e.target.value } : x))}
+                    placeholder="Material (opcional)"
+                  />
+                  <button
+                    className={styles.btnDanger}
+                    style={{ padding: '4px 10px', fontSize: '0.82rem' }}
+                    onClick={() => setComponentes(prev => prev.filter((_, i) => i !== idx))}
+                    title="Remover"
+                  >×</button>
+                </div>
+              ))}
+              <button
+                className={styles.btnSecondary}
+                style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                onClick={() => setComponentes(prev => [...prev, { nome: '', quantidade: '', material: '', observacao: '', ordem: prev.length }])}
+              >
+                + Adicionar Componente
+              </button>
+            </div>
           </div>
         )}
 

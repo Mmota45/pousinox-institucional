@@ -330,6 +330,46 @@
 
 .shellCollapsed .navBadge { display: none; }
 
+.navSection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+  padding: 14px 16px 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s;
+  box-sizing: border-box;
+}
+
+.navSection:hover { color: var(--color-text); }
+
+.navSectionLabel { flex: 1; }
+
+.navSectionChevron {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.shellCollapsed .navSection {
+  padding: 14px 0 4px;
+  justify-content: center;
+}
+
+.shellCollapsed .navSectionLabel { display: none; }
+.shellCollapsed .navSectionChevron { display: none; }
+
 /* ── Content ── */
 .content {
   flex: 1;

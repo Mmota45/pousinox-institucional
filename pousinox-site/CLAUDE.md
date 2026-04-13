@@ -64,6 +64,44 @@ Rotas `/admin/*` com layout próprio (`AdminLayout`). Módulos:
 - `AdminAnaliseNF` — análise de notas fiscais
 - `AdminRelatorios` — relatórios
 - `AdminUsuarios` — usuários
+- `AdminProjetos` — módulo de projetos sob medida (ver abaixo)
+- `AdminProspeccao` — hub de prospecção B2B (800K CNPJs)
+- `AdminCatalogo` — catálogo de produtos
+
+## Módulo AdminProjetos (src/pages/AdminProjetos.tsx)
+
+Módulo principal de ERP leve. Gerencia projetos sob medida com ciclo de aprendizado.
+
+### Funcionalidades
+- **CRUD de projetos** com campos: título, cliente, CNPJ, segmento, status, datas, valor, observações, projetista, revisão, norma, escala, data do projeto
+- **Segmento livre** — select com opção "Outro…" abre input de texto; segmentos históricos aparecem como grupo "Personalizados"
+- **Atributos estruturados** — catálogo em `atributos_catalogo`, salvo em `projeto_atributos`. Suporte a enum, numérico e texto. Edit inline com ✏️
+- **Componentes** — lista de peças/materiais em `projeto_componentes` (nome, quantidade, ordem). Aba 🔩 Componentes no formulário
+- **Anexos** — upload para Supabase Storage (bucket `projetos-anexos`), tabela `projeto_anexos`
+- **Criar do PDF** — botão na lista extrai campos básicos + atributos + componentes via Edge Function `extrair-memorial`, pré-preenche o formulário inteiro
+- **Analisar PDF com IA** — botão na aba Atributos (componente `UploadMemorial`) analisa PDF e salva atributos diretamente
+- **Similaridade Jaccard** — RPC `buscar_similares` retorna projetos similares por atributos
+- **Shadow mode pgvector** — embeddings Gemini `gemini-embedding-001` em `projeto_embeddings`, comparação paralela em `similarity_shadow_log`, feature flag `vector_similarity_shadow`
+- **Recorrências** — detecção automática de padrões repetidos em `recorrencias`
+- **Produtos Padrão** — `produtos_padrao` vinculados a projetos
+- **Catálogo de atributos** — aba interna para gerenciar `atributos_catalogo` (chave, label, tipo, enum, unidade)
+- **Gerar Orçamento** — botão no detalhe do projeto navega para `/admin/orcamento` pré-preenchido com cliente e componentes
+
+### Tabelas Supabase relevantes
+- `projetos`, `projeto_atributos`, `projeto_anexos`
+- `projeto_componentes` — peças/materiais do projeto
+- `projeto_embeddings` — embeddings vetoriais (modelo gemini-embedding-001-3072)
+- `similarity_shadow_log` — logs comparativos Jaccard vs vetorial
+- `feature_flags` — flag `vector_similarity_shadow`
+- `atributos_catalogo` — catálogo de atributos (inclui: peso, comprimento, largura, altura, espessura, acabamento, superficie, aplicacao, tipo_produto, liga)
+- `recorrencias`, `recorrencia_projetos`, `produtos_padrao`
+
+### Edge Functions
+- `extrair-memorial` — extrai campos básicos + atributos + componentes de PDF via Claude Haiku
+- `gerar-embeddings` — gera embeddings via Gemini para projetos pendentes
+
+### Componentes
+- `src/components/UploadMemorial/` — upload e análise de PDF na aba Atributos
 
 ## Comandos
 

@@ -274,20 +274,53 @@
 
 .acoes {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
   align-items: center;
+}
+
+.acoesBtns {
+  display: grid;
+  grid-template-columns: 28px 28px;
+  gap: 4px;
+}
+
+.emailBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.emailBtn:hover { opacity: 0.85; }
+
+.infoBase {
+  margin-left: auto;
+  align-self: flex-end;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  white-space: nowrap;
 }
 
 .waBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   background: #25d366;
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 7px;
   cursor: pointer;
   text-decoration: none;
   transition: opacity 0.15s;
@@ -297,8 +330,8 @@
 .waBtn:hover { opacity: 0.85; }
 
 .semTel {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -310,10 +343,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: 2px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 7px;
   background: #f8fafc;
   color: #cbd5e1;
   cursor: pointer;
@@ -374,4 +407,63 @@
   text-align: center;
   color: var(--color-text-light);
   font-size: 0.9rem;
+}
+
+/* ── Clientes consolidados por cidade ── */
+.clientesCidadeWrap {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.clientesCidadeTitulo {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e40af;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.clientesCidadeCards {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.clientesCidadeCard {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
+.clientesCidadeNome {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.clientesCidadeUf {
+  font-size: 0.72rem;
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: 600;
+}
+
+.clientesCidadeCount {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1d4ed8;
+  background: #dbeafe;
+  border-radius: 20px;
+  padding: 1px 8px;
 }

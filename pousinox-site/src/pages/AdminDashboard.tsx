@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import { useAdmin } from '../contexts/AdminContext'
 import styles from './AdminDashboard.module.css'
+import MetaSemanal from '../components/MetaSemanal/MetaSemanal'
 
 interface DashData {
   totalProdutos: number
@@ -64,6 +65,7 @@ export default function AdminDashboard() {
 
   return (
     <div className={styles.wrap}>
+      <MetaSemanal />
       <h3 className={styles.secTitle}>Outlet & Estoque</h3>
       <div className={styles.cards}>
         <div className={styles.card}>
