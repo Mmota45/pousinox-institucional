@@ -94,6 +94,22 @@
   background: #e5e7eb;
 }
 
+.btnRemover {
+  padding: 6px 14px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnRemover:hover {
+  background: #fecaca;
+}
+
 /* Cards */
 .cards {
   display: grid;

@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { useAdmin } from '../contexts/AdminContext'
+import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminAnaliseNF.module.css'
 
 interface ItemNF {
@@ -166,6 +167,11 @@ function exportCSV(analise: Analise, nomeArquivo: string) {
   URL.revokeObjectURL(url)
 }
 
+function parseDateBRtoISO(s: string): string | null {
+  const m = s?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : null
+}
+
 export default function AdminAnaliseNF() {
   const { ocultarValores } = useAdmin()
   const fmt = (v: number) => ocultarValores ? '••••' : fmtBRL(v)
@@ -174,7 +180,11 @@ export default function AdminAnaliseNF() {
   const [carregando, setCarregando] = useState(false)
   const [nomeArquivo, setNomeArquivo] = useState('')
   const [abaSec, setAbaSec] = useState<'resumo' | 'produtos' | 'clientes' | 'itens'>('resumo')
+  const [salvandoDocs, setSalvandoDocs] = useState<'emitido' | 'recebido' | null>(null)
+  const [salvarProgresso, setSalvarProgresso] = useState<{ atual: number; total: number } | null>(null)
+  const [msgSalvar, setMsgSalvar] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const salvandoRef = useRef(false)
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -209,6 +219,72 @@ export default function AdminAnaliseNF() {
     reader.readAsText(file, 'latin1')
   }
 
+  async function salvarEmDocs(tipo: 'emitido' | 'recebido') {
+    if (!analise || salvandoRef.current) return
+    salvandoRef.current = true
+    setSalvandoDocs(tipo); setMsgSalvar(null); setSalvarProgresso(null)
+
+    // Agrupar itens por NF
+    const byNF: Record<string, { cnpj: string; nome: string; emissao: string; itens: ItemNF[] }> = {}
+    for (const it of analise.itens) {
+      if (!byNF[it.nf]) byNF[it.nf] = { cnpj: it.cnpj, nome: it.cliente, emissao: it.emissao, itens: [] }
+      byNF[it.nf].itens.push(it)
+    }
+
+    const nfEntries = Object.entries(byNF)
+    const totalNFs = nfEntries.length
+    let processados = 0
+    let inseridos = 0; let pulados = 0
+    for (const [nfNum, grupo] of nfEntries) {
+      processados++
+      setSalvarProgresso({ atual: processados, total: totalNFs })
+      const { data: existe } = await supabaseAdmin
+        .from('docs_fiscais').select('id').eq('tipo', tipo).eq('nf_numero', nfNum).limit(1)
+      if (existe && existe.length > 0) { pulados++; continue }
+
+      const valorTotal  = grupo.itens.reduce((s, i) => s + i.vlrTotal, 0)
+      const dataEmissao = parseDateBRtoISO(grupo.emissao)
+      const { data: doc, error } = await supabaseAdmin
+        .from('docs_fiscais')
+        .insert({
+          tipo,
+          nf_numero:        nfNum,
+          contraparte_cnpj: grupo.cnpj || null,
+          contraparte_nome: grupo.nome || '',
+          data_emissao:     dataEmissao,
+          data_entrada:     tipo === 'recebido' ? (dataEmissao ?? new Date().toISOString().slice(0, 10)) : null,
+          valor_total:      valorTotal,
+          status:           tipo === 'recebido' ? 'pendente' : 'rascunho',
+        })
+        .select('id').single()
+      if (error || !doc) continue
+
+      const itensNF = grupo.itens
+        .filter(i => i.descricao?.trim())
+        .map((i, idx) => ({
+          doc_id:          doc.id,
+          codigo_produto:  i.codigo || null,
+          descricao:       i.descricao,
+          quantidade:      i.qtd,
+          unidade:         'un',
+          valor_unitario:  i.vlrUnit,
+          valor_total:     i.vlrTotal,
+          estoque_item_id: null,
+          ordem:           idx,
+        }))
+      if (itensNF.length > 0) await supabaseAdmin.from('itens_doc').insert(itensNF)
+      inseridos++
+    }
+
+    salvandoRef.current = false
+    setSalvandoDocs(null)
+    setSalvarProgresso(null)
+    setMsgSalvar({
+      tipo: 'ok',
+      texto: `${inseridos} NF(s) salva(s) como ${tipo === 'emitido' ? 'Docs Emitidos' : 'Docs Recebidos'}. ${pulados > 0 ? `${pulados} já existia(m).` : ''}`,
+    })
+  }
+
   return (
     <div className={styles.wrap}>
       <div className={styles.uploadArea}>
@@ -234,10 +310,32 @@ export default function AdminAnaliseNF() {
         <>
           <div className={styles.arquivoInfo}>
             Arquivo: <strong>{nomeArquivo}</strong> — {analise.itens.length} itens, {analise.totalNFs} NFs
+            <button className={styles.btnRemover} onClick={() => { setAnalise(null); setNomeArquivo(''); setErro(null); setMsgSalvar(null) }}>
+              ✕ Remover arquivo
+            </button>
             <button className={styles.btnExport} onClick={() => exportCSV(analise, nomeArquivo)}>
               Exportar análise CSV
             </button>
+            <button className={styles.btnExport} onClick={() => salvarEmDocs('emitido')} disabled={salvandoDocs !== null}>
+              {salvandoDocs === 'emitido'
+                ? `Salvando… ${salvarProgresso ? Math.round(salvarProgresso.atual / salvarProgresso.total * 100) + '%' : ''}`
+                : '💾 Salvar em Docs Emitidos'}
+            </button>
+            <button className={styles.btnExport} onClick={() => salvarEmDocs('recebido')} disabled={salvandoDocs !== null}>
+              {salvandoDocs === 'recebido'
+                ? `Salvando… ${salvarProgresso ? Math.round(salvarProgresso.atual / salvarProgresso.total * 100) + '%' : ''}`
+                : '💾 Salvar em Docs Recebidos'}
+            </button>
           </div>
+          {msgSalvar && (
+            <div style={{
+              padding: '8px 12px', borderRadius: 6, margin: '8px 0', fontSize: '0.85rem',
+              background: msgSalvar.tipo === 'ok' ? 'var(--color-success-bg, #ecfdf5)' : 'var(--color-error-bg, #fef2f2)',
+              color: msgSalvar.tipo === 'ok' ? 'var(--color-success, #059669)' : 'var(--color-error, #dc2626)',
+            }}>
+              {msgSalvar.texto}
+            </div>
+          )}
 
           {/* Cards de resumo */}
           <div className={styles.cards}>

@@ -5,7 +5,7 @@ import styles from './AdminManutencao.module.css'
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 type AtivoStatus = 'ativo' | 'inativo' | 'manutencao'
-type TipoOM      = 'corretiva' | 'preventiva'
+type TipoOM      = 'corretiva' | 'preventiva' | 'revisao'
 type Prioridade  = 'baixa' | 'media' | 'alta'
 type OMStatus    = 'aberta' | 'em_execucao' | 'concluida' | 'cancelada'
 type Aba         = 'ativos' | 'ordens'
@@ -35,10 +35,11 @@ interface OrdemManutencao {
   status:          OMStatus
   data_abertura:   string
   data_programada: string | null
-  data_conclusao:  string | null
-  responsavel:     string | null
-  observacao:      string | null
-  created_at:      string
+  data_conclusao:   string | null
+  responsavel:      string | null
+  custo_realizado:  number | null
+  observacao:       string | null
+  created_at:       string
   // join
   ativos?: { nome: string; codigo: string | null } | null
 }
@@ -59,10 +60,12 @@ const ATIVO_STATUS_LABEL: Record<AtivoStatus, string> = {
 const TIPO_CLASS: Record<TipoOM, string> = {
   corretiva:  styles.tipoCorretiva,
   preventiva: styles.tipoPreventiva,
+  revisao:    styles.tipoRevisao,
 }
 const TIPO_LABEL: Record<TipoOM, string> = {
   corretiva:  'Corretiva',
   preventiva: 'Preventiva',
+  revisao:    'Revisão',
 }
 
 const PRIO_CLASS: Record<Prioridade, string> = {
@@ -102,14 +105,17 @@ const ATIVO_FORM_VAZIO = {
 }
 
 const OM_FORM_VAZIO = {
-  tipo:            'corretiva' as TipoOM,
-  titulo:          '',
-  descricao:       '',
-  prioridade:      'media' as Prioridade,
-  data_programada: '',
-  responsavel:     '',
-  observacao:      '',
+  tipo:             'corretiva' as TipoOM,
+  titulo:           '',
+  descricao:        '',
+  prioridade:       'media' as Prioridade,
+  data_programada:  '',
+  responsavel:      '',
+  custo_realizado:  '',
+  observacao:       '',
 }
+
+function fmtBRL(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
@@ -127,10 +133,13 @@ export default function AdminManutencao() {
   // Ordens
   const [ordens,          setOrdens]          = useState<OrdemManutencao[]>([])
   const [carregandoOrdens, setCarregandoOrdens] = useState(false)
-  const [filtroOMTipo,     setFiltroOMTipo]    = useState<string>('todos')
-  const [filtroOMStatus,   setFiltroOMStatus]  = useState<string>('todos')
+  const [filtroOMTipo,       setFiltroOMTipo]       = useState<string>('todos')
+  const [filtroOMStatus,     setFiltroOMStatus]     = useState<string>('todos')
+  const [filtroOMPrioridade, setFiltroOMPrioridade] = useState<string>('todos')
+  const [filtroBuscaOM,      setFiltroBuscaOM]      = useState('')
   const [omForm,      setOMForm]      = useState({ ...OM_FORM_VAZIO })
   const [ordemAtual,  setOrdemAtual]  = useState<OrdemManutencao | null>(null)
+  const [editOMId,    setEditOMId]    = useState<number | null>(null)
 
   // Busca de ativo no form de ordem
   const [ativoBusca,    setAtivoBusca]    = useState('')
@@ -172,12 +181,22 @@ export default function AdminManutencao() {
       .from('ordens_manutencao')
       .select('*, ativos(nome, codigo)')
       .order('created_at', { ascending: false })
-    if (filtroOMTipo   !== 'todos') q = q.eq('tipo',   filtroOMTipo)
-    if (filtroOMStatus !== 'todos') q = q.eq('status', filtroOMStatus)
+    if (filtroOMTipo       !== 'todos') q = q.eq('tipo',      filtroOMTipo)
+    if (filtroOMStatus     !== 'todos') q = q.eq('status',    filtroOMStatus)
+    if (filtroOMPrioridade !== 'todos') q = q.eq('prioridade', filtroOMPrioridade)
     const { data } = await q
-    setOrdens((data as OrdemManutencao[]) ?? [])
+    let resultado = (data as OrdemManutencao[]) ?? []
+    if (filtroBuscaOM.trim()) {
+      const q2 = filtroBuscaOM.trim().toLowerCase()
+      resultado = resultado.filter(o =>
+        o.titulo.toLowerCase().includes(q2) ||
+        o.numero.toLowerCase().includes(q2) ||
+        (o.responsavel ?? '').toLowerCase().includes(q2)
+      )
+    }
+    setOrdens(resultado)
     setCarregandoOrdens(false)
-  }, [filtroOMTipo, filtroOMStatus])
+  }, [filtroOMTipo, filtroOMStatus, filtroOMPrioridade, filtroBuscaOM])
 
   useEffect(() => {
     if (vista === 'ordens') carregarOrdens()
@@ -252,6 +271,26 @@ export default function AdminManutencao() {
     setAtivoSel(null)
     setAtivoBusca('')
     setAtivoOpts([])
+    setEditOMId(null)
+    setFormMsg(null)
+    setVista('ordem_form')
+  }
+
+  function abrirEditarOrdem(o: OrdemManutencao) {
+    setOMForm({
+      tipo:            o.tipo,
+      titulo:          o.titulo,
+      descricao:       o.descricao       ?? '',
+      prioridade:      o.prioridade,
+      data_programada: o.data_programada ?? '',
+      responsavel:     o.responsavel     ?? '',
+      custo_realizado: o.custo_realizado != null ? String(o.custo_realizado) : '',
+      observacao:      o.observacao      ?? '',
+    })
+    setAtivoSel(o.ativos ? { id: o.ativo_id!, nome: o.ativos.nome, codigo: o.ativos.codigo } : null)
+    setAtivoBusca('')
+    setAtivoOpts([])
+    setEditOMId(o.id)
     setFormMsg(null)
     setVista('ordem_form')
   }
@@ -265,19 +304,23 @@ export default function AdminManutencao() {
     if (!omForm.titulo.trim()) { setFormMsg({ ok: false, texto: 'Título é obrigatório.' }); return }
     setSalvando(true)
     setFormMsg(null)
+    const custoVal = omForm.custo_realizado.trim() ? Number(omForm.custo_realizado.replace(',', '.')) : null
     const payload = {
       ativo_id:        ativoSel?.id ?? null,
       tipo:            omForm.tipo,
       titulo:          omForm.titulo.trim(),
-      descricao:       omForm.descricao.trim()       || null,
+      descricao:       omForm.descricao.trim()   || null,
       prioridade:      omForm.prioridade,
-      data_programada: omForm.data_programada        || null,
-      responsavel:     omForm.responsavel.trim()     || null,
-      observacao:      omForm.observacao.trim()       || null,
+      data_programada: omForm.data_programada    || null,
+      responsavel:     omForm.responsavel.trim() || null,
+      custo_realizado: custoVal,
+      observacao:      omForm.observacao.trim()  || null,
     }
-    const { error } = await supabaseAdmin.from('ordens_manutencao').insert(payload)
+    const { error } = editOMId
+      ? await supabaseAdmin.from('ordens_manutencao').update(payload).eq('id', editOMId)
+      : await supabaseAdmin.from('ordens_manutencao').insert(payload)
     if (error) { setFormMsg({ ok: false, texto: error.message }); setSalvando(false); return }
-    setFormMsg({ ok: true, texto: 'Ordem criada.' })
+    setFormMsg({ ok: true, texto: editOMId ? 'Ordem atualizada.' : 'Ordem criada.' })
     setTimeout(() => { irAba('ordens') }, 900)
     setSalvando(false)
   }
@@ -327,8 +370,8 @@ export default function AdminManutencao() {
             <button className={styles.btnPrimary} onClick={abrirNovaOrdem}>+ Nova Ordem</button>
           )}
           {vista === 'ordem_detalhe' && ordemAtual && (
-            <button className={styles.btnSecondary} onClick={() => { setOMForm({ ...OM_FORM_VAZIO }); }}>
-              {/* reservado para editar */}
+            <button className={styles.btnSecondary} onClick={() => abrirEditarOrdem(ordemAtual)}>
+              ✏️ Editar
             </button>
           )}
         </div>
@@ -465,10 +508,23 @@ export default function AdminManutencao() {
       {vista === 'ordens' && (
         <>
           <div className={styles.toolbar}>
+            <input
+              className={styles.inputBusca}
+              value={filtroBuscaOM}
+              onChange={e => setFiltroBuscaOM(e.target.value)}
+              placeholder="Buscar por título, número ou responsável…"
+            />
             <select className={styles.selectFiltro} value={filtroOMTipo} onChange={e => setFiltroOMTipo(e.target.value)}>
               <option value="todos">Todos os tipos</option>
               <option value="corretiva">Corretiva</option>
               <option value="preventiva">Preventiva</option>
+              <option value="revisao">Revisão</option>
+            </select>
+            <select className={styles.selectFiltro} value={filtroOMPrioridade} onChange={e => setFiltroOMPrioridade(e.target.value)}>
+              <option value="todos">Todas as prioridades</option>
+              <option value="alta">Alta</option>
+              <option value="media">Média</option>
+              <option value="baixa">Baixa</option>
             </select>
             <select className={styles.selectFiltro} value={filtroOMStatus} onChange={e => setFiltroOMStatus(e.target.value)}>
               <option value="todos">Todos os status</option>
@@ -478,6 +534,21 @@ export default function AdminManutencao() {
               <option value="cancelada">Cancelada</option>
             </select>
           </div>
+
+          {ordens.length > 0 && (() => {
+            const abertas     = ordens.filter(o => o.status === 'aberta').length
+            const emExecucao  = ordens.filter(o => o.status === 'em_execucao').length
+            const altaPrio    = ordens.filter(o => o.prioridade === 'alta' && o.status !== 'concluida' && o.status !== 'cancelada').length
+            const concluidas  = ordens.filter(o => o.status === 'concluida').length
+            return (
+              <div className={styles.kpiRow}>
+                <div className={styles.kpiCard}><span className={styles.kpiVal}>{abertas}</span><span className={styles.kpiLabel}>Abertas</span></div>
+                <div className={styles.kpiCard}><span className={styles.kpiVal}>{emExecucao}</span><span className={styles.kpiLabel}>Em Execução</span></div>
+                <div className={`${styles.kpiCard} ${altaPrio > 0 ? styles.kpiAlerta : ''}`}><span className={styles.kpiVal}>{altaPrio}</span><span className={styles.kpiLabel}>Alta Prioridade</span></div>
+                <div className={styles.kpiCard}><span className={styles.kpiVal}>{concluidas}</span><span className={styles.kpiLabel}>Concluídas</span></div>
+              </div>
+            )
+          })()}
 
           <div className={styles.card}>
             {carregandoOrdens ? (
@@ -528,7 +599,7 @@ export default function AdminManutencao() {
       {/* ══ FORM ORDEM ════════════════════════════════════════════════════ */}
       {vista === 'ordem_form' && (
         <div className={styles.formCard}>
-          <h2 className={styles.formTitulo}>Nova Ordem de Manutenção</h2>
+          <h2 className={styles.formTitulo}>{editOMId ? 'Editar Ordem de Manutenção' : 'Nova Ordem de Manutenção'}</h2>
 
           <div className={styles.formGrid}>
             {/* Tipo */}
@@ -537,6 +608,7 @@ export default function AdminManutencao() {
               <select className={styles.formSelect} value={omForm.tipo} onChange={e => setOMForm(f => ({ ...f, tipo: e.target.value as TipoOM }))}>
                 <option value="corretiva">Corretiva</option>
                 <option value="preventiva">Preventiva</option>
+                <option value="revisao">Revisão</option>
               </select>
             </div>
 
@@ -604,6 +676,18 @@ export default function AdminManutencao() {
               <input className={styles.formInput} value={omForm.responsavel} onChange={e => setOMForm(f => ({ ...f, responsavel: e.target.value }))} placeholder="Nome do responsável" />
             </div>
 
+            {/* Custo realizado */}
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Custo Realizado (R$)</label>
+              <input
+                className={styles.formInput}
+                value={omForm.custo_realizado}
+                onChange={e => setOMForm(f => ({ ...f, custo_realizado: e.target.value }))}
+                placeholder="Ex: 350,00"
+                inputMode="decimal"
+              />
+            </div>
+
             {/* Observação */}
             <div className={`${styles.formGroup} ${styles.formGridFull}`}>
               <label className={styles.formLabel}>Observação</label>
@@ -616,7 +700,7 @@ export default function AdminManutencao() {
           <div className={styles.formActions}>
             <button className={styles.btnSecondary} onClick={() => irAba('ordens')}>Cancelar</button>
             <button className={styles.btnPrimary} onClick={salvarOrdem} disabled={salvando}>
-              {salvando ? 'Salvando…' : 'Criar ordem'}
+              {salvando ? 'Salvando…' : editOMId ? 'Salvar alterações' : 'Criar ordem'}
             </button>
           </div>
         </div>
@@ -663,6 +747,12 @@ export default function AdminManutencao() {
               <label>Responsável</label>
               <span>{ordemAtual.responsavel ?? '—'}</span>
             </div>
+            {ordemAtual.custo_realizado != null && (
+              <div className={styles.detalheField}>
+                <label>Custo Realizado</label>
+                <span>{fmtBRL(ordemAtual.custo_realizado)}</span>
+              </div>
+            )}
             {ordemAtual.descricao && (
               <div className={styles.detalheField} style={{ gridColumn: '1 / -1' }}>
                 <label>Descrição</label>

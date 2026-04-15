@@ -309,6 +309,12 @@ export default function AdminProspeccao() {
   const [loadingMapa, setLoadingMapa]   = useState(false)
   const [historicoProspect, setHistoricoProspect] = useState<{ id: number; nome: string } | null>(null)
   const [emailToast, setEmailToast] = useState<string | null>(null)
+  const [prospectDetalhe, setProspectDetalhe] = useState<Prospect | null>(null)
+  const [dealToast, setDealToast] = useState<string | null>(null)
+  const [clienteNFs, setClienteNFs] = useState<{ numero: string; emissao: string | null; total: number | null }[]>([])
+  const [loadingNFs, setLoadingNFs] = useState(false)
+  const [nfExpandida, setNfExpandida] = useState<string | null>(null)
+  const [nfItensCache, setNfItensCache] = useState<Record<string, { descricao: string | null; quantidade: number | null; valor_unitario: number | null; valor_total: number | null }[]>>({})
   const [clientesCidade, setClientesCidade] = useState<{ cidade: string; uf: string; count: number; lat: number | null; lng: number | null }[]>([])
 
   // Carregar mesorregiões quando UFs mudam
@@ -582,6 +588,42 @@ export default function AdminProspeccao() {
     window.open('https://webmail86.redehost.com.br/interface/root#/popout/email/compose/', '_blank', 'noopener,noreferrer')
     setEmailToast(p.email)
     setTimeout(() => setEmailToast(null), 4000)
+  }
+
+  useEffect(() => {
+    if (!prospectDetalhe?.cliente_ativo) { setClienteNFs([]); return }
+    const cnpj = prospectDetalhe.cnpj.replace(/\D/g, '')
+    setLoadingNFs(true)
+    supabaseAdmin.from('nf_cabecalho')
+      .select('numero, emissao, total')
+      .eq('cnpj', cnpj)
+      .order('emissao', { ascending: false })
+      .limit(20)
+      .then(({ data }) => { setClienteNFs((data ?? []) as { numero: string; emissao: string | null; total: number | null }[]); setLoadingNFs(false) })
+  }, [prospectDetalhe])
+
+  async function expandirNF(numero: string) {
+    if (nfExpandida === numero) { setNfExpandida(null); return }
+    setNfExpandida(numero)
+    if (nfItensCache[numero]) return
+    const { data } = await supabaseAdmin.from('nf_itens')
+      .select('descricao, quantidade, valor_unitario, valor_total')
+      .eq('numero', numero)
+      .order('descricao')
+    setNfItensCache(c => ({ ...c, [numero]: (data ?? []) as { descricao: string | null; quantidade: number | null; valor_unitario: number | null; valor_total: number | null }[] }))
+  }
+
+  async function criarDealDireto(p: Prospect) {
+    const titulo = p.razao_social || p.nome_fantasia || p.cnpj
+    const { error } = await supabaseAdmin.from('pipeline_deals').insert({
+      titulo,
+      estagio:    'entrada',
+      prospect_id: p.id,
+    })
+    if (error) { alert('Erro ao criar deal: ' + error.message); return }
+    setDealToast(titulo)
+    setTimeout(() => setDealToast(null), 5000)
+    setProspectDetalhe(null)
   }
 
   const totalPaginas = Math.ceil(total / POR_PAGINA)
@@ -1023,6 +1065,16 @@ export default function AdminProspeccao() {
                                 )}
                                 <button
                                   className={styles.checkBtn}
+                                  onClick={() => setProspectDetalhe(p)}
+                                  title="Ver detalhes e criar deal no Pipeline"
+                                  style={{ color: 'var(--color-primary)' }}
+                                >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                  </svg>
+                                </button>
+                                <button
+                                  className={styles.checkBtn}
                                   onClick={() => setHistoricoProspect({ id: p.id, nome: p.razao_social || p.nome_fantasia || p.cnpj })}
                                   title="Ver histórico de interações"
                                 >
@@ -1062,6 +1114,126 @@ export default function AdminProspeccao() {
           )}
         </div>
       )}
+
+      {dealToast && (
+        <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', borderRadius: 10, padding: '12px 20px', fontWeight: 600, fontSize: '0.9rem', boxShadow: '0 4px 16px #0001', display: 'flex', alignItems: 'center', gap: 12 }}>
+          ✓ Deal criado: {dealToast}
+          <a href="/admin/pipeline" style={{ color: '#15803d', textDecoration: 'underline', fontWeight: 700 }}>Ir ao Pipeline →</a>
+        </div>
+      )}
+
+      {prospectDetalhe && (() => {
+        const p = prospectDetalhe
+        const cnpjFmt = p.cnpj?.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5') ?? p.cnpj
+        const fmtTel = (t: string) => t.replace(/\D/g, '').replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3')
+        const waNum = (t: string) => t.replace(/\D/g, '')
+        const googleQ = encodeURIComponent(`${p.razao_social ?? ''} ${p.cidade ?? ''} ${p.uf ?? ''} telefone celular site`)
+        const cnpjRaw = p.cnpj?.replace(/\D/g, '') ?? ''
+        return (
+          <>
+            <div onClick={() => setProspectDetalhe(null)} style={{ position: 'fixed', inset: 0, background: '#0005', zIndex: 1000 }} />
+            <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 380, background: '#fff', zIndex: 1001, overflowY: 'auto', boxShadow: '-4px 0 24px #0002', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem', lineHeight: 1.3 }}>{p.razao_social || '—'}</div>
+                  {p.nome_fantasia && p.nome_fantasia !== p.razao_social && (
+                    <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: 2 }}>{p.nome_fantasia}</div>
+                  )}
+                </div>
+                <button onClick={() => setProspectDetalhe(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8', padding: '0 4px' }}>✕</button>
+              </div>
+
+              <div style={{ fontSize: '0.82rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div><strong>CNPJ:</strong> {cnpjFmt}</div>
+                <div><strong>Porte:</strong> {p.porte || '—'}</div>
+                <div><strong>Segmento:</strong> {p.segmento || '—'}</div>
+                <div><strong>Cidade:</strong> {p.cidade}{p.uf ? ` / ${p.uf}` : ''}</div>
+                {p.score != null && <div><strong>Score:</strong> {p.score}/11</div>}
+              </div>
+
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contato</div>
+                {[p.telefone1, p.telefone2].filter(Boolean).map((t, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{fmtTel(t!)}</span>
+                    <a href={`tel:+55${waNum(t!)}`} style={{ fontSize: '0.75rem', color: '#2563eb', textDecoration: 'none', background: '#eff6ff', borderRadius: 6, padding: '2px 8px' }}>Ligar</a>
+                    <a href={`https://wa.me/55${waNum(t!)}?text=Olá, estou entrando em contato sobre fixadores de porcelanato Pousinox.`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#15803d', textDecoration: 'none', background: '#dcfce7', borderRadius: 6, padding: '2px 8px' }}>WhatsApp</a>
+                  </div>
+                ))}
+                {(!p.telefone1 && !p.telefone2) && <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Sem telefone cadastrado</div>}
+                {p.email && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: '0.82rem', color: '#475569', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.email}</span>
+                    <button onClick={() => { navigator.clipboard.writeText(p.email!).catch(() => {}); setEmailToast(p.email!); setTimeout(() => setEmailToast(null), 3000) }}
+                      style={{ fontSize: '0.75rem', color: '#2563eb', background: '#eff6ff', border: 'none', borderRadius: 6, padding: '2px 8px', cursor: 'pointer' }}>Copiar</button>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pesquisar na internet</div>
+                <a href={`https://www.google.com/search?q=${googleQ}`} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500 }}>
+                  🔍 Google — telefone, celular, site
+                </a>
+                {cnpjRaw.length === 14 && (
+                  <a href={`https://www.cnpj.biz/${cnpjRaw}`} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500 }}>
+                    🏢 CNPJ.biz — dados Receita Federal
+                  </a>
+                )}
+              </div>
+
+              {p.cliente_ativo && (
+                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12 }}>
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                    ✓ Cliente — Histórico de compras
+                  </div>
+                  {loadingNFs && <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Carregando…</div>}
+                  {!loadingNFs && clienteNFs.length === 0 && <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Nenhuma NF encontrada.</div>}
+                  {!loadingNFs && clienteNFs.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 300, overflowY: 'auto' }}>
+                      {clienteNFs.map(nf => (
+                        <div key={nf.numero}>
+                          <div
+                            onClick={() => expandirNF(nf.numero)}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', padding: '5px 4px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', borderRadius: 4, background: nfExpandida === nf.numero ? '#f0fdf4' : 'transparent' }}
+                          >
+                            <span style={{ fontWeight: 600 }}>{nfExpandida === nf.numero ? '▾' : '▸'} NF {nf.numero}</span>
+                            <span style={{ color: '#64748b' }}>{nf.emissao ? new Date(nf.emissao).toLocaleDateString('pt-BR') : '—'}</span>
+                            <span style={{ fontWeight: 600, color: '#15803d' }}>
+                              {nf.total != null ? nf.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}
+                            </span>
+                          </div>
+                          {nfExpandida === nf.numero && (
+                            <div style={{ background: '#f8fafc', borderRadius: 4, padding: '6px 8px', marginBottom: 4 }}>
+                              {!nfItensCache[nf.numero] && <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Carregando…</div>}
+                              {nfItensCache[nf.numero]?.length === 0 && <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Sem itens.</div>}
+                              {nfItensCache[nf.numero]?.map((it, i) => (
+                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', padding: '2px 0', borderBottom: '1px solid #e2e8f0' }}>
+                                  <span style={{ flex: 1, color: '#1e293b' }}>{it.descricao || '—'}</span>
+                                  <span style={{ color: '#64748b', marginLeft: 8, whiteSpace: 'nowrap' }}>{it.quantidade}× {it.valor_unitario?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12, marginTop: 'auto' }}>
+                <button onClick={() => criarDealDireto(p)}
+                  style={{ width: '100%', padding: '12px', background: 'var(--color-primary, #2563eb)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}>
+                  ➡ Criar deal no Pipeline
+                </button>
+              </div>
+            </div>
+          </>
+        )
+      })()}
 
       {historicoProspect && (
         <HistoricoModal

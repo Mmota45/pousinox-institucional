@@ -35,38 +35,193 @@ src/
   styles/         # Estilos globais
 ```
 
-## Páginas Principais
-
-| Rota | Componente | Descrição |
-|---|---|---|
-| `/` | `Home` | Página inicial |
-| `/produtos` | `Produtos` | Catálogo de produtos |
-| `/segmentos/:slug` | `Segmento` | Páginas por segmento |
-| `/sobre` | `Sobre` | Institucional |
-| `/contato` | `Contato` | Formulário de contato |
-| `/blog` | `Blog` | Blog (lista) |
-| `/blog/:slug` | `Blog` | Blog (post individual) |
-| `/servicos/corte-laser` | `CorteLaser` | Serviço de corte a laser |
-| `/pronta-entrega` | `Outlet` | Produtos pronta entrega |
-| `/outlet` | — | Redirect para `/pronta-entrega` |
-| `/obrigado` | `Obrigado` | Pós-conversão |
-
 ## Painel Admin
 
-Rotas `/admin/*` com layout próprio (`AdminLayout`). Módulos:
+Rotas `/admin/*` com layout próprio (`AdminLayout`). Todos os módulos usam `supabaseAdmin` (service_role). RLS em todas as tabelas admin: `USING (auth.role() = 'service_role')`.
 
-- `AdminDashboard` — visão geral
-- `AdminConteudo` — gerenciar conteúdo
-- `AdminVendas` / `AdminOrcamento` — vendas e orçamentos
-- `AdminOutlet` — gestão do outlet
-- `AdminEstoque` — controle de estoque
-- `AdminAnalytics` — métricas
-- `AdminAnaliseNF` — análise de notas fiscais
-- `AdminRelatorios` — relatórios
-- `AdminUsuarios` — usuários
-- `AdminProjetos` — módulo de projetos sob medida (ver abaixo)
-- `AdminProspeccao` — hub de prospecção B2B (800K CNPJs)
-- `AdminCatalogo` — catálogo de produtos
+### Permissões
+- Cada rota tem uma permissão em `ROTA_PERMISSAO` em `AdminLayout.tsx`
+- `TODAS_PERMISSOES` define o conjunto completo — sempre adicionar aqui ao criar módulo novo
+- Permissões ficam salvas em `admin_perfis.permissoes` (array text[]) por usuário
+- **Atenção:** ao adicionar nova permissão, usar `UPDATE admin_perfis SET permissoes = permissoes || '{nova-permissao}';`
+
+### Padrões de implementação
+
+- **Vista pattern**: `type Vista` para alternar entre lista/form/detalhe dentro de uma página (sem nova rota)
+- **Sequence pattern**: `CREATE SEQUENCE nome_seq` para numerações sem colisão (OP-XXXX, OM-XXXX, SC-XXXX, etc.)
+- **RLS**: `USING (auth.role() = 'service_role')` em todas as tabelas admin
+- **Trigger updated_at**: reusar `set_updated_at()` já existente no banco
+- **CSS compartilhado**: `AdminCompras.module.css` (Compras), `AdminEstoqueIndustrial.module.css` (Estoque industrial)
+- **Base compartilhada**: `AdminEstoqueBase.tsx` (prop `tipo`), `AdminFiscalDocBase.tsx` (prop `tipo`) — wrappers finos por rota
+- **Vite 8 / rolldown**: não aceita IIFE `(() => {})()` dentro de JSX — extrair para componente nomeado antes do `export default`
+
+### Módulos existentes
+
+| Rota | Componente | Seção | Status |
+|---|---|---|---|
+| `/admin` | `AdminDashboard` | — | ✅ |
+| `/admin/prospeccao` | `AdminProspeccao` | Comercial | ✅ 800K CNPJs, mapa Leaflet, drawer de detalhe com histórico de compras e criação de deal |
+| `/admin/cobertura` | `AdminCobertura` | Comercial | ✅ cobertura por mesorregião |
+| `/admin/funil` | `AdminFunil` | Comercial | ✅ funil macro de prospecção |
+| `/admin/pipeline` | `AdminPipeline` | Comercial | ✅ deals, estágios, recebível |
+| `/admin/orcamento` | `AdminOrcamento` | Comercial | ✅ |
+| `/admin/vendas` | `AdminVendas` | Comercial | ✅ |
+| `/admin/clientes` | `AdminClientes` | Comercial | ✅ importação NFSTok + RFM |
+| `/admin/leads` | `AdminLeads` | Marketing | ✅ |
+| `/admin/campanhas` | `AdminCampanhas` | Marketing | ✅ |
+| `/admin/analytics` | `AdminAnalytics` | Marketing | ✅ GA4 |
+| `/admin/conteudo` | `AdminConteudo` | Marketing | ✅ |
+| `/admin/produtos` | `AdminProdutos` | Catálogo | ✅ |
+| `/admin/outlet` | `AdminOutlet` | Catálogo | ✅ |
+| `/admin/fornecedores` | `AdminFornecedores` | Compras | ✅ |
+| `/admin/solicitacoes-compra` | `AdminSolicitacoesCompra` | Compras | ✅ SC-XXXX, fluxo aprovação |
+| `/admin/cotacoes-compra` | `AdminCotacoesCompra` | Compras | ✅ CQ-XXXX, itens com preço |
+| `/admin/pedidos-compra` | `AdminPedidosCompra` | Compras | ✅ PC-XXXX, qtd recebida por item |
+| `/admin/recebimentos-compra` | `AdminRecebimentosCompra` | Compras | ✅ RC-XXXX, pré-preenche itens do pedido |
+| `/admin/estoque` | `AdminEstoque` | Estoque | ✅ outlet/produtos (intacto) |
+| `/admin/estoque-mp` | `AdminEstoqueMp` | Estoque | ✅ MP — custo médio ponderado, movimentações rastreáveis |
+| `/admin/estoque-pa` | `AdminEstoquePa` | Estoque | ✅ PA — mesma base que MP |
+| `/admin/inventario` | `AdminInventario` | Estoque | ✅ INV-XXXX, snapshot→contagem→ajuste automático |
+| `/admin/projetos` | `AdminProjetos` | Operação | ✅ ERP completo (ver abaixo) |
+| `/admin/producao` | `AdminProducao` | Operação | ✅ OP-XXXX, vínculo projeto |
+| `/admin/qualidade` | `AdminQualidade` | Operação | ✅ inspeções + NCs inline |
+| `/admin/manutencao` | `AdminManutencao` | Operação | ✅ ativos + OM-XXXX + `custo_realizado` (migration 20260415) |
+| `/admin/docs-recebidos` | `AdminDocsRecebidos` | Fiscal | ✅ NF-e compra, gera entrada estoque |
+| `/admin/docs-emitidos` | `AdminDocsEmitidos` | Fiscal | ✅ NF-e venda, gera saída estoque |
+| `/admin/analise-nf` | `AdminAnaliseNF` | Fiscal | ✅ análise offline CSV NFSTok — import em massa com progresso %, botão remover arquivo |
+| `/admin/financeiro` | `AdminFinanceiro` | Financeiro | ✅ Fase 1b — ver abaixo |
+| `/admin/conciliacao` | `AdminConciliacao` | Financeiro | ✅ multi-critério, 9 categorias |
+| `/admin/relatorios` | `AdminRelatorios` | Relatórios | ✅ |
+| `/admin/usuarios` | `AdminUsuarios` | Configuração | ✅ |
+
+---
+
+## Módulo Compras (Etapa 1)
+
+Fluxo fechado: necessidade → solicitação → cotação → pedido → recebimento.
+
+### Tabelas
+- `solicitacoes_compra` + `itens_solicitacao` (SC-XXXX)
+- `cotacoes_compra` + `itens_cotacao` (CQ-XXXX)
+- `pedidos_compra` + `itens_pedido` (PC-XXXX) — `valor_total` recalculado ao salvar itens; `quantidade_recebida` por item
+- `recebimentos_compra` + `itens_recebimento` (RC-XXXX) — pré-preenche itens do pedido; atualiza `quantidade_recebida`
+- Migration: `supabase/migrations/20260414_compras_fix.sql`
+
+### CSS compartilhado
+`src/pages/AdminCompras.module.css` — usado por todos os 4 módulos de compras e pelos módulos fiscais.
+
+---
+
+## Módulo Estoque Industrial (Etapa 2)
+
+Separado do `AdminEstoque` (outlet). Fonte de verdade: `estoque_movimentacoes`.
+
+### Tabelas
+- `estoque_itens` — cadastro MP/PA/semiacabado: código, nome, unidade, `saldo_atual` (cache), `estoque_minimo`, `custo_medio`, localização, lote_padrao, ativo
+- `estoque_movimentacoes` — toda entrada/saída/ajuste: `tipo_movimentacao` (entrada|saida|ajuste_positivo|ajuste_negativo|transferencia_*), `quantidade`, `custo_unitario`, `valor_total`, `saldo_anterior`, `saldo_posterior`, `origem_tipo`, `origem_id`, `origem_label`
+- `estoque_inventario` (INV-XXXX) + `estoque_inventario_itens` — snapshot→contagem→ajuste
+- Migration: `supabase/migrations/20260414_estoque_industrial.sql`
+
+### Componente base
+`AdminEstoqueBase.tsx` — prop `tipo: 'mp'|'pa'`. Wrappers: `AdminEstoqueMp.tsx`, `AdminEstoquePa.tsx`.
+
+### Custo médio
+Recalculado em cada entrada: `(saldo_ant × custo_ant + qtd × custo_unit) / saldo_post`.
+
+### Inventário
+1. Criar sessão → Iniciar Contagem (snapshot de `saldo_atual` de todos os itens do escopo)
+2. Preencher `saldo_contado` por item
+3. Finalizar → gera movimentações `ajuste_positivo`/`ajuste_negativo` + atualiza `saldo_atual`
+
+---
+
+## Módulo Fiscal (Etapa 3)
+
+### Documentos Recebidos (`docs_fiscais_recebidos` + `itens_doc_recebido`)
+- NF-e de compra: emitente, datas, valor, status (pendente|autorizada|cancelada|denegada)
+- Vínculo opcional com `recebimentos_compra` (`recebimento_id BIGINT`)
+- Cada item pode ter `estoque_item_id FK → estoque_itens`
+- Botão "Gerar movimentação de entrada" — aparece quando `status='autorizada'` e `estoque_movimentado=false`
+- Ao gerar: cria linha em `estoque_movimentacoes` com `origem_tipo='nf_recebida'`, atualiza custo médio e saldo, seta `estoque_movimentado=true`
+
+### Documentos Emitidos (`docs_fiscais_emitidos` + `itens_doc_emitido`)
+- NF-e de venda: destinatário, data, valor, status (rascunho|autorizada|cancelada|denegada)
+- Vínculo opcional com `vendas` (`venda_id UUID` — tabela vendas usa UUID)
+- Mesma lógica de movimentação de saída com `origem_tipo='nf_emitida'`
+
+### Componente base
+`AdminFiscalDocBase.tsx` — prop `tipo: 'recebido'|'emitido'`. Wrappers: `AdminDocsRecebidos.tsx`, `AdminDocsEmitidos.tsx`.
+
+### Migration
+- `supabase/migrations/20260414_fiscal_docs.sql` — estrutura original
+- `supabase/migrations/20260415_fiscal_unificado.sql` — drop de tabelas legadas, unificação em `docs_fiscais` + `itens_doc`
+
+### Import CSV (AdminFiscalDocBase)
+- `detectFormat` detecta formato por `h0 === 'nf'` (itens) ou `h0 === 'série'/'número'` (cabeçalho) + presença de coluna "Qtd"
+- Aviso explícito se todos os valores importados forem R$ 0,00
+- Botão ✕ por linha para excluir doc individual
+- Botão "🗑 Excluir zerados" na toolbar (batch, só quando há zerados)
+- Botão "🗑 Excluir todos" — visível só para perfil com permissão `usuarios`, exige digitar `EXCLUIR TUDO`
+
+### AdminAnaliseNF
+- Botão "✕ Remover arquivo" para limpar e recarregar outro CSV
+- Progresso `%` exibido durante save (`salvarProgresso`)
+- Estado `salvandoDocs: 'emitido'|'recebido'|null` — cada botão mostra loading só para si
+
+### Regra importante
+Movimentação de estoque **não é automática** — depende de ação explícita do usuário após vincular itens de estoque e autorizar o documento. Isso garante que o estoque só se move quando há confirmação operacional.
+
+---
+
+## Módulo AdminFinanceiro (src/pages/AdminFinanceiro.tsx)
+
+Módulo financeiro automation-first — Fase 1b do ERP.
+
+### Filosofia
+- Receitas nascem em **Vendas** (botão "Registrar recebimento" — integração futura)
+- Despesas nascem de **NFs importadas** e **Projetos** (integração futura)
+- Lançamento manual é fallback: ajustes, taxas, sangrias, exceções
+- A UI diferencia lançamentos automáticos (⚡ badge azul) de manuais (✍ badge cinza)
+
+### Abas
+- **Painel** — cards: receitas, despesas, saldo, vencidos a receber/pagar, pendentes + atalhos para origens automáticas
+- **Lançamentos** — filtros por tipo/status/mês/origem + tabela + formulário manual colapsável (border dashed)
+- **Fluxo de Caixa** — extrato real (`fin_movimentacoes`): só lançamentos baixados aparecem aqui
+- **Configuração** — cadastro de categorias e centros de custo
+
+### Tabelas Supabase
+- `fin_categorias` — plano de contas (tipo: receita|despesa, grupo, cor)
+- `fin_centros_custo` — centros de custo
+- `fin_lancamentos` — documento financeiro principal (contas a pagar/receber)
+  - `origem`: `manual | venda | nf | projeto | sistema | pipeline` — sempre `manual` quando criado pelo formulário
+  - `status`: `pendente | pago | cancelado | parcial`
+  - `nf_chave`: referência à chave NF-e (sem FK — idempotência)
+  - `forma_pagamento`, `condicao_pagamento` — enums aprovados, não alterar sem migration
+- `fin_parcelas` — parcelas de lançamentos parcelados
+- `fin_movimentacoes` — **caixa real / extrato operacional** (criada ao baixar lançamento)
+
+### Views
+- `vw_fin_saldo_mes` — saldo por mês com receitas, despesas, pendentes e vencidos
+
+### Regra de baixa
+- Lançamento simples: `status = 'pago'` + `data_pagamento` + 1 linha em `fin_movimentacoes`
+- Lançamento parcelado: cada `fin_parcelas` tem status próprio; `fin_lancamentos.status = 'parcial'` enquanto houver pendentes
+- Sem trigger — lógica explícita no frontend
+
+### Extensões em tabelas existentes
+- `clientes` — colunas RFM: `rfm_score`, `rfm_recencia`, `rfm_frequencia`, `rfm_valor`, `rfm_segmento`, `rfm_calculado_em`
+- `projetos` — `fin_lancamento_id` FK opcional para `fin_lancamentos`
+- `vendas` — `fin_lancamento_id` FK opcional para `fin_lancamentos`
+
+### Migrations
+- `supabase/migrations/20260414_financeiro_fase1.sql`
+- `supabase/migrations/20260414_financeiro_origem.sql`
+
+### Integrações implementadas
+- `AdminProjetos` → botão "💰 Gerar Recebível" → `fin_lancamentos` com `origem='projeto'`
+- `AdminPipeline` → botão "💰 Gerar Recebível" (deal ganho) → `fin_lancamentos` com `origem='pipeline'`
+
+---
 
 ## Módulo AdminProjetos (src/pages/AdminProjetos.tsx)
 
@@ -82,26 +237,102 @@ Módulo principal de ERP leve. Gerencia projetos sob medida com ciclo de aprendi
 - **Analisar PDF com IA** — botão na aba Atributos (componente `UploadMemorial`) analisa PDF e salva atributos diretamente
 - **Similaridade Jaccard** — RPC `buscar_similares` retorna projetos similares por atributos
 - **Shadow mode pgvector** — embeddings Gemini `gemini-embedding-001` em `projeto_embeddings`, comparação paralela em `similarity_shadow_log`, feature flag `vector_similarity_shadow`
+- **Precificação por peso** — painel no detalhe: `peso_kg × custo_por_kg × (1 + margem%)`, defaults em localStorage
+- **Gerar Recebível** — botão no detalhe cria `fin_lancamentos` com `origem='projeto'`
 - **Recorrências** — detecção automática de padrões repetidos em `recorrencias`
 - **Produtos Padrão** — `produtos_padrao` vinculados a projetos
-- **Catálogo de atributos** — aba interna para gerenciar `atributos_catalogo` (chave, label, tipo, enum, unidade)
-- **Gerar Orçamento** — botão no detalhe do projeto navega para `/admin/orcamento` pré-preenchido com cliente e componentes
+- **Catálogo de atributos** — vista interna (`🗂 Catálogo`) para gerenciar `atributos_catalogo`
+- **Gerar Orçamento** — navega para `/admin/orcamento` pré-preenchido
+- **Ficha Técnica Comercial** — PDF com logo, dados, atributos e componentes
+- **Shadow Log** — vista `🔬 Shadow Log` com KPIs e tabela Jaccard vs vetorial
 
 ### Tabelas Supabase relevantes
-- `projetos`, `projeto_atributos`, `projeto_anexos`
-- `projeto_componentes` — peças/materiais do projeto
-- `projeto_embeddings` — embeddings vetoriais (modelo gemini-embedding-001-3072)
-- `similarity_shadow_log` — logs comparativos Jaccard vs vetorial
-- `feature_flags` — flag `vector_similarity_shadow`
-- `atributos_catalogo` — catálogo de atributos (inclui: peso, comprimento, largura, altura, espessura, acabamento, superficie, aplicacao, tipo_produto, liga)
-- `recorrencias`, `recorrencia_projetos`, `produtos_padrao`
+- `projetos`, `projeto_atributos`, `projeto_anexos`, `projeto_componentes`
+- `projeto_embeddings`, `similarity_shadow_log`, `feature_flags`
+- `atributos_catalogo`, `recorrencias`, `recorrencia_projetos`, `produtos_padrao`
 
 ### Edge Functions
-- `extrair-memorial` — extrai campos básicos + atributos + componentes de PDF via Claude Haiku
-- `gerar-embeddings` — gera embeddings via Gemini para projetos pendentes
+- `extrair-memorial` — extrai campos de PDF via Claude Haiku
+- `gerar-embeddings` — gera embeddings via Gemini
 
 ### Componentes
 - `src/components/UploadMemorial/` — upload e análise de PDF na aba Atributos
+
+---
+
+## Módulo AdminProspeccao — Drawer de Detalhe
+
+Botão 🔍 (azul) na coluna Ações abre drawer lateral com:
+- Nome completo, CNPJ, porte, segmento, cidade/UF, score
+- Telefones com botões "Ligar" (`tel:`) e "WhatsApp" (verifica se número aceita WA)
+- E-mail com copiar
+- Links de busca: Google (`EMPRESA CIDADE telefone celular site`) + CNPJ.biz (dados Receita Federal)
+- **Histórico de compras** (quando `cliente_ativo = true`): carrega `nf_cabecalho` por `cnpj` (destinatário), accordion por NF expande itens de `nf_itens` (descrição, quantidade × vlr unit). Itens ficam em cache.
+- **➡ Criar deal no Pipeline**: insere em `pipeline_deals` com `estagio='entrada'` + `prospect_id`, exibe toast com link `/admin/pipeline`
+
+---
+
+## Módulo AdminPipeline (src/pages/AdminPipeline.tsx)
+
+- Deals por prospect ou cliente; estágios: `entrada → qualificado → proposta → negociação → ganho | perdido`
+- Gerar Recebível: deal ganho → `fin_lancamentos` com `origem='pipeline'`
+- Vínculo com prospect via CNPJ normalizado
+- Tabela: `pipeline_deals` — `prospect_id FK → prospeccao`, `cliente_id FK → clientes`, `fin_lancamento_id FK → fin_lancamentos`
+- Migration: `supabase/migrations/20260414_pipeline_deals.sql`
+
+---
+
+## Módulo AdminProducao (src/pages/AdminProducao.tsx)
+
+- Ordens OP-XXXX via `ordens_producao_numero_seq`
+- Fluxo: `planejada → liberada → em_producao → concluida` (cancelada em qualquer ponto)
+- `data_inicio` automática ao ir para `em_producao`; `data_conclusao` ao concluir
+- Vínculo opcional com `projetos` via busca por nome (debounce 300ms)
+- Migration: `supabase/migrations/20260414_ordens_producao.sql`
+
+---
+
+## Módulo AdminManutencao (src/pages/AdminManutencao.tsx)
+
+- Aba Ativos: CRUD de equipamentos (código, nome, categoria, localização, fabricante, modelo, status)
+- Aba Ordens: OM-XXXX via `ordens_manutencao_numero_seq`; tipos: corretiva|preventiva; prioridade: baixa|media|alta
+- Fluxo: `aberta → em_execucao → concluida` (cancelada em qualquer ponto)
+- Campo `custo_realizado NUMERIC(14,2)` adicionado em `ordens_manutencao` — exibido no detalhe formatado em BRL
+- Migrations: `supabase/migrations/20260414_manutencao.sql` + `supabase/migrations/20260415_manutencao_custo.sql`
+
+---
+
+## Módulo AdminQualidade (src/pages/AdminQualidade.tsx)
+
+- Inspeções: `tipo_origem` + `origem_label` sem FK rígida — flexibilidade MVP
+- Se resultado `reprovado`, abre detalhe automaticamente para criar NC
+- NC inline no detalhe da inspeção; lista global de NCs com status editável
+- Severidade NC: `baixa | media | alta`; Status: `aberta → em_analise → tratada → fechada`
+- Migration: `supabase/migrations/20260414_qualidade.sql`
+
+---
+
+## Módulo AdminClientes (src/pages/AdminClientes.tsx)
+
+- Aba **Importar NFs**: CSVs NFSTok → upsert em `nf_cabecalho` + `nf_itens` → consolidação em `clientes` → cruzamento com `prospeccao`
+- Aba **Clientes**: tabela com busca, ordenação, campos RFM
+- Aba **RFM**: segmentação via RPC `fn_calcular_rfm()`. Cron diário às 3h. Migration: `supabase/migrations/20260414_rfm_cron.sql`
+
+---
+
+## Páginas Públicas
+
+| Rota | Componente | Descrição |
+|---|---|---|
+| `/` | `Home` | Página inicial |
+| `/produtos` | `Produtos` | Catálogo de produtos |
+| `/segmentos/:slug` | `Segmento` | Páginas por segmento |
+| `/sobre` | `Sobre` | Institucional |
+| `/contato` | `Contato` | Formulário de contato |
+| `/blog` | `Blog` | Blog (lista e post) |
+| `/servicos/corte-laser` | `CorteLaser` | Serviço de corte a laser |
+| `/pronta-entrega` | `Outlet` | Produtos pronta entrega |
+| `/obrigado` | `Obrigado` | Pós-conversão |
 
 ## Comandos
 
@@ -116,6 +347,6 @@ npm run deploy    # Deploy via script ../scripts/deploy.sh
 
 - Todo texto em português (pt-BR).
 - CSS Modules por componente (`.module.css` ao lado do `.tsx`).
-- SEO gerenciado pelo componente `SEO` com `react-helmet-async`.
-- Dados do Supabase acessados via `src/lib/`.
-- Automações n8n para formulário de contato, outlet e bot de negociação (workflows em `n8n-*.json` na raiz).
+- Dados do Supabase via `src/lib/supabase.ts` — `supabase` (anon) e `supabaseAdmin` (service_role).
+- Ao adicionar módulo admin: (1) criar página + CSS, (2) rota em `App.tsx`, (3) `ROTA_PERMISSAO` + `TODAS_PERMISSOES` + `NAV_ITEMS` em `AdminLayout.tsx`, (4) `UPDATE admin_perfis SET permissoes = permissoes || '{nova-permissao}';`
+- Atualizar este CLAUDE.md ao final de cada sessão com implementações relevantes.
