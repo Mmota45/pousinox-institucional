@@ -53,18 +53,6 @@ const SEV_CLASS: Record<Severidade, string> = {
 }
 const SEV_LABEL: Record<Severidade, string> = { baixa: 'Baixa', media: 'Média', alta: 'Alta' }
 
-const NC_CLASS: Record<NCStatus, string> = {
-  aberta:     styles.ncAberta,
-  em_analise: styles.ncEmAnalise,
-  tratada:    styles.ncTratada,
-  fechada:    styles.ncFechada,
-}
-const NC_LABEL: Record<NCStatus, string> = {
-  aberta:     'Aberta',
-  em_analise: 'Em Análise',
-  tratada:    'Tratada',
-  fechada:    'Fechada',
-}
 
 function fmtData(d: string) {
   const [y, m, day] = d.slice(0, 10).split('-')

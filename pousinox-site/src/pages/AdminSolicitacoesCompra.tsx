@@ -48,13 +48,6 @@ function fmtData(d: string | null) {
   return new Date(d + 'T12:00:00').toLocaleDateString('pt-BR')
 }
 
-const STATUS_FLOW: Record<Status, { next: Status; label: string } | null> = {
-  rascunho: { next: 'pendente', label: 'Enviar para aprovação' },
-  pendente: null,
-  aprovada: null,
-  reprovada: null,
-  atendida: null,
-}
 
 const itemVazio = (): ItemSolicitacao => ({ descricao: '', quantidade: 1, unidade: 'un', observacao: '', ordem: 0 })
 

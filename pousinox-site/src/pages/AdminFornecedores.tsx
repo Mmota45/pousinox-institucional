@@ -1175,8 +1175,8 @@ export default function AdminFornecedores() {
         </div>
 
         {pedidoMsg && (
-          <div className={`${styles.msg} ${pedidoMsg.tipo === 'ok' ? styles.msgOk : styles.msgErro}`}>
-            {pedidoMsg.texto}
+          <div className={`${styles.msg} ${pedidoMsg!.tipo === 'ok' ? styles.msgOk : styles.msgErro}`}>
+            {pedidoMsg!.texto}
           </div>
         )}
 
@@ -1354,15 +1354,17 @@ export default function AdminFornecedores() {
 
   // ── Detalhe do pedido ──────────────────────────────────────────────────────
   if (vista === 'pedido_detalhe' && pedidoAtual) {
-    const cfg = STATUS_CONFIG[pedidoAtual.status]
-    const nomeForn = pedidoAtual.fornecedores?.razao_social ?? '—'
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const pa = pedidoAtual as NonNullable<typeof pedidoAtual>
+    const cfg = STATUS_CONFIG[pa.status]
+    const nomeForn = pa.fornecedores?.razao_social ?? '—'
     const fmtDate = (d: string | null) => {
       if (!d) return '—'
       const [y, m, day] = d.split('-')
       return `${day}/${m}/${y}`
     }
     const totalItens = itensPedidoAtual.reduce((s, i) => {
-      return s + (i.quantidade as number) * ((i.preco_unit as number) ?? 0)
+      return s + Number(i.quantidade) * (Number(i.preco_unit) || 0)
     }, 0)
 
     return (
@@ -1370,7 +1372,7 @@ export default function AdminFornecedores() {
         <div className={styles.pageHeader}>
           <div>
             <div className={styles.pageTitle}>🏭 Fornecedores</div>
-            <div className={styles.pageSubtitle}>Pedido #{pedidoAtual.id}</div>
+            <div className={styles.pageSubtitle}>Pedido #{pa.id}</div>
           </div>
           {navPrincipal}
         </div>
@@ -1386,11 +1388,11 @@ export default function AdminFornecedores() {
             <div>
               <div className={styles.pedidoCardForn}>{nomeForn}</div>
               <div className={styles.pedidoCardId}>
-                Pedido #{pedidoAtual.id} · {fmtDate(pedidoAtual.data_pedido)}
-                {pedidoAtual.previsao_entrega && ` · entrega prevista: ${fmtDate(pedidoAtual.previsao_entrega)}`}
+                Pedido #{pa.id} · {fmtDate(pa.data_pedido)}
+                {pa.previsao_entrega && ` · entrega prevista: ${fmtDate(pa.previsao_entrega)}`}
               </div>
-              {pedidoAtual.observacao && (
-                <div className={styles.pedidoCardObs} style={{ marginTop: 4 }}>{pedidoAtual.observacao}</div>
+              {pa.observacao && (
+                <div className={styles.pedidoCardObs} style={{ marginTop: 4 }}>{pa.observacao}</div>
               )}
             </div>
             <span className={styles.pedidoBadgeStatus}
@@ -1440,21 +1442,21 @@ export default function AdminFornecedores() {
 
           {/* Ações de status */}
           <div className={styles.pedidoDetalheAcoes}>
-            {PROXIMO_STATUS[pedidoAtual.status] && (
+            {PROXIMO_STATUS[pa.status] && (
               <button className={styles.btnAvancarPedido}
-                onClick={() => atualizarStatusPedido(pedidoAtual, PROXIMO_STATUS[pedidoAtual.status]!)}>
-                → Marcar como {STATUS_CONFIG[PROXIMO_STATUS[pedidoAtual.status]!].label}
+                onClick={() => atualizarStatusPedido(pa, PROXIMO_STATUS[pa.status]!)}>
+                → Marcar como {STATUS_CONFIG[PROXIMO_STATUS[pa.status]!].label}
               </button>
             )}
-            {pedidoAtual.status !== 'cancelado' && pedidoAtual.status !== 'recebido' && (
+            {pa.status !== 'cancelado' && pa.status !== 'recebido' && (
               <button className={styles.btnCancelarPedido}
-                onClick={() => atualizarStatusPedido(pedidoAtual, 'cancelado')}>
+                onClick={() => atualizarStatusPedido(pa, 'cancelado')}>
                 Cancelar pedido
               </button>
             )}
             <button className={styles.btnExcluirPedido}
               style={{ marginLeft: 'auto' }}
-              onClick={() => excluirPedido(pedidoAtual)}>Excluir</button>
+              onClick={() => excluirPedido(pa)}>Excluir</button>
           </div>
         </div>
       </div>

@@ -687,3 +687,54 @@
 .rfmInativo    { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; white-space: nowrap; }
 .rfmSemDado    { font-size: 0.72rem; color: var(--color-text-light); }
 .clienteNomeAging { font-size: 0.78rem; color: var(--color-text-light); margin-top: 2px; }
+
+/* ── Budget ─────────────────────────────────────────────────────────────────── */
+.budgetWrap       { display: flex; flex-direction: column; gap: 24px; }
+.budgetFiltros    { display: flex; gap: 16px; flex-wrap: wrap; }
+
+.budgetResumo     { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.budgetCard       { background: var(--color-bg-alt, #f9fafb); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 14px 18px; display: flex; flex-direction: column; gap: 4px; }
+.budgetCardLabel  { font-size: 0.78rem; color: var(--color-text-light); font-weight: 500; }
+.budgetCardVal    { font-size: 1.1rem; font-weight: 700; color: var(--color-text); }
+.budgetCardExcedido .budgetCardVal { color: var(--color-danger, #dc2626); }
+.budgetCardOk     .budgetCardVal   { color: var(--color-success, #16a34a); }
+
+.budgetGrupo      { display: flex; flex-direction: column; gap: 8px; }
+.budgetGrupoTitulo { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-light); padding: 4px 0; border-bottom: 1px solid var(--color-border); }
+
+.budgetTable      { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.budgetTable th   { text-align: left; padding: 6px 10px; font-size: 0.75rem; font-weight: 600; color: var(--color-text-light); border-bottom: 1px solid var(--color-border); background: var(--color-bg-alt, #f9fafb); }
+.budgetTable td   { padding: 8px 10px; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+.budgetTable tr:last-child td { border-bottom: none; }
+.budgetTable tr:hover td { background: var(--color-hover, #f3f4f6); }
+
+.right           { text-align: right; }
+.txtRed          { color: var(--color-danger, #dc2626); font-weight: 600; }
+.txtGreen        { color: var(--color-success, #16a34a); font-weight: 600; }
+
+.catDot          { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; flex-shrink: 0; }
+
+.budgetBar       { display: inline-block; width: 60px; height: 6px; background: var(--color-border); border-radius: 3px; vertical-align: middle; margin-right: 6px; overflow: hidden; }
+.budgetBarFill   { display: block; height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+.budgetStatus    { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+.budget_ok       { background: #dcfce7; color: #166534; }
+.budget_alerta   { background: #fef9c3; color: #92400e; }
+.budget_excedido { background: #fee2e2; color: #991b1b; }
+
+.editableVal     { cursor: pointer; text-decoration: underline dotted; }
+.inlineEdit      { display: flex; align-items: center; gap: 4px; }
+.inputSmall      { width: 90px; padding: 3px 6px; border: 1px solid var(--color-primary); border-radius: 4px; font-size: 0.85rem; }
+.btnRemover      { background: none; border: none; cursor: pointer; font-size: 0.9rem; opacity: 0.4; padding: 2px 4px; }
+.btnRemover:hover { opacity: 1; }
+
+.budgetAddForm   { border: 1px dashed var(--color-border); border-radius: var(--radius); padding: 16px; background: var(--color-bg-alt, #f9fafb); }
+.budgetAddTitulo { font-size: 0.82rem; font-weight: 600; color: var(--color-text-light); margin-bottom: 12px; }
+
+@media (max-width: 900px) {
+  .budgetResumo { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .budgetResumo { grid-template-columns: 1fr 1fr; }
+  .budgetBar    { width: 36px; }
+}

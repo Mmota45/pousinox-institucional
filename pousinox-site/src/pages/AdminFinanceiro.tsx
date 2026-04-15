@@ -84,7 +84,26 @@ const RFM_SEGMENTO_CONFIG: Record<string, { label: string; css: string; acao: st
   Inativo:    { label: 'Inativo',    css: 'rfmInativo',    acao: 'Cobrança direta'                         },
 }
 
-type Aba = 'painel' | 'lancamentos' | 'recebiveis' | 'fluxo' | 'configuracao'
+type Aba = 'painel' | 'lancamentos' | 'recebiveis' | 'fluxo' | 'budget' | 'configuracao'
+
+interface BudgetItem {
+  id: number
+  ano: number
+  mes: number | null
+  categoria_id: number
+  centro_custo_id: number | null
+  valor_orcado: number
+  observacao: string | null
+  fin_categorias?: { nome: string; cor: string; grupo: string } | null
+  fin_centros_custo?: { nome: string } | null
+}
+
+interface BudgetRow extends BudgetItem {
+  realizado: number
+  variacao: number   // realizado - orcado (positivo = excedido)
+  pct: number        // realizado / orcado * 100
+  status: 'ok' | 'alerta' | 'excedido'
+}
 
 const COBRANCA_STATUS_LABELS: Record<string, string> = {
   nao_cobrado:  'Não cobrado',
@@ -206,6 +225,17 @@ export default function AdminFinanceiro() {
   const [salvandoCat,    setSalvandoCat]    = useState(false)
   const [salvandoCentro, setSalvandoCentro] = useState(false)
 
+  // Budget
+  const [budgetItens,      setBudgetItens]      = useState<BudgetRow[]>([])
+  const [anoB,             setAnoB]             = useState(new Date().getFullYear())
+  const [mesB,             setMesB]             = useState<number | ''>(new Date().getMonth() + 1)
+  const [editandoBudgetId, setEditandoBudgetId] = useState<number | null>(null)
+  const [editValor,        setEditValor]        = useState('')
+  const [salvandoBudget,   setSalvandoBudget]   = useState(false)
+  const [novaCatB,         setNovaCatB]         = useState('')
+  const [novoValorB,       setNovoValorB]       = useState('')
+  const [adicionando,      setAdicionando]      = useState(false)
+
   useEffect(() => {
     if (!msg) return
     const t = setTimeout(() => setMsg(null), 3500)
@@ -285,12 +315,58 @@ export default function AdminFinanceiro() {
     setAging((data ?? []) as AgingItem[])
   }, [filtroFaixa, filtroCobrStatus, filtroPrioridade, filtroRFMSegmento])
 
+  const carregarBudget = useCallback(async () => {
+    // 1. Orçamento cadastrado para o período
+    let bq = supabaseAdmin
+      .from('fin_budget')
+      .select('*, fin_categorias(nome, cor, grupo), fin_centros_custo(nome)')
+      .eq('ano', anoB)
+    if (mesB !== '') bq = bq.eq('mes', mesB)
+    else             bq = bq.is('mes', null)
+    const { data: budgets } = await bq
+
+    // 2. Realizado: despesas não canceladas no mesmo período
+    const mesStr  = mesB !== '' ? String(mesB).padStart(2, '0') : null
+    const dimMes  = mesB !== '' ? new Date(anoB, mesB as number, 0).getDate() : 31
+    const dataIni = mesStr ? `${anoB}-${mesStr}-01`           : `${anoB}-01-01`
+    const dataFim = mesStr ? `${anoB}-${mesStr}-${dimMes}`    : `${anoB}-12-31`
+    const { data: lancs } = await supabaseAdmin
+      .from('fin_lancamentos')
+      .select('categoria_id, valor')
+      .eq('tipo', 'despesa')
+      .in('status', ['pendente', 'pago', 'parcial'])
+      .gte('data_competencia', dataIni)
+      .lte('data_competencia', dataFim)
+
+    // 3. Agrupa realizado por categoria
+    const realMap: Record<number, number> = {}
+    for (const l of (lancs ?? [])) {
+      if (l.categoria_id != null)
+        realMap[l.categoria_id] = (realMap[l.categoria_id] ?? 0) + (l.valor as number)
+    }
+
+    // 4. Monta linhas enriquecidas
+    const rows: BudgetRow[] = (budgets ?? []).map(b => {
+      const realizado = realMap[b.categoria_id] ?? 0
+      const variacao  = realizado - b.valor_orcado
+      const pct       = b.valor_orcado > 0 ? (realizado / b.valor_orcado) * 100 : (realizado > 0 ? 999 : 0)
+      const status: BudgetRow['status'] = pct >= 100 ? 'excedido' : pct >= 80 ? 'alerta' : 'ok'
+      return { ...(b as BudgetItem), realizado, variacao, pct, status }
+    })
+    rows.sort((a, b) => {
+      const ga = a.fin_categorias?.grupo ?? ''; const gb = b.fin_categorias?.grupo ?? ''
+      return ga !== gb ? ga.localeCompare(gb) : (a.fin_categorias?.nome ?? '').localeCompare(b.fin_categorias?.nome ?? '')
+    })
+    setBudgetItens(rows)
+  }, [anoB, mesB])
+
   useEffect(() => {
     if (aba === 'painel')      { carregarSaldo(); carregarAgingResumo() }
     if (aba === 'lancamentos') carregarLancamentos()
     if (aba === 'recebiveis')  carregarAging()
     if (aba === 'fluxo')       carregarMovimentacoes()
-  }, [aba, carregarSaldo, carregarAgingResumo, carregarLancamentos, carregarAging, carregarMovimentacoes])
+    if (aba === 'budget')      carregarBudget()
+  }, [aba, carregarSaldo, carregarAgingResumo, carregarLancamentos, carregarAging, carregarMovimentacoes, carregarBudget])
 
   useEffect(() => {
     if (aba === 'lancamentos') carregarLancamentos()
@@ -299,6 +375,48 @@ export default function AdminFinanceiro() {
   useEffect(() => {
     if (aba === 'recebiveis') carregarAging()
   }, [filtroFaixa, filtroCobrStatus, filtroPrioridade, filtroRFMSegmento, aba, carregarAging])
+
+  useEffect(() => {
+    if (aba === 'budget') carregarBudget()
+  }, [anoB, mesB, aba, carregarBudget])
+
+  // ── Budget — salvar inline ─────────────────────────────────────────────────
+
+  async function salvarBudgetInline(id: number) {
+    setSalvandoBudget(true)
+    const v = parseFloat(editValor.replace(',', '.'))
+    if (isNaN(v) || v < 0) {
+      setMsg({ tipo: 'erro', texto: 'Valor inválido.' })
+      setSalvandoBudget(false)
+      return
+    }
+    const { error } = await supabaseAdmin.from('fin_budget').update({ valor_orcado: v }).eq('id', id)
+    if (error) setMsg({ tipo: 'erro', texto: 'Erro ao salvar budget.' })
+    else { setMsg({ tipo: 'ok', texto: 'Budget atualizado.' }); setEditandoBudgetId(null); carregarBudget() }
+    setSalvandoBudget(false)
+  }
+
+  async function adicionarBudget(e: React.FormEvent) {
+    e.preventDefault()
+    if (!novaCatB) return
+    setAdicionando(true)
+    const v = parseFloat(novoValorB.replace(',', '.')) || 0
+    const { error } = await supabaseAdmin.from('fin_budget').insert({
+      ano:          anoB,
+      mes:          mesB !== '' ? mesB : null,
+      categoria_id: Number(novaCatB),
+      valor_orcado: v,
+    })
+    if (error) setMsg({ tipo: 'erro', texto: error.code === '23505' ? 'Categoria já existe neste período.' : error.message })
+    else { setMsg({ tipo: 'ok', texto: 'Linha de budget adicionada.' }); setNovaCatB(''); setNovoValorB(''); carregarBudget() }
+    setAdicionando(false)
+  }
+
+  async function removerBudget(id: number) {
+    if (!window.confirm('Remover esta linha do budget?')) return
+    await supabaseAdmin.from('fin_budget').delete().eq('id', id)
+    carregarBudget()
+  }
 
   // ── Salvar lançamento manual ───────────────────────────────────────────────
 
@@ -506,6 +624,7 @@ export default function AdminFinanceiro() {
           { key: 'lancamentos',  label: '📋 Lançamentos'     },
           { key: 'recebiveis',   label: '⏰ Recebíveis'      },
           { key: 'fluxo',        label: '💰 Fluxo de Caixa'  },
+          { key: 'budget',       label: '🎯 Budget'           },
           { key: 'configuracao', label: '⚙️ Configuração'    },
         ] as { key: Aba; label: string }[]).map(a => (
           <button key={a.key}
@@ -1062,6 +1181,167 @@ export default function AdminFinanceiro() {
           )}
         </div>
       )}
+
+      {/* ══ BUDGET ══════════════════════════════════════════════════════════ */}
+      {aba === 'budget' && (() => {
+        const catsSemBudget = categorias.filter(c =>
+          c.tipo === 'despesa' && !budgetItens.find(b => b.categoria_id === c.id)
+        )
+        const totalOrcado   = budgetItens.reduce((s, r) => s + r.valor_orcado, 0)
+        const totalRealizado = budgetItens.reduce((s, r) => s + r.realizado, 0)
+        const totalVariacao  = totalRealizado - totalOrcado
+        const totalPct       = totalOrcado > 0 ? (totalRealizado / totalOrcado) * 100 : 0
+        const grupos = [...new Set(budgetItens.map(r => r.fin_categorias?.grupo ?? ''))].sort()
+        return (
+          <div className={styles.budgetWrap}>
+
+            {/* Filtros de período */}
+            <div className={styles.budgetFiltros}>
+              <div className={styles.field}>
+                <label>Ano</label>
+                <select className={styles.input} value={anoB}
+                  onChange={e => setAnoB(Number(e.target.value))}>
+                  {[anoB - 1, anoB, anoB + 1].map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+              <div className={styles.field}>
+                <label>Mês</label>
+                <select className={styles.input} value={mesB}
+                  onChange={e => setMesB(e.target.value === '' ? '' : Number(e.target.value))}>
+                  <option value="">Anual</option>
+                  {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
+                    .map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {/* Cards resumo */}
+            {budgetItens.length > 0 && (
+              <div className={styles.budgetResumo}>
+                <div className={styles.budgetCard}>
+                  <span className={styles.budgetCardLabel}>Total Orçado</span>
+                  <span className={styles.budgetCardVal}>{fmtBRL(totalOrcado, ocultarValores)}</span>
+                </div>
+                <div className={styles.budgetCard}>
+                  <span className={styles.budgetCardLabel}>Total Realizado</span>
+                  <span className={styles.budgetCardVal}>{fmtBRL(totalRealizado, ocultarValores)}</span>
+                </div>
+                <div className={`${styles.budgetCard} ${totalVariacao > 0 ? styles.budgetCardExcedido : styles.budgetCardOk}`}>
+                  <span className={styles.budgetCardLabel}>Variação</span>
+                  <span className={styles.budgetCardVal}>
+                    {totalVariacao > 0 ? '+' : ''}{fmtBRL(totalVariacao, ocultarValores)}
+                  </span>
+                </div>
+                <div className={styles.budgetCard}>
+                  <span className={styles.budgetCardLabel}>Utilização</span>
+                  <span className={styles.budgetCardVal}>{totalPct.toFixed(1)}%</span>
+                </div>
+              </div>
+            )}
+
+            {/* Tabela por grupo */}
+            {budgetItens.length === 0 && (
+              <div className={styles.emptyMsg}>Nenhum orçamento cadastrado para este período.</div>
+            )}
+            {grupos.map(grupo => (
+              <div key={grupo} className={styles.budgetGrupo}>
+                <div className={styles.budgetGrupoTitulo}>{grupo || 'Sem grupo'}</div>
+                <table className={styles.budgetTable}>
+                  <thead>
+                    <tr>
+                      <th>Categoria</th>
+                      <th className={styles.right}>Orçado</th>
+                      <th className={styles.right}>Realizado</th>
+                      <th className={styles.right}>Variação</th>
+                      <th className={styles.right}>%</th>
+                      <th>Status</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {budgetItens.filter(r => (r.fin_categorias?.grupo ?? '') === grupo).map(row => (
+                      <tr key={row.id}>
+                        <td>
+                          <span className={styles.catDot} style={{ background: row.fin_categorias?.cor ?? '#888' }} />
+                          {row.fin_categorias?.nome ?? `#${row.categoria_id}`}
+                        </td>
+                        <td className={styles.right}>
+                          {editandoBudgetId === row.id ? (
+                            <span className={styles.inlineEdit}>
+                              <input className={styles.inputSmall} value={editValor}
+                                onChange={e => setEditValor(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') salvarBudgetInline(row.id); if (e.key === 'Escape') setEditandoBudgetId(null) }}
+                                autoFocus />
+                              <button className={styles.btnBaixa} onClick={() => salvarBudgetInline(row.id)} disabled={salvandoBudget}>✓</button>
+                              <button className={styles.btnCancelarBaixa} onClick={() => setEditandoBudgetId(null)}>✕</button>
+                            </span>
+                          ) : (
+                            <span className={styles.editableVal}
+                              onClick={() => { setEditandoBudgetId(row.id); setEditValor(String(row.valor_orcado)) }}>
+                              {fmtBRL(row.valor_orcado, ocultarValores)} ✏️
+                            </span>
+                          )}
+                        </td>
+                        <td className={styles.right}>{fmtBRL(row.realizado, ocultarValores)}</td>
+                        <td className={`${styles.right} ${row.variacao > 0 ? styles.txtRed : styles.txtGreen}`}>
+                          {row.variacao > 0 ? '+' : ''}{fmtBRL(row.variacao, ocultarValores)}
+                        </td>
+                        <td className={styles.right}>
+                          <span className={styles.budgetBar}>
+                            <span className={styles.budgetBarFill}
+                              style={{ width: `${Math.min(row.pct, 100)}%`,
+                                background: row.status === 'excedido' ? 'var(--color-danger,#dc2626)' :
+                                            row.status === 'alerta'   ? '#f59e0b' : 'var(--color-success,#16a34a)' }} />
+                          </span>
+                          {row.pct.toFixed(0)}%
+                        </td>
+                        <td>
+                          <span className={`${styles.budgetStatus} ${styles[`budget_${row.status}`]}`}>
+                            {row.status === 'ok' ? 'OK' : row.status === 'alerta' ? 'Alerta' : 'Excedido'}
+                          </span>
+                        </td>
+                        <td>
+                          <button className={styles.btnRemover} onClick={() => removerBudget(row.id)} title="Remover">🗑</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+
+            {/* Adicionar nova linha */}
+            {catsSemBudget.length > 0 && (
+              <form className={styles.budgetAddForm} onSubmit={adicionarBudget}>
+                <div className={styles.budgetAddTitulo}>Adicionar categoria ao budget</div>
+                <div className={styles.row3}>
+                  <div className={styles.field}>
+                    <label>Categoria (despesa)</label>
+                    <select className={styles.input} value={novaCatB}
+                      onChange={e => setNovaCatB(e.target.value)} required>
+                      <option value="">Selecione…</option>
+                      {catsSemBudget.map(c => (
+                        <option key={c.id} value={c.id}>{c.grupo ? `${c.grupo} — ` : ''}{c.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className={styles.field}>
+                    <label>Valor orçado (R$)</label>
+                    <input className={styles.input} type="text" value={novoValorB}
+                      onChange={e => setNovoValorB(e.target.value)}
+                      placeholder="0,00" />
+                  </div>
+                  <div className={styles.field} style={{ justifyContent: 'flex-end' }}>
+                    <button type="submit" className={styles.btnPrimary} disabled={adicionando || !novaCatB}>
+                      {adicionando ? 'Adicionando…' : '+ Adicionar'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            )}
+          </div>
+        )
+      })()}
 
       {/* ══ CONFIGURAÇÃO ════════════════════════════════════════════════════ */}
       {aba === 'configuracao' && (
