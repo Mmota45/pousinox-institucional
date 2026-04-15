@@ -54,6 +54,35 @@
 }
 .btnSecondary:hover { background: #e2e8f0; }
 
+.btnSuccess {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btnSuccess:hover { background: #15803d; }
+
+.badgeFinanceiro {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .btnDanger {
   display: inline-flex;
   align-items: center;
@@ -713,6 +742,62 @@
   gap: 10px;
   padding: 14px 20px;
   border-top: 1px solid #e2e8f0;
+}
+
+/* ── Shadow Log ──────────────────────────────────────────────────────── */
+.shadowNota {
+  padding: 10px 14px; background: #fefce8; border: 1px solid #fde68a;
+  border-radius: var(--radius, 6px); font-size: 0.82rem; color: #713f12;
+  line-height: 1.5;
+}
+.shadowControles {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.shadowFiltros { display: flex; gap: 4px; flex-wrap: wrap; }
+.shadowFiltroBtn {
+  padding: 5px 11px; border: 1px solid #e2e8f0; border-radius: 20px;
+  background: #fff; font-size: 0.78rem; color: #64748b; cursor: pointer;
+  transition: all 0.15s;
+}
+.shadowFiltroBtn:hover   { border-color: #94a3b8; color: #334155; }
+.shadowFiltroBtnAtivo    { background: #0f172a; color: #fff; border-color: #0f172a; }
+
+.shadowKpis {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: var(--radius-lg, 8px);
+  padding: 14px 20px; gap: 16px;
+}
+.shadowKpi       { display: flex; flex-direction: column; gap: 2px; min-width: 80px; }
+.shadowKpiVal    { font-size: 1.1rem; font-weight: 800; color: #0f172a; }
+.shadowKpiLabel  { font-size: 0.72rem; color: #94a3b8; }
+.shadowKpiOk     { color: #16a34a; }
+.shadowKpiAlerta { color: #dc2626; }
+.shadowKpiDiv    { width: 1px; height: 32px; background: #e2e8f0; flex-shrink: 0; }
+
+.shadowBreakdown {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: var(--radius-lg, 8px);
+  padding: 14px 20px;
+}
+.shadowBreakdownTitulo { font-size: 0.8rem; font-weight: 600; color: #64748b; display: block; margin-bottom: 10px; }
+.shadowBreakdownBars   { display: flex; flex-direction: column; gap: 6px; }
+.shadowBreakdownRow    { display: grid; grid-template-columns: 150px 1fr 80px; align-items: center; gap: 10px; }
+.shadowBreakdownLabel  { font-size: 0.78rem; color: #334155; }
+.shadowBreakdownCount  { font-size: 0.75rem; color: #64748b; text-align: right; }
+.shadowBarTrack { background: #f1f5f9; border-radius: 4px; height: 8px; overflow: hidden; }
+.shadowBar      { height: 100%; border-radius: 4px; transition: width 0.3s; min-width: 2px; }
+.barVerde  { background: #16a34a; }
+.barAmbar  { background: #f59e0b; }
+.barVerm   { background: #dc2626; }
+.barCinza  { background: #94a3b8; }
+.barAzul   { background: #3b82f6; }
+
+.shadowConcorda       { font-size: 0.78rem; font-weight: 700; color: #16a34a; }
+.shadowConcordaParcial { font-size: 0.78rem; font-weight: 700; color: #f59e0b; }
+.shadowDiverge        { font-size: 0.78rem; font-weight: 700; color: #dc2626; }
+.shadowBadgeSkip {
+  display: inline-block; padding: 2px 7px; background: #f3f4f6; color: #6b7280;
+  border-radius: 10px; font-size: 0.7rem; font-weight: 600; max-width: 200px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
 /* ── Responsivo ──────────────────────────────────────────────────────── */

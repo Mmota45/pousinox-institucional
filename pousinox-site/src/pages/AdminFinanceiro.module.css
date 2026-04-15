@@ -1,0 +1,689 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.loading {
+  color: var(--color-text-light);
+  padding: 32px 0;
+  font-size: 0.9rem;
+}
+
+/* ── Mensagem ──────────────────────────────────────────────────────────────── */
+.msg {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.msgOk   { background: #dcfce7; color: #166534; }
+.msgErro { background: #fee2e2; color: #991b1b; }
+
+/* ── Abas ──────────────────────────────────────────────────────────────────── */
+.abas {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--color-border);
+  flex-wrap: wrap;
+}
+.aba {
+  padding: 9px 18px;
+  border: none;
+  background: none;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.aba:hover { color: var(--color-primary); }
+.abaAtiva {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ── Cards painel ──────────────────────────────────────────────────────────── */
+/* ── Automation-first banner ───────────────────────────────────────────────── */
+.autoFirst {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  font-size: 0.88rem;
+  color: #166534;
+}
+.autoFirst p { margin: 4px 0 0; color: #15803d; font-size: 0.85rem; }
+.autoFirstIcon { font-size: 1.4rem; line-height: 1; flex-shrink: 0; margin-top: 2px; }
+
+/* ── Atalhos de origem ─────────────────────────────────────────────────────── */
+.atalhos { display: flex; flex-direction: column; gap: 10px; }
+
+.atalho {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+}
+.atalhoIcon { font-size: 1.3rem; flex-shrink: 0; }
+.atalhoTitulo { font-size: 0.9rem; font-weight: 700; color: var(--color-heading); }
+.atalhoDesc   { font-size: 0.82rem; color: var(--color-text-light); margin-top: 2px; }
+.atalhoStatusOk {
+  margin-left: auto;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #166534;
+  background: #dcfce7;
+  border-radius: 4px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.atalhoStatus {
+  margin-left: auto;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #9ca3af;
+  background: #f3f4f6;
+  border-radius: 4px;
+  padding: 3px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.manualAcesso { display: flex; justify-content: flex-start; }
+
+/* ── Formulário manual (colapsável, área secundária) ───────────────────────── */
+.formManualWrap {
+  border: 1px dashed #d1d5db;
+  border-radius: var(--radius-lg);
+  background: #fafafa;
+  overflow: hidden;
+}
+.formManualSummary {
+  padding: 14px 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+.formManualSummary::-webkit-details-marker { display: none; }
+.formManualSummary:hover { color: var(--color-text); }
+.formManualWrap .form {
+  border: none;
+  border-top: 1px dashed #d1d5db;
+  border-radius: 0;
+  background: #fafafa;
+}
+
+/* ── Badge origem ──────────────────────────────────────────────────────────── */
+.origemAuto {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #1e40af;
+  background: #dbeafe;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.origemManual {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* ── Linha manual levemente diferenciada ───────────────────────────────────── */
+.rowManual td { background: #fafafa !important; }
+
+/* ── Botão lançamento manual (secundário, não é CTA principal) ─────────────── */
+.btnManual {
+  padding: 8px 16px;
+  background: #fff;
+  color: #6b7280;
+  border: 1px dashed #d1d5db;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.btnManual:hover { border-color: #9ca3af; color: var(--color-text); }
+
+/* ── Seção config ──────────────────────────────────────────────────────────── */
+.configSecao {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.painelWrap { display: flex; flex-direction: column; gap: 20px; }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 3px solid var(--color-border);
+}
+
+.cardReceita  { border-top-color: #16a34a; }
+.cardDespesa  { border-top-color: #dc2626; }
+.cardSaldoPos { border-top-color: #2563eb; }
+.cardSaldoNeg { border-top-color: #f97316; }
+.cardAlerta   { border-top-color: #d97706; }
+
+.cardLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cardVal {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-heading);
+  line-height: 1.1;
+}
+
+.painelAcoes {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ── Lançamentos ───────────────────────────────────────────────────────────── */
+.lancWrap { display: flex; flex-direction: column; gap: 20px; }
+
+.filtros {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filtroSelect {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: #fff;
+}
+
+/* ── Formulário ────────────────────────────────────────────────────────────── */
+.form, .formSmall {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.formTitulo {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  margin-bottom: 4px;
+}
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  font-size: 0.81rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.input:focus { outline: none; border-color: var(--color-primary); }
+
+.inputColor {
+  width: 48px;
+  height: 38px;
+  padding: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.inputSmall {
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  font-family: var(--font-family);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Tipo toggle */
+.tipoToggle { display: flex; gap: 8px; }
+.tipoBtn {
+  padding: 8px 20px;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #f8fafc;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--color-text-light);
+  transition: all 0.15s;
+}
+.tipoBtnReceita { background: #dcfce7; color: #166534; border-color: #16a34a; }
+.tipoBtnDespesa { background: #fee2e2; color: #991b1b; border-color: #dc2626; }
+
+/* ── Tabela ────────────────────────────────────────────────────────────────── */
+.tableScroll { overflow-x: auto; }
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.87rem;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  min-width: 700px;
+}
+.tabela th {
+  background: var(--color-bg);
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.tabela td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  vertical-align: middle;
+}
+.tabela tr:last-child td { border-bottom: none; }
+.tabela tr:hover td { background: #fafafa; }
+
+.descCell { font-weight: 500; max-width: 200px; }
+.obs      { font-size: 0.78rem; color: var(--color-text-light); margin-top: 2px; }
+.data     { white-space: nowrap; color: var(--color-text-light); font-size: 0.84rem; }
+
+.tipoReceita { color: #16a34a; font-weight: 700; font-size: 0.82rem; text-transform: capitalize; }
+.tipoDespesa { color: #dc2626; font-weight: 700; font-size: 0.82rem; text-transform: capitalize; }
+
+.valorReceita { color: #16a34a; font-weight: 700; white-space: nowrap; }
+.valorDespesa { color: #dc2626; font-weight: 700; white-space: nowrap; }
+
+/* ── Badges ────────────────────────────────────────────────────────────────── */
+.badgePago      { background: #dcfce7; color: #166534; font-size: 0.74rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.badgePendente  { background: #fef9c3; color: #854d0e; font-size: 0.74rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.badgeVencido   { background: #fee2e2; color: #991b1b; font-size: 0.74rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.badgeParcial   { background: #dbeafe; color: #1e40af; font-size: 0.74rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+.badgeCancelado { background: #f3f4f6; color: #6b7280; font-size: 0.74rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+
+.catBadge {
+  display: inline-block;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--color-text);
+  border-left: 3px solid;
+  padding-left: 6px;
+  white-space: nowrap;
+}
+
+.contaBadge {
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+/* ── Ações na tabela ───────────────────────────────────────────────────────── */
+.acoes { display: flex; gap: 6px; }
+
+.btnBaixar {
+  padding: 4px 10px;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btnBaixar:hover { background: #bbf7d0; }
+
+.btnCancelar {
+  padding: 4px 10px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btnCancelar:hover { background: #fee2e2; color: #dc2626; }
+
+.baixaInline { display: flex; gap: 6px; align-items: center; }
+
+.btnBaixa {
+  padding: 4px 10px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btnBaixa:disabled { opacity: 0.6; }
+
+.btnCancelarBaixa {
+  padding: 4px 8px;
+  background: #f3f4f6;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--color-text-light);
+}
+
+.pagoDia { font-size: 0.78rem; color: #16a34a; font-weight: 600; }
+
+/* ── Fluxo de caixa ────────────────────────────────────────────────────────── */
+.fluxoWrap { display: flex; flex-direction: column; gap: 20px; }
+
+.fluxoInfo {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  color: #0369a1;
+}
+
+.saldoExtrato {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+}
+.saldoPos { color: #16a34a; font-size: 1.1rem; }
+.saldoNeg { color: #dc2626; font-size: 1.1rem; }
+
+/* ── Configuração (categorias / centros) ───────────────────────────────────── */
+.configWrap { display: flex; flex-direction: column; gap: 28px; }
+
+.listaConfig { display: flex; flex-direction: column; gap: 20px; }
+
+.grupoTitulo {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.catGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.catItem {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-left: 4px solid;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.catNome { font-size: 0.88rem; font-weight: 600; color: var(--color-heading); }
+.catGrupo { font-size: 0.76rem; color: var(--color-text-light); }
+
+/* ── Botões globais ────────────────────────────────────────────────────────── */
+.btnPrimary {
+  padding: 9px 22px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.btnPrimary:hover { background: var(--color-primary-light); }
+.btnPrimary:disabled { background: #9ca3af; cursor: not-allowed; }
+
+.btnSecondary {
+  padding: 8px 18px;
+  background: #f3f4f6;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btnSecondary:hover { background: #e5e7eb; }
+
+.vazio {
+  color: var(--color-text-light);
+  font-size: 0.9rem;
+  padding: 24px 0;
+}
+
+/* ── Aging de recebíveis ───────────────────────────────────────────────────── */
+.secaoTitulo {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btnLinkSmall {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.agingCards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.agingCard {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.agingCard:hover { border-color: var(--color-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.agingCardVencido { border-left: 3px solid #f59e0b; }
+
+.agingFaixa {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.agingTotal {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--color-heading);
+  line-height: 1;
+}
+.agingQtd { font-size: 0.78rem; color: var(--color-text-light); }
+.agingPrioritarios { font-size: 0.75rem; color: #d97706; font-weight: 600; }
+
+/* ── Recebíveis — tabela e controles ───────────────────────────────────────── */
+.rowPrioritario { background: #fffbeb; }
+
+.btnEstrela {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: var(--radius);
+  line-height: 1;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+.btnEstrela:hover { opacity: 1; }
+.btnEstrelaAtiva { opacity: 1; }
+
+.badgeFaixaOk    { font-size: 0.74rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+.badgeFaixaLeve  { font-size: 0.74rem; font-weight: 700; color: #854d0e; background: #fef9c3; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+.badgeFaixaMedio { font-size: 0.74rem; font-weight: 700; color: #c2410c; background: #ffedd5; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+.badgeFaixaGrave { font-size: 0.74rem; font-weight: 700; color: #991b1b; background: #fee2e2; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+
+.selectCobranca {
+  padding: 4px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: #fff;
+  cursor: pointer;
+  max-width: 140px;
+}
+
+.obsInline { display: flex; gap: 4px; align-items: center; }
+
+.obsClick {
+  font-size: 0.78rem;
+  color: var(--color-text);
+  cursor: pointer;
+  max-width: 180px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.obsClick:hover { color: var(--color-primary); }
+.obsVazio { color: var(--color-text-light); font-style: italic; }
+
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── Responsivo ────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .agingCards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .cards { grid-template-columns: 1fr; }
+  .row2, .row3 { grid-template-columns: 1fr; }
+  .filtros { flex-direction: column; align-items: stretch; }
+  .abas { gap: 0; }
+  .aba { padding: 8px 12px; font-size: 0.82rem; }
+}
+
+/* ── RFM badges na aba Recebíveis ──────────────────────────────────────────── */
+.rfmVIP        { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; background: #fef9c3; color: #713f12; border: 1px solid #fde047; white-space: nowrap; }
+.rfmRecorrente { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; white-space: nowrap; }
+.rfmRegular    { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; white-space: nowrap; }
+.rfmNovo       { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; background: #dcfce7; color: #166534; border: 1px solid #86efac; white-space: nowrap; }
+.rfmEmRisco    { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; white-space: nowrap; }
+.rfmInativo    { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; white-space: nowrap; }
+.rfmSemDado    { font-size: 0.72rem; color: var(--color-text-light); }
+.clienteNomeAging { font-size: 0.78rem; color: var(--color-text-light); margin-top: 2px; }

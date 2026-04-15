@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminClientes.module.css'
 
@@ -58,10 +58,34 @@ interface Cliente {
   total_gasto: number
 }
 
+interface ClienteRFM {
+  id: number
+  cnpj: string
+  razao_social: string | null
+  ultima_compra: string | null
+  total_nfs: number
+  total_gasto: number
+  rfm_recencia: number | null
+  rfm_frequencia: number | null
+  rfm_valor: number | null
+  rfm_score: number | null
+  rfm_segmento: string | null
+  rfm_calculado_em: string | null
+}
+
+const SEGMENTO_CONFIG: Record<string, { label: string; css: string; acao: string; estrategia: string }> = {
+  VIP:        { label: 'VIP',        css: 'badgeVIP',        acao: 'Upsell / Fidelização',    estrategia: 'Contato direto, oferta exclusiva, prioridade no atendimento'  },
+  Recorrente: { label: 'Recorrente', css: 'badgeRecorrente', acao: 'Retenção',                estrategia: 'Manter relacionamento ativo, antecipar necessidades'          },
+  Regular:    { label: 'Regular',    css: 'badgeRegular',    acao: 'Engajamento',             estrategia: 'Aumentar frequência de compra com promoções pontuais'         },
+  Novo:       { label: 'Novo',       css: 'badgeNovo',       acao: 'Onboarding',              estrategia: 'Garantir boa primeira experiência, facilitar segunda compra'  },
+  'Em Risco': { label: 'Em Risco',   css: 'badgeEmRisco',   acao: 'Reativação urgente',      estrategia: 'Contato proativo imediato — risco de perda do cliente'        },
+  Inativo:    { label: 'Inativo',    css: 'badgeInativo',    acao: 'Reativação',              estrategia: 'Campanha de retorno — oferta para reativar relacionamento'    },
+}
+
 // ── Componente principal ──────────────────────────────────────────────────────
 
 export default function AdminClientes() {
-  const [aba, setAba] = useState<'importar' | 'clientes'>('importar')
+  const [aba, setAba] = useState<'importar' | 'clientes' | 'rfm' | 'recebidas'>('importar')
 
   // Import
   const [arquivoCab, setArquivoCab]     = useState<File | null>(null)
@@ -80,6 +104,59 @@ export default function AdminClientes() {
   const [buscado, setBuscado]     = useState(false)
   const [sortCol, setSortCol]     = useState<keyof Cliente>('total_gasto')
   const [sortDir, setSortDir]     = useState<'asc' | 'desc'>('desc')
+
+  // NFs Recebidas
+  const [arquivoRecCab,   setArquivoRecCab]   = useState<File | null>(null)
+  const [arquivoRecItens, setArquivoRecItens] = useState<File | null>(null)
+  const [importandoRec,   setImportandoRec]   = useState(false)
+  const [progressoRec,    setProgressoRec]    = useState('')
+  const [resultadoRec,    setResultadoRec]    = useState<{ cabecalho: number; itens: number; lancamentos: number; duplicatas: number } | null>(null)
+  const [erroRec,         setErroRec]         = useState<string | null>(null)
+  const refRecCab   = useRef<HTMLInputElement>(null)
+  const refRecItens = useRef<HTMLInputElement>(null)
+
+  // NFs Recebidas — listagem com status financeiro
+  interface NfRecebida {
+    id: number
+    numero: string | null
+    serie: string | null
+    cnpj_fornecedor: string | null
+    emissao: string | null
+    total: number
+    status: string | null
+    lancamento_id: number | null
+    fin_status: string | null   // joined de fin_lancamentos.status
+  }
+  const [nfsRecebidas,       setNfsRecebidas]       = useState<NfRecebida[]>([])
+  const [loadingNfs,         setLoadingNfs]         = useState(false)
+  const [nfsCarregadas,      setNfsCarregadas]      = useState(false)
+  const [nfsFiltro,          setNfsFiltro]          = useState<'todas' | 'sem_lanc' | 'pendente' | 'pago'>('todas')
+
+  async function carregarNfsRecebidas() {
+    setLoadingNfs(true)
+    const { data } = await supabaseAdmin
+      .from('nf_recebidas_cabecalho')
+      .select('id, numero, serie, cnpj_fornecedor, emissao, total, status, lancamento_id, fin_lancamentos(status)')
+      .order('emissao', { ascending: false })
+      .limit(300)
+    setNfsRecebidas(
+      (data ?? []).map((r: Record<string, unknown>) => ({
+        ...r,
+        fin_status: (r.fin_lancamentos as Record<string, string> | null)?.status ?? null,
+      })) as NfRecebida[]
+    )
+    setNfsCarregadas(true)
+    setLoadingNfs(false)
+  }
+
+  // RFM
+  const [clientesRFM, setClientesRFM]       = useState<ClienteRFM[]>([])
+  const [filtroSegmento, setFiltroSegmento] = useState('')
+  const [loadingRFM, setLoadingRFM]         = useState(false)
+  const [recalculando, setRecalculando]     = useState(false)
+  const [autoRecalcFeito, setAutoRecalcFeito] = useState(false)
+  const [rfmMsg, setRfmMsg]                 = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
+  const [rfmBuscado, setRfmBuscado]         = useState(false)
 
   // ── Import ──────────────────────────────────────────────────────────────────
 
@@ -268,6 +345,185 @@ export default function AdminClientes() {
     setImportando(false)
   }
 
+  // ── Import NFs Recebidas ────────────────────────────────────────────────────
+
+  async function importarRecebidas() {
+    if (!arquivoRecCab && !arquivoRecItens) { setErroRec('Selecione ao menos um arquivo.'); return }
+    setImportandoRec(true)
+    setErroRec(null)
+    setResultadoRec(null)
+
+    let totalCab = 0, totalItens = 0, totalLanc = 0, totalDup = 0
+
+    // ── Cabeçalho ──────────────────────────────────────────────────────────
+    if (arquivoRecCab) {
+      setProgressoRec('Lendo cabeçalho de NFs recebidas...')
+      const texto = await arquivoRecCab.text()
+      const linhas = texto.split('\n').filter(l => l.trim())
+      const dados = linhas.slice(1)
+
+      // Busca chaves já existentes (idempotência)
+      const chavesCsv = dados.map(l => parseCsvLine(l)[4]?.trim()).filter(Boolean)
+      const { data: existentes } = await supabaseAdmin
+        .from('nf_recebidas_cabecalho')
+        .select('chave_acesso, lancamento_id')
+        .in('chave_acesso', chavesCsv)
+      const mapaExistentes = new Map((existentes ?? []).map(e => [e.chave_acesso, e.lancamento_id]))
+
+      const loteNovo: object[] = []
+      const nfsParaLancar: { chave: string; numero: string; cnpj: string; emissao: string | null; total: number }[] = []
+
+      for (const linha of dados) {
+        const c = parseCsvLine(linha)
+        if (c.length < 8) continue
+        const chave = c[4]?.trim() || null
+        const status = c[6]?.trim() || ''
+
+        if (chave && mapaExistentes.has(chave)) { totalDup++; continue }
+
+        loteNovo.push({
+          serie:           c[0] || null,
+          numero:          c[1] || null,
+          cnpj_fornecedor: parseCnpj(c[2]) || null,
+          uf:              c[3] || null,
+          chave_acesso:    chave,
+          origem_nf:       c[5] || null,
+          status,
+          emissao:         parseData(c[7]),
+          total:           parseBRL(c[8]) ?? 0,
+        })
+
+        if (status === 'Autorizadas' && chave) {
+          nfsParaLancar.push({
+            chave,
+            numero: c[1] || '',
+            cnpj:   parseCnpj(c[2]) || '',
+            emissao: parseData(c[7]),
+            total:  parseBRL(c[8]) ?? 0,
+          })
+        }
+      }
+
+      // Upsert cabeçalho em lotes
+      for (let i = 0; i < loteNovo.length; i += 200) {
+        const chunk = loteNovo.slice(i, i + 200)
+        setProgressoRec(`Importando cabeçalho... ${i + chunk.length}/${loteNovo.length}`)
+        const { error } = await supabaseAdmin
+          .from('nf_recebidas_cabecalho')
+          .upsert(chunk, { onConflict: 'chave_acesso', ignoreDuplicates: true })
+        if (!error) totalCab += chunk.length
+      }
+
+      // Cria fin_lancamentos para NFs novas autorizadas
+      for (const nf of nfsParaLancar) {
+        // Checa se já existe lançamento com essa nf_chave
+        const { data: lancExist } = await supabaseAdmin
+          .from('fin_lancamentos')
+          .select('id')
+          .eq('nf_chave', nf.chave)
+          .maybeSingle()
+
+        let lancId: number | null = lancExist?.id ?? null
+
+        if (!lancId) {
+          const descricao = `NF ${nf.numero}${nf.cnpj ? ' — ' + nf.cnpj : ''}`
+          const { data: novoLanc } = await supabaseAdmin
+            .from('fin_lancamentos')
+            .insert({
+              tipo:             'despesa',
+              descricao,
+              valor:            nf.total,
+              data_competencia: nf.emissao ?? new Date().toISOString().slice(0, 10),
+              data_vencimento:  nf.emissao ?? new Date().toISOString().slice(0, 10),
+              status:           'pendente',
+              origem:           'nf',
+              nf_chave:         nf.chave,
+            })
+            .select('id')
+            .single()
+          lancId = novoLanc?.id ?? null
+          if (lancId) totalLanc++
+        }
+
+        // Vincula lancamento_id de volta ao cabeçalho
+        if (lancId) {
+          await supabaseAdmin
+            .from('nf_recebidas_cabecalho')
+            .update({ lancamento_id: lancId })
+            .eq('chave_acesso', nf.chave)
+        }
+      }
+    }
+
+    // ── Itens ───────────────────────────────────────────────────────────────
+    if (arquivoRecItens) {
+      setProgressoRec('Lendo itens de NFs recebidas...')
+      const texto = await arquivoRecItens.text()
+      const linhas = texto.split('\n').filter(l => l.trim())
+      const dados = linhas.slice(1)
+
+      // Limpa itens dos números presentes no arquivo
+      const numeros = [...new Set(dados.map(l => parseCsvLine(l)[0]).filter(Boolean))]
+      for (let i = 0; i < numeros.length; i += 100) {
+        await supabaseAdmin.from('nf_recebidas_itens').delete().in('numero', numeros.slice(i, i + 100))
+      }
+
+      const loteItens: object[] = []
+      for (const linha of dados) {
+        const c = parseCsvLine(linha)
+        if (c.length < 10) continue
+        loteItens.push({
+          numero:          c[0] || null,
+          cnpj_fornecedor: parseCnpj(c[1]) || null,
+          uf:              c[2] || null,
+          emissao:         parseData(c[3]),
+          codigo:          c[4] || null,
+          ncm:             c[5] || null,
+          ean:             c[6] || null,
+          descricao:       c[7] || null,
+          cfop:            c[8] || null,
+          quantidade:      parseBRL(c[9]),
+          valor_unitario:  parseBRL(c[10]),
+          origem_cst:      c[11] || null,
+          valor_icms_st:   parseBRL(c[12]),
+          cst_pis:         c[13] || null,
+          valor_pis:       parseBRL(c[14]),
+          cst_cofins:      c[15] || null,
+          valor_cofins:    parseBRL(c[16]),
+          valor_ipi:       parseBRL(c[17]),
+          valor_total:     parseBRL(c[18]),
+        })
+      }
+
+      for (let i = 0; i < loteItens.length; i += 200) {
+        const chunk = loteItens.slice(i, i + 200)
+        setProgressoRec(`Importando itens... ${i + chunk.length}/${loteItens.length}`)
+        const { error } = await supabaseAdmin.from('nf_recebidas_itens').insert(chunk)
+        if (!error) totalItens += chunk.length
+      }
+    }
+
+    setResultadoRec({ cabecalho: totalCab, itens: totalItens, lancamentos: totalLanc, duplicatas: totalDup })
+    setProgressoRec('')
+    setImportandoRec(false)
+    carregarNfsRecebidas()
+  }
+
+  // ── Auto-trigger RFM quando dados estão desatualizados (> 24h) ───────────────
+  // Complementa o pg_cron: garante atualização mesmo que o cron não tenha rodado
+  // (ex: primeira abertura do painel, falha de agendamento).
+
+  useEffect(() => {
+    if (aba !== 'rfm' || !rfmBuscado || recalculando || autoRecalcFeito) return
+    const calc = clientesRFM[0]?.rfm_calculado_em
+    const stale = !calc || Date.now() - new Date(calc).getTime() > 24 * 3600 * 1000
+    if (stale) {
+      setAutoRecalcFeito(true)
+      recalcularRFM(true) // silent: não exibe popup
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientesRFM, rfmBuscado, aba])
+
   // ── Clientes ────────────────────────────────────────────────────────────────
 
   function toggleSort(col: keyof Cliente) {
@@ -293,6 +549,35 @@ export default function AdminClientes() {
     const { data } = await q
     setClientes((data ?? []) as Cliente[])
     setLoadingCli(false)
+  }
+
+  async function buscarClientesRFM(segmento = filtroSegmento) {
+    setLoadingRFM(true)
+    setRfmBuscado(true)
+    let q = supabaseAdmin
+      .from('clientes')
+      .select('id, cnpj, razao_social, ultima_compra, total_nfs, total_gasto, rfm_recencia, rfm_frequencia, rfm_valor, rfm_score, rfm_segmento, rfm_calculado_em')
+      .not('rfm_segmento', 'is', null)
+      .order('rfm_score', { ascending: false })
+      .limit(500)
+    if (segmento) q = q.eq('rfm_segmento', segmento)
+    const { data } = await q
+    setClientesRFM((data ?? []) as ClienteRFM[])
+    setLoadingRFM(false)
+  }
+
+  async function recalcularRFM(silent = false) {
+    setRecalculando(true)
+    if (!silent) setRfmMsg(null)
+    const { data, error } = await supabaseAdmin.rpc('fn_calcular_rfm')
+    if (error) {
+      if (!silent) setRfmMsg({ tipo: 'erro', texto: 'Erro ao recalcular: ' + error.message })
+    } else {
+      const res = data as { atualizados: number }
+      if (!silent) setRfmMsg({ tipo: 'ok', texto: `RFM recalculado — ${res.atualizados} clientes atualizados.` })
+      buscarClientesRFM(filtroSegmento)
+    }
+    setRecalculando(false)
   }
 
   function fmtBRL(v: number) {
@@ -321,6 +606,12 @@ export default function AdminClientes() {
         </button>
         <button className={`${styles.aba} ${aba === 'clientes' ? styles.abaAtiva : ''}`} onClick={() => { setAba('clientes'); if (!buscado) buscarClientes() }}>
           👥 Clientes
+        </button>
+        <button className={`${styles.aba} ${aba === 'rfm' ? styles.abaAtiva : ''}`} onClick={() => { setAba('rfm'); if (!rfmBuscado) buscarClientesRFM() }}>
+          📊 RFM
+        </button>
+        <button className={`${styles.aba} ${aba === 'recebidas' ? styles.abaAtiva : ''}`} onClick={() => { setAba('recebidas'); if (!nfsCarregadas) carregarNfsRecebidas() }}>
+          ↓ NFs Recebidas
         </button>
       </div>
 
@@ -475,6 +766,303 @@ export default function AdminClientes() {
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Aba RFM ── */}
+      {aba === 'rfm' && (
+        <div className={styles.rfmWrap}>
+
+          {/* Header: recalcular + filtro + timestamp */}
+          {(() => {
+            const calc = clientesRFM[0]?.rfm_calculado_em
+            const stale = calc && Date.now() - new Date(calc).getTime() > 24 * 3600 * 1000
+            const fmtCalc = calc
+              ? new Date(calc).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+              : null
+            return (
+              <div className={styles.rfmHeader}>
+                <div className={styles.rfmFiltros}>
+                  <select
+                    className={styles.filtroSelect}
+                    value={filtroSegmento}
+                    onChange={e => { setFiltroSegmento(e.target.value); buscarClientesRFM(e.target.value) }}>
+                    <option value="">Todos os segmentos</option>
+                    {Object.entries(SEGMENTO_CONFIG).map(([v, c]) => (
+                      <option key={v} value={v}>{c.label}</option>
+                    ))}
+                  </select>
+                  {fmtCalc && (
+                    <span className={stale ? styles.rfmStale : styles.rfmTimestamp}>
+                      {stale ? `⚠ Desatualizado · ${fmtCalc}` : `✓ Atualizado em ${fmtCalc}`}
+                    </span>
+                  )}
+                  {recalculando && !rfmMsg && (
+                    <span className={styles.rfmTimestamp}>Atualizando…</span>
+                  )}
+                </div>
+                <button className={styles.recalcularBtn} onClick={() => recalcularRFM()} disabled={recalculando}>
+                  {recalculando ? 'Recalculando...' : '↻ Recalcular RFM'}
+                </button>
+              </div>
+            )
+          })()}
+
+          {rfmMsg && (
+            <div className={`${styles.rfmMsg} ${rfmMsg.tipo === 'ok' ? styles.rfmMsgOk : styles.rfmMsgErro}`}>
+              {rfmMsg.texto}
+            </div>
+          )}
+
+          {loadingRFM && <div className={styles.loading}>Carregando...</div>}
+
+          {!loadingRFM && rfmBuscado && clientesRFM.length === 0 && (
+            <div className={styles.vazio}>
+              Nenhum cliente com RFM calculado. Importe NFs e clique em "Recalcular RFM".
+            </div>
+          )}
+
+          {!loadingRFM && clientesRFM.length > 0 && (
+            <div className={styles.tableScroll}>
+              <div className={styles.tableInfo}>{clientesRFM.length} clientes</div>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Segmento</th>
+                    <th>Ação recomendada</th>
+                    <th style={{ textAlign: 'center' }}>Score</th>
+                    <th style={{ textAlign: 'center' }}>R</th>
+                    <th style={{ textAlign: 'center' }}>F</th>
+                    <th style={{ textAlign: 'center' }}>V</th>
+                    <th>Última compra</th>
+                    <th>Total gasto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clientesRFM.map(c => {
+                    const seg = c.rfm_segmento ?? ''
+                    const cfg = SEGMENTO_CONFIG[seg]
+                    return (
+                      <tr key={c.id}>
+                        <td>
+                          <div className={styles.nomeCliente}>{c.razao_social || '—'}</div>
+                          <div className={styles.cnpjSub}>{fmtCnpj(c.cnpj)}</div>
+                        </td>
+                        <td>
+                          {cfg ? (
+                            <span className={styles[cfg.css as keyof typeof styles]}
+                              title={cfg.estrategia}>
+                              {cfg.label}
+                            </span>
+                          ) : (
+                            <span className={styles.badgeRegular}>{seg || '—'}</span>
+                          )}
+                        </td>
+                        <td>
+                          {cfg ? (
+                            <span className={styles.acaoLabel} title={cfg.estrategia}>
+                              {cfg.acao}
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td style={{ textAlign: 'center' }}>
+                          <strong className={styles.scoreVal}>{c.rfm_score ?? '—'}</strong>
+                        </td>
+                        <td style={{ textAlign: 'center' }}><span className={styles.rfmPill}>{c.rfm_recencia ?? '—'}</span></td>
+                        <td style={{ textAlign: 'center' }}><span className={styles.rfmPill}>{c.rfm_frequencia ?? '—'}</span></td>
+                        <td style={{ textAlign: 'center' }}><span className={styles.rfmPill}>{c.rfm_valor ?? '—'}</span></td>
+                        <td className={styles.data}>{fmtData(c.ultima_compra)}</td>
+                        <td className={styles.valor}>{fmtBRL(c.total_gasto)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Aba NFs Recebidas ── */}
+      {aba === 'recebidas' && (
+        <div className={styles.importWrap}>
+
+          <div className={styles.info}>
+            Importe os relatórios de NFs recebidas do NFSTok. Cada NF autorizada gera automaticamente uma despesa pendente no financeiro. A baixa como pago só ocorre após conciliação com o extrato bancário.
+          </div>
+
+          <div className={styles.infoConciliacao}>
+            💡 <strong>Fluxo:</strong> NF importada → despesa <em>pendente</em> no financeiro → extrato bancário confirma → status muda para <em>pago</em>
+          </div>
+
+          <div className={styles.uploadRow}>
+            <div
+              className={`${styles.uploadBox} ${arquivoRecCab ? styles.uploadBoxOk : ''}`}
+              onClick={() => refRecCab.current?.click()}
+            >
+              <input ref={refRecCab} type="file" accept=".csv" style={{ display: 'none' }}
+                onChange={e => setArquivoRecCab(e.target.files?.[0] ?? null)} />
+              <div className={styles.uploadIcon}>📋</div>
+              <div className={styles.uploadTitulo}>Cabeçalho de NFs Recebidas</div>
+              <div className={styles.uploadSub}>
+                {arquivoRecCab ? arquivoRecCab.name : 'Clique para selecionar'}
+              </div>
+              <div className={styles.uploadDica}>nfe-recebidas_*.csv</div>
+            </div>
+
+            <div
+              className={`${styles.uploadBox} ${arquivoRecItens ? styles.uploadBoxOk : ''}`}
+              onClick={() => refRecItens.current?.click()}
+            >
+              <input ref={refRecItens} type="file" accept=".csv" style={{ display: 'none' }}
+                onChange={e => setArquivoRecItens(e.target.files?.[0] ?? null)} />
+              <div className={styles.uploadIcon}>📦</div>
+              <div className={styles.uploadTitulo}>Itens de NFs Recebidas</div>
+              <div className={styles.uploadSub}>
+                {arquivoRecItens ? arquivoRecItens.name : 'Clique para selecionar'}
+              </div>
+              <div className={styles.uploadDica}>itens-nf-es-recebidas_*.csv</div>
+            </div>
+          </div>
+
+          {erroRec && <div className={styles.erro}>{erroRec}</div>}
+
+          <button
+            className={styles.importBtn}
+            onClick={importarRecebidas}
+            disabled={importandoRec || (!arquivoRecCab && !arquivoRecItens)}
+          >
+            {importandoRec ? progressoRec || 'Importando...' : '↓ Importar NFs recebidas'}
+          </button>
+
+          {resultadoRec && (
+            <div className={styles.resultado}>
+              <div className={styles.resultTitulo}>✅ Importação concluída</div>
+              <div className={styles.resultGrid}>
+                <div className={styles.resultCard}>
+                  <span className={styles.resultLabel}>NFs importadas</span>
+                  <span className={styles.resultVal}>{resultadoRec.cabecalho}</span>
+                  {resultadoRec.duplicatas > 0 && (
+                    <span className={styles.resultSub}>{resultadoRec.duplicatas} já existiam (ignoradas)</span>
+                  )}
+                </div>
+                <div className={styles.resultCard}>
+                  <span className={styles.resultLabel}>Itens importados</span>
+                  <span className={styles.resultVal}>{resultadoRec.itens.toLocaleString('pt-BR')}</span>
+                </div>
+                <div className={styles.resultCard}>
+                  <span className={styles.resultLabel}>Despesas criadas</span>
+                  <span className={styles.resultVal}>{resultadoRec.lancamentos}</span>
+                  <span className={styles.resultSub}>pendentes no financeiro</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Listagem de NFs importadas com status financeiro ── */}
+          {nfsCarregadas && (
+            <div style={{ marginTop: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
+                  Documentos importados ({nfsRecebidas.length})
+                </span>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {([
+                    ['todas',    'Todas'],
+                    ['sem_lanc', 'Sem lançamento'],
+                    ['pendente', 'Pendente'],
+                    ['pago',     'Pago'],
+                  ] as const).map(([val, label]) => (
+                    <button key={val}
+                      onClick={() => setNfsFiltro(val)}
+                      className={`${styles.aba} ${nfsFiltro === val ? styles.abaAtiva : ''}`}
+                      style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
+                      {label}
+                    </button>
+                  ))}
+                  <button onClick={carregarNfsRecebidas} disabled={loadingNfs}
+                    style={{ padding: '4px 10px', fontSize: '0.75rem', background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, cursor: 'pointer', color: '#64748b' }}>
+                    {loadingNfs ? '…' : '↻'}
+                  </button>
+                </div>
+              </div>
+
+              {loadingNfs ? (
+                <div style={{ color: '#94a3b8', fontSize: '0.85rem', padding: '16px 0' }}>Carregando…</div>
+              ) : (
+                <div className={styles.tableWrap} style={{ maxHeight: 420, overflowY: 'auto' }}>
+                  <table className={styles.tabelaNfs}>
+                    <thead>
+                      <tr>
+                        <th>NF / Série</th>
+                        <th>CNPJ Fornecedor</th>
+                        <th>Emissão</th>
+                        <th>Valor</th>
+                        <th>Status NF</th>
+                        <th>Financeiro</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {nfsRecebidas
+                        .filter(nf => {
+                          if (nfsFiltro === 'sem_lanc') return !nf.lancamento_id
+                          if (nfsFiltro === 'pendente') return nf.fin_status === 'pendente'
+                          if (nfsFiltro === 'pago')     return nf.fin_status === 'pago'
+                          return true
+                        })
+                        .map(nf => (
+                          <tr key={nf.id}>
+                            <td style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>
+                              {nf.numero ?? '—'}{nf.serie ? ` / ${nf.serie}` : ''}
+                            </td>
+                            <td style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                              {nf.cnpj_fornecedor
+                                ? nf.cnpj_fornecedor.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+                                : '—'}
+                            </td>
+                            <td style={{ fontSize: '0.78rem' }}>
+                              {nf.emissao ? (() => { const [y,m,d] = nf.emissao!.split('-'); return `${d}/${m}/${y}` })() : '—'}
+                            </td>
+                            <td style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+                              {nf.total != null ? 'R$ ' + Number(nf.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '—'}
+                            </td>
+                            <td>
+                              <span style={{
+                                fontSize: '0.72rem', fontWeight: 700, padding: '2px 7px', borderRadius: 10,
+                                background: nf.status === 'Autorizadas' ? '#dcfce7' : '#f3f4f6',
+                                color:      nf.status === 'Autorizadas' ? '#166534' : '#6b7280',
+                              }}>{nf.status ?? '—'}</span>
+                            </td>
+                            <td>
+                              {!nf.lancamento_id
+                                ? <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>sem lançamento</span>
+                                : nf.fin_status === 'pago'
+                                  ? <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#16a34a' }}>✓ Pago #{nf.lancamento_id}</span>
+                                  : nf.fin_status === 'pendente'
+                                    ? <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#d97706' }}>⏱ Pendente #{nf.lancamento_id}</span>
+                                    : <span style={{ fontSize: '0.72rem', color: '#64748b' }}>#{nf.lancamento_id}</span>
+                              }
+                            </td>
+                          </tr>
+                        ))
+                      }
+                      {nfsRecebidas.filter(nf =>
+                        nfsFiltro === 'todas'    ? true :
+                        nfsFiltro === 'sem_lanc' ? !nf.lancamento_id :
+                        nfsFiltro === 'pendente' ? nf.fin_status === 'pendente' :
+                        nf.fin_status === 'pago'
+                      ).length === 0 && (
+                        <tr><td colSpan={6} style={{ textAlign: 'center', color: '#94a3b8', padding: '16px 0', fontSize: '0.85rem' }}>
+                          Nenhum documento neste filtro.
+                        </td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -68,6 +68,7 @@ interface Projeto {
   escala: string | null
   data_projeto: string | null
   produto_padrao_id: number | null
+  fin_lancamento_id: number | null
   created_at: string
   updated_at: string
   qtd_atributos?: number
@@ -201,6 +202,91 @@ function labelStatus(s: string): string {
   return { em_andamento: 'Em andamento', concluido: 'Concluído', cancelado: 'Cancelado' }[s] ?? s
 }
 
+// Extraído da IIFE inline — esbuild/rolldown não aceita IIFE dentro de JSX
+function PrecificacaoPeso({ atributosDetalhe, custoPorKg, setCustoPorKg, margemPct, setMargemPct }: {
+  atributosDetalhe: ProjetoAtributo[]
+  custoPorKg: string
+  setCustoPorKg: (v: string) => void
+  margemPct: string
+  setMargemPct: (v: string) => void
+}) {
+  const atribPeso = atributosDetalhe.find(a => a.chave === 'peso' || a.chave === 'peso_total')
+  const pesoKg    = atribPeso ? parseFloat(atribPeso.valor) : null
+  const custo     = parseFloat(custoPorKg)
+  const margem    = parseFloat(margemPct)
+  const custoBase  = pesoKg != null && !isNaN(custo)  ? pesoKg * custo : null
+  const precoFinal = custoBase != null && !isNaN(margem) ? custoBase * (1 + margem / 100) : null
+
+  return (
+    <div style={{ borderTop: '1px solid var(--color-border)', padding: '16px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <span style={{ fontWeight: 700, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-light)' }}>
+          Precificação por Peso
+        </span>
+        {!atribPeso && (
+          <span style={{ fontSize: '0.75rem', color: '#d97706', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 7px', fontWeight: 600 }}>
+            Atributo "peso" não cadastrado neste projeto
+          </span>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label style={{ fontSize: '0.73rem', fontWeight: 600, color: 'var(--color-text-light)' }}>Custo por kg (R$)</label>
+          <input
+            type="number" min="0" step="0.01"
+            value={custoPorKg}
+            onChange={e => { setCustoPorKg(e.target.value); localStorage.setItem('preco_custo_por_kg', e.target.value) }}
+            style={{ width: 100, padding: '6px 8px', border: '1px solid var(--color-border)', borderRadius: 6, fontSize: '0.88rem' }}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <label style={{ fontSize: '0.73rem', fontWeight: 600, color: 'var(--color-text-light)' }}>Margem (%)</label>
+          <input
+            type="number" min="0" step="1"
+            value={margemPct}
+            onChange={e => { setMargemPct(e.target.value); localStorage.setItem('preco_margem_pct', e.target.value) }}
+            style={{ width: 80, padding: '6px 8px', border: '1px solid var(--color-border)', borderRadius: 6, fontSize: '0.88rem' }}
+          />
+        </div>
+
+        {pesoKg != null ? (
+          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <span style={{ fontSize: '0.73rem', color: 'var(--color-text-light)', fontWeight: 600 }}>Peso total</span>
+              <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{pesoKg.toLocaleString('pt-BR')} kg</span>
+            </div>
+            {custoBase != null && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: '0.73rem', color: 'var(--color-text-light)', fontWeight: 600 }}>Custo base</span>
+                <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{fmtBRL(custoBase)}</span>
+              </div>
+            )}
+            {precoFinal != null && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: '0.73rem', color: 'var(--color-text-light)', fontWeight: 600 }}>Preço sugerido (+{margemPct}%)</span>
+                <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#15803d' }}>{fmtBRL(precoFinal)}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <span style={{ fontSize: '0.83rem', color: '#94a3b8' }}>
+            Cadastre o atributo <strong>peso</strong> (kg) neste projeto para calcular.
+          </span>
+        )}
+      </div>
+
+      {atribPeso && (
+        <div style={{ marginTop: 10, fontSize: '0.75rem', color: 'var(--color-text-light)' }}>
+          Fonte: atributo <code style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: 3 }}>{atribPeso.chave}</code>
+          {atribPeso.unidade ? ` · unidade: ${atribPeso.unidade}` : ''}
+          {' · '}custo/kg e margem salvos localmente por sessão.
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface FichaComponente { nome: string; quantidade: number | null }
 
 async function gerarFichaTecnica(
@@ -309,7 +395,7 @@ async function gerarFichaTecnica(
     <span>Documento gerado em ${dataEmissao}</span>
   </div>
 
-  <script>window.onload = () => { window.print() }<\/script>
+  <script>window.onload = () => { window.print() }</` + `script>
 </body>
 </html>`
 
@@ -326,7 +412,7 @@ function classeStatus(s: string): string {
 
 // ── Componente principal ──────────────────────────────────────────────────────
 
-type Vista = 'lista' | 'form' | 'detalhe' | 'recorrencias' | 'produtos_padrao' | 'catalogo'
+type Vista = 'lista' | 'form' | 'detalhe' | 'recorrencias' | 'produtos_padrao' | 'catalogo' | 'shadow'
 type AbaForm = 'dados' | 'atributos' | 'componentes' | 'anexos'
 
 const FORM_VAZIO = {
@@ -355,6 +441,14 @@ export default function AdminProjetos() {
   const [atributosDetalhe, setAtributosDetalhe] = useState<ProjetoAtributo[]>([])
   const [anexosDetalhe, setAnexosDetalhe] = useState<ProjetoAnexo[]>([])
   const [loadingDetalhe, setLoadingDetalhe] = useState(false)
+
+  // ── Precificação por peso ──────────────────────────────────────────────────
+  const [custoPorKg, setCustoPorKg] = useState<string>(() =>
+    localStorage.getItem('preco_custo_por_kg') ?? '45'
+  )
+  const [margemPct, setMargemPct] = useState<string>(() =>
+    localStorage.getItem('preco_margem_pct') ?? '30'
+  )
 
   // ── Formulário ─────────────────────────────────────────────────────────────
   const [form, setForm] = useState({ ...FORM_VAZIO })
@@ -390,6 +484,51 @@ export default function AdminProjetos() {
       .single()
       .then(({ data }) => setShadowEnabled(data?.habilitado === true))
   }, [])
+
+  // ── Shadow log ────────────────────────────────────────────────────────────
+  interface ShadowEntry {
+    id: number
+    consulta_hash: string
+    projeto_id_query: number | null
+    jaccard_ids: number[]
+    jaccard_scores: number[]
+    jaccard_ms: number | null
+    vector_ids: number[]
+    vector_scores: number[]
+    vector_ms: number | null
+    vector_skip: string | null
+    divergencia: number | null
+    sobreposicao_n: number | null
+    top_n_usado: number
+    modelo_embedding: string | null
+    created_at: string
+  }
+
+  const [shadowLog,        setShadowLog]        = useState<ShadowEntry[]>([])
+  const [shadowCarregando, setShadowCarregando] = useState(false)
+  const [shadowPeriodo,    setShadowPeriodo]    = useState<'7d' | '30d' | 'todos'>('30d')
+  const [shadowFiltro,     setShadowFiltro]     = useState<'todos' | 'concordam' | 'divergem' | 'sem_vector' | 'sem_match'>('todos')
+
+  const carregarShadow = useCallback(async () => {
+    setShadowCarregando(true)
+    let q = supabaseAdmin
+      .from('similarity_shadow_log')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500)
+    if (shadowPeriodo !== 'todos') {
+      const dias = shadowPeriodo === '7d' ? 7 : 30
+      const desde = new Date(Date.now() - dias * 86400 * 1000).toISOString()
+      q = q.gte('created_at', desde)
+    }
+    const { data } = await q
+    setShadowLog((data ?? []) as ShadowEntry[])
+    setShadowCarregando(false)
+  }, [shadowPeriodo])
+
+  useEffect(() => {
+    if (vista === 'shadow') carregarShadow()
+  }, [vista, carregarShadow])
 
   // ── Produtos Padrão ────────────────────────────────────────────────────────
   const [produtosPadrao, setProdutosPadrao] = useState<ProdutoPadrao[]>([])
@@ -673,6 +812,55 @@ export default function AdminProjetos() {
     if (!confirm(`Excluir "${projeto.titulo}"?\n\nEssa ação remove o projeto e todos os seus atributos, componentes e anexos.`)) return
     await supabaseAdmin.from('projetos').delete().eq('id', projeto.id)
     await carregarLista()
+  }
+
+  // ── Gerar recebível financeiro ─────────────────────────────────────────────
+  async function gerarRecebivel(projeto: Projeto) {
+    if (!projeto.valor_total) return
+    if (!confirm(`Gerar recebível de ${fmtBRL(projeto.valor_total)} para "${projeto.titulo}"?\n\nUm lançamento será criado no Financeiro com status "pendente".`)) return
+
+    // Busca categoria "Serviço / Projeto" (receita)
+    const { data: cats } = await supabaseAdmin
+      .from('fin_categorias')
+      .select('id')
+      .eq('tipo', 'receita')
+      .ilike('nome', '%projeto%')
+      .limit(1)
+    const categoriaId = (cats ?? [])[0]?.id ?? null
+
+    const descricao = [projeto.codigo, projeto.titulo, projeto.cliente_nome].filter(Boolean).join(' — ')
+    const dataVencimento = projeto.data_conclusao ?? new Date().toISOString().slice(0, 10)
+
+    const { data: lanc, error } = await supabaseAdmin
+      .from('fin_lancamentos')
+      .insert({
+        tipo:            'receita',
+        descricao,
+        valor:           projeto.valor_total,
+        status:          'pendente',
+        data_vencimento: dataVencimento,
+        categoria_id:    categoriaId,
+        origem:          'projeto',
+        nf_chave:        null,
+      })
+      .select('id')
+      .single()
+
+    if (error || !lanc) {
+      alert('Erro ao criar lançamento: ' + (error?.message ?? 'desconhecido'))
+      return
+    }
+
+    // Vincula o lançamento ao projeto
+    await supabaseAdmin
+      .from('projetos')
+      .update({ fin_lancamento_id: lanc.id })
+      .eq('id', projeto.id)
+
+    // Atualiza estado local
+    setProjetoAtual(p => p ? { ...p, fin_lancamento_id: lanc.id } : p)
+    setProjetos(ps => ps.map(p => p.id === projeto.id ? { ...p, fin_lancamento_id: lanc.id } : p))
+    alert('Recebível criado com sucesso. Acesse Financeiro → Lançamentos para acompanhar.')
   }
 
   // ── Abrir detalhe ──────────────────────────────────────────────────────────
@@ -1029,6 +1217,10 @@ export default function AdminProjetos() {
         className={`${styles.navPrincipalBtn} ${vista === 'catalogo' ? styles.navPrincipalAtivo : ''}`}
         onClick={() => setVista('catalogo')}
       >🗂 Catálogo</button>
+      <button
+        className={`${styles.navPrincipalBtn} ${vista === 'shadow' ? styles.navPrincipalAtivo : ''}`}
+        onClick={() => setVista('shadow')}
+      >🔬 Shadow Log</button>
     </div>
   )
 
@@ -1176,6 +1368,16 @@ export default function AdminProjetos() {
               componentes: (comps ?? []) as { nome: string; quantidade: number | null }[],
             }})
           }}>📄 Gerar Orçamento</button>
+          {projetoAtual.valor_total && !projetoAtual.fin_lancamento_id && (
+            <button className={styles.btnSuccess} onClick={() => gerarRecebivel(projetoAtual)}>
+              💰 Gerar Recebível
+            </button>
+          )}
+          {projetoAtual.fin_lancamento_id && (
+            <span className={styles.badgeFinanceiro} title={`Lançamento #${projetoAtual.fin_lancamento_id} criado no Financeiro`}>
+              ✓ Recebível
+            </span>
+          )}
           <button className={styles.btnPrimary} onClick={() => abrirFormEditar(projetoAtual)}>✏️ Editar</button>
         </div>
       </div>
@@ -1280,8 +1482,18 @@ export default function AdminProjetos() {
               )}
             </div>
           </div>
+
         )}
       </div>
+
+      {/* ── Precificação por peso ─────────────────────────────────────── */}
+      {!loadingDetalhe && <PrecificacaoPeso
+        atributosDetalhe={atributosDetalhe}
+        custoPorKg={custoPorKg}
+        setCustoPorKg={setCustoPorKg}
+        margemPct={margemPct}
+        setMargemPct={setMargemPct}
+      />}
     </div>
   )
 
@@ -1621,6 +1833,263 @@ export default function AdminProjetos() {
       </div>
     </div>
   )
+
+  // VISTA: SHADOW LOG
+  if (vista === 'shadow') {
+    // ── Métricas calculadas client-side ───────────────────────────────────────
+    const total        = shadowLog.length
+    const comVector    = shadowLog.filter(e => e.vector_skip === null)
+    const semVector    = shadowLog.filter(e => e.vector_skip !== null)
+    const concordamTotal   = comVector.filter(e => e.divergencia === 0)
+    const concordamParcial = comVector.filter(e => e.divergencia != null && e.divergencia > 0 && e.divergencia < 0.5)
+    const divergemForte    = comVector.filter(e => e.divergencia != null && e.divergencia >= 0.5)
+    const soJaccard   = comVector.filter(e => e.jaccard_ids.length > 0 && e.vector_ids.length === 0)
+    const soVector    = comVector.filter(e => e.jaccard_ids.length === 0 && e.vector_ids.length > 0)
+    const ambosVazio  = shadowLog.filter(e => e.jaccard_ids.length === 0 && e.vector_ids.length === 0)
+
+    const mediaDiv = comVector.length > 0
+      ? comVector.reduce((s, e) => s + (e.divergencia ?? 0), 0) / comVector.length
+      : null
+    const concordanciaPct = mediaDiv != null ? Math.round((1 - mediaDiv) * 100) : null
+
+    const mediaJacMs  = shadowLog.filter(e => e.jaccard_ms != null).length
+      ? (shadowLog.reduce((s, e) => s + (e.jaccard_ms ?? 0), 0) / shadowLog.filter(e => e.jaccard_ms != null).length).toFixed(0)
+      : null
+    const mediaVecMs  = comVector.filter(e => e.vector_ms != null).length
+      ? (comVector.reduce((s, e) => s + (e.vector_ms ?? 0), 0) / comVector.filter(e => e.vector_ms != null).length).toFixed(0)
+      : null
+
+    // ── Filtro de tabela ──────────────────────────────────────────────────────
+    const entradaFiltrada = shadowLog.filter(e => {
+      if (shadowFiltro === 'concordam')   return e.vector_skip === null && (e.divergencia ?? 1) < 0.5
+      if (shadowFiltro === 'divergem')    return e.vector_skip === null && (e.divergencia ?? 0) >= 0.5
+      if (shadowFiltro === 'sem_vector')  return e.vector_skip !== null
+      if (shadowFiltro === 'sem_match')   return e.jaccard_ids.length === 0 && e.vector_ids.length === 0
+      return true
+    })
+
+    function fmtDiv(d: number | null) {
+      if (d === null) return '—'
+      if (d === 0)    return <span className={styles.shadowConcorda}>0% div.</span>
+      if (d < 0.5)    return <span className={styles.shadowConcordaParcial}>{Math.round(d * 100)}% div.</span>
+      return <span className={styles.shadowDiverge}>{Math.round(d * 100)}% div.</span>
+    }
+
+    function fmtSkip(skip: string | null) {
+      if (!skip) return null
+      const label = skip.length > 30 ? skip.slice(0, 30) + '…' : skip
+      return <span className={styles.shadowBadgeSkip} title={skip}>{label}</span>
+    }
+
+    return (
+      <div className={styles.wrap}>
+        <div className={styles.pageHeader}>
+          <div>
+            <div className={styles.pageTitle}>📐 Projetos Sob Medida</div>
+            <div className={styles.pageSubtitle}>Shadow log — Jaccard vs Vetorial</div>
+          </div>
+          {navPrincipal}
+        </div>
+
+        {/* Nota de interpretação */}
+        <div className={styles.shadowNota}>
+          ⚠ Este painel mostra <strong>comparação relativa</strong> entre os dois motores — não prova qual é mais preciso.
+          Sem confirmação humana dos matches, concordância alta não implica superioridade de nenhum algoritmo.
+          {!shadowEnabled && <> · <strong>Shadow mode desabilitado</strong>: novos registros pulam o vetorial (vector_skip preenchido).</>}
+        </div>
+
+        {/* Filtros de período */}
+        <div className={styles.shadowControles}>
+          <div className={styles.shadowFiltros}>
+            {(['7d', '30d', 'todos'] as const).map(p => (
+              <button key={p}
+                className={`${styles.shadowFiltroBtn} ${shadowPeriodo === p ? styles.shadowFiltroBtnAtivo : ''}`}
+                onClick={() => setShadowPeriodo(p)}>
+                {p === '7d' ? 'Últimos 7 dias' : p === '30d' ? 'Últimos 30 dias' : 'Todos'}
+              </button>
+            ))}
+          </div>
+          <button className={styles.btnSecondary}
+            onClick={carregarShadow} disabled={shadowCarregando}
+            style={{ fontSize: '0.8rem', padding: '5px 12px' }}>
+            {shadowCarregando ? 'Carregando…' : '↻ Atualizar'}
+          </button>
+        </div>
+
+        {/* KPIs */}
+        <div className={styles.shadowKpis}>
+          <div className={styles.shadowKpi}>
+            <span className={styles.shadowKpiVal}>{total}</span>
+            <span className={styles.shadowKpiLabel}>comparações</span>
+          </div>
+          <div className={styles.shadowKpiDiv} />
+          <div className={styles.shadowKpi}>
+            <span className={styles.shadowKpiVal}>{comVector.length}</span>
+            <span className={styles.shadowKpiLabel}>com vetorial</span>
+          </div>
+          <div className={styles.shadowKpi}>
+            <span className={styles.shadowKpiVal}>{semVector.length}</span>
+            <span className={styles.shadowKpiLabel}>puladas (skip)</span>
+          </div>
+          <div className={styles.shadowKpiDiv} />
+          <div className={styles.shadowKpi}>
+            <span className={`${styles.shadowKpiVal} ${styles.shadowKpiOk}`}>
+              {concordanciaPct != null ? `${concordanciaPct}%` : '—'}
+            </span>
+            <span className={styles.shadowKpiLabel}>concordância média</span>
+          </div>
+          <div className={styles.shadowKpi}>
+            <span className={`${styles.shadowKpiVal} ${divergemForte.length > 0 ? styles.shadowKpiAlerta : ''}`}>
+              {concordamTotal.length}
+            </span>
+            <span className={styles.shadowKpiLabel}>concordam totalmente</span>
+          </div>
+          <div className={styles.shadowKpi}>
+            <span className={`${styles.shadowKpiVal} ${divergemForte.length > 0 ? styles.shadowKpiAlerta : ''}`}>
+              {divergemForte.length}
+            </span>
+            <span className={styles.shadowKpiLabel}>divergem forte (≥50%)</span>
+          </div>
+          <div className={styles.shadowKpiDiv} />
+          <div className={styles.shadowKpi}>
+            <span className={styles.shadowKpiVal}>{soJaccard.length}</span>
+            <span className={styles.shadowKpiLabel}>só Jaccard encontrou</span>
+          </div>
+          <div className={styles.shadowKpi}>
+            <span className={styles.shadowKpiVal}>{soVector.length}</span>
+            <span className={styles.shadowKpiLabel}>só vetorial encontrou</span>
+          </div>
+          <div className={styles.shadowKpi}>
+            <span className={styles.shadowKpiVal}>{ambosVazio.length}</span>
+            <span className={styles.shadowKpiLabel}>ambos sem match</span>
+          </div>
+          {(mediaJacMs || mediaVecMs) && <div className={styles.shadowKpiDiv} />}
+          {mediaJacMs && (
+            <div className={styles.shadowKpi}>
+              <span className={styles.shadowKpiVal}>{mediaJacMs}ms</span>
+              <span className={styles.shadowKpiLabel}>latência Jaccard</span>
+            </div>
+          )}
+          {mediaVecMs && (
+            <div className={styles.shadowKpi}>
+              <span className={styles.shadowKpiVal}>{mediaVecMs}ms</span>
+              <span className={styles.shadowKpiLabel}>latência vetorial</span>
+            </div>
+          )}
+        </div>
+
+        {/* Breakdown de concordância */}
+        {comVector.length > 0 && (
+          <div className={styles.shadowBreakdown}>
+            <span className={styles.shadowBreakdownTitulo}>Distribuição (com vetorial: {comVector.length})</span>
+            <div className={styles.shadowBreakdownBars}>
+              {[
+                { label: 'Concordam 100%', count: concordamTotal.length, css: styles.barVerde },
+                { label: 'Concordam parcial', count: concordamParcial.length, css: styles.barAmbar },
+                { label: 'Divergem forte', count: divergemForte.length, css: styles.barVerm },
+                { label: 'Só Jaccard', count: soJaccard.length, css: styles.barCinza },
+                { label: 'Só vetorial', count: soVector.length, css: styles.barAzul },
+              ].map(({ label, count, css }) => (
+                <div key={label} className={styles.shadowBreakdownRow}>
+                  <span className={styles.shadowBreakdownLabel}>{label}</span>
+                  <div className={styles.shadowBarTrack}>
+                    <div className={`${styles.shadowBar} ${css}`}
+                      style={{ width: `${comVector.length ? Math.round(count / comVector.length * 100) : 0}%` }} />
+                  </div>
+                  <span className={styles.shadowBreakdownCount}>{count} ({comVector.length ? Math.round(count / comVector.length * 100) : 0}%)</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Filtro tipo */}
+        <div className={styles.shadowFiltros} style={{ marginTop: 8 }}>
+          {([
+            ['todos',      'Todos'],
+            ['concordam',  'Concordam'],
+            ['divergem',   'Divergem forte'],
+            ['sem_vector', 'Skip vetorial'],
+            ['sem_match',  'Sem match'],
+          ] as const).map(([val, label]) => (
+            <button key={val}
+              className={`${styles.shadowFiltroBtn} ${shadowFiltro === val ? styles.shadowFiltroBtnAtivo : ''}`}
+              onClick={() => setShadowFiltro(val)}>
+              {label} {val === 'todos' ? `(${total})` : val === 'concordam' ? `(${concordamTotal.length + concordamParcial.length})` : val === 'divergem' ? `(${divergemForte.length})` : val === 'sem_vector' ? `(${semVector.length})` : `(${ambosVazio.length})`}
+            </button>
+          ))}
+        </div>
+
+        {/* Tabela de casos */}
+        {shadowCarregando ? (
+          <div style={{ color: '#94a3b8', padding: '24px 0', fontSize: '0.9rem' }}>Carregando…</div>
+        ) : entradaFiltrada.length === 0 ? (
+          <div style={{ color: '#94a3b8', padding: '24px 0', fontSize: '0.9rem' }}>
+            {total === 0 ? 'Nenhum registro no shadow log ainda. O shadow mode precisa estar habilitado e projetos precisam ser buscados.' : 'Nenhum caso neste filtro.'}
+          </div>
+        ) : (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th style={{ width: 140 }}>Data</th>
+                  <th style={{ width: 90 }}>Divergência</th>
+                  <th style={{ width: 80 }}>Sobrep.</th>
+                  <th>Top Jaccard</th>
+                  <th>Top Vetorial</th>
+                  <th style={{ width: 80 }}>Jac ms</th>
+                  <th style={{ width: 80 }}>Vec ms</th>
+                  <th>Skip / Modelo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entradaFiltrada.slice(0, 100).map(e => (
+                  <tr key={e.id}>
+                    <td style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      {new Date(e.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td>{fmtDiv(e.divergencia)}</td>
+                    <td style={{ textAlign: 'center', fontSize: '0.82rem' }}>
+                      {e.sobreposicao_n != null ? `${e.sobreposicao_n}/${e.top_n_usado}` : '—'}
+                    </td>
+                    <td style={{ fontSize: '0.78rem' }}>
+                      {e.jaccard_ids.length > 0
+                        ? `#${e.jaccard_ids[0]} (${e.jaccard_scores[0] != null ? Number(e.jaccard_scores[0]).toFixed(2) : '?'})`
+                        : <span style={{ color: '#94a3b8' }}>sem match</span>}
+                    </td>
+                    <td style={{ fontSize: '0.78rem' }}>
+                      {e.vector_skip !== null
+                        ? <span style={{ color: '#94a3b8' }}>pulado</span>
+                        : e.vector_ids.length > 0
+                          ? `#${e.vector_ids[0]} (${e.vector_scores[0] != null ? Number(e.vector_scores[0]).toFixed(2) : '?'})`
+                          : <span style={{ color: '#94a3b8' }}>sem match</span>}
+                    </td>
+                    <td style={{ fontSize: '0.78rem', color: '#64748b', textAlign: 'right' }}>
+                      {e.jaccard_ms != null ? `${Number(e.jaccard_ms).toFixed(0)}` : '—'}
+                    </td>
+                    <td style={{ fontSize: '0.78rem', color: '#64748b', textAlign: 'right' }}>
+                      {e.vector_ms != null ? `${Number(e.vector_ms).toFixed(0)}` : '—'}
+                    </td>
+                    <td style={{ fontSize: '0.75rem' }}>
+                      {fmtSkip(e.vector_skip)}
+                      {!e.vector_skip && e.modelo_embedding && (
+                        <span style={{ color: '#94a3b8' }}>{e.modelo_embedding}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {entradaFiltrada.length > 100 && (
+              <div style={{ padding: '8px 16px', fontSize: '0.8rem', color: '#94a3b8' }}>
+                Mostrando 100 de {entradaFiltrada.length} registros. Ajuste o período ou filtro para focar.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   // VISTA: CATÁLOGO
   if (vista === 'catalogo') {

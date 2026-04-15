@@ -35,6 +35,22 @@ import AdminClientes from './pages/AdminClientes'
 import AdminProdutos from './pages/AdminProdutos'
 import AdminProjetos from './pages/AdminProjetos'
 import AdminFornecedores from './pages/AdminFornecedores'
+import AdminFinanceiro from './pages/AdminFinanceiro'
+import AdminCampanhas from './pages/AdminCampanhas'
+import AdminConciliacao from './pages/AdminConciliacao'
+import AdminPipeline from './pages/AdminPipeline'
+import AdminProducao from './pages/AdminProducao'
+import AdminQualidade from './pages/AdminQualidade'
+import AdminManutencao from './pages/AdminManutencao'
+import AdminDocsRecebidos from './pages/AdminDocsRecebidos'
+import AdminDocsEmitidos from './pages/AdminDocsEmitidos'
+import AdminEstoqueMp from './pages/AdminEstoqueMp'
+import AdminEstoquePa from './pages/AdminEstoquePa'
+import AdminInventario from './pages/AdminInventario'
+import AdminSolicitacoesCompra from './pages/AdminSolicitacoesCompra'
+import AdminCotacoesCompra from './pages/AdminCotacoesCompra'
+import AdminPedidosCompra from './pages/AdminPedidosCompra'
+import AdminRecebimentosCompra from './pages/AdminRecebimentosCompra'
 
 const WA_LINK = 'https://wa.me/553534238994?text=Olá%2C%20gostaria%20de%20solicitar%20um%20orçamento.'
 
@@ -119,6 +135,22 @@ function App() {
             <Route path="produtos" element={<AdminProdutos />} />
             <Route path="projetos" element={<AdminProjetos />} />
             <Route path="fornecedores" element={<AdminFornecedores />} />
+            <Route path="financeiro" element={<AdminFinanceiro />} />
+            <Route path="campanhas"    element={<AdminCampanhas />} />
+            <Route path="conciliacao" element={<AdminConciliacao />} />
+            <Route path="pipeline"    element={<AdminPipeline />} />
+            <Route path="producao"             element={<AdminProducao />} />
+            <Route path="qualidade"            element={<AdminQualidade />} />
+            <Route path="manutencao"           element={<AdminManutencao />} />
+            <Route path="solicitacoes-compra"  element={<AdminSolicitacoesCompra />} />
+            <Route path="cotacoes-compra"      element={<AdminCotacoesCompra />} />
+            <Route path="pedidos-compra"       element={<AdminPedidosCompra />} />
+            <Route path="recebimentos-compra"  element={<AdminRecebimentosCompra />} />
+            <Route path="estoque-mp"           element={<AdminEstoqueMp />} />
+            <Route path="estoque-pa"           element={<AdminEstoquePa />} />
+            <Route path="inventario"           element={<AdminInventario />} />
+            <Route path="docs-recebidos"       element={<AdminDocsRecebidos />} />
+            <Route path="docs-emitidos"        element={<AdminDocsEmitidos />} />
           </Route>
           <Route path="/obrigado" element={<Obrigado />} />
         </Routes>

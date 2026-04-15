@@ -1,0 +1,1162 @@
+import { useState, useEffect, useCallback } from 'react'
+import { supabaseAdmin } from '../lib/supabase'
+import { useAdmin } from '../contexts/AdminContext'
+import styles from './AdminFinanceiro.module.css'
+
+// ── Tipos ─────────────────────────────────────────────────────────────────────
+
+interface Categoria  { id: number; nome: string; tipo: 'receita' | 'despesa'; grupo: string; cor: string; ativo: boolean }
+interface CentroCusto { id: number; nome: string; descricao: string | null; ativo: boolean }
+
+interface Lancamento {
+  id: number
+  tipo: 'receita' | 'despesa'
+  descricao: string
+  valor: number
+  data_competencia: string
+  data_vencimento: string
+  data_pagamento: string | null
+  status: 'pendente' | 'pago' | 'cancelado' | 'parcial'
+  forma_pagamento: string | null
+  condicao_pagamento: string | null
+  numero_parcelas: number
+  categoria_id: number | null
+  centro_custo_id: number | null
+  nf_chave: string | null
+  observacao: string | null
+  origem: 'manual' | 'venda' | 'nf' | 'projeto' | 'sistema'
+  created_at: string
+  fin_categorias?: { nome: string; cor: string } | null
+  fin_centros_custo?: { nome: string } | null
+}
+
+interface SaldoMes {
+  mes: string
+  total_receitas: number
+  total_despesas: number
+  saldo: number
+  pendentes: number
+  vencidos_receber: number
+  vencidos_pagar: number
+}
+
+interface Movimentacao {
+  id: number
+  tipo: 'entrada' | 'saida'
+  valor: number
+  data: string
+  conta: string
+  descricao: string | null
+  lancamento_id: number | null
+}
+
+interface AgingResumo {
+  faixa: string
+  quantidade: number
+  total: number
+  prioritarios: number
+}
+
+interface AgingItem {
+  id: number
+  descricao: string
+  valor: number
+  data_vencimento: string
+  origem: string
+  prioridade: boolean
+  cobranca_status: string
+  cobranca_obs: string | null
+  cobranca_em: string | null
+  cliente_id: number | null
+  dias_atraso: number
+  faixa: string
+  cliente_nome: string | null
+  rfm_segmento: string | null
+  cliente_telefone: string | null
+}
+
+const RFM_SEGMENTO_CONFIG: Record<string, { label: string; css: string; acao: string; alerta?: boolean }> = {
+  VIP:        { label: 'VIP',        css: 'rfmVIP',        acao: 'Abordagem personalizada — contato direto' },
+  Recorrente: { label: 'Recorrente', css: 'rfmRecorrente', acao: 'Lembrete amigável — preservar relação'    },
+  Regular:    { label: 'Regular',    css: 'rfmRegular',    acao: 'Cobrança padrão'                          },
+  Novo:       { label: 'Novo',       css: 'rfmNovo',       acao: 'Atenção especial — primeira experiência', alerta: true },
+  'Em Risco': { label: 'Em Risco',   css: 'rfmEmRisco',   acao: 'Prioridade alta — contato urgente',       alerta: true },
+  Inativo:    { label: 'Inativo',    css: 'rfmInativo',    acao: 'Cobrança direta'                         },
+}
+
+type Aba = 'painel' | 'lancamentos' | 'recebiveis' | 'fluxo' | 'configuracao'
+
+const COBRANCA_STATUS_LABELS: Record<string, string> = {
+  nao_cobrado:  'Não cobrado',
+  cobrado:      'Cobrado',
+  negociado:    'Em negociação',
+  prometido:    'Prometido',
+  inadimplente: 'Inadimplente',
+}
+
+const FAIXA_LABELS: Record<string, string> = {
+  a_vencer:       'A vencer',
+  vencido_1_7:    '1–7 dias',
+  vencido_8_30:   '8–30 dias',
+  vencido_31_plus: '31+ dias',
+}
+
+const FORMAS_PAGAMENTO = [
+  { value: 'pix',           label: 'PIX' },
+  { value: 'transferencia', label: 'Transferência' },
+  { value: 'boleto',        label: 'Boleto' },
+  { value: 'dinheiro',      label: 'Dinheiro' },
+  { value: 'cartao_credito',label: 'Cartão de Crédito' },
+  { value: 'cartao_debito', label: 'Cartão de Débito' },
+  { value: 'cheque',        label: 'Cheque' },
+  { value: 'outro',         label: 'Outro' },
+]
+
+const CONDICOES = [
+  { value: 'a_vista',   label: 'À Vista' },
+  { value: 'parcelado', label: 'Parcelado' },
+  { value: '7d',  label: '7 dias'  }, { value: '14d', label: '14 dias' },
+  { value: '21d', label: '21 dias' }, { value: '28d', label: '28 dias' },
+  { value: '30d', label: '30 dias' }, { value: '45d', label: '45 dias' },
+  { value: '60d', label: '60 dias' }, { value: '90d', label: '90 dias' },
+]
+
+const ORIGENS_LABEL: Record<string, string> = {
+  venda:   'Venda',
+  nf:      'NF importada',
+  projeto: 'Projeto',
+  sistema: 'Automático',
+  manual:  'Manual',
+}
+
+const hoje = () => new Date().toISOString().slice(0, 10)
+const mesAtual = () => {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function fmtBRL(v: number, ocultar = false) {
+  if (ocultar) return '••••'
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+function fmtData(v: string | null) {
+  if (!v) return '—'
+  const [y, m, d] = v.slice(0, 10).split('-')
+  return `${d}/${m}/${y}`
+}
+
+const FORM_VAZIO = {
+  tipo: 'despesa' as 'receita' | 'despesa',   // despesas são mais comuns no manual
+  descricao: '',
+  valor: '',
+  data_competencia: hoje(),
+  data_vencimento: hoje(),
+  forma_pagamento: 'pix',
+  condicao_pagamento: 'a_vista',
+  numero_parcelas: '1',
+  categoria_id: '',
+  centro_custo_id: '',
+  nf_chave: '',
+  observacao: '',
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
+
+export default function AdminFinanceiro() {
+  const { ocultarValores } = useAdmin()
+  const [aba, setAba] = useState<Aba>('painel')
+
+  const [saldoMes, setSaldoMes]         = useState<SaldoMes | null>(null)
+  const [lancamentos, setLancamentos]   = useState<Lancamento[]>([])
+  const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([])
+  const [categorias, setCategorias]     = useState<Categoria[]>([])
+  const [centros, setCentros]           = useState<CentroCusto[]>([])
+
+  const [loading, setLoading]   = useState(true)
+  const [salvando, setSalvando] = useState(false)
+  const [msg, setMsg]           = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
+
+  // Formulário manual — oculto por padrão (fallback operacional)
+  const [mostrarForm, setMostrarForm] = useState(false)
+  const [form, setForm]               = useState(FORM_VAZIO)
+
+  // Filtros
+  const [filtroTipo,   setFiltroTipo]   = useState<'' | 'receita' | 'despesa'>('')
+  const [filtroStatus, setFiltroStatus] = useState<'' | 'pendente' | 'pago' | 'cancelado' | 'parcial'>('')
+  const [filtroOrigem, setFiltroOrigem] = useState<'' | 'manual' | 'automatico'>('')
+  const [filtroMes,    setFiltroMes]    = useState(mesAtual())
+
+  // Aging
+  const [agingResumo, setAgingResumo] = useState<AgingResumo[]>([])
+  const [aging, setAging]             = useState<AgingItem[]>([])
+  const [filtroFaixa, setFiltroFaixa] = useState<string>('')
+  const [filtroCobrStatus, setFiltroCobrStatus] = useState<string>('')
+  const [filtroPrioridade, setFiltroPrioridade] = useState(false)
+  const [filtroRFMSegmento, setFiltroRFMSegmento] = useState<string>('')
+  const [editandoObsId, setEditandoObsId] = useState<number | null>(null)
+  const [obsTexto, setObsTexto]           = useState('')
+
+  // Baixa inline
+  const [baixandoId, setBaixandoId] = useState<number | null>(null)
+  const [dataBaixa,  setDataBaixa]  = useState(hoje())
+
+  // Config
+  const [formCat,    setFormCat]    = useState({ nome: '', tipo: 'receita' as 'receita' | 'despesa', grupo: '', cor: '#16a34a' })
+  const [formCentro, setFormCentro] = useState({ nome: '', descricao: '' })
+  const [salvandoCat,    setSalvandoCat]    = useState(false)
+  const [salvandoCentro, setSalvandoCentro] = useState(false)
+
+  useEffect(() => {
+    if (!msg) return
+    const t = setTimeout(() => setMsg(null), 3500)
+    return () => clearTimeout(t)
+  }, [msg])
+
+  // ── Carga ──────────────────────────────────────────────────────────────────
+
+  const carregarTudo = useCallback(async () => {
+    setLoading(true)
+    const [{ data: cats }, { data: cts }] = await Promise.all([
+      supabaseAdmin.from('fin_categorias').select('*').eq('ativo', true).order('grupo').order('nome'),
+      supabaseAdmin.from('fin_centros_custo').select('*').eq('ativo', true).order('nome'),
+    ])
+    setCategorias(cats ?? [])
+    setCentros(cts ?? [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { carregarTudo() }, [carregarTudo])
+
+  const carregarSaldo = useCallback(async () => {
+    const { data } = await supabaseAdmin
+      .from('vw_fin_saldo_mes')
+      .select('*')
+      .order('mes', { ascending: false })
+      .limit(1)
+      .single()
+    setSaldoMes(data ?? null)
+  }, [])
+
+  const carregarLancamentos = useCallback(async () => {
+    let q = supabaseAdmin
+      .from('fin_lancamentos')
+      .select('*, fin_categorias(nome, cor), fin_centros_custo(nome)')
+      .order('data_vencimento', { ascending: false })
+      .limit(100)
+
+    if (filtroTipo)   q = q.eq('tipo', filtroTipo)
+    if (filtroStatus) q = q.eq('status', filtroStatus)
+    if (filtroOrigem === 'manual')     q = q.eq('origem', 'manual')
+    if (filtroOrigem === 'automatico') q = q.neq('origem', 'manual')
+    if (filtroMes) {
+      const [y, m] = filtroMes.split('-')
+      const fim = new Date(Number(y), Number(m), 0).toISOString().slice(0, 10)
+      q = q.gte('data_competencia', `${y}-${m}-01`).lte('data_competencia', fim)
+    }
+    const { data } = await q
+    setLancamentos((data ?? []) as Lancamento[])
+  }, [filtroTipo, filtroStatus, filtroOrigem, filtroMes])
+
+  const carregarMovimentacoes = useCallback(async () => {
+    const { data } = await supabaseAdmin
+      .from('fin_movimentacoes')
+      .select('*')
+      .order('data', { ascending: false })
+      .limit(100)
+    setMovimentacoes((data ?? []) as Movimentacao[])
+  }, [])
+
+  const carregarAgingResumo = useCallback(async () => {
+    const { data } = await supabaseAdmin.from('vw_fin_aging_resumo').select('*')
+    setAgingResumo((data ?? []) as AgingResumo[])
+  }, [])
+
+  const carregarAging = useCallback(async () => {
+    let q = supabaseAdmin
+      .from('vw_fin_aging')
+      .select('*')
+      .order('dias_atraso', { ascending: false })
+      .limit(200)
+    if (filtroFaixa)        q = q.eq('faixa', filtroFaixa)
+    if (filtroCobrStatus)   q = q.eq('cobranca_status', filtroCobrStatus)
+    if (filtroPrioridade)   q = q.eq('prioridade', true)
+    if (filtroRFMSegmento)  q = q.eq('rfm_segmento', filtroRFMSegmento)
+    const { data } = await q
+    setAging((data ?? []) as AgingItem[])
+  }, [filtroFaixa, filtroCobrStatus, filtroPrioridade, filtroRFMSegmento])
+
+  useEffect(() => {
+    if (aba === 'painel')      { carregarSaldo(); carregarAgingResumo() }
+    if (aba === 'lancamentos') carregarLancamentos()
+    if (aba === 'recebiveis')  carregarAging()
+    if (aba === 'fluxo')       carregarMovimentacoes()
+  }, [aba, carregarSaldo, carregarAgingResumo, carregarLancamentos, carregarAging, carregarMovimentacoes])
+
+  useEffect(() => {
+    if (aba === 'lancamentos') carregarLancamentos()
+  }, [filtroTipo, filtroStatus, filtroOrigem, filtroMes, aba, carregarLancamentos])
+
+  useEffect(() => {
+    if (aba === 'recebiveis') carregarAging()
+  }, [filtroFaixa, filtroCobrStatus, filtroPrioridade, filtroRFMSegmento, aba, carregarAging])
+
+  // ── Salvar lançamento manual ───────────────────────────────────────────────
+
+  async function salvarLancamento(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.descricao.trim() || !form.valor) {
+      setMsg({ tipo: 'erro', texto: 'Preencha descrição e valor.' })
+      return
+    }
+    setSalvando(true)
+    const { error } = await supabaseAdmin.from('fin_lancamentos').insert({
+      tipo:               form.tipo,
+      descricao:          form.descricao.trim(),
+      valor:              parseFloat(form.valor),
+      data_competencia:   form.data_competencia,
+      data_vencimento:    form.data_vencimento,
+      forma_pagamento:    form.forma_pagamento || null,
+      condicao_pagamento: form.condicao_pagamento || null,
+      numero_parcelas:    parseInt(form.numero_parcelas) || 1,
+      categoria_id:       form.categoria_id    ? parseInt(form.categoria_id)    : null,
+      centro_custo_id:    form.centro_custo_id ? parseInt(form.centro_custo_id) : null,
+      nf_chave:           form.nf_chave.trim() || null,
+      observacao:         form.observacao.trim() || null,
+      status:             'pendente',
+      origem:             'manual',   // sempre manual aqui
+    })
+    if (error) {
+      setMsg({ tipo: 'erro', texto: 'Erro ao salvar: ' + error.message })
+    } else {
+      setMsg({ tipo: 'ok', texto: 'Lançamento manual registrado.' })
+      setForm(FORM_VAZIO)
+      setMostrarForm(false)
+      carregarLancamentos()
+      carregarSaldo()
+    }
+    setSalvando(false)
+  }
+
+  // ── Baixar (marcar como pago) ──────────────────────────────────────────────
+
+  async function baixarLancamento(lanc: Lancamento) {
+    setSalvando(true)
+    const { error } = await supabaseAdmin
+      .from('fin_lancamentos')
+      .update({ status: 'pago', data_pagamento: dataBaixa })
+      .eq('id', lanc.id)
+
+    if (!error) {
+      await supabaseAdmin.from('fin_movimentacoes').insert({
+        lancamento_id: lanc.id,
+        tipo:          lanc.tipo === 'receita' ? 'entrada' : 'saida',
+        valor:         lanc.valor,
+        data:          dataBaixa,
+        conta:         lanc.forma_pagamento === 'dinheiro' ? 'caixa' : 'banco',
+        descricao:     lanc.descricao,
+      })
+      setMsg({ tipo: 'ok', texto: 'Baixa registrada.' })
+      setBaixandoId(null)
+      carregarLancamentos()
+      carregarSaldo()
+    } else {
+      setMsg({ tipo: 'erro', texto: 'Erro ao baixar: ' + error.message })
+    }
+    setSalvando(false)
+  }
+
+  async function togglePrioridade(item: AgingItem) {
+    await supabaseAdmin
+      .from('fin_lancamentos')
+      .update({ prioridade: !item.prioridade })
+      .eq('id', item.id)
+    carregarAging()
+  }
+
+  async function atualizarCobrancaStatus(id: number, status: string) {
+    await supabaseAdmin
+      .from('fin_lancamentos')
+      .update({ cobranca_status: status, cobranca_em: new Date().toISOString() })
+      .eq('id', id)
+    carregarAging()
+  }
+
+  async function salvarObsCobranca(item: AgingItem) {
+    await supabaseAdmin
+      .from('fin_lancamentos')
+      .update({ cobranca_obs: obsTexto.trim() || null })
+      .eq('id', item.id)
+    setEditandoObsId(null)
+    carregarAging()
+  }
+
+  async function baixarDoAging(item: AgingItem) {
+    const data = prompt('Data de recebimento (AAAA-MM-DD):', hoje())
+    if (!data) return
+    const { error } = await supabaseAdmin
+      .from('fin_lancamentos')
+      .update({ status: 'pago', data_pagamento: data })
+      .eq('id', item.id)
+    if (!error) {
+      await supabaseAdmin.from('fin_movimentacoes').insert({
+        lancamento_id: item.id,
+        tipo:          'entrada',
+        valor:         item.valor,
+        data,
+        conta:         'banco',
+        descricao:     item.descricao,
+      })
+      setMsg({ tipo: 'ok', texto: 'Recebimento registrado.' })
+      carregarAging()
+      carregarAgingResumo()
+      carregarSaldo()
+    } else {
+      setMsg({ tipo: 'erro', texto: 'Erro: ' + error.message })
+    }
+  }
+
+  async function cancelarLancamento(id: number) {
+    if (!confirm('Cancelar este lançamento?')) return
+    const { error } = await supabaseAdmin
+      .from('fin_lancamentos').update({ status: 'cancelado' }).eq('id', id)
+    if (!error) { carregarLancamentos(); carregarSaldo() }
+  }
+
+  // ── Config ─────────────────────────────────────────────────────────────────
+
+  async function salvarCategoria(e: React.FormEvent) {
+    e.preventDefault()
+    if (!formCat.nome.trim()) return
+    setSalvandoCat(true)
+    const { error } = await supabaseAdmin.from('fin_categorias').insert({
+      nome: formCat.nome.trim(), tipo: formCat.tipo,
+      grupo: formCat.grupo.trim() || null, cor: formCat.cor,
+    })
+    if (!error) {
+      setMsg({ tipo: 'ok', texto: 'Categoria criada.' })
+      setFormCat({ nome: '', tipo: 'receita', grupo: '', cor: '#16a34a' })
+      carregarTudo()
+    }
+    setSalvandoCat(false)
+  }
+
+  async function salvarCentro(e: React.FormEvent) {
+    e.preventDefault()
+    if (!formCentro.nome.trim()) return
+    setSalvandoCentro(true)
+    const { error } = await supabaseAdmin.from('fin_centros_custo').insert({
+      nome: formCentro.nome.trim(), descricao: formCentro.descricao.trim() || null,
+    })
+    if (!error) {
+      setMsg({ tipo: 'ok', texto: 'Centro criado.' })
+      setFormCentro({ nome: '', descricao: '' })
+      carregarTudo()
+    }
+    setSalvandoCentro(false)
+  }
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function statusEfetivo(lanc: Lancamento) {
+    if (lanc.status !== 'pendente') return lanc.status
+    return lanc.data_vencimento < hoje() ? 'vencido' : 'pendente'
+  }
+
+  function BadgeStatus({ status }: { status: string }) {
+    const map: Record<string, string> = {
+      pago: styles.badgePago, pendente: styles.badgePendente,
+      vencido: styles.badgeVencido, parcial: styles.badgeParcial,
+      cancelado: styles.badgeCancelado,
+    }
+    const labels: Record<string, string> = {
+      pago: 'Pago', pendente: 'Pendente', parcial: 'Parcial',
+      cancelado: 'Cancelado', vencido: 'Vencido',
+    }
+    return <span className={map[status] ?? styles.badgePendente}>{labels[status] ?? status}</span>
+  }
+
+  function BadgeOrigem({ origem }: { origem: string }) {
+    const isAuto = origem !== 'manual'
+    return (
+      <span className={isAuto ? styles.origemAuto : styles.origemManual}>
+        {isAuto ? '⚡' : '✍'} {ORIGENS_LABEL[origem] ?? origem}
+      </span>
+    )
+  }
+
+  const catsPorTipo = (tipo: 'receita' | 'despesa') => categorias.filter(c => c.tipo === tipo)
+
+  if (loading) return <div className={styles.loading}>Carregando...</div>
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
+  return (
+    <div className={styles.wrap}>
+
+      {msg && (
+        <div className={`${styles.msg} ${msg.tipo === 'ok' ? styles.msgOk : styles.msgErro}`}>
+          {msg.texto}
+        </div>
+      )}
+
+      {/* Abas */}
+      <div className={styles.abas}>
+        {([
+          { key: 'painel',       label: '📊 Painel'          },
+          { key: 'lancamentos',  label: '📋 Lançamentos'     },
+          { key: 'recebiveis',   label: '⏰ Recebíveis'      },
+          { key: 'fluxo',        label: '💰 Fluxo de Caixa'  },
+          { key: 'configuracao', label: '⚙️ Configuração'    },
+        ] as { key: Aba; label: string }[]).map(a => (
+          <button key={a.key}
+            className={`${styles.aba} ${aba === a.key ? styles.abaAtiva : ''}`}
+            onClick={() => setAba(a.key)}>
+            {a.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ══ PAINEL ══════════════════════════════════════════════════════════ */}
+      {aba === 'painel' && (
+        <div className={styles.painelWrap}>
+
+          {/* Banner automation-first */}
+          <div className={styles.autoFirst}>
+            <span className={styles.autoFirstIcon}>⚡</span>
+            <div>
+              <strong>Lançamentos automáticos</strong>
+              <p>Receitas nascem em <strong>Vendas</strong>. Despesas nascem de <strong>NFs importadas</strong> e <strong>Projetos</strong>. O lançamento manual é reservado para ajustes, taxas e exceções.</p>
+            </div>
+          </div>
+
+          {/* Cards */}
+          <div className={styles.cards}>
+            <div className={`${styles.card} ${styles.cardReceita}`}>
+              <span className={styles.cardLabel}>Receitas do mês</span>
+              <strong className={styles.cardVal}>{fmtBRL(saldoMes?.total_receitas ?? 0, ocultarValores)}</strong>
+            </div>
+            <div className={`${styles.card} ${styles.cardDespesa}`}>
+              <span className={styles.cardLabel}>Despesas do mês</span>
+              <strong className={styles.cardVal}>{fmtBRL(saldoMes?.total_despesas ?? 0, ocultarValores)}</strong>
+            </div>
+            <div className={`${styles.card} ${(saldoMes?.saldo ?? 0) >= 0 ? styles.cardSaldoPos : styles.cardSaldoNeg}`}>
+              <span className={styles.cardLabel}>Saldo do mês</span>
+              <strong className={styles.cardVal}>{fmtBRL(saldoMes?.saldo ?? 0, ocultarValores)}</strong>
+            </div>
+            <div className={`${styles.card} ${styles.cardAlerta}`}>
+              <span className={styles.cardLabel}>A receber (vencidos)</span>
+              <strong className={styles.cardVal}>{fmtBRL(saldoMes?.vencidos_receber ?? 0, ocultarValores)}</strong>
+            </div>
+            <div className={`${styles.card} ${styles.cardAlerta}`}>
+              <span className={styles.cardLabel}>A pagar (vencidos)</span>
+              <strong className={styles.cardVal}>{fmtBRL(saldoMes?.vencidos_pagar ?? 0, ocultarValores)}</strong>
+            </div>
+            <div className={styles.card}>
+              <span className={styles.cardLabel}>Pendentes</span>
+              <strong className={styles.cardVal}>{saldoMes?.pendentes ?? 0}</strong>
+            </div>
+          </div>
+
+          {/* Aging de recebíveis */}
+          {agingResumo.length > 0 && (
+            <div>
+              <div className={styles.secaoTitulo}>
+                Recebíveis em aberto
+                <button className={styles.btnLinkSmall} onClick={() => setAba('recebiveis')}>
+                  Ver todos →
+                </button>
+              </div>
+              <div className={styles.agingCards}>
+                {(['a_vencer', 'vencido_1_7', 'vencido_8_30', 'vencido_31_plus'] as const).map(faixa => {
+                  const item = agingResumo.find(r => r.faixa === faixa)
+                  if (!item) return null
+                  return (
+                    <div key={faixa}
+                      className={`${styles.agingCard} ${faixa !== 'a_vencer' ? styles.agingCardVencido : ''}`}
+                      onClick={() => { setFiltroFaixa(faixa); setAba('recebiveis') }}>
+                      <span className={styles.agingFaixa}>{FAIXA_LABELS[faixa]}</span>
+                      <strong className={styles.agingTotal}>{fmtBRL(item.total, ocultarValores)}</strong>
+                      <span className={styles.agingQtd}>{item.quantidade} título{item.quantidade !== 1 ? 's' : ''}</span>
+                      {item.prioritarios > 0 && (
+                        <span className={styles.agingPrioritarios}>⭐ {item.prioritarios} prioritári{item.prioritarios !== 1 ? 'os' : 'o'}</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Atalhos de origem */}
+          <div className={styles.atalhos}>
+            <div className={styles.atalho}>
+              <span className={styles.atalhoIcon}>📦</span>
+              <div>
+                <div className={styles.atalhoTitulo}>Recebimento de venda</div>
+                <div className={styles.atalhoDesc}>Ao registrar uma venda em <strong>Vendas</strong>, o lançamento financeiro é criado automaticamente como pago</div>
+              </div>
+              <span className={styles.atalhoStatusOk}>⚡ Ativo</span>
+            </div>
+            <div className={styles.atalho}>
+              <span className={styles.atalhoIcon}>🧾</span>
+              <div>
+                <div className={styles.atalhoTitulo}>Lançar despesa de NF</div>
+                <div className={styles.atalhoDesc}>Integração com importação de NFs de entrada ainda não implementada — use lançamento manual por enquanto</div>
+              </div>
+              <span className={styles.atalhoStatus}>Em breve</span>
+            </div>
+            <div className={styles.atalho}>
+              <span className={styles.atalhoIcon}>📐</span>
+              <div>
+                <div className={styles.atalhoTitulo}>Lançar receita de projeto</div>
+                <div className={styles.atalhoDesc}>Vá em <strong>Projetos</strong> → detalhe do projeto → botão "💰 Gerar Recebível"</div>
+              </div>
+              <span className={styles.atalhoStatusOk}>⚡ Ativo</span>
+            </div>
+          </div>
+
+          {/* Acesso ao manual */}
+          <div className={styles.manualAcesso}>
+            <button className={styles.btnSecondary}
+              onClick={() => { setAba('lancamentos'); setMostrarForm(true) }}>
+              ✍ Lançamento manual (ajuste / taxa / exceção)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══ LANÇAMENTOS ═════════════════════════════════════════════════════ */}
+      {aba === 'lancamentos' && (
+        <div className={styles.lancWrap}>
+
+          {/* Filtros */}
+          <div className={styles.filtros}>
+            <select className={styles.filtroSelect} value={filtroTipo}
+              onChange={e => setFiltroTipo(e.target.value as typeof filtroTipo)}>
+              <option value="">Todos os tipos</option>
+              <option value="receita">Receitas</option>
+              <option value="despesa">Despesas</option>
+            </select>
+            <select className={styles.filtroSelect} value={filtroStatus}
+              onChange={e => setFiltroStatus(e.target.value as typeof filtroStatus)}>
+              <option value="">Todos os status</option>
+              <option value="pendente">Pendente</option>
+              <option value="pago">Pago</option>
+              <option value="parcial">Parcial</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+            <select className={styles.filtroSelect} value={filtroOrigem}
+              onChange={e => setFiltroOrigem(e.target.value as typeof filtroOrigem)}>
+              <option value="">Todas as origens</option>
+              <option value="automatico">⚡ Automáticos</option>
+              <option value="manual">✍ Manuais</option>
+            </select>
+            <input type="month" className={styles.filtroSelect}
+              value={filtroMes} onChange={e => setFiltroMes(e.target.value)} />
+
+            {/* Lançamento manual — secundário, não é o CTA principal */}
+            <button className={styles.btnManual}
+              onClick={() => setMostrarForm(v => !v)}>
+              {mostrarForm ? '✕ Fechar' : '✍ Lançamento manual'}
+            </button>
+          </div>
+
+          {/* Formulário manual — área secundária, colapsável */}
+          {mostrarForm && (
+            <details open className={styles.formManualWrap}>
+              <summary className={styles.formManualSummary}>
+                ✍ Lançamento manual — use apenas para ajustes, taxas, sangrias e exceções
+              </summary>
+              <form className={styles.form} onSubmit={salvarLancamento}>
+
+                {/* Tipo */}
+                <div className={styles.tipoToggle}>
+                  {(['receita', 'despesa'] as const).map(t => (
+                    <button key={t} type="button"
+                      className={`${styles.tipoBtn} ${form.tipo === t ? (t === 'receita' ? styles.tipoBtnReceita : styles.tipoBtnDespesa) : ''}`}
+                      onClick={() => setForm(f => ({ ...f, tipo: t }))}>
+                      {t === 'receita' ? '↑ Receita' : '↓ Despesa'}
+                    </button>
+                  ))}
+                </div>
+
+                <div className={styles.row2}>
+                  <div className={styles.field}>
+                    <label>Descrição *</label>
+                    <input className={styles.input} value={form.descricao}
+                      onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))}
+                      placeholder="Ex: Taxa bancária, Sangria, Ajuste..." required />
+                  </div>
+                  <div className={styles.field}>
+                    <label>Valor (R$) *</label>
+                    <input className={styles.input} type="number" step="0.01" min="0.01"
+                      value={form.valor}
+                      onChange={e => setForm(f => ({ ...f, valor: e.target.value }))}
+                      placeholder="0,00" required />
+                  </div>
+                </div>
+
+                <div className={styles.row3}>
+                  <div className={styles.field}>
+                    <label>Data de competência *</label>
+                    <input className={styles.input} type="date" value={form.data_competencia}
+                      onChange={e => setForm(f => ({ ...f, data_competencia: e.target.value }))} required />
+                  </div>
+                  <div className={styles.field}>
+                    <label>Data de vencimento *</label>
+                    <input className={styles.input} type="date" value={form.data_vencimento}
+                      onChange={e => setForm(f => ({ ...f, data_vencimento: e.target.value }))} required />
+                  </div>
+                  <div className={styles.field}>
+                    <label>Parcelas</label>
+                    <input className={styles.input} type="number" min="1" max="60"
+                      value={form.numero_parcelas}
+                      onChange={e => setForm(f => ({ ...f, numero_parcelas: e.target.value }))} />
+                  </div>
+                </div>
+
+                <div className={styles.row3}>
+                  <div className={styles.field}>
+                    <label>Forma de pagamento</label>
+                    <select className={styles.input} value={form.forma_pagamento}
+                      onChange={e => setForm(f => ({ ...f, forma_pagamento: e.target.value }))}>
+                      {FORMAS_PAGAMENTO.map(fp => (
+                        <option key={fp.value} value={fp.value}>{fp.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className={styles.field}>
+                    <label>Condição</label>
+                    <select className={styles.input} value={form.condicao_pagamento}
+                      onChange={e => setForm(f => ({ ...f, condicao_pagamento: e.target.value }))}>
+                      {CONDICOES.map(c => (
+                        <option key={c.value} value={c.value}>{c.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className={styles.field}>
+                    <label>Categoria</label>
+                    <select className={styles.input} value={form.categoria_id}
+                      onChange={e => setForm(f => ({ ...f, categoria_id: e.target.value }))}>
+                      <option value="">— sem categoria —</option>
+                      {catsPorTipo(form.tipo).map(c => (
+                        <option key={c.id} value={c.id}>{c.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className={styles.row2}>
+                  <div className={styles.field}>
+                    <label>Centro de custo</label>
+                    <select className={styles.input} value={form.centro_custo_id}
+                      onChange={e => setForm(f => ({ ...f, centro_custo_id: e.target.value }))}>
+                      <option value="">— sem centro —</option>
+                      {centros.map(c => (
+                        <option key={c.id} value={c.id}>{c.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className={styles.field}>
+                    <label>Chave NF-e (referência)</label>
+                    <input className={styles.input} value={form.nf_chave}
+                      onChange={e => setForm(f => ({ ...f, nf_chave: e.target.value }))}
+                      placeholder="44 dígitos (opcional)" maxLength={44} />
+                  </div>
+                </div>
+
+                <div className={styles.field}>
+                  <label>Observação</label>
+                  <input className={styles.input} value={form.observacao}
+                    onChange={e => setForm(f => ({ ...f, observacao: e.target.value }))}
+                    placeholder="Informação adicional..." />
+                </div>
+
+                <div className={styles.formActions}>
+                  <button type="button" className={styles.btnSecondary}
+                    onClick={() => { setMostrarForm(false); setForm(FORM_VAZIO) }}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className={styles.btnPrimary} disabled={salvando}>
+                    {salvando ? 'Salvando...' : 'Registrar lançamento manual'}
+                  </button>
+                </div>
+              </form>
+            </details>
+          )}
+
+          {/* Tabela */}
+          {lancamentos.length === 0 ? (
+            <div className={styles.vazio}>Nenhum lançamento encontrado para os filtros selecionados.</div>
+          ) : (
+            <div className={styles.tableScroll}>
+              <table className={styles.tabela}>
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Descrição</th>
+                    <th>Origem</th>
+                    <th>Categoria</th>
+                    <th>Vencimento</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lancamentos.map(lanc => (
+                    <tr key={lanc.id} className={lanc.origem === 'manual' ? styles.rowManual : ''}>
+                      <td>
+                        <span className={lanc.tipo === 'receita' ? styles.tipoReceita : styles.tipoDespesa}>
+                          {lanc.tipo === 'receita' ? '↑' : '↓'} {lanc.tipo}
+                        </span>
+                      </td>
+                      <td>
+                        <div className={styles.descCell}>{lanc.descricao}</div>
+                        {lanc.observacao && <div className={styles.obs}>{lanc.observacao}</div>}
+                      </td>
+                      <td><BadgeOrigem origem={lanc.origem} /></td>
+                      <td>
+                        {lanc.fin_categorias ? (
+                          <span className={styles.catBadge} style={{ borderColor: lanc.fin_categorias.cor }}>
+                            {lanc.fin_categorias.nome}
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td className={styles.data}>{fmtData(lanc.data_vencimento)}</td>
+                      <td className={lanc.tipo === 'receita' ? styles.valorReceita : styles.valorDespesa}>
+                        {fmtBRL(lanc.valor, ocultarValores)}
+                      </td>
+                      <td><BadgeStatus status={statusEfetivo(lanc)} /></td>
+                      <td>
+                        {lanc.status === 'pendente' && (
+                          baixandoId === lanc.id ? (
+                            <div className={styles.baixaInline}>
+                              <input type="date" className={styles.inputSmall}
+                                value={dataBaixa} onChange={e => setDataBaixa(e.target.value)} />
+                              <button className={styles.btnBaixa} disabled={salvando}
+                                onClick={() => baixarLancamento(lanc)}>
+                                {salvando ? '...' : '✓ Baixar'}
+                              </button>
+                              <button className={styles.btnCancelarBaixa}
+                                onClick={() => setBaixandoId(null)}>✕</button>
+                            </div>
+                          ) : (
+                            <div className={styles.acoes}>
+                              <button className={styles.btnBaixar}
+                                onClick={() => { setBaixandoId(lanc.id); setDataBaixa(hoje()) }}>
+                                Baixar
+                              </button>
+                              <button className={styles.btnCancelar}
+                                onClick={() => cancelarLancamento(lanc.id)}>
+                                Cancelar
+                              </button>
+                            </div>
+                          )
+                        )}
+                        {lanc.status === 'pago' && (
+                          <span className={styles.pagoDia}>{fmtData(lanc.data_pagamento)}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ RECEBÍVEIS ══════════════════════════════════════════════════════ */}
+      {aba === 'recebiveis' && (
+        <div className={styles.lancWrap}>
+
+          {/* Filtros */}
+          <div className={styles.filtros}>
+            <select className={styles.filtroSelect} value={filtroFaixa}
+              onChange={e => setFiltroFaixa(e.target.value)}>
+              <option value="">Todas as faixas</option>
+              <option value="a_vencer">A vencer</option>
+              <option value="vencido_1_7">Vencido 1–7 dias</option>
+              <option value="vencido_8_30">Vencido 8–30 dias</option>
+              <option value="vencido_31_plus">Vencido 31+ dias</option>
+            </select>
+            <select className={styles.filtroSelect} value={filtroCobrStatus}
+              onChange={e => setFiltroCobrStatus(e.target.value)}>
+              <option value="">Todos os status</option>
+              {Object.entries(COBRANCA_STATUS_LABELS).map(([v, l]) => (
+                <option key={v} value={v}>{l}</option>
+              ))}
+            </select>
+            <select className={styles.filtroSelect} value={filtroRFMSegmento}
+              onChange={e => setFiltroRFMSegmento(e.target.value)}>
+              <option value="">Todos os segmentos</option>
+              {Object.keys(RFM_SEGMENTO_CONFIG).map(s => (
+                <option key={s} value={s}>{RFM_SEGMENTO_CONFIG[s].label}</option>
+              ))}
+            </select>
+            <label className={styles.checkLabel}>
+              <input type="checkbox" checked={filtroPrioridade}
+                onChange={e => setFiltroPrioridade(e.target.checked)} />
+              Só prioritários
+            </label>
+          </div>
+
+          {aging.length === 0 ? (
+            <div className={styles.vazio}>Nenhum recebível pendente para os filtros selecionados.</div>
+          ) : (
+            <div className={styles.tableScroll}>
+              <table className={styles.tabela}>
+                <thead>
+                  <tr>
+                    <th>⭐</th>
+                    <th>Descrição / Cliente</th>
+                    <th>RFM</th>
+                    <th>Vencimento</th>
+                    <th>Atraso</th>
+                    <th>Valor</th>
+                    <th>Cobrança</th>
+                    <th>Observação</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {aging.map(item => (
+                    <tr key={item.id} className={item.prioridade ? styles.rowPrioritario : ''}>
+                      <td>
+                        <button
+                          className={`${styles.btnEstrela} ${item.prioridade ? styles.btnEstrelaAtiva : ''}`}
+                          title={item.prioridade ? 'Remover prioridade' : 'Marcar como prioritário'}
+                          onClick={() => togglePrioridade(item)}>
+                          {item.prioridade ? '⭐' : '☆'}
+                        </button>
+                      </td>
+                      <td>
+                        <div className={styles.descCell}>{item.descricao}</div>
+                        {item.cliente_nome && (
+                          <div className={styles.clienteNomeAging}>{item.cliente_nome}</div>
+                        )}
+                        <BadgeOrigem origem={item.origem} />
+                      </td>
+                      <td>
+                        {item.rfm_segmento ? (() => {
+                          const cfg = RFM_SEGMENTO_CONFIG[item.rfm_segmento]
+                          return cfg ? (
+                            <span className={styles[cfg.css as keyof typeof styles]}
+                              title={cfg.acao}>
+                              {cfg.label}
+                            </span>
+                          ) : <span className={styles.rfmRegular}>{item.rfm_segmento}</span>
+                        })() : <span className={styles.rfmSemDado}>—</span>}
+                      </td>
+                      <td className={styles.data}>{fmtData(item.data_vencimento)}</td>
+                      <td>
+                        <span className={
+                          item.faixa === 'a_vencer'        ? styles.badgeFaixaOk :
+                          item.faixa === 'vencido_1_7'     ? styles.badgeFaixaLeve :
+                          item.faixa === 'vencido_8_30'    ? styles.badgeFaixaMedio :
+                                                             styles.badgeFaixaGrave
+                        }>
+                          {item.dias_atraso <= 0 ? `em ${Math.abs(item.dias_atraso)}d` : `${item.dias_atraso}d`}
+                        </span>
+                      </td>
+                      <td className={styles.valorReceita}>{fmtBRL(item.valor, ocultarValores)}</td>
+                      <td>
+                        <select
+                          className={styles.selectCobranca}
+                          value={item.cobranca_status}
+                          onChange={e => atualizarCobrancaStatus(item.id, e.target.value)}>
+                          {Object.entries(COBRANCA_STATUS_LABELS).map(([v, l]) => (
+                            <option key={v} value={v}>{l}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        {editandoObsId === item.id ? (
+                          <div className={styles.obsInline}>
+                            <input className={styles.inputSmall} autoFocus
+                              value={obsTexto}
+                              onChange={e => setObsTexto(e.target.value)}
+                              onKeyDown={e => { if (e.key === 'Enter') salvarObsCobranca(item); if (e.key === 'Escape') setEditandoObsId(null) }}
+                              placeholder="Observação..." />
+                            <button className={styles.btnBaixa} onClick={() => salvarObsCobranca(item)}>✓</button>
+                            <button className={styles.btnCancelarBaixa} onClick={() => setEditandoObsId(null)}>✕</button>
+                          </div>
+                        ) : (
+                          <span className={styles.obsClick}
+                            onClick={() => { setEditandoObsId(item.id); setObsTexto(item.cobranca_obs ?? '') }}
+                            title="Clique para editar">
+                            {item.cobranca_obs || <span className={styles.obsVazio}>+ obs</span>}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <button className={styles.btnBaixar} onClick={() => baixarDoAging(item)}>
+                          Receber
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ FLUXO DE CAIXA ══════════════════════════════════════════════════ */}
+      {aba === 'fluxo' && (
+        <div className={styles.fluxoWrap}>
+          <div className={styles.fluxoInfo}>
+            Extrato operacional — apenas movimentações de caixa reais. Lançamentos pendentes não aparecem aqui.
+          </div>
+
+          {movimentacoes.length === 0 ? (
+            <div className={styles.vazio}>
+              Nenhuma movimentação ainda. As entradas e saídas aparecem aqui quando você baixar um lançamento.
+            </div>
+          ) : (
+            <>
+              {(() => {
+                const saldo = movimentacoes.reduce((acc, m) =>
+                  acc + (m.tipo === 'entrada' ? m.valor : -m.valor), 0)
+                return (
+                  <div className={styles.saldoExtrato}>
+                    <span>Saldo do extrato:</span>
+                    <strong className={saldo >= 0 ? styles.saldoPos : styles.saldoNeg}>
+                      {fmtBRL(saldo, ocultarValores)}
+                    </strong>
+                  </div>
+                )
+              })()}
+
+              <div className={styles.tableScroll}>
+                <table className={styles.tabela}>
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Descrição</th>
+                      <th>Conta</th>
+                      <th>Entrada</th>
+                      <th>Saída</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {movimentacoes.map(m => (
+                      <tr key={m.id}>
+                        <td className={styles.data}>{fmtData(m.data)}</td>
+                        <td className={styles.descCell}>{m.descricao ?? '—'}</td>
+                        <td><span className={styles.contaBadge}>{m.conta}</span></td>
+                        <td className={styles.valorReceita}>
+                          {m.tipo === 'entrada' ? fmtBRL(m.valor, ocultarValores) : ''}
+                        </td>
+                        <td className={styles.valorDespesa}>
+                          {m.tipo === 'saida' ? fmtBRL(m.valor, ocultarValores) : ''}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ══ CONFIGURAÇÃO ════════════════════════════════════════════════════ */}
+      {aba === 'configuracao' && (
+        <div className={styles.configWrap}>
+
+          {/* Categorias */}
+          <div>
+            <div className={styles.configSecao}>Categorias</div>
+            <form className={styles.formSmall} onSubmit={salvarCategoria}>
+              <div className={styles.row3}>
+                <div className={styles.field}>
+                  <label>Nome *</label>
+                  <input className={styles.input} value={formCat.nome}
+                    onChange={e => setFormCat(f => ({ ...f, nome: e.target.value }))}
+                    placeholder="Ex: Comissão de vendas" required />
+                </div>
+                <div className={styles.field}>
+                  <label>Tipo</label>
+                  <select className={styles.input} value={formCat.tipo}
+                    onChange={e => setFormCat(f => ({ ...f, tipo: e.target.value as 'receita' | 'despesa' }))}>
+                    <option value="receita">Receita</option>
+                    <option value="despesa">Despesa</option>
+                  </select>
+                </div>
+                <div className={styles.field}>
+                  <label>Grupo</label>
+                  <input className={styles.input} value={formCat.grupo}
+                    onChange={e => setFormCat(f => ({ ...f, grupo: e.target.value }))}
+                    placeholder="Ex: Operacional" />
+                </div>
+              </div>
+              <div className={styles.formActions}>
+                <label className={styles.field} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: '0.81rem', fontWeight: 600 }}>Cor</span>
+                  <input type="color" className={styles.inputColor} value={formCat.cor}
+                    onChange={e => setFormCat(f => ({ ...f, cor: e.target.value }))} />
+                </label>
+                <button type="submit" className={styles.btnPrimary} disabled={salvandoCat}>
+                  {salvandoCat ? 'Salvando...' : 'Criar categoria'}
+                </button>
+              </div>
+            </form>
+
+            <div className={styles.listaConfig}>
+              {(['receita', 'despesa'] as const).map(tipo => (
+                <div key={tipo}>
+                  <div className={styles.grupoTitulo}>{tipo === 'receita' ? '↑ Receitas' : '↓ Despesas'}</div>
+                  <div className={styles.catGrid}>
+                    {catsPorTipo(tipo).map(c => (
+                      <div key={c.id} className={styles.catItem} style={{ borderLeftColor: c.cor }}>
+                        <span className={styles.catNome}>{c.nome}</span>
+                        {c.grupo && <span className={styles.catGrupo}>{c.grupo}</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Centros de custo */}
+          <div>
+            <div className={styles.configSecao}>Centros de Custo</div>
+            <form className={styles.formSmall} onSubmit={salvarCentro}>
+              <div className={styles.row2}>
+                <div className={styles.field}>
+                  <label>Nome *</label>
+                  <input className={styles.input} value={formCentro.nome}
+                    onChange={e => setFormCentro(f => ({ ...f, nome: e.target.value }))}
+                    placeholder="Ex: Exportação" required />
+                </div>
+                <div className={styles.field}>
+                  <label>Descrição</label>
+                  <input className={styles.input} value={formCentro.descricao}
+                    onChange={e => setFormCentro(f => ({ ...f, descricao: e.target.value }))}
+                    placeholder="Opcional" />
+                </div>
+              </div>
+              <div className={styles.formActions}>
+                <button type="submit" className={styles.btnPrimary} disabled={salvandoCentro}>
+                  {salvandoCentro ? 'Salvando...' : 'Criar centro'}
+                </button>
+              </div>
+            </form>
+            <div className={styles.catGrid} style={{ marginTop: 16 }}>
+              {centros.map(c => (
+                <div key={c.id} className={styles.catItem} style={{ borderLeftColor: 'var(--color-primary)' }}>
+                  <span className={styles.catNome}>{c.nome}</span>
+                  {c.descricao && <span className={styles.catGrupo}>{c.descricao}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
