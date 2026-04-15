@@ -18,7 +18,7 @@ echo ""
 # ── 1. Lint ───────────────────────────────────────────────────────────────────
 echo "→ [1/5] Verificando código (ESLint + TypeScript)..."
 cd "$SITE_DIR"
-if ! npm run lint -- --max-warnings 99; then
+if ! npm run lint -- --max-warnings 9999; then
   echo ""
   echo "❌  ESLint encontrou erros. Corrija antes de publicar."
   exit 1

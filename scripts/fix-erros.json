@@ -1,0 +1,927 @@
+[
+  {
+    "uf": "MG",
+    "cidade": "UBERLANDIA",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "AL",
+    "cidade": "MACEIO",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "DF",
+    "cidade": "BRASILIA",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "GO",
+    "cidade": "GOIANIA",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "MA",
+    "cidade": "SAO LUIS",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "MT",
+    "cidade": "CUIABA",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "PA",
+    "cidade": "BELEM",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "PA",
+    "cidade": "BRAGANCA",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "PA",
+    "cidade": "CANAA DOS CARAJAS",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "PA",
+    "cidade": "SANTAREM",
+    "erro": "read ECONNRESET"
+  },
+  {
+    "uf": "PA",
+    "cidade": "TAILANDIA",
+    "erro": ""
+  },
+  {
+    "uf": "PB",
+    "cidade": "JOAO PESSOA",
+    "erro": ""
+  },
+  {
+    "uf": "PE",
+    "cidade": "JABOATAO DOS GUARARAPES",
+    "erro": ""
+  },
+  {
+    "uf": "PR",
+    "cidade": "ALMIRANTE TAMANDARE",
+    "erro": ""
+  },
+  {
+    "uf": "PR",
+    "cidade": "ARAUCARIA",
+    "erro": ""
+  },
+  {
+    "uf": "PR",
+    "cidade": "FOZ DO IGUACU",
+    "erro": ""
+  },
+  {
+    "uf": "PR",
+    "cidade": "FRANCISCO BELTRAO",
+    "erro": ""
+  },
+  {
+    "uf": "PR",
+    "cidade": "GOIOERE",
+    "erro": ""
+  },
+  {
+    "uf": "PR",
+    "cidade": "MARECHAL CANDIDO RONDON",
+    "erro": ""
+  },
+  {
+    "uf": "PR",
+    "cidade": "MARINGA",
+    "erro": ""
+  },
+  {
+    "uf": "PR",
+    "cidade": "PARANAGUA",
+    "erro": ""
+  },
+  {
+    "uf": "PR",
+    "cidade": "PARANAVAI",
+    "erro": ""
+  },
+  {
+    "uf": "PR",
+    "cidade": "SAO JOSE DOS PINHAIS",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "BARRA DO PIRAI",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "ITABORAI",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "ITAGUAI",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "MACAE",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "MAGE",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "MARICA",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "NILOPOLIS",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "NITEROI",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "NOVA IGUACU",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "PARAIBA DO SUL",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "PETROPOLIS",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "SAO GONCALO",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "SAO JOAO DE MERITI",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "SAO PEDRO DA ALDEIA",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "TERESOPOLIS",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "TRES RIOS",
+    "erro": ""
+  },
+  {
+    "uf": "RJ",
+    "cidade": "VALENCA",
+    "erro": ""
+  },
+  {
+    "uf": "RN",
+    "cidade": "ASSU",
+    "erro": ""
+  },
+  {
+    "uf": "RN",
+    "cidade": "CEARA-MIRIM",
+    "erro": ""
+  },
+  {
+    "uf": "RN",
+    "cidade": "CERRO CORA",
+    "erro": ""
+  },
+  {
+    "uf": "RN",
+    "cidade": "JOAO CAMARA",
+    "erro": ""
+  },
+  {
+    "uf": "RN",
+    "cidade": "MOSSORO",
+    "erro": ""
+  },
+  {
+    "uf": "RO",
+    "cidade": "JI-PARANA",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "BAGE",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "BENTO GONCALVES",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "CAPAO DA CANOA",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "CAPAO DO LEAO",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "GRAVATAI",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "GUAIBA",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "IJUI",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "NAO-ME-TOQUE",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "NOVA PETROPOLIS",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "OSORIO",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "PALMEIRA DAS MISSOES",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "PAROBE",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "SAO LEOPOLDO",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "SAO LOURENCO DO SUL",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "SAO LUIZ GONZAGA",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "TRAMANDAI",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "VIAMAO",
+    "erro": ""
+  },
+  {
+    "uf": "RS",
+    "cidade": "XANGRI-LA",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "ARARANGUA",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "BALNEARIO CAMBORIU",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "BIGUACU",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "CACADOR",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "CAMBORIU",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "CHAPECO",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "CONCORDIA",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "CORUPA",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "CRICIUMA",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "CUNHA PORA",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "FLORIANOPOLIS",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "ITAJAI",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "ITAPOA",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "JARAGUA DO SUL",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "OTACILIO COSTA",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "PALHOCA",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "SAO FRANCISCO DO SUL",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "SAO JOAO BATISTA",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "SAO JOSE",
+    "erro": ""
+  },
+  {
+    "uf": "SC",
+    "cidade": "TUBARAO",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ARACATUBA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ARACOIABA DA SERRA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ARAPEI",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ARCO-IRIS",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "AREIOPOLIS",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ARUJA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "AVAI",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "AVARE",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "BALSAMO",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "BARAO DE ANTONINA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "BARRA DO CHAPEU",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "BOA ESPERANCA DO SUL",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "BOM JESUS DOS PERDOES",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "BOM SUCESSO DE ITARARE",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "BORA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "BORACEIA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "BRAGANCA PAULISTA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "BRAUNA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CABRALIA PAULISTA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CABREUVA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CACAPAVA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CAFELANDIA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CAIUA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CAMPOS DO JORDAO",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CANANEIA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CANDIDO MOTA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CANDIDO RODRIGUES",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CAPAO BONITO",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CARAPICUIBA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CASSIA DOS COQUEIROS",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CATIGUA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CERQUEIRA CESAR",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CESARIO LANGE",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "COLOMBIA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CORDEIROPOLIS",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CORUMBATAI",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "COSMOPOLIS",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CRUZALIA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "CUBATAO",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "DIVINOLANDIA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "DOIS CORREGOS",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ECHAPORA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "EMBU-GUACU",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ESPIRITO SANTO DO PINHAL",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ESPIRITO SANTO DO TURVO",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "FERNANDOPOLIS",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "FLORIDA PAULISTA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GALIA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GARCA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GASTAO VIDIGAL",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GUAICARA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GUAIRA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GUAPIACU",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GUARA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GUARACAI",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GUARANTA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GUARATINGUETA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GUAREI",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GUARUJA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GUATAPARA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "GUZOLANDIA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "HERCULANDIA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "HORTOLANDIA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IBATE",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IBIRA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IBIUNA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ICEM",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IEPE",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IGARACU DO TIETE",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IGARATA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "INDIAPORA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "INUBIA PAULISTA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IPERO",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IPEUNA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IPIGUA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IPUA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IRACEMAPOLIS",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "IRAPUA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ITABERA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ITAI",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ITANHAEM",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ITAPIRAPUA PAULISTA",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ITAPOLIS",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ITAPUI",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "ITARARE",
+    "erro": ""
+  },
+  {
+    "uf": "SP",
+    "cidade": "JACAREI",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "JUNDIAI",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "MARILIA",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "MAUA",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "RIBEIRAO PRETO",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "SANTO ANDRE",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "SAO BERNARDO DO CAMPO",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "SAO CAETANO DO SUL",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "SAO CARLOS",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "SAO JOSE DO RIO PRETO",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "SAO JOSE DOS CAMPOS",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "SAO PAULO",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "SAO VICENTE",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "SUMARE",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "TABOAO DA SERRA",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  },
+  {
+    "uf": "SP",
+    "cidade": "TAUBATE",
+    "erro": "HTTP 500: {\"code\":\"57014\",\"details\":null,\"hint\":null,\"message\":\"canceling statement due to statement timeout\"}"
+  }
+]
