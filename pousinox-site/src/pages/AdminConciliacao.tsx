@@ -1,281 +1,200 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminConciliacao.module.css'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-interface ExtratoInput {
-  data: string
-  valor: number
-  tipo: 'credito' | 'debito'
-  descricao: string | null
-  doc: string | null
+interface Conta { id: number; nome: string; banco: string | null; tipo: string; negocio: string }
+
+interface EntradaExtrato {
+  data: string           // YYYY-MM-DD
+  valor: number          // positivo = crédito, negativo = débito
+  descricao: string
   fitid: string | null
+  tipo_lancamento: string | null
 }
 
-interface ConciliacaoRow {
-  lancamento_id: number
-  lanc_descricao: string
-  lanc_valor: number
-  data_vencimento: string
-  origem: string
-  nf_chave: string | null
-  extrato_id_candidato: number | null
-  extrato_data: string | null
-  extrato_valor: number | null
-  extrato_descricao: string | null
-  extrato_doc: string | null
-  diferenca_valor: number | null
-  diferenca_dias: number | null
-}
-
-interface Candidato {
-  extrato_id: number
-  extrato_data: string
-  extrato_valor: number
-  extrato_descricao: string | null
-  diferenca_valor: number
-  diferenca_dias: number
-  confianca: number
-  sim_texto: number
-}
-
-interface CandidatoTemporal {
-  extrato_id: number
-  extrato_data: string
-  extrato_valor: number
-  extrato_descricao: string | null
-  diferenca_dias: number
-}
-
-interface LancGrupo {
-  lancamento_id: number
-  descricao: string
-  valor: number
-  data_vencimento: string
-  origem: string
-  nf_chave: string | null
-  candidatos: Candidato[]
-  candidatoTemporal?: CandidatoTemporal
-}
-
-interface LancConciliada {
+interface ExtratoRow {
   id: number
-  descricao: string
-  valor: number
-  data_pagamento: string | null
-  extrato_id: number | null
-  nf_chave: string | null
-  extrato_bancario: { data: string; valor: number; descricao: string | null } | null
-}
-
-interface ExtratoOrfao {
-  id: number
+  conta_id: number | null
   data: string
   valor: number
   descricao: string | null
-  doc: string | null
-  conta: string
+  tipo_lancamento: string | null
+  fitid: string | null
+  status: 'pendente' | 'conciliado' | 'ignorado'
+  movimentacao_id: number | null
+  confianca: 'alta' | 'media' | 'baixa' | null
+  importado_em: string
+  // join
+  mov_descricao?: string | null
+  mov_data?: string | null
+  mov_valor?: number | null
+  mov_categoria?: string | null
 }
 
-type Aba = 'conciliar' | 'extrato' | 'revisao'
-
-// ── Constantes ────────────────────────────────────────────────────────────────
-
-const TAXA_KEYWORDS = /tarifa|taxa|iof|ted|doc\b|saque|cpmf|seguro|anuidade|manutencao|manutenção|mensalidade|pix\s*out|pagto|pgto|cobr/i
-
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function normTokens(s: string): Set<string> {
-  return new Set(
-    s.toLowerCase()
-     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-     .replace(/[^a-z0-9 ]/g, ' ')
-     .split(/\s+/).filter(w => w.length > 2)
-  )
+interface Movimentacao {
+  id: number
+  tipo: 'entrada' | 'saida'
+  valor: number
+  data: string
+  descricao: string | null
+  categoria_nome: string | null
+  conta_id: number | null
+  status: string
+  conciliado: boolean
 }
 
-function simTexto(a: string | null, b: string | null): number {
-  if (!a || !b) return 0
-  const wa = normTokens(a)
-  const wb = normTokens(b)
-  if (!wa.size || !wb.size) return 0
-  let common = 0
-  for (const w of wa) if (wb.has(w)) common++
-  return common / Math.max(wa.size, wb.size)
-}
+type Aba = 'importar' | 'revisao' | 'historico'
 
-// Pondera: 60% valor · 25% data · 15% texto
-function calcConfianca(difValor: number, lancValor: number, difDias: number, st = 0): number {
-  const sv = Math.max(0, 1 - difValor / Math.max(lancValor, 0.01))
-  const sd = Math.max(0, 1 - difDias / 7)
-  return Math.round((sv * 0.60 + sd * 0.25 + st * 0.15) * 100)
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function isTaxaOuTarifa(o: ExtratoOrfao): boolean {
-  if (Math.abs(o.valor) < 50) return true
-  return o.descricao ? TAXA_KEYWORDS.test(o.descricao) : false
-}
-
-function detectarDuplicatasIds(orfaos: ExtratoOrfao[]): Set<number> {
-  const ids = new Set<number>()
-  for (let i = 0; i < orfaos.length; i++) {
-    for (let j = i + 1; j < orfaos.length; j++) {
-      const a = orfaos[i]; const b = orfaos[j]
-      if (Math.abs(Math.abs(a.valor) - Math.abs(b.valor)) < 0.01) {
-        const diffDias = Math.abs(new Date(a.data).getTime() - new Date(b.data).getTime()) / 86400000
-        if (diffDias <= 3) { ids.add(a.id); ids.add(b.id) }
-      }
-    }
-  }
-  return ids
-}
-
-function fmtBRL(v: number) {
-  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
 function fmtData(v: string | null) {
   if (!v) return '—'
   const [y, m, d] = v.slice(0, 10).split('-')
   return `${d}/${m}/${y}`
 }
-function diasAtraso(dataVenc: string): number {
-  const today = new Date(); today.setHours(0, 0, 0, 0)
-  const venc  = new Date(dataVenc + 'T00:00:00')
-  return Math.floor((today.getTime() - venc.getTime()) / 86400000)
+function fmtBRL(v: number) {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+function hoje() { return new Date().toISOString().slice(0, 10) }
+
+// ── Parser OFX (SGML 1.x — formato padrão bancos BR) ─────────────────────────
+function parseOFX(text: string): EntradaExtrato[] {
+  const entries: EntradaExtrato[] = []
+  // Extrai todos os blocos <STMTTRN>...</STMTTRN>
+  const blockRe = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi
+  let block: RegExpExecArray | null
+  while ((block = blockRe.exec(text)) !== null) {
+    const content = block[1]
+    const get = (tag: string) => {
+      const m = new RegExp(`<${tag}>([^<\r\n]*)`, 'i').exec(content)
+      return m ? m[1].trim() : null
+    }
+    const trnamt = parseFloat((get('TRNAMT') ?? '0').replace(',', '.'))
+    const dtposted = get('DTPOSTED') ?? ''
+    // OFX date: YYYYMMDD or YYYYMMDDHHmmss
+    const year  = dtposted.slice(0, 4)
+    const month = dtposted.slice(4, 6)
+    const day   = dtposted.slice(6, 8)
+    if (!year || !month || !day || isNaN(trnamt)) continue
+    entries.push({
+      data:            `${year}-${month}-${day}`,
+      valor:           trnamt,
+      descricao:       get('MEMO') ?? get('NAME') ?? '',
+      fitid:           get('FITID'),
+      tipo_lancamento: get('TRNTYPE'),
+    })
+  }
+  return entries
 }
 
-// ── Parser OFX (SGML v1 e XML v2) ────────────────────────────────────────────
-
-function parseOFX(text: string): ExtratoInput[] {
-  const results: ExtratoInput[] = []
-  let inTrn = false
-  let cur: Partial<ExtratoInput> & { fitid?: string } = {}
-
-  function push() {
-    if (cur.data && cur.valor !== undefined && cur.tipo) {
-      results.push({
-        data:      cur.data,
-        valor:     cur.valor,
-        tipo:      cur.tipo,
-        descricao: cur.descricao ?? null,
-        doc:       cur.doc ?? null,
-        fitid:     cur.fitid ?? null,
-      })
-    }
-    cur = {}
-  }
-
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.trim()
-    if (!line) continue
-
-    if (line === '<STMTTRN>') {
-      if (inTrn) push()
-      inTrn = true; cur = {}
-      continue
-    }
-    if (line === '</STMTTRN>') { push(); inTrn = false; continue }
-    if (!inTrn) continue
-
-    const m = line.match(/^<([^>]+)>(.*)$/)
-    if (!m) continue
-    const tag = m[1].toUpperCase()
-    const val = m[2].trim()
-
-    switch (tag) {
-      case 'TRNTYPE':
-        cur.tipo = ['CREDIT','DEP','INT','DIV','XFER'].includes(val.toUpperCase())
-          ? 'credito' : 'debito'
-        break
-      case 'DTPOSTED':
-      case 'DTUSER': {
-        if (cur.data) break
-        const d = val.replace(/[^\d].*$/, '').slice(0, 8)
-        if (d.length === 8) cur.data = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`
-        break
-      }
-      case 'TRNAMT': {
-        const n = parseFloat(val.replace(',', '.'))
-        cur.valor = Math.abs(n)
-        if (cur.tipo === undefined) cur.tipo = n >= 0 ? 'credito' : 'debito'
-        break
-      }
-      case 'FITID':    cur.fitid    = val;  break
-      case 'MEMO':     if (!cur.descricao) cur.descricao = val; break
-      case 'NAME':     if (!cur.descricao) cur.descricao = val; break
-      case 'CHECKNUM': cur.doc = val; break
-    }
-  }
-  if (inTrn) push()
-  return results
-}
-
-// ── Parser CSV genérico: data;descrição;valor ─────────────────────────────────
-
-function parseCSVExtrato(text: string): ExtratoInput[] {
+// ── Parser CSV genérico ───────────────────────────────────────────────────────
+function parseCSV(text: string): EntradaExtrato[] {
   const lines = text.split(/\r?\n/).filter(l => l.trim())
   if (lines.length < 2) return []
   const sep = lines[0].includes(';') ? ';' : ','
+  const headers = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/['"]/g, ''))
 
-  return lines.slice(1).flatMap(linha => {
-    const c = linha.split(sep).map(x => x.trim().replace(/^"|"$/g, ''))
-    if (c.length < 3) return []
+  const idx = (candidates: string[]) =>
+    candidates.reduce<number>((found, c) => found >= 0 ? found : headers.indexOf(c), -1)
 
-    const raw = c[0]
-    let data: string | null = null
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
-      const [d, m, y] = raw.split('/'); data = `${y}-${m}-${d}`
-    } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-      data = raw
+  const iData  = idx(['data', 'date', 'dt lançamento', 'data lançamento', 'data mov'])
+  const iValor = idx(['valor', 'value', 'amount', 'vlr lancamento', 'vlr. lancamento'])
+  const iDesc  = idx(['descricao', 'descrição', 'historico', 'histórico', 'memo', 'description'])
+  const iDoc   = idx(['doc', 'fitid', 'id transacao', 'id transação', 'nro doc'])
+
+  if (iData < 0 || iValor < 0) return []
+
+  const entries: EntradaExtrato[] = []
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(sep).map(c => c.trim().replace(/^["']|["']$/g, ''))
+    const rawData  = cols[iData]  ?? ''
+    const rawValor = cols[iValor] ?? '0'
+    const desc     = iDesc >= 0 ? (cols[iDesc] ?? '') : ''
+    const fitid    = iDoc  >= 0 ? (cols[iDoc]  ?? null) : null
+
+    // Normaliza data: DD/MM/YYYY ou YYYY-MM-DD
+    let data = rawData
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(rawData)) {
+      const [d, m, y] = rawData.split('/')
+      data = `${y}-${m}-${d}`
     }
-    if (!data) return []
 
-    const n = parseFloat(c[c.length - 1].replace(/\./g, '').replace(',', '.'))
-    if (isNaN(n)) return []
+    // Normaliza valor: aceita ponto e vírgula como separadores
+    const valor = parseFloat(rawValor.replace(/\./g, '').replace(',', '.'))
+    if (isNaN(valor)) continue
 
-    return [{
-      data,
-      valor:    Math.abs(n),
-      tipo:     n >= 0 ? 'credito' as const : 'debito' as const,
-      descricao: c.slice(1, c.length - 1).join(' ').trim() || null,
-      doc:      null,
-      fitid:    null,
-    }]
-  })
+    entries.push({ data, valor, descricao: desc, fitid: fitid || null, tipo_lancamento: null })
+  }
+  return entries
 }
 
-// ── Componente ────────────────────────────────────────────────────────────────
+// ── Auto-match ────────────────────────────────────────────────────────────────
+function autoMatch(
+  entrada: EntradaExtrato,
+  movs: Movimentacao[]
+): { mov: Movimentacao; confianca: 'alta' | 'media' | 'baixa' } | null {
+  const valorAbs = Math.abs(entrada.valor)
+  const dataE = new Date(entrada.data).getTime()
+
+  const scored = movs
+    .filter(m => !m.conciliado)
+    .map(m => {
+      const valorM = m.valor
+      const dataM  = new Date(m.data).getTime()
+      const diffDias = Math.abs((dataE - dataM) / 86400000)
+      const diffValor = Math.abs(valorAbs - valorM)
+      const tipoOk = entrada.valor > 0
+        ? m.tipo === 'entrada'
+        : m.tipo === 'saida'
+      if (!tipoOk || diffValor > 0.02) return null
+
+      let score = 0
+      if (diffDias === 0) score += 3
+      else if (diffDias <= 1) score += 2
+      else if (diffDias <= 3) score += 1
+      else if (diffDias <= 7) score += 0
+      else return null
+
+      return { mov: m, score, diffDias }
+    })
+    .filter(Boolean) as { mov: Movimentacao; score: number; diffDias: number }[]
+
+  if (scored.length === 0) return null
+  scored.sort((a, b) => b.score - a.score)
+  const best = scored[0]
+  const confianca: 'alta' | 'media' | 'baixa' =
+    best.score >= 3 ? 'alta' : best.score >= 1 ? 'media' : 'baixa'
+  return { mov: best.mov, confianca }
+}
+
+// ── Componente principal ──────────────────────────────────────────────────────
 
 export default function AdminConciliacao() {
-  const [aba, setAba] = useState<Aba>('conciliar')
+  const [aba, setAba] = useState<Aba>('revisao')
+  const [contas, setContas] = useState<Conta[]>([])
+  const [contaSelecionada, setContaSelecionada] = useState('')
+  const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
 
-  // Extrato
-  const [arquivo,       setArquivo]       = useState<File | null>(null)
-  const [linhasPreview, setLinhasPreview] = useState<ExtratoInput[]>([])
-  const [importando,    setImportando]    = useState(false)
-  const [resultImport,  setResultImport]  = useState<{ novas: number; dup: number } | null>(null)
-
-  // Conciliar — grupos com candidatos (classificados no render)
-  const [grupos,         setGrupos]         = useState<LancGrupo[]>([])
-  // Sem candidatos na janela padrão
-  const [semCandidato,   setSemCandidato]   = useState<LancGrupo[]>([])
-  // Sem candidatos na janela, mas com extrato de valor próximo fora da janela
-  const [difTemporal,    setDifTemporal]    = useState<LancGrupo[]>([])
-  // Orfaos classificados
-  const [orfaosGenericos, setOrfaosGenericos] = useState<ExtratoOrfao[]>([])
-  const [orfaosTaxa,      setOrfaosTaxa]      = useState<ExtratoOrfao[]>([])
-  const [orfaosDup,       setOrfaosDup]       = useState<ExtratoOrfao[]>([])
-
-  const [loading,      setLoading]      = useState(false)
-  const [ignorados,    setIgnorados]    = useState<Set<string>>(new Set())
-  const [conciliando,  setConciliando]  = useState<number | null>(null)
+  // Importar
+  const [arquivo, setArquivo] = useState<File | null>(null)
+  const [preview, setPreview] = useState<EntradaExtrato[]>([])
+  const [importando, setImportando] = useState(false)
+  const [importProgress, setImportProgress] = useState(0)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Revisão
-  const [conciliadas,  setConciliadas]  = useState<LancConciliada[]>([])
-  const [loadingRev,   setLoadingRev]   = useState(false)
-  const [desfazendo,   setDesfazendo]   = useState<number | null>(null)
+  const [extratoRows, setExtratoRows]   = useState<ExtratoRow[]>([])
+  const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([])
+  const [filtroStatus, setFiltroStatus] = useState<'' | 'pendente' | 'conciliado' | 'ignorado'>('pendente')
+  const [filtroConta, setFiltroConta]   = useState('')
+  const [selecionandoMov, setSelecionandoMov] = useState<number | null>(null) // extrato id
+  const [movQuery, setMovQuery] = useState('')
+
+  // Histórico
+  const [histRows, setHistRows] = useState<ExtratoRow[]>([])
 
   useEffect(() => {
     if (!msg) return
@@ -283,740 +202,549 @@ export default function AdminConciliacao() {
     return () => clearTimeout(t)
   }, [msg])
 
-  // ── Parse arquivo ──────────────────────────────────────────────────────────
-
-  async function handleFile(file: File) {
-    setArquivo(file)
-    setResultImport(null)
-    const text = await file.text()
-    const isOFX = file.name.toLowerCase().match(/\.(ofx|qfx)$/) || text.includes('<OFX>') || text.includes('<STMTTRN>')
-    setLinhasPreview(isOFX ? parseOFX(text) : parseCSVExtrato(text))
-  }
-
-  // ── Importar extrato ───────────────────────────────────────────────────────
-
-  async function importarExtrato() {
-    if (!linhasPreview.length) return
-    setImportando(true)
-
-    const fitids = linhasPreview.map(l => l.fitid).filter(Boolean) as string[]
-    const { data: existFitid } = fitids.length
-      ? await supabaseAdmin.from('extrato_bancario').select('fitid').in('fitid', fitids)
-      : { data: [] }
-    const setFitid = new Set((existFitid ?? []).map((r: { fitid: string }) => r.fitid))
-
-    let novas = 0, dup = 0
-
-    for (let i = 0; i < linhasPreview.length; i += 100) {
-      const chunk = linhasPreview.slice(i, i + 100)
-      const paraInserir = chunk.filter(l => {
-        if (l.fitid && setFitid.has(l.fitid)) { dup++; return false }
-        return true
-      })
-      if (!paraInserir.length) continue
-      const { error } = await supabaseAdmin.from('extrato_bancario').insert(
-        paraInserir.map(l => ({
-          data:      l.data,
-          valor:     l.tipo === 'credito' ? l.valor : -l.valor,
-          tipo:      l.tipo,
-          descricao: l.descricao,
-          doc:       l.doc,
-          fitid:     l.fitid,
-          conta:     'banco',
-        }))
-      )
-      if (!error) novas += paraInserir.length
-      else        dup   += paraInserir.length
-    }
-
-    setResultImport({ novas, dup })
-    setImportando(false)
-    if (novas > 0) setMsg({ tipo: 'ok', texto: `${novas} linhas importadas com sucesso.` })
-  }
-
-  // ── Carregar conciliação ───────────────────────────────────────────────────
-
-  const carregarConciliacao = useCallback(async () => {
-    setLoading(true)
-
-    // 1. Candidatos da janela padrão (±5% valor, ±7 dias)
-    const { data } = await supabaseAdmin
-      .from('vw_fin_conciliacao')
-      .select('*')
-      .limit(300)
-
-    const rows = (data ?? []) as ConciliacaoRow[]
-    const map = new Map<number, LancGrupo>()
-
-    for (const row of rows) {
-      if (!map.has(row.lancamento_id)) {
-        map.set(row.lancamento_id, {
-          lancamento_id:   row.lancamento_id,
-          descricao:       row.lanc_descricao,
-          valor:           row.lanc_valor,
-          data_vencimento: row.data_vencimento,
-          origem:          row.origem,
-          nf_chave:        row.nf_chave,
-          candidatos:      [],
-        })
-      }
-      if (row.extrato_id_candidato != null) {
-        const st = simTexto(row.extrato_descricao, row.lanc_descricao)
-        const confianca = calcConfianca(row.diferenca_valor ?? 0, row.lanc_valor, row.diferenca_dias ?? 0, st)
-        map.get(row.lancamento_id)!.candidatos.push({
-          extrato_id:        row.extrato_id_candidato,
-          extrato_data:      row.extrato_data!,
-          extrato_valor:     row.extrato_valor!,
-          extrato_descricao: row.extrato_descricao,
-          diferenca_valor:   row.diferenca_valor ?? 0,
-          diferenca_dias:    row.diferenca_dias  ?? 0,
-          confianca,
-          sim_texto:         st,
-        })
-      }
-    }
-
-    const all = Array.from(map.values())
-    all.forEach(g => g.candidatos.sort((a, b) => b.confianca - a.confianca))
-
-    setGrupos(
-      all
-        .filter(g => g.candidatos.length > 0)
-        .sort((a, b) => {
-          const ca = a.candidatos[0]?.confianca ?? 0
-          const cb = b.candidatos[0]?.confianca ?? 0
-          if (cb !== ca) return cb - ca
-          return diasAtraso(b.data_vencimento) - diasAtraso(a.data_vencimento)
-        })
-    )
-
-    const rawSemMatch = all
-      .filter(g => g.candidatos.length === 0)
-      .sort((a, b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime())
-
-    // 2. Todos os débitos livres (para detecção temporal fora da janela)
-    const { data: todosLivres } = await supabaseAdmin
-      .from('extrato_bancario')
-      .select('id, data, valor, descricao')
-      .eq('tipo', 'debito')
-      .eq('conciliado', false)
-      .is('lancamento_id', null)
-
-    const livres = (todosLivres ?? []) as Array<{ id: number; data: string; valor: number; descricao: string | null }>
-
-    // Classifica semMatch: diferenca_temporal vs sem_candidato
-    const semCandidatoList: LancGrupo[] = []
-    const difTemporalList:  LancGrupo[] = []
-
-    for (const g of rawSemMatch) {
-      const candidatoFora = livres.find(e => {
-        const difVal = Math.abs(Math.abs(e.valor) - g.valor)
-        return difVal / Math.max(g.valor, 0.01) <= 0.05
-      })
-      if (candidatoFora) {
-        const difDias = Math.abs(
-          new Date(candidatoFora.data).getTime() - new Date(g.data_vencimento).getTime()
-        ) / 86400000
-        difTemporalList.push({
-          ...g,
-          candidatoTemporal: {
-            extrato_id:        candidatoFora.id,
-            extrato_data:      candidatoFora.data,
-            extrato_valor:     Math.abs(candidatoFora.valor),
-            extrato_descricao: candidatoFora.descricao,
-            diferenca_dias:    Math.round(difDias),
-          },
-        })
-      } else {
-        semCandidatoList.push(g)
-      }
-    }
-
-    setSemCandidato(semCandidatoList)
-    setDifTemporal(difTemporalList)
-
-    // 3. Orfaos: débitos não conciliados sem lançamento candidato
-    const { data: orfaosData } = await supabaseAdmin
-      .from('extrato_bancario')
-      .select('id, data, valor, descricao, doc, conta')
-      .eq('tipo', 'debito')
-      .eq('conciliado', false)
-      .is('lancamento_id', null)
-      .order('data', { ascending: false })
-      .limit(200)
-
-    const orfaosAll = (orfaosData ?? []) as ExtratoOrfao[]
-    const dupIds    = detectarDuplicatasIds(orfaosAll)
-
-    // Prioridade: duplicata > taxa/tarifa > genérico (pode estar em mais de uma categoria — usa primeira)
-    const genericos: ExtratoOrfao[] = []
-    const taxas:     ExtratoOrfao[] = []
-    const dups:      ExtratoOrfao[] = []
-
-    for (const o of orfaosAll) {
-      if (dupIds.has(o.id))         { dups.push(o); continue }
-      if (isTaxaOuTarifa(o))        { taxas.push(o); continue }
-      genericos.push(o)
-    }
-
-    setOrfaosGenericos(genericos)
-    setOrfaosTaxa(taxas)
-    setOrfaosDup(dups)
-
+  const carregarContas = useCallback(async () => {
+    const { data } = await supabaseAdmin.from('fin_contas').select('*').eq('ativo', true).order('nome')
+    setContas((data ?? []) as Conta[])
     setLoading(false)
   }, [])
+  useEffect(() => { carregarContas() }, [carregarContas])
 
   const carregarRevisao = useCallback(async () => {
-    setLoadingRev(true)
-    const { data } = await supabaseAdmin
-      .from('fin_lancamentos')
-      .select('id, descricao, valor, data_pagamento, extrato_id, nf_chave, extrato_bancario(data, valor, descricao)')
-      .eq('tipo', 'despesa')
-      .eq('status', 'pago')
-      .not('extrato_id', 'is', null)
-      .order('data_pagamento', { ascending: false })
-      .limit(50)
-    setConciliadas((data ?? []) as unknown as LancConciliada[])
-    setLoadingRev(false)
-  }, [])
+    let q = supabaseAdmin
+      .from('fin_extrato_bancario')
+      .select('*')
+      .order('data', { ascending: false })
+      .limit(300)
+    if (filtroStatus) q = q.eq('status', filtroStatus)
+    if (filtroConta)  q = q.eq('conta_id', filtroConta)
+    const { data } = await q
+    setExtratoRows((data ?? []) as ExtratoRow[])
+
+    // Carrega movimentações para mostrar vínculo e para busca manual
+    const { data: movs } = await supabaseAdmin
+      .from('vw_fin_extrato')
+      .select('id, tipo, valor, data, descricao, categoria_nome, conta_id, status, conciliado')
+      .order('data', { ascending: false })
+      .limit(500)
+    setMovimentacoes((movs ?? []) as Movimentacao[])
+  }, [filtroStatus, filtroConta])
 
   useEffect(() => {
-    if (aba === 'conciliar') carregarConciliacao()
-    if (aba === 'revisao')   carregarRevisao()
-  }, [aba, carregarConciliacao, carregarRevisao])
+    if (aba === 'revisao') carregarRevisao()
+    if (aba === 'historico') carregarHistorico()
+  }, [aba, carregarRevisao])
 
-  // ── Confirmar match ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (aba === 'revisao') carregarRevisao()
+  }, [filtroStatus, filtroConta, aba, carregarRevisao])
 
-  async function confirmarMatch(lancamentoId: number, extratoId: number, extratoData: string) {
-    setConciliando(lancamentoId)
-    const { error } = await supabaseAdmin.rpc('fn_conciliar', {
-      p_lancamento_id:  lancamentoId,
-      p_extrato_id:     extratoId,
-      p_data_pagamento: extratoData,
-    })
-    if (error) {
-      setMsg({ tipo: 'erro', texto: 'Erro: ' + error.message })
-    } else {
-      setMsg({ tipo: 'ok', texto: 'Pagamento confirmado.' })
-      carregarConciliacao()
+  async function carregarHistorico() {
+    const { data } = await supabaseAdmin
+      .from('fin_extrato_bancario')
+      .select('*')
+      .eq('status', 'conciliado')
+      .order('data', { ascending: false })
+      .limit(200)
+    setHistRows((data ?? []) as ExtratoRow[])
+  }
+
+  // ── Parse arquivo ───────────────────────────────────────────────────────────
+
+  function handleArquivo(file: File) {
+    setArquivo(file)
+    setPreview([])
+    const reader = new FileReader()
+    reader.onload = e => {
+      const text = e.target?.result as string
+      const isOFX = file.name.toLowerCase().endsWith('.ofx') ||
+                    text.includes('<OFX>') || text.includes('<STMTTRN>')
+      const entradas = isOFX ? parseOFX(text) : parseCSV(text)
+      setPreview(entradas.slice(0, 200))
+      if (entradas.length === 0)
+        setMsg({ tipo: 'erro', texto: 'Nenhuma transação encontrada. Verifique o formato do arquivo.' })
     }
-    setConciliando(null)
+    reader.readAsText(file, 'latin1')
   }
 
-  // ── Desfazer conciliação ───────────────────────────────────────────────────
+  // ── Importar com auto-match ─────────────────────────────────────────────────
 
-  async function desfazerConciliacao(lancamentoId: number) {
-    if (!confirm('Desfazer esta conciliação? O lançamento voltará para pendente.')) return
-    setDesfazendo(lancamentoId)
-    const { error } = await supabaseAdmin.rpc('fn_desconciliar', { p_lancamento_id: lancamentoId })
-    if (error) {
-      setMsg({ tipo: 'erro', texto: 'Erro: ' + error.message })
-    } else {
-      setMsg({ tipo: 'ok', texto: 'Conciliação desfeita.' })
-      carregarRevisao()
+  async function importar() {
+    if (!preview.length || !contaSelecionada) {
+      setMsg({ tipo: 'erro', texto: 'Selecione uma conta e carregue um arquivo.' })
+      return
     }
-    setDesfazendo(null)
+    setImportando(true)
+    setImportProgress(0)
+
+    // Carrega movimentações da conta para auto-match
+    const { data: movs } = await supabaseAdmin
+      .from('vw_fin_extrato')
+      .select('id, tipo, valor, data, descricao, categoria_nome, conta_id, status, conciliado')
+      .eq('conta_id', contaSelecionada)
+      .eq('status', 'realizado')
+      .limit(500)
+    const movsLocal = (movs ?? []) as Movimentacao[]
+
+    let ok = 0; let dup = 0; let erro = 0
+    for (let i = 0; i < preview.length; i++) {
+      const e = preview[i]
+      const match = autoMatch(e, movsLocal)
+
+      const payload: Record<string, unknown> = {
+        conta_id:       Number(contaSelecionada),
+        data:           e.data,
+        valor:          e.valor,
+        descricao:      e.descricao || null,
+        tipo_lancamento: e.tipo_lancamento || null,
+        fitid:          e.fitid || null,
+        status:         match ? 'pendente' : 'pendente',
+        movimentacao_id: match ? match.mov.id : null,
+        confianca:      match ? match.confianca : 'baixa',
+      }
+
+      const { error } = await supabaseAdmin.from('fin_extrato_bancario').upsert(payload, {
+        onConflict: 'conta_id,fitid',
+        ignoreDuplicates: true,
+      })
+      if (error) {
+        if (error.code === '23505') dup++
+        else erro++
+      } else ok++
+
+      setImportProgress(Math.round(((i + 1) / preview.length) * 100))
+    }
+
+    setImportando(false)
+    setMsg({ tipo: 'ok', texto: `${ok} importadas${dup ? `, ${dup} duplicatas ignoradas` : ''}${erro ? `, ${erro} erros` : ''}.` })
+    setPreview([])
+    setArquivo(null)
+    setAba('revisao')
+    carregarRevisao()
   }
 
-  // ── Helpers de render ──────────────────────────────────────────────────────
+  // ── Confirmar conciliação ───────────────────────────────────────────────────
 
-  function bestConf(g: LancGrupo): number {
-    return g.candidatos[0]?.confianca ?? 0
+  async function confirmar(row: ExtratoRow) {
+    if (!row.movimentacao_id) return
+    await Promise.all([
+      supabaseAdmin.from('fin_extrato_bancario').update({ status: 'conciliado' }).eq('id', row.id),
+      supabaseAdmin.from('fin_movimentacoes').update({
+        conciliado: true,
+        conciliado_em: new Date().toISOString(),
+        conciliado_por: 'extrato',
+      }).eq('id', row.movimentacao_id),
+    ])
+    setMsg({ tipo: 'ok', texto: 'Conciliado.' })
+    carregarRevisao()
   }
 
-  // Classifica grupos com candidatos em sub-tipos de exceção
-  function tipoGrupo(g: LancGrupo): 'forte' | 'fraco' | 'div_valor' | 'div_data' {
-    const c = bestConf(g)
-    if (c >= 80) return 'forte'
-    if (c >= 60) return 'fraco'
-    const melhor = g.candidatos[0]
-    const pctValor = melhor.diferenca_valor / Math.max(g.valor, 0.01)
-    return pctValor > 0.03 ? 'div_valor' : 'div_data'
+  async function ignorar(id: number) {
+    await supabaseAdmin.from('fin_extrato_bancario').update({ status: 'ignorado' }).eq('id', id)
+    carregarRevisao()
   }
 
-  // Card de candidatos (reutilizado em forte, fraco, div_valor, div_data)
-  function renderCardGrupo(g: LancGrupo) {
-    const candidatosFiltrados = g.candidatos.filter(
-      c => !ignorados.has(`${g.lancamento_id}-${c.extrato_id}`)
-    )
-    if (!candidatosFiltrados.length) return null
-    const atraso = diasAtraso(g.data_vencimento)
-    const tipo = tipoGrupo(g)
-
-    return (
-      <div key={g.lancamento_id}
-        className={`${styles.card} ${atraso > 30 ? styles.cardUrgente : atraso > 7 ? styles.cardAlerta : ''}`}>
-
-        <div className={styles.cardTop}>
-          <div className={styles.lancInfo}>
-            <div className={styles.lancDesc}>{g.descricao}</div>
-            <div className={styles.lancMeta}>
-              Venc. {fmtData(g.data_vencimento)}
-              {atraso > 0 && <span className={styles.badgeAtraso}>{atraso}d</span>}
-              {g.nf_chave && <span className={styles.badgeNF}>NF</span>}
-              {g.origem !== 'manual' && g.origem !== 'nf' &&
-                <span className={styles.badgeOrigem}>{g.origem}</span>}
-            </div>
-          </div>
-          <strong className={styles.lancValor}>{fmtBRL(g.valor)}</strong>
-        </div>
-
-        {(tipo === 'div_valor' || tipo === 'div_data') && (
-          <div className={styles.weakWarning}>
-            {tipo === 'div_valor'
-              ? '⚠ Diferença de valor acima do esperado — confirme apenas se reconhecer o débito.'
-              : '⚠ A data do extrato difere bastante do vencimento — verifique se é o lançamento correto.'}
-          </div>
-        )}
-        {tipo === 'fraco' && candidatosFiltrados[0]?.confianca < 60 && (
-          <div className={styles.weakWarning}>
-            ⚠ Nenhum candidato com confiança satisfatória — revise manualmente antes de confirmar.
-          </div>
-        )}
-
-        <div className={styles.candidatos}>
-          {candidatosFiltrados.map((c, idx) => {
-            const isMelhor = idx === 0
-            return (
-              <div key={c.extrato_id}
-                className={`${styles.candidato} ${isMelhor && c.confianca >= 80 ? styles.candidatoMelhor : ''}`}>
-                <div className={styles.candEsq}>
-                  <div className={styles.confCol}>
-                    {isMelhor && c.confianca >= 80 && (
-                      <span className={styles.melhorLabel}>✓ Melhor</span>
-                    )}
-                    <span className={`${styles.confBadge}
-                      ${c.confianca >= 80 ? styles.confAlta
-                      : c.confianca >= 60 ? styles.confMedia
-                      : styles.confBaixa}`}>
-                      {c.confianca}%
-                    </span>
-                    {c.sim_texto > 0.3 && (
-                      <span className={styles.simTextoLabel} title="Descrição similar">T</span>
-                    )}
-                  </div>
-                  <div>
-                    <div className={styles.candData}>{fmtData(c.extrato_data)}</div>
-                    <div className={styles.candDesc}>{c.extrato_descricao || '—'}</div>
-                    {c.diferenca_valor > 0.01 && (
-                      <div className={styles.candDiverg}>
-                        Δ valor: {fmtBRL(c.diferenca_valor)}
-                        {c.diferenca_dias > 0 && <> · {c.diferenca_dias}d de diferença</>}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className={styles.candDir}>
-                  <span className={styles.candValor}>{fmtBRL(c.extrato_valor)}</span>
-                  <button
-                    className={`${styles.btnConfirmar} ${isMelhor && c.confianca >= 80 ? styles.btnConfirmarForte : ''}`}
-                    disabled={conciliando === g.lancamento_id}
-                    onClick={() => confirmarMatch(g.lancamento_id, c.extrato_id, c.extrato_data)}>
-                    {conciliando === g.lancamento_id ? '...' : '✓ Confirmar'}
-                  </button>
-                  <button
-                    className={styles.btnIgnorar}
-                    title="Ignorar este candidato"
-                    onClick={() => setIgnorados(s => new Set([...s, `${g.lancamento_id}-${c.extrato_id}`]))}>
-                    ✕
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    )
+  async function vincularManual(extratoId: number, movId: number) {
+    await supabaseAdmin.from('fin_extrato_bancario').update({
+      movimentacao_id: movId,
+      confianca: 'alta',
+    }).eq('id', extratoId)
+    setSelecionandoMov(null)
+    carregarRevisao()
   }
 
-  // Seção de exceção com header colorido e lista interna
-  function renderExcecaoSection(
-    icon: string,
-    titulo: string,
-    dica: string,
-    conteudo: React.ReactNode,
-    cor?: 'amarelo' | 'vermelho'
-  ) {
-    return (
-      <div className={`${styles.excecaoSection} ${cor === 'vermelho' ? styles.excecaoSectionVerm : ''}`}>
-        <div className={styles.excecaoTitulo}>
-          <span className={styles.excecaoIcone}>{icon}</span>
-          {titulo}
-          <span className={styles.excecaoDica}>{dica}</span>
-        </div>
-        <div className={styles.excecaoLista}>{conteudo}</div>
-      </div>
-    )
+  async function criarMovimentacao(row: ExtratoRow) {
+    const { data, error } = await supabaseAdmin.from('fin_movimentacoes').insert({
+      tipo:       row.valor > 0 ? 'entrada' : 'saida',
+      valor:      Math.abs(row.valor),
+      data:       row.data,
+      descricao:  row.descricao,
+      conta_id:   row.conta_id,
+      status:     'realizado',
+      origem_tipo: 'extrato',
+      conciliado: true,
+      conciliado_em: new Date().toISOString(),
+      conciliado_por: 'extrato',
+    }).select('id').single()
+    if (error) { setMsg({ tipo: 'erro', texto: error.message }); return }
+    await supabaseAdmin.from('fin_extrato_bancario').update({
+      status: 'conciliado',
+      movimentacao_id: data?.id,
+      confianca: 'alta',
+    }).eq('id', row.id)
+    setMsg({ tipo: 'ok', texto: 'Movimentação criada e conciliada.' })
+    carregarRevisao()
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  async function desconciliar(row: ExtratoRow) {
+    await supabaseAdmin.from('fin_extrato_bancario').update({ status: 'pendente' }).eq('id', row.id)
+    if (row.movimentacao_id) {
+      await supabaseAdmin.from('fin_movimentacoes').update({ conciliado: false, conciliado_em: null }).eq('id', row.movimentacao_id)
+    }
+    carregarHistorico()
+  }
 
-  const matchForte   = grupos.filter(g => tipoGrupo(g) === 'forte')
-  const matchFraco   = grupos.filter(g => tipoGrupo(g) === 'fraco')
-  const divValorList = grupos.filter(g => tipoGrupo(g) === 'div_valor')
-  const divDataList  = grupos.filter(g => tipoGrupo(g) === 'div_data')
+  const movsFiltradas = movimentacoes.filter(m =>
+    !movQuery || m.descricao?.toLowerCase().includes(movQuery.toLowerCase()) ||
+    String(m.valor).includes(movQuery)
+  ).slice(0, 20)
 
-  const totalOrfaos = orfaosGenericos.length + orfaosTaxa.length + orfaosDup.length
+  const pendentesCount = extratoRows.filter(r => r.status === 'pendente').length
+  const autoMatchCount = extratoRows.filter(r => r.status === 'pendente' && r.movimentacao_id).length
+
+  if (loading) return <div className={styles.loading}>Carregando...</div>
 
   return (
     <div className={styles.wrap}>
-
       {msg && (
         <div className={`${styles.msg} ${msg.tipo === 'ok' ? styles.msgOk : styles.msgErro}`}>
           {msg.texto}
         </div>
       )}
 
+      {/* Abas */}
       <div className={styles.abas}>
         {([
-          { key: 'conciliar', label: '🔗 Conciliar'        },
-          { key: 'extrato',   label: '📄 Importar Extrato' },
-          { key: 'revisao',   label: '✅ Revisão'           },
+          { key: 'revisao',   label: '✅ Revisão' },
+          { key: 'importar',  label: '📄 Importar Extrato' },
+          { key: 'historico', label: '🕓 Histórico' },
         ] as { key: Aba; label: string }[]).map(a => (
           <button key={a.key}
             className={`${styles.aba} ${aba === a.key ? styles.abaAtiva : ''}`}
             onClick={() => setAba(a.key)}>
             {a.label}
+            {a.key === 'revisao' && pendentesCount > 0 && (
+              <span className={styles.abaBadge}>{pendentesCount}</span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* ══ IMPORTAR EXTRATO ════════════════════════════════════════════════ */}
-      {aba === 'extrato' && (
-        <div className={styles.section}>
-          <p className={styles.info}>
-            Importe o extrato em <strong>OFX</strong> (recomendado — exportado pelo banco) ou <strong>CSV</strong> genérico com colunas <code>data;descrição;valor</code>. Reimportações do mesmo arquivo são seguras — duplicatas são ignoradas automaticamente.
-          </p>
+      {/* ══ IMPORTAR ══════════════════════════════════════════════════════════ */}
+      {aba === 'importar' && (
+        <div className={styles.importWrap}>
+          <div className={styles.importCard}>
+            <div className={styles.importTitulo}>Importar extrato bancário</div>
+            <div className={styles.importDesc}>
+              Suporta arquivos <strong>OFX</strong> (padrão Bradesco, Itaú, BB, Sicoob) e <strong>CSV</strong> (qualquer banco com colunas data / valor / descrição).
+            </div>
 
-          <div
-            className={`${styles.dropzone} ${arquivo ? styles.dropzoneOk : ''}`}
-            onClick={() => document.getElementById('inp-extrato')?.click()}
-            onDragOver={e => e.preventDefault()}
-            onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}>
-            <input id="inp-extrato" type="file" accept=".ofx,.qfx,.csv,.txt"
-              style={{ display: 'none' }}
-              onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
-            <span className={styles.dropIcon}>{arquivo ? '✅' : '📄'}</span>
-            <span className={styles.dropLabel}>
-              {arquivo ? arquivo.name : 'Clique ou arraste o arquivo OFX / CSV aqui'}
-            </span>
-            {linhasPreview.length > 0 && (
-              <span className={styles.dropSub}>
-                {linhasPreview.length} transações · {linhasPreview.filter(l => l.tipo === 'debito').length} débitos · {linhasPreview.filter(l => l.tipo === 'credito').length} créditos
-              </span>
+            {/* Conta */}
+            <div className={styles.field}>
+              <label>Conta bancária *</label>
+              <select className={styles.input} value={contaSelecionada}
+                onChange={e => setContaSelecionada(e.target.value)}>
+                <option value="">Selecione a conta…</option>
+                {contas.map(c => <option key={c.id} value={String(c.id)}>{c.nome}{c.banco ? ` — ${c.banco}` : ''}</option>)}
+              </select>
+            </div>
+
+            {/* Drop zone */}
+            <div
+              className={styles.dropZone}
+              onClick={() => inputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add(styles.dropZoneOver) }}
+              onDragLeave={e => e.currentTarget.classList.remove(styles.dropZoneOver)}
+              onDrop={e => {
+                e.preventDefault()
+                e.currentTarget.classList.remove(styles.dropZoneOver)
+                const f = e.dataTransfer.files[0]
+                if (f) handleArquivo(f)
+              }}>
+              <input ref={inputRef} type="file" accept=".ofx,.csv,.txt" style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleArquivo(f) }} />
+              <div className={styles.dropIcon}>📂</div>
+              <div className={styles.dropText}>
+                {arquivo ? arquivo.name : 'Arraste o arquivo OFX ou CSV aqui, ou clique para selecionar'}
+              </div>
+              {arquivo && (
+                <button className={styles.btnRemover} onClick={e => { e.stopPropagation(); setArquivo(null); setPreview([]) }}>
+                  ✕ Remover
+                </button>
+              )}
+            </div>
+
+            {/* Preview */}
+            {preview.length > 0 && (
+              <>
+                <div className={styles.previewInfo}>
+                  <strong>{preview.length}</strong> transações encontradas
+                  {preview.some(p => p.fitid) && <span className={styles.tagOfx}>OFX</span>}
+                  {!preview.some(p => p.fitid) && <span className={styles.tagCsv}>CSV</span>}
+                </div>
+                <div className={styles.tableScroll}>
+                  <table className={styles.tabela}>
+                    <thead>
+                      <tr>
+                        <th>Data</th>
+                        <th>Descrição</th>
+                        <th style={{ textAlign: 'right' }}>Valor</th>
+                        <th>Tipo OFX</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {preview.slice(0, 20).map((e, i) => (
+                        <tr key={i}>
+                          <td className={styles.data}>{fmtData(e.data)}</td>
+                          <td className={styles.descCell}>{e.descricao || '—'}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <span className={e.valor >= 0 ? styles.valPos : styles.valNeg}>
+                              {fmtBRL(e.valor)}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{e.tipo_lancamento ?? '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {preview.length > 20 && (
+                  <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>… e mais {preview.length - 20} transações</div>
+                )}
+                <div className={styles.importAcoes}>
+                  <button className={styles.btnPrimary} onClick={importar} disabled={importando || !contaSelecionada}>
+                    {importando
+                      ? `Importando… ${importProgress}%`
+                      : `Importar ${preview.length} transações`}
+                  </button>
+                </div>
+              </>
             )}
           </div>
 
-          {linhasPreview.length > 0 && (
-            <>
-              <div className={styles.tableScroll}>
-                <table className={styles.tabela}>
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Descrição</th>
-                      <th>Tipo</th>
-                      <th>Valor</th>
-                      <th>FITID</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {linhasPreview.slice(0, 20).map((l, i) => (
-                      <tr key={i}>
-                        <td className={styles.dataCell}>{fmtData(l.data)}</td>
-                        <td className={styles.descCell}>{l.descricao || '—'}</td>
-                        <td>
-                          <span className={l.tipo === 'credito' ? styles.tipoCredito : styles.tipoDebito}>
-                            {l.tipo === 'credito' ? '↑' : '↓'} {l.tipo}
-                          </span>
-                        </td>
-                        <td className={l.tipo === 'credito' ? styles.valorPos : styles.valorNeg}>
-                          {fmtBRL(l.valor)}
-                        </td>
-                        <td className={styles.fitid}>{l.fitid || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {linhasPreview.length > 20 && (
-                  <div className={styles.maisLinhas}>+ {linhasPreview.length - 20} transações não exibidas</div>
-                )}
-              </div>
+          {/* Instruções */}
+          <div className={styles.instrucoes}>
+            <div className={styles.instrucoesTitulo}>Como exportar o extrato?</div>
+            <div className={styles.instrucaoItem}><strong>Bradesco:</strong> Internet Banking → Conta Corrente → Extrato → Exportar OFX</div>
+            <div className={styles.instrucaoItem}><strong>Itaú:</strong> Área logada → Extrato → Exportar → Formato OFX</div>
+            <div className={styles.instrucaoItem}><strong>Banco do Brasil:</strong> Autoatendimento → Extrato → Exportar OFX</div>
+            <div className={styles.instrucaoItem}><strong>Sicoob/Sicredi:</strong> Internet Banking → Extrato → Download OFX</div>
+            <div className={styles.instrucaoItem}><strong>CSV genérico:</strong> Qualquer planilha com colunas: <em>data, valor, descrição</em></div>
+          </div>
+        </div>
+      )}
 
-              <div className={styles.importActions}>
-                <button className={styles.btnPrimary} onClick={importarExtrato} disabled={importando}>
-                  {importando ? 'Importando...' : `↓ Importar ${linhasPreview.length} transações`}
-                </button>
+      {/* ══ REVISÃO ═══════════════════════════════════════════════════════════ */}
+      {aba === 'revisao' && (
+        <div className={styles.revisaoWrap}>
+
+          {/* Resumo */}
+          {pendentesCount > 0 && (
+            <div className={styles.revisaoResumo}>
+              <div className={styles.resumoItem}>
+                <strong>{pendentesCount}</strong>
+                <span>pendentes de revisão</span>
               </div>
-            </>
+              <div className={styles.resumoDivider} />
+              <div className={styles.resumoItem}>
+                <strong className={styles.verde}>{autoMatchCount}</strong>
+                <span>com match automático</span>
+              </div>
+              <div className={styles.resumoDivider} />
+              <div className={styles.resumoItem}>
+                <strong className={styles.vermelho}>{pendentesCount - autoMatchCount}</strong>
+                <span>sem match — ação necessária</span>
+              </div>
+            </div>
           )}
 
-          {resultImport && (
-            <div className={styles.resultBox}>
-              <strong>{resultImport.novas}</strong> novas linhas importadas
-              {resultImport.dup > 0 && (
-                <span className={styles.dupLabel}> · {resultImport.dup} duplicatas ignoradas</span>
-              )}
-              {resultImport.novas > 0 && (
-                <button className={styles.btnLink} onClick={() => setAba('conciliar')}>
-                  → Ir para Conciliar
+          {/* Filtros */}
+          <div className={styles.filtros}>
+            <select className={styles.filtroSelect} value={filtroStatus}
+              onChange={e => setFiltroStatus(e.target.value as typeof filtroStatus)}>
+              <option value="pendente">Pendentes</option>
+              <option value="">Todos</option>
+              <option value="conciliado">Conciliados</option>
+              <option value="ignorado">Ignorados</option>
+            </select>
+            <select className={styles.filtroSelect} value={filtroConta}
+              onChange={e => setFiltroConta(e.target.value)}>
+              <option value="">Todas as contas</option>
+              {contas.map(c => <option key={c.id} value={String(c.id)}>{c.nome}</option>)}
+            </select>
+            <button className={styles.btnSecondary} onClick={carregarRevisao}>↻ Atualizar</button>
+          </div>
+
+          {/* Tabela de conciliação */}
+          {extratoRows.length === 0 ? (
+            <div className={styles.vazio}>
+              {filtroStatus === 'pendente'
+                ? '🎉 Nenhum lançamento pendente de conciliação.'
+                : 'Nenhum registro encontrado.'}
+              {filtroStatus === 'pendente' && (
+                <button className={styles.btnLinkSmall} onClick={() => setAba('importar')}>
+                  Importar extrato →
                 </button>
               )}
+            </div>
+          ) : (
+            <div className={styles.tableScroll}>
+              <table className={styles.tabelaConcil}>
+                <thead>
+                  <tr>
+                    <th>Data extrato</th>
+                    <th>Descrição banco</th>
+                    <th style={{ textAlign: 'right' }}>Valor</th>
+                    <th>Confiança</th>
+                    <th>Movimentação vinculada</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {extratoRows.map(row => {
+                    const movVinc = movimentacoes.find(m => m.id === row.movimentacao_id)
+                    const isSelecionando = selecionandoMov === row.id
+                    return (
+                      <>
+                        <tr key={row.id} className={
+                          row.status === 'conciliado' ? styles.rowConciliado
+                          : row.status === 'ignorado' ? styles.rowIgnorado
+                          : !row.movimentacao_id ? styles.rowSemMatch : ''
+                        }>
+                          <td className={styles.data}>{fmtData(row.data)}</td>
+                          <td className={styles.descCell}>{row.descricao ?? '—'}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <span className={row.valor >= 0 ? styles.valPos : styles.valNeg}>
+                              {fmtBRL(row.valor)}
+                            </span>
+                          </td>
+                          <td>
+                            {row.confianca === 'alta'  && <span className={styles.tagAlta}>✓ Alta</span>}
+                            {row.confianca === 'media' && <span className={styles.tagMedia}>~ Média</span>}
+                            {row.confianca === 'baixa' && !row.movimentacao_id && <span className={styles.tagSemMatch}>Sem match</span>}
+                            {row.confianca === 'baixa' && row.movimentacao_id  && <span className={styles.tagMedia}>~ Baixa</span>}
+                            {!row.confianca && <span style={{ color: '#d1d5db' }}>—</span>}
+                          </td>
+                          <td>
+                            {movVinc ? (
+                              <div>
+                                <div style={{ fontSize: '0.83rem', fontWeight: 600 }}>{movVinc.descricao ?? '—'}</div>
+                                <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                                  {fmtData(movVinc.data)} · {fmtBRL(movVinc.valor)} · {movVinc.tipo}
+                                </div>
+                              </div>
+                            ) : (
+                              <span style={{ color: '#d1d5db', fontSize: '0.82rem' }}>Nenhuma vinculada</span>
+                            )}
+                          </td>
+                          <td>
+                            <div className={styles.acoes}>
+                              {row.status === 'pendente' && row.movimentacao_id && (
+                                <button className={styles.btnConfirmar} onClick={() => confirmar(row)}>
+                                  ✓ Confirmar
+                                </button>
+                              )}
+                              {row.status === 'pendente' && !row.movimentacao_id && (
+                                <button className={styles.btnCriar} onClick={() => criarMovimentacao(row)}>
+                                  + Criar mov.
+                                </button>
+                              )}
+                              {row.status === 'pendente' && (
+                                <button className={styles.btnVincular}
+                                  onClick={() => { setSelecionandoMov(isSelecionando ? null : row.id); setMovQuery('') }}>
+                                  🔗 Vincular
+                                </button>
+                              )}
+                              {row.status === 'pendente' && (
+                                <button className={styles.btnIgnorar} onClick={() => ignorar(row.id)}>
+                                  Ignorar
+                                </button>
+                              )}
+                              {row.status === 'conciliado' && (
+                                <button className={styles.btnIgnorar} onClick={() => desconciliar(row)}>
+                                  ↩ Desfazer
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* Busca manual de movimentação */}
+                        {isSelecionando && (
+                          <tr key={`sel-${row.id}`}>
+                            <td colSpan={6} className={styles.vincularCell}>
+                              <div className={styles.vincularBox}>
+                                <div style={{ fontWeight: 600, fontSize: '0.82rem', marginBottom: 8 }}>
+                                  Selecione a movimentação para vincular:
+                                </div>
+                                <input className={styles.input} placeholder="Buscar por descrição ou valor…"
+                                  value={movQuery} onChange={e => setMovQuery(e.target.value)} autoFocus />
+                                <div className={styles.movList}>
+                                  {movsFiltradas.map(m => (
+                                    <button key={m.id} className={styles.movItem}
+                                      onClick={() => vincularManual(row.id, m.id)}>
+                                      <span className={m.tipo === 'entrada' ? styles.valPos : styles.valNeg}>
+                                        {fmtBRL(m.valor)}
+                                      </span>
+                                      <span>{fmtData(m.data)}</span>
+                                      <span className={styles.movDesc}>{m.descricao ?? '—'}</span>
+                                    </button>
+                                  ))}
+                                  {movsFiltradas.length === 0 && (
+                                    <div style={{ fontSize: '0.82rem', color: '#94a3b8', padding: 8 }}>
+                                      Nenhuma movimentação encontrada.
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
       )}
 
-      {/* ══ CONCILIAR ═══════════════════════════════════════════════════════ */}
-      {aba === 'conciliar' && (
-        <div className={styles.section}>
-          {loading ? (
-            <div className={styles.loading}>Carregando...</div>
+      {/* ══ HISTÓRICO ═════════════════════════════════════════════════════════ */}
+      {aba === 'historico' && (
+        <div>
+          <div style={{ marginBottom: 16, fontSize: '0.85rem', color: '#64748b' }}>
+            {histRows.length} transações conciliadas
+          </div>
+          {histRows.length === 0 ? (
+            <div className={styles.vazio}>Nenhuma transação conciliada ainda.</div>
           ) : (
-            <>
-              {/* Stats bar */}
-              <div className={styles.statsBar}>
-                {matchForte.length > 0 && (
-                  <span className={`${styles.stat} ${styles.statForte}`} title="Confiança ≥ 80%">
-                    <strong>{matchForte.length}</strong> match forte
-                  </span>
-                )}
-                {(matchFraco.length + divValorList.length + divDataList.length) > 0 && (
-                  <span className={`${styles.stat} ${styles.statFraco}`} title="Confiança < 80% ou divergência">
-                    <strong>{matchFraco.length + divValorList.length + divDataList.length}</strong> exceção c/ candidato
-                  </span>
-                )}
-                {(semCandidato.length + difTemporal.length) > 0 && (
-                  <span className={`${styles.stat} ${styles.statSem}`}>
-                    <strong>{semCandidato.length + difTemporal.length}</strong> sem match
-                  </span>
-                )}
-                {totalOrfaos > 0 && (
-                  <span className={`${styles.stat} ${styles.statOrfao}`} title="Débitos no extrato sem lançamento">
-                    <strong>{totalOrfaos}</strong> órfão{totalOrfaos !== 1 ? 's' : ''}
-                  </span>
-                )}
-                <button className={styles.btnRefresh} onClick={carregarConciliacao} title="Atualizar">↻</button>
-              </div>
-
-              {grupos.length === 0 && semCandidato.length === 0 && difTemporal.length === 0 && (
-                <div className={styles.vazio}>
-                  Nenhum lançamento pendente de conciliação.
-                  {' '}<button className={styles.btnLink} onClick={() => setAba('extrato')}>Importar extrato →</button>
-                </div>
-              )}
-
-              {/* ── Match forte (≥ 80%) ── */}
-              {matchForte.map(g => renderCardGrupo(g))}
-
-              {/* ── Match fraco (60–79%) ── */}
-              {matchFraco.length > 0 && renderExcecaoSection(
-                '🟡', `${matchFraco.length} match${matchFraco.length !== 1 ? 'es' : ''} fraco${matchFraco.length !== 1 ? 's' : ''} (60–79%)`,
-                'Candidato provável mas não conclusivo — confira os valores e datas antes de confirmar.',
-                <>{matchFraco.map(g => renderCardGrupo(g))}</>
-              )}
-
-              {/* ── Divergência de valor ── */}
-              {divValorList.length > 0 && renderExcecaoSection(
-                '💰', `${divValorList.length} com divergência de valor`,
-                'Há um débito próximo no extrato, mas o valor difere mais de 3%. Pode ser desconto, juros ou lançamento errado.',
-                <>{divValorList.map(g => renderCardGrupo(g))}</>
-              )}
-
-              {/* ── Divergência de data ── */}
-              {divDataList.length > 0 && renderExcecaoSection(
-                '📅', `${divDataList.length} com divergência de data`,
-                'Valor próximo, mas a data de pagamento no extrato difere bastante do vencimento.',
-                <>{divDataList.map(g => renderCardGrupo(g))}</>
-              )}
-
-              {/* ── Diferença temporal (fora da janela de 7 dias) ── */}
-              {difTemporal.length > 0 && renderExcecaoSection(
-                '⏱', `${difTemporal.length} com candidato fora da janela de datas`,
-                'Há um débito com valor próximo no extrato, mas com data muito distante do vencimento (> 7 dias). Confira manualmente.',
-                <>
-                  {difTemporal.map(g => {
-                    const ct = g.candidatoTemporal!
-                    const atraso = diasAtraso(g.data_vencimento)
-                    return (
-                      <div key={g.lancamento_id} className={`${styles.excecaoItem} ${atraso > 30 ? styles.excecaoItemUrgente : ''}`}>
-                        <div style={{ flex: 1 }}>
-                          <div className={styles.lancDesc}>{g.descricao}</div>
-                          <div className={styles.lancMeta}>
-                            Venc. {fmtData(g.data_vencimento)}
-                            {atraso > 0 && <span className={styles.badgeAtraso}>{atraso}d</span>}
-                            {g.nf_chave && <span className={styles.badgeNF}>NF</span>}
-                          </div>
-                          <div className={styles.candDiverg} style={{ marginTop: 4 }}>
-                            Extrato: {fmtData(ct.extrato_data)} · {ct.extrato_descricao || '—'} · {ct.diferenca_dias}d de diferença
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <strong className={styles.lancValor}>{fmtBRL(g.valor)}</strong>
-                          <button
-                            className={styles.btnConfirmar}
-                            disabled={conciliando === g.lancamento_id}
-                            onClick={() => confirmarMatch(g.lancamento_id, ct.extrato_id, ct.extrato_data)}>
-                            {conciliando === g.lancamento_id ? '...' : '✓ Confirmar'}
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </>
-              )}
-
-              {/* ── Sem candidato ── */}
-              {semCandidato.length > 0 && renderExcecaoSection(
-                '⚠', `${semCandidato.length} lançamento${semCandidato.length !== 1 ? 's' : ''} sem candidato no extrato`,
-                'Verifique se o pagamento foi feito por outro meio ou se o extrato está desatualizado.',
-                <>
-                  {semCandidato.map(g => {
-                    const atraso = diasAtraso(g.data_vencimento)
-                    return (
-                      <div key={g.lancamento_id} className={`${styles.excecaoItem} ${atraso > 30 ? styles.excecaoItemUrgente : ''}`}>
-                        <div>
-                          <div className={styles.lancDesc}>{g.descricao}</div>
-                          <div className={styles.lancMeta}>
-                            Venc. {fmtData(g.data_vencimento)}
-                            {atraso > 0 && <span className={styles.badgeAtraso}>{atraso}d</span>}
-                            {g.nf_chave && <span className={styles.badgeNF}>NF</span>}
-                          </div>
-                        </div>
-                        <strong className={styles.lancValor}>{fmtBRL(g.valor)}</strong>
-                      </div>
-                    )
-                  })}
-                </>
-              )}
-
-              {/* ── Possível duplicata no extrato ── */}
-              {orfaosDup.length > 0 && renderExcecaoSection(
-                '🔁', `${orfaosDup.length} possível duplicata no extrato`,
-                'Dois débitos com mesmo valor e datas próximas — pode ser cobrança duplicada.',
-                <>
-                  {orfaosDup.map(e => (
-                    <div key={e.id} className={styles.excecaoItem}>
-                      <div>
-                        <div className={styles.lancDesc}>{e.descricao || '—'}</div>
-                        <div className={styles.lancMeta}>
-                          {fmtData(e.data)}
-                          {e.doc && <span className={styles.badgeOrigem}>{e.doc}</span>}
-                          <span className={styles.badgeDup}>duplicata?</span>
-                        </div>
-                      </div>
-                      <strong className={styles.lancValor}>{fmtBRL(Math.abs(e.valor))}</strong>
-                    </div>
+            <div className={styles.tableScroll}>
+              <table className={styles.tabela}>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th style={{ textAlign: 'right' }}>Valor</th>
+                    <th>Confiança</th>
+                    <th>Importado em</th>
+                    <th>Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {histRows.map(row => (
+                    <tr key={row.id}>
+                      <td className={styles.data}>{fmtData(row.data)}</td>
+                      <td className={styles.descCell}>{row.descricao ?? '—'}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <span className={row.valor >= 0 ? styles.valPos : styles.valNeg}>
+                          {fmtBRL(row.valor)}
+                        </span>
+                      </td>
+                      <td>
+                        {row.confianca === 'alta'  && <span className={styles.tagAlta}>✓ Alta</span>}
+                        {row.confianca === 'media' && <span className={styles.tagMedia}>~ Média</span>}
+                        {row.confianca === 'baixa' && <span className={styles.tagSemMatch}>Baixa</span>}
+                      </td>
+                      <td className={styles.data}>{fmtData(row.importado_em?.slice(0,10))}</td>
+                      <td>
+                        <button className={styles.btnIgnorar} onClick={() => desconciliar(row)}>
+                          ↩ Desfazer
+                        </button>
+                      </td>
+                    </tr>
                   ))}
-                </>
-              )}
-
-              {/* ── Possível taxa ou tarifa ── */}
-              {orfaosTaxa.length > 0 && renderExcecaoSection(
-                '🏦', `${orfaosTaxa.length} possível taxa ou tarifa bancária`,
-                'Débito de valor pequeno ou com descrição de tarifa, IOF, TED etc. — lançar como despesa bancária se necessário.',
-                <>
-                  {orfaosTaxa.map(e => (
-                    <div key={e.id} className={styles.excecaoItem}>
-                      <div>
-                        <div className={styles.lancDesc}>{e.descricao || '—'}</div>
-                        <div className={styles.lancMeta}>
-                          {fmtData(e.data)}
-                          {e.doc && <span className={styles.badgeOrigem}>{e.doc}</span>}
-                          <span className={styles.badgeTaxa}>taxa/tarifa</span>
-                        </div>
-                      </div>
-                      <strong className={styles.lancValor}>{fmtBRL(Math.abs(e.valor))}</strong>
-                    </div>
-                  ))}
-                </>
-              )}
-
-              {/* ── Débitos genéricos sem lançamento ── */}
-              {orfaosGenericos.length > 0 && renderExcecaoSection(
-                '❓', `${orfaosGenericos.length} débito${orfaosGenericos.length !== 1 ? 's' : ''} no extrato sem lançamento correspondente`,
-                'O banco debitou, mas não há NF ou despesa lançada no sistema para este valor.',
-                <>
-                  {orfaosGenericos.map(e => (
-                    <div key={e.id} className={styles.excecaoItem}>
-                      <div>
-                        <div className={styles.lancDesc}>{e.descricao || '—'}</div>
-                        <div className={styles.lancMeta}>
-                          {fmtData(e.data)}
-                          {e.doc && <span className={styles.badgeOrigem}>{e.doc}</span>}
-                          <span className={styles.badgeOrigem}>{e.conta}</span>
-                        </div>
-                      </div>
-                      <strong className={styles.lancValor}>{fmtBRL(Math.abs(e.valor))}</strong>
-                    </div>
-                  ))}
-                </>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ══ REVISÃO ═════════════════════════════════════════════════════════ */}
-      {aba === 'revisao' && (
-        <div className={styles.section}>
-          <p className={styles.info}>Conciliações confirmadas. Use "Desfazer" apenas para corrigir erros de match.</p>
-          {loadingRev ? (
-            <div className={styles.loading}>Carregando...</div>
-          ) : conciliadas.length === 0 ? (
-            <div className={styles.vazio}>Nenhuma conciliação registrada.</div>
-          ) : (
-            <div className={styles.revisaoLista}>
-              {conciliadas.map(c => {
-                const ext = c.extrato_bancario
-                const dif = ext ? Math.abs(Math.abs(ext.valor) - c.valor) : 0
-                const temDivergencia = dif > 0.01
-                return (
-                  <div key={c.id} className={`${styles.revisaoCard} ${temDivergencia ? styles.revisaoCardDiverg : ''}`}>
-
-                    <div className={styles.revisaoLado}>
-                      <div className={styles.revisaoLadoLabel}>Lançamento</div>
-                      <div className={styles.lancDesc}>{c.descricao}</div>
-                      <div className={styles.revisaoLadoMeta}>
-                        {c.nf_chave && <span className={styles.badgeNF}>NF</span>}
-                        <span className={styles.badgeOrigem}>pago em {fmtData(c.data_pagamento)}</span>
-                      </div>
-                      <strong className={styles.revisaoValor}>{fmtBRL(c.valor)}</strong>
-                    </div>
-
-                    <div className={styles.revisaoSeta}>
-                      {temDivergencia
-                        ? <span className={styles.setaDiverg} title={`Diferença: ${fmtBRL(dif)}`}>≠</span>
-                        : <span className={styles.setaOk}>✓</span>}
-                    </div>
-
-                    <div className={styles.revisaoLado}>
-                      <div className={styles.revisaoLadoLabel}>Extrato bancário</div>
-                      {ext ? (
-                        <>
-                          <div className={styles.lancDesc}>{ext.descricao || '—'}</div>
-                          <div className={styles.revisaoLadoMeta}>
-                            <span className={styles.badgeOrigem}>{fmtData(ext.data)}</span>
-                          </div>
-                          <strong className={`${styles.revisaoValor} ${temDivergencia ? styles.revisaoValorDiverg : ''}`}>
-                            {fmtBRL(Math.abs(ext.valor))}
-                            {temDivergencia && <span className={styles.difLabel}> (Δ {fmtBRL(dif)})</span>}
-                          </strong>
-                        </>
-                      ) : <span className={styles.semExtrato}>Extrato não encontrado</span>}
-                    </div>
-
-                    <div className={styles.revisaoAcao}>
-                      <button
-                        className={styles.btnDesfazer}
-                        disabled={desfazendo === c.id}
-                        onClick={() => desfazerConciliacao(c.id)}>
-                        {desfazendo === c.id ? '...' : 'Desfazer'}
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
