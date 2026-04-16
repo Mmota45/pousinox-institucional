@@ -964,10 +964,10 @@ export default function AdminFinanceiro() {
             <div className={styles.atalho}>
               <span className={styles.atalhoIcon}>🧾</span>
               <div>
-                <div className={styles.atalhoTitulo}>Lançar despesa de NF</div>
-                <div className={styles.atalhoDesc}>Integração com importação de NFs de entrada ainda não implementada — use lançamento manual por enquanto</div>
+                <div className={styles.atalhoTitulo}>Lançar despesa/receita de NF</div>
+                <div className={styles.atalhoDesc}>Em <strong>Fiscal → Docs Recebidos/Emitidos</strong>, abra um doc autorizado e clique em "💰 Gerar lançamento financeiro"</div>
               </div>
-              <span className={styles.atalhoStatus}>Em breve</span>
+              <span className={styles.atalhoStatusOk}>⚡ Ativo</span>
             </div>
             <div className={styles.atalho}>
               <span className={styles.atalhoIcon}>📐</span>
