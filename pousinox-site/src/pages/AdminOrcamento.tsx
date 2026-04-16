@@ -24,7 +24,7 @@ interface OrcamentoResumo {
 }
 
 interface Item {
-  produto_id: number | null; descricao: string; qtd: string; unidade: string; valorUnit: string; imagem_url?: string
+  produto_id: number | null; descricao: string; qtd: string; unidade: string; valorUnit: string; imagem_url?: string; preco_original?: string
 }
 
 interface ClienteInfo {
@@ -288,7 +288,7 @@ export default function AdminOrcamento() {
     setEmpresaId(o.empresa_id); setVendedorId(o.vendedor_id ?? null)
     setCliente({ nome: o.cliente_nome ?? '', empresa: o.cliente_empresa ?? '', cnpj: o.cliente_cnpj ?? '', telefone: o.cliente_telefone ?? '', email: o.cliente_email ?? '', endereco: o.cliente_endereco ?? '' })
     setItens((itensD ?? []).length > 0
-      ? (itensD as any[]).map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: String(i.qtd), unidade: i.unidade, valorUnit: String(i.valor_unit), imagem_url: i.imagem_url ?? undefined }))
+      ? (itensD as any[]).map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: String(i.qtd), unidade: i.unidade, valorUnit: String(i.valor_unit), imagem_url: i.imagem_url ?? undefined, preco_original: i.preco_original ? String(i.preco_original) : undefined }))
       : [{ ...ITEM_VAZIO }])
     setDesconto(o.desconto > 0 ? String(o.desconto) : ''); setTipoDesc(o.tipo_desconto ?? '%')
     setCondicao(o.condicao_pagamento ?? ''); setPrazoEntrega(o.prazo_entrega ?? '')
@@ -337,6 +337,7 @@ export default function AdminOrcamento() {
         valor_unit: parseFloat(i.valorUnit.replace(',', '.')) || 0,
         total: (parseFloat(i.qtd.replace(',', '.')) || 1) * (parseFloat(i.valorUnit.replace(',', '.')) || 0),
         imagem_url: i.imagem_url ?? null,
+        preco_original: i.preco_original ? parseFloat(i.preco_original) : null,
         ordem: idx,
       }))
       if (itensPayload.length) await supabaseAdmin.from('itens_orcamento').insert(itensPayload)
@@ -450,14 +451,11 @@ export default function AdminOrcamento() {
     setBuscaProduto(''); setResultadosProduto([]); setShowBuscaProduto(false)
   }
   function adicionarOutlet(p: OutletResult) {
-    // Usa o preço de venda real (p.preco) — sem alterar desconto global
-    // preco_original aparece riscado na descrição quando há promoção
-    const descricao = p.preco_original && p.preco_original > p.preco
-      ? `${p.titulo} (de ${fmtBRL(p.preco_original)})`
-      : p.titulo
     setItens(prev => [...prev, {
-      produto_id: p.id, descricao, qtd: '1', unidade: 'UN',
-      valorUnit: String(p.preco), imagem_url: p.fotos?.[0] ?? undefined,
+      produto_id: p.id, descricao: p.titulo, qtd: '1', unidade: 'UN',
+      valorUnit: String(p.preco),
+      preco_original: p.preco_original && p.preco_original > p.preco ? String(p.preco_original) : undefined,
+      imagem_url: p.fotos?.[0] ?? undefined,
     }])
     setBuscaOutlet(''); setResultadosOutlet([]); setShowBuscaOutlet(false)
   }
@@ -865,7 +863,14 @@ export default function AdminOrcamento() {
                           <td>{item.descricao}</td>
                           <td className={styles.pTdCenter}>{item.qtd}</td>
                           <td className={styles.pTdCenter}>{item.unidade}</td>
-                          <td className={styles.pTdRight}>{v > 0 ? fmt(v) : '—'}</td>
+                          <td className={styles.pTdRight}>
+                            {item.preco_original && (
+                              <div style={{ fontSize: '0.68rem', color: '#94a3b8', textDecoration: 'line-through', lineHeight: 1 }}>
+                                {fmt(parseFloat(item.preco_original))}
+                              </div>
+                            )}
+                            {v > 0 ? fmt(v) : '—'}
+                          </td>
                           <td className={styles.pTdRight} style={{ fontWeight: 600 }}>{q > 0 && v > 0 ? fmt(q * v) : '—'}</td>
                         </tr>
                       )
