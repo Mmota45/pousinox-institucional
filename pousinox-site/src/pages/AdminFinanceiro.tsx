@@ -291,6 +291,12 @@ export default function AdminFinanceiro() {
   // Categorização pendente
   const [pendCatCount, setPendCatCount] = useState(0)
 
+  // Painel — agenda e alertas
+  const [agendaItems, setAgendaItems]       = useState<Lancamento[]>([])
+  const [saldosContas, setSaldosContas]     = useState<Array<ContaBancaria & { saldo: number }>>([])
+  const [vencidosCount, setVencidosCount]   = useState(0)
+  const [concilPendCount, setConcilPendCount] = useState(0)
+
   // DRE
   const [dreGrupos, setDreGrupos] = useState<DreGrupo[]>([])
   const [dreAno, setDreAno] = useState(new Date().getFullYear())
@@ -432,6 +438,49 @@ export default function AdminFinanceiro() {
     setAgingResumo((data ?? []) as AgingResumo[])
   }, [])
 
+  const carregarPainel = useCallback(async () => {
+    const hj = hoje()
+    const em7 = new Date(); em7.setDate(em7.getDate() + 7)
+    const em7str = em7.toISOString().slice(0, 10)
+
+    const [
+      { data: saldoData },
+      { data: agendaData },
+      { count: vencidosN },
+      { count: concilN },
+      { data: movsContas },
+    ] = await Promise.all([
+      supabaseAdmin.from('vw_fin_saldo_mes').select('*').order('mes', { ascending: false }).limit(1).single(),
+      supabaseAdmin.from('fin_lancamentos')
+        .select('*, fin_categorias(nome, cor), fin_centros_custo(nome)')
+        .eq('status', 'pendente')
+        .gte('data_vencimento', hj)
+        .lte('data_vencimento', em7str)
+        .order('data_vencimento'),
+      supabaseAdmin.from('fin_lancamentos').select('id', { count: 'exact', head: true })
+        .eq('status', 'pendente').lt('data_vencimento', hj),
+      supabaseAdmin.from('fin_movimentacoes').select('id', { count: 'exact', head: true })
+        .eq('conciliado', false).eq('status', 'realizado'),
+      supabaseAdmin.from('fin_movimentacoes').select('conta_id, tipo, valor').eq('status', 'realizado'),
+    ])
+
+    setSaldoMes(saldoData ?? null)
+    setAgendaItems((agendaData ?? []) as Lancamento[])
+    setVencidosCount(vencidosN ?? 0)
+    setConcilPendCount(concilN ?? 0)
+    setPendCatCount(prev => prev) // mantém o valor já carregado em carregarTudo
+
+    // Saldo por conta = saldo_inicial + Σ movimentos realizados
+    const movMap: Record<number, number> = {}
+    for (const m of (movsContas ?? []) as { conta_id: number; tipo: string; valor: number }[]) {
+      if (!m.conta_id) continue
+      movMap[m.conta_id] = (movMap[m.conta_id] ?? 0) + (m.tipo === 'entrada' ? Number(m.valor) : -Number(m.valor))
+    }
+    setSaldosContas(
+      contas.map(c => ({ ...c, saldo: (c.saldo_inicial ?? 0) + (movMap[c.id] ?? 0) }))
+    )
+  }, [contas])
+
   const carregarAging = useCallback(async () => {
     let q = supabaseAdmin
       .from('vw_fin_aging')
@@ -557,13 +606,13 @@ export default function AdminFinanceiro() {
   }, [dreAno, dreMes])
 
   useEffect(() => {
-    if (aba === 'painel')      { carregarSaldo(); carregarAgingResumo() }
+    if (aba === 'painel')      carregarPainel()
     if (aba === 'lancamentos') carregarLancamentos()
     if (aba === 'recebiveis')  carregarAging()
     if (aba === 'fluxo')       carregarMovimentacoes()
     if (aba === 'budget')      carregarBudget()
     if (aba === 'dre')         carregarDre()
-  }, [aba, carregarSaldo, carregarAgingResumo, carregarLancamentos, carregarAging, carregarMovimentacoes, carregarBudget, carregarDre])
+  }, [aba, carregarPainel, carregarLancamentos, carregarAging, carregarMovimentacoes, carregarBudget, carregarDre])
 
   useEffect(() => {
     if (aba === 'lancamentos') carregarLancamentos()
@@ -848,7 +897,7 @@ export default function AdminFinanceiro() {
       <div className={styles.abas}>
         {([
           { key: 'painel',      label: '📊 Painel'         },
-          { key: 'lancamentos', label: '📋 Lançamentos'    },
+          { key: 'lancamentos', label: '📋 Agenda Financeira' },
           { key: 'fluxo',       label: '💰 Fluxo de Caixa' },
         ] as { key: Aba; label: string }[]).map(a => (
           <button key={a.key}
@@ -865,116 +914,148 @@ export default function AdminFinanceiro() {
       {aba === 'painel' && (
         <div className={styles.painelWrap}>
 
-          {/* Banner automation-first */}
-          <div className={styles.autoFirst}>
-            <span className={styles.autoFirstIcon}>⚡</span>
-            <div>
-              <strong>Lançamentos automáticos</strong>
-              <p>Receitas nascem em <strong>Vendas</strong>. Despesas nascem de <strong>NFs importadas</strong> e <strong>Projetos</strong>. O lançamento manual é reservado para ajustes, taxas e exceções.</p>
-            </div>
-          </div>
-
-          {/* Cards */}
-          <div className={styles.cards}>
-            <div className={`${styles.card} ${styles.cardReceita}`}>
-              <span className={styles.cardLabel}>Receitas do mês</span>
-              <strong className={styles.cardVal}>{fmtBRL(saldoMes?.total_receitas ?? 0, ocultarValores)}</strong>
-            </div>
-            <div className={`${styles.card} ${styles.cardDespesa}`}>
-              <span className={styles.cardLabel}>Despesas do mês</span>
-              <strong className={styles.cardVal}>{fmtBRL(saldoMes?.total_despesas ?? 0, ocultarValores)}</strong>
-            </div>
-            <div className={`${styles.card} ${(saldoMes?.saldo ?? 0) >= 0 ? styles.cardSaldoPos : styles.cardSaldoNeg}`}>
-              <span className={styles.cardLabel}>Saldo do mês</span>
-              <strong className={styles.cardVal}>{fmtBRL(saldoMes?.saldo ?? 0, ocultarValores)}</strong>
-            </div>
-            <div className={`${styles.card} ${styles.cardAlerta}`}>
-              <span className={styles.cardLabel}>A receber (vencidos)</span>
-              <strong className={styles.cardVal}>{fmtBRL(saldoMes?.vencidos_receber ?? 0, ocultarValores)}</strong>
-            </div>
-            <div className={`${styles.card} ${styles.cardAlerta}`}>
-              <span className={styles.cardLabel}>A pagar (vencidos)</span>
-              <strong className={styles.cardVal}>{fmtBRL(saldoMes?.vencidos_pagar ?? 0, ocultarValores)}</strong>
-            </div>
-            <div className={styles.card}>
-              <span className={styles.cardLabel}>Pendentes</span>
-              <strong className={styles.cardVal}>{saldoMes?.pendentes ?? 0}</strong>
-            </div>
-          </div>
-
-          {pendCatCount > 0 && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              background: '#fff8e0', border: '1px solid #f39c12',
-              borderRadius: 8, padding: '10px 16px', marginBottom: 16,
-            }}>
-              <span style={{ fontSize: '1rem' }}>⚠️</span>
-              <span style={{ fontSize: '0.88rem', color: '#7a5000', fontWeight: 600 }}>
-                {pendCatCount} lançamento{pendCatCount > 1 ? 's' : ''} aguardando categorização
-              </span>
-              <button onClick={() => setAba('lancamentos')}
-                style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#7a5000', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
-                Categorizar →
-              </button>
-            </div>
-          )}
-
-          {/* Aging de recebíveis */}
-          {agingResumo.length > 0 && (
-            <div>
-              <div className={styles.secaoTitulo}>
-                Recebíveis em aberto
-                <button className={styles.btnLinkSmall} onClick={() => setAba('lancamentos')}>
-                  Ver todos →
+          {/* ① Alertas */}
+          {(vencidosCount > 0 || pendCatCount > 0 || concilPendCount > 0) && (
+            <div className={styles.alertasRow}>
+              {vencidosCount > 0 && (
+                <button className={styles.alertaPill} onClick={() => setAba('lancamentos')}>
+                  <span className={styles.alertaDot} style={{ background: '#dc2626' }} />
+                  <strong>{vencidosCount}</strong> vencido{vencidosCount !== 1 ? 's' : ''} sem baixa
                 </button>
+              )}
+              {pendCatCount > 0 && (
+                <button className={styles.alertaPill} onClick={() => { setFiltroAguarda(true); setAba('lancamentos') }}>
+                  <span className={styles.alertaDot} style={{ background: '#f59e0b' }} />
+                  <strong>{pendCatCount}</strong> aguardando categorização
+                </button>
+              )}
+              {concilPendCount > 0 && (
+                <button className={styles.alertaPill} onClick={() => setAba('fluxo')}>
+                  <span className={styles.alertaDot} style={{ background: '#6366f1' }} />
+                  <strong>{concilPendCount}</strong> pendente{concilPendCount !== 1 ? 's' : ''} de conciliação
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ② KPIs do mês */}
+          <div>
+            <div className={styles.painelSecao}>Resultado do mês</div>
+            <div className={styles.cards}>
+              <div className={`${styles.card} ${styles.cardReceita}`}>
+                <span className={styles.cardLabel}>Receitas realizadas</span>
+                <strong className={styles.cardVal}>{fmtBRL(saldoMes?.total_receitas ?? 0, ocultarValores)}</strong>
+                <span className={styles.cardSub}>mês corrente</span>
               </div>
-              <div className={styles.agingCards}>
-                {(['a_vencer', 'vencido_1_7', 'vencido_8_30', 'vencido_31_plus'] as const).map(faixa => {
-                  const item = agingResumo.find(r => r.faixa === faixa)
-                  if (!item) return null
-                  return (
-                    <div key={faixa}
-                      className={`${styles.agingCard} ${faixa !== 'a_vencer' ? styles.agingCardVencido : ''}`}
-                      onClick={() => { setFiltroFaixa(faixa); setAba('lancamentos') }}>
-                      <span className={styles.agingFaixa}>{FAIXA_LABELS[faixa]}</span>
-                      <strong className={styles.agingTotal}>{fmtBRL(item.total, ocultarValores)}</strong>
-                      <span className={styles.agingQtd}>{item.quantidade} título{item.quantidade !== 1 ? 's' : ''}</span>
-                      {item.prioritarios > 0 && (
-                        <span className={styles.agingPrioritarios}>⭐ {item.prioritarios} prioritári{item.prioritarios !== 1 ? 'os' : 'o'}</span>
-                      )}
+              <div className={`${styles.card} ${styles.cardDespesa}`}>
+                <span className={styles.cardLabel}>Despesas realizadas</span>
+                <strong className={styles.cardVal}>{fmtBRL(saldoMes?.total_despesas ?? 0, ocultarValores)}</strong>
+                <span className={styles.cardSub}>mês corrente</span>
+              </div>
+              <div className={`${styles.card} ${(saldoMes?.saldo ?? 0) >= 0 ? styles.cardSaldoPos : styles.cardSaldoNeg}`}>
+                <span className={styles.cardLabel}>Resultado líquido</span>
+                <strong className={styles.cardVal}>{fmtBRL(saldoMes?.saldo ?? 0, ocultarValores)}</strong>
+                <span className={styles.cardSub}>receitas − despesas</span>
+              </div>
+            </div>
+          </div>
+
+          {/* ③ Saldo por conta */}
+          {saldosContas.length > 0 && (
+            <div>
+              <div className={styles.painelSecao}>Saldo atual por conta</div>
+              <div className={styles.contasGrid}>
+                {saldosContas.map(c => (
+                  <div key={c.id} className={styles.contaCard}>
+                    <div className={styles.contaCardTopo}>
+                      <span className={styles.contaCardNome}>{c.nome}</span>
+                      <span className={styles.contaCardBanco}>{c.banco ?? c.tipo}</span>
                     </div>
-                  )
-                })}
+                    <strong className={`${styles.contaCardSaldo} ${c.saldo >= 0 ? styles.fluxoCardValPos : styles.fluxoCardValNeg}`}>
+                      {fmtBRL(c.saldo, ocultarValores)}
+                    </strong>
+                    <span className={styles.contaCardNegocio}>{c.negocio}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Atalhos de origem */}
-          <div className={styles.atalhos}>
-            <div className={styles.atalho}>
-              <span className={styles.atalhoIcon}>📦</span>
-              <div>
-                <div className={styles.atalhoTitulo}>Recebimento de venda</div>
-                <div className={styles.atalhoDesc}>Ao registrar uma venda em <strong>Vendas</strong>, o lançamento financeiro é criado automaticamente como pago</div>
-              </div>
-              <span className={styles.atalhoStatusOk}>⚡ Ativo</span>
+          {/* ④ Agenda dos próximos 7 dias */}
+          <div>
+            <div className={styles.painelSecao}>
+              Agenda — próximos 7 dias
+              <button className={styles.btnLinkSmall} onClick={() => setAba('lancamentos')}>Ver todos →</button>
             </div>
-            <div className={styles.atalho}>
-              <span className={styles.atalhoIcon}>🧾</span>
-              <div>
-                <div className={styles.atalhoTitulo}>Lançar despesa/receita de NF</div>
-                <div className={styles.atalhoDesc}>Em <strong>Fiscal → Docs Recebidos/Emitidos</strong>, abra um doc autorizado e clique em "💰 Gerar lançamento financeiro"</div>
+            {agendaItems.length === 0 ? (
+              <div className={styles.agendaVazio}>Nenhum vencimento nos próximos 7 dias. 🎉</div>
+            ) : (
+              <div className={styles.tableScroll}>
+                <table className={styles.tabelaAgenda}>
+                  <thead>
+                    <tr>
+                      <th>Vencimento</th>
+                      <th>Descrição</th>
+                      <th>Tipo</th>
+                      <th>Categoria</th>
+                      <th style={{ textAlign: 'right' }}>Valor</th>
+                      <th>Ação rápida</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agendaItems.map(lanc => {
+                      const diasAte = Math.ceil(
+                        (new Date(lanc.data_vencimento).getTime() - new Date(hoje()).getTime()) / 86400000
+                      )
+                      const isHoje = diasAte === 0
+                      const isAmanha = diasAte === 1
+                      return (
+                        <tr key={lanc.id} className={isHoje ? styles.agendaHoje : ''}>
+                          <td>
+                            <div className={styles.agendaData}>{fmtData(lanc.data_vencimento)}</div>
+                            <div className={styles.agendaDias}>
+                              {isHoje ? <span className={styles.tagHoje}>Hoje</span>
+                                : isAmanha ? <span className={styles.tagAmanha}>Amanhã</span>
+                                : <span className={styles.tagDias}>em {diasAte}d</span>}
+                            </div>
+                          </td>
+                          <td className={styles.descCell}>{lanc.descricao}</td>
+                          <td>
+                            <span className={lanc.tipo === 'receita' ? styles.tipoReceita : styles.tipoDespesa}>
+                              {lanc.tipo === 'receita' ? '↑ receber' : '↓ pagar'}
+                            </span>
+                          </td>
+                          <td style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                            {lanc.fin_categorias?.nome ?? <span style={{ color: '#d1d5db' }}>—</span>}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <span className={lanc.tipo === 'receita' ? styles.valorReceita : styles.valorDespesa}>
+                              {fmtBRL(lanc.valor, ocultarValores)}
+                            </span>
+                          </td>
+                          <td>
+                            {baixandoId === lanc.id ? (
+                              <div className={styles.baixaInline}>
+                                <input type="date" className={styles.inputSmall} value={dataBaixa}
+                                  onChange={e => setDataBaixa(e.target.value)} />
+                                <button className={styles.btnBaixa} onClick={() => baixarLancamento(lanc)} disabled={salvando}>
+                                  ✓
+                                </button>
+                                <button className={styles.btnCancelarBaixa} onClick={() => setBaixandoId(null)}>✕</button>
+                              </div>
+                            ) : (
+                              <button className={styles.btnBaixar} onClick={() => { setBaixandoId(lanc.id); setDataBaixa(hoje()) }}>
+                                Baixar
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <span className={styles.atalhoStatusOk}>⚡ Ativo</span>
-            </div>
-            <div className={styles.atalho}>
-              <span className={styles.atalhoIcon}>📐</span>
-              <div>
-                <div className={styles.atalhoTitulo}>Lançar receita de projeto</div>
-                <div className={styles.atalhoDesc}>Vá em <strong>Projetos</strong> → detalhe do projeto → botão "💰 Gerar Recebível"</div>
-              </div>
-              <span className={styles.atalhoStatusOk}>⚡ Ativo</span>
-            </div>
+            )}
           </div>
 
           {/* Acesso ao manual */}
