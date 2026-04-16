@@ -43,6 +43,10 @@ interface ProdutoResult {
   id: number; nome_padronizado: string; unidade: string | null; familia: string | null
 }
 
+interface OutletResult {
+  id: number; titulo: string; preco: number; quantidade: number; exibir_preco: boolean
+}
+
 interface ClienteResult {
   cnpj: string; nome: string; telefone: string | null; email: string | null
   fonte: 'cliente' | 'prospect'
@@ -127,6 +131,10 @@ export default function AdminOrcamento() {
   const [resultadosProduto, setResultadosProduto] = useState<ProdutoResult[]>([])
   const [loadingProduto, setLoadingProduto] = useState(false)
   const [showBuscaProduto, setShowBuscaProduto] = useState(false)
+  const [buscaOutlet, setBuscaOutlet] = useState('')
+  const [resultadosOutlet, setResultadosOutlet] = useState<OutletResult[]>([])
+  const [loadingOutlet, setLoadingOutlet] = useState(false)
+  const [showBuscaOutlet, setShowBuscaOutlet] = useState(false)
   const [desconto, setDesconto]     = useState('')
   const [tipoDesc, setTipoDesc]     = useState<'%' | 'R$'>('%')
   const [condicao, setCondicao]     = useState('')
@@ -239,6 +247,19 @@ export default function AdminOrcamento() {
     }, 300)
     return () => clearTimeout(t)
   }, [buscaProduto])
+
+  useEffect(() => {
+    if (buscaOutlet.length < 2) { setResultadosOutlet([]); return }
+    const t = setTimeout(async () => {
+      setLoadingOutlet(true)
+      const { data } = await supabaseAdmin
+        .from('produtos').select('id, titulo, preco, quantidade, exibir_preco')
+        .ilike('titulo', `%${buscaOutlet}%`).eq('disponivel', true).limit(8)
+      setResultadosOutlet((data ?? []) as OutletResult[])
+      setLoadingOutlet(false)
+    }, 300)
+    return () => clearTimeout(t)
+  }, [buscaOutlet])
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -426,6 +447,10 @@ export default function AdminOrcamento() {
     setItens(prev => [...prev, { produto_id: p.id, descricao: p.nome_padronizado, qtd: '1', unidade: p.unidade ?? 'UN', valorUnit: '' }])
     setBuscaProduto(''); setResultadosProduto([]); setShowBuscaProduto(false)
   }
+  function adicionarOutlet(p: OutletResult) {
+    setItens(prev => [...prev, { produto_id: p.id, descricao: p.titulo, qtd: '1', unidade: 'UN', valorUnit: p.exibir_preco ? String(p.preco) : '' }])
+    setBuscaOutlet(''); setResultadosOutlet([]); setShowBuscaOutlet(false)
+  }
   function addItem() { setItens(prev => [...prev, { ...ITEM_VAZIO }]) }
   function removeItem(i: number) { setItens(prev => prev.filter((_, idx) => idx !== i)) }
   function updateItem(i: number, field: keyof Item, val: string) {
@@ -445,9 +470,9 @@ export default function AdminOrcamento() {
 
       <div className={styles.navTabs}>
         <button className={`${styles.navTab} ${vista === 'lista' ? styles.navTabAtivo : ''}`} onClick={() => setVista('lista')}>📋 Orçamentos</button>
-        <button className={`${styles.navTab} ${vista === 'editor' ? styles.navTabAtivo : ''}`} onClick={() => vista !== 'editor' && abrirNovo()}>
-          ✏️ {editandoId ? `Editando ${numero}` : 'Novo'}
-        </button>
+        {vista === 'editor' && (
+          <button className={`${styles.navTab} ${styles.navTabAtivo}`}>✏️ {editandoId ? numero : 'Novo'}</button>
+        )}
         <button className={`${styles.navTab} ${vista === 'empresas' ? styles.navTabAtivo : ''}`} onClick={() => setVista('empresas')}>🏢 Empresas</button>
         <button className={`${styles.navTab} ${vista === 'vendedores' ? styles.navTabAtivo : ''}`} onClick={() => setVista('vendedores')}>👤 Vendedores</button>
         <button className={styles.btnNovo} onClick={abrirNovo}>+ Novo Orçamento</button>
@@ -468,7 +493,6 @@ export default function AdminOrcamento() {
           ) : lista.length === 0 ? (
             <div className={styles.vazio}>
               <p>Nenhum orçamento encontrado.</p>
-              <button className={styles.btnPrimary} onClick={abrirNovo}>+ Criar primeiro orçamento</button>
             </div>
           ) : (
             <table className={styles.listaTable}>
@@ -605,9 +629,35 @@ export default function AdminOrcamento() {
                     )}
                   </div>
                 )}
+                {showBuscaOutlet && (
+                  <div className={styles.buscaProdWrap}>
+                    <input className={styles.input} autoFocus placeholder="Buscar no Pronta Entrega..."
+                      value={buscaOutlet} onChange={e => setBuscaOutlet(e.target.value)} />
+                    {loadingOutlet && <div style={{ fontSize: '0.8rem', color: '#64748b', padding: '4px 0' }}>Buscando...</div>}
+                    {resultadosOutlet.length > 0 && (
+                      <div className={styles.dropdown} style={{ position: 'static', boxShadow: 'none', border: '1px solid #e2e8f0', borderTop: 'none' }}>
+                        {resultadosOutlet.map(p => (
+                          <div key={p.id} className={styles.dropItem} onClick={() => adicionarOutlet(p)}>
+                            <strong>{p.titulo}</strong>
+                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                              {' · '}
+                              {p.exibir_preco ? fmtBRL(p.preco) : 'preço oculto'}
+                              {' · '}
+                              {p.quantidade} un. disponível
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!loadingOutlet && buscaOutlet.length >= 2 && resultadosOutlet.length === 0 && (
+                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', padding: '4px 0' }}>Nenhum produto disponível encontrado</div>
+                    )}
+                  </div>
+                )}
                 <div className={styles.itensActions}>
                   <button className={styles.btnAddItem} onClick={addItem}>+ Linha manual</button>
-                  <button className={styles.btnAddItem} onClick={() => setShowBuscaProduto(v => !v)}>🔍 Buscar produto</button>
+                  <button className={styles.btnAddItem} onClick={() => { setShowBuscaProduto(v => !v); setShowBuscaOutlet(false) }}>🔍 Catálogo</button>
+                  <button className={styles.btnAddItem} onClick={() => { setShowBuscaOutlet(v => !v); setShowBuscaProduto(false) }}>🏪 Pronta Entrega</button>
                 </div>
                 <div className={styles.totaisWrap}>
                   <div className={styles.totaisRow}><span>Subtotal</span><span>{fmt(subtotal())}</span></div>
