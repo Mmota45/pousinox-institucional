@@ -101,7 +101,6 @@ export default function AdminPipeline() {
       .from('pipeline_deals')
       .select('*')
       .order('updated_at', { ascending: false })
-      .limit(200)
     setDeals((data ?? []) as Deal[])
     setLoading(false)
   }, [])

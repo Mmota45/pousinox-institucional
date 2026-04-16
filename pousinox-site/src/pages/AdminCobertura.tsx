@@ -10,7 +10,11 @@ interface Cobertura {
   interessados: number
   aguardando: number
   cobertura_pct: number
+  score_medio: number | null
+  clientes: number
 }
+
+type OrdemCol = 'total' | 'cobertura_pct' | 'score_medio' | 'clientes' | 'virgem'
 
 const SEGMENTOS = [
   'Revestimentos', 'Construtoras', 'Arquitetura', 'Hotelaria', 'Hospitalar',
@@ -35,6 +39,8 @@ export default function AdminCobertura() {
   const [dados, setDados]               = useState<Cobertura[]>([])
   const [loading, setLoading]           = useState(false)
   const [buscado, setBuscado]           = useState(false)
+  const [ordem, setOrdem]               = useState<OrdemCol>('clientes')
+  const [ordemAsc, setOrdemAsc]         = useState(false)
 
   async function buscar() {
     setLoading(true)
@@ -49,11 +55,36 @@ export default function AdminCobertura() {
     setLoading(false)
   }
 
-  const totalMercado   = dados.reduce((s, d) => s + d.total, 0)
-  const totalContatados = dados.reduce((s, d) => s + d.contatados, 0)
+  const totalMercado      = dados.reduce((s, d) => s + d.total, 0)
+  const totalContatados   = dados.reduce((s, d) => s + d.contatados, 0)
   const totalInteressados = dados.reduce((s, d) => s + d.interessados, 0)
-  const totalAguardando = dados.reduce((s, d) => s + d.aguardando, 0)
-  const coberturaGeral = totalMercado > 0 ? Math.round(totalContatados * 100 / totalMercado) : 0
+  const totalAguardando   = dados.reduce((s, d) => s + d.aguardando, 0)
+  const totalClientes     = dados.reduce((s, d) => s + d.clientes, 0)
+  const coberturaGeral    = totalMercado > 0 ? Math.round(totalContatados * 100 / totalMercado) : 0
+  const scoreGeral        = dados.length > 0 ? (dados.reduce((s, d) => s + (d.score_medio ?? 0), 0) / dados.length).toFixed(1) : '—'
+
+  function toggleOrdem(col: OrdemCol) {
+    if (ordem === col) setOrdemAsc(a => !a)
+    else { setOrdem(col); setOrdemAsc(false) }
+  }
+
+  const dadosOrdenados = [...dados].sort((a, b) => {
+    let va = 0, vb = 0
+    if (ordem === 'total')        { va = a.total; vb = b.total }
+    if (ordem === 'cobertura_pct'){ va = a.cobertura_pct; vb = b.cobertura_pct }
+    if (ordem === 'score_medio')  { va = a.score_medio ?? 0; vb = b.score_medio ?? 0 }
+    if (ordem === 'clientes')     { va = Number(a.clientes); vb = Number(b.clientes) }
+    if (ordem === 'virgem')       { va = a.total - a.contatados; vb = b.total - b.contatados }
+    return ordemAsc ? va - vb : vb - va
+  })
+
+  function thSort(col: OrdemCol, label: string) {
+    return (
+      <th onClick={() => toggleOrdem(col)} style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+        {label} {ordem === col ? (ordemAsc ? '▲' : '▼') : '↕'}
+      </th>
+    )
+  }
 
   function toggleSeg(s: string) {
     setSegmentosSel(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])
@@ -153,6 +184,16 @@ export default function AdminCobertura() {
             <span className={styles.cardSub}>follow-up pendente</span>
           </div>
           <div className={styles.card}>
+            <span className={styles.cardLabel}>Clientes ativos</span>
+            <span className={styles.cardVal} style={{ color: '#15803d' }}>{totalClientes.toLocaleString('pt-BR')}</span>
+            <span className={styles.cardSub}>{totalMercado > 0 ? ((totalClientes / totalMercado) * 100).toFixed(1) : 0}% de conversão</span>
+          </div>
+          <div className={styles.card}>
+            <span className={styles.cardLabel}>Score médio</span>
+            <span className={styles.cardVal} style={{ color: '#7c3aed' }}>{scoreGeral}/10</span>
+            <span className={styles.cardSub}>qualidade dos prospects</span>
+          </div>
+          <div className={styles.card}>
             <span className={styles.cardLabel}>Mercado virgem</span>
             <span className={styles.cardVal} style={{ color: '#1d4ed8' }}>
               {(totalMercado - totalContatados).toLocaleString('pt-BR')}
@@ -182,30 +223,39 @@ export default function AdminCobertura() {
                   <tr>
                     <th>Mesorregião</th>
                     <th>UF</th>
-                    <th>Total de prospects</th>
-                    <th>Cobertura</th>
+                    {thSort('total', 'Prospects')}
+                    {thSort('clientes', 'Clientes')}
+                    {thSort('score_medio', 'Score médio')}
+                    {thSort('cobertura_pct', 'Cobertura')}
                     <th>Interessados</th>
                     <th>Aguardando</th>
-                    <th>Mercado virgem</th>
+                    {thSort('virgem', 'Mercado virgem')}
                   </tr>
                 </thead>
                 <tbody>
-                  {dados.map((d, i) => (
+                  {dadosOrdenados.map((d, i) => (
                     <tr key={i}>
                       <td style={{ fontWeight: 500 }}>{d.mesorregiao}</td>
                       <td>{d.uf}</td>
                       <td>{d.total.toLocaleString('pt-BR')}</td>
                       <td>
+                        {Number(d.clientes) > 0
+                          ? <span className={`${styles.pill} ${styles.pillVerde}`}>{Number(d.clientes).toLocaleString('pt-BR')}</span>
+                          : <span style={{ color: '#cbd5e1' }}>—</span>}
+                      </td>
+                      <td>
+                        {d.score_medio != null
+                          ? <span style={{ fontWeight: 600, color: (d.score_medio ?? 0) >= 7 ? '#15803d' : (d.score_medio ?? 0) >= 4 ? '#92400e' : '#64748b' }}>
+                              {d.score_medio}/10
+                            </span>
+                          : <span style={{ color: '#cbd5e1' }}>—</span>}
+                      </td>
+                      <td>
                         <div className={styles.barWrap}>
                           <div className={styles.bar}>
-                            <div className={styles.barFill} style={{
-                              width: `${d.cobertura_pct}%`,
-                              background: barColor(d.cobertura_pct),
-                            }} />
+                            <div className={styles.barFill} style={{ width: `${d.cobertura_pct}%`, background: barColor(d.cobertura_pct) }} />
                           </div>
-                          <span className={styles.barPct} style={{ color: barColor(d.cobertura_pct) }}>
-                            {d.cobertura_pct}%
-                          </span>
+                          <span className={styles.barPct} style={{ color: barColor(d.cobertura_pct) }}>{d.cobertura_pct}%</span>
                         </div>
                       </td>
                       <td>

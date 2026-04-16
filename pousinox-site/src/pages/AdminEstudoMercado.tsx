@@ -171,7 +171,7 @@ export default function AdminEstudoMercado() {
     const [{ data: nfData }, { data: cliData }, { data: prospData }] = await Promise.all([
       supabaseAdmin.from('nf_cabecalho').select('total, emissao, cnpj').gte('emissao', inicio),
       supabaseAdmin.from('clientes').select('cnpj, total_gasto, rfm_segmento'),
-      supabaseAdmin.from('prospeccao').select('cnpj, uf, mesorregiao, segmento, cliente_ativo').eq('cliente_ativo', true).limit(2000),
+      supabaseAdmin.from('prospeccao').select('cnpj, uf, mesorregiao, segmento, cliente_ativo').eq('cliente_ativo', true),
     ])
     setNfs((nfData ?? []) as NfRow[])
     setClientes((cliData ?? []) as ClienteRow[])
