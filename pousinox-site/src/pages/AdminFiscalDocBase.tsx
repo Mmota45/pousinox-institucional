@@ -493,7 +493,7 @@ export default function AdminFiscalDocBase({ tipo, titulo, subtitulo }: Props) {
   async function importarCsv() {
     if (csvRows.length === 0) return
     setSalvando(true); setCsvMsg(null); setCsvProgress(null)
-    let inseridos = 0; let pulados = 0
+    let inseridos = 0; let pulados = 0; let totalValorImportado = 0
 
     if (csvFormat === 'cabecalho') {
       const linhasValidas = csvRows.filter(r => r.length >= 2 && r[1])
@@ -530,7 +530,6 @@ export default function AdminFiscalDocBase({ tipo, titulo, subtitulo }: Props) {
       })())
       const total = nfsUnicas.length
       let processados = 0
-      let totalValorImportado = 0
     // Formato itens: NF(0) CNPJ(1) Destinatário(2) Emissão(3) Código(4) NCM(5) EAN(6) Descrição(7) CFOP(8) Qtd(9) VlrUnit(10) … VlrTotal(19)
     const byNF: Record<string, { cnpj: string; nome: string; emissao: string; rows: string[][] }> = {}
     for (const r of csvRows) {

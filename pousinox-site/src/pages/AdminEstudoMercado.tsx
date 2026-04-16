@@ -122,7 +122,7 @@ export default function AdminEstudoMercado() {
   const [meses, setMeses] = useState('12')
   const [filtroUF, setFiltroUF] = useState('')
   const [filtroSegmento, setFiltroSegmento] = useState('')
-  const [filtroFamilia, setFiltroFamilia] = useState('')
+  const [filtroFamilia, _setFiltroFamilia] = useState('')
 
   // Dados internos
   const [nfs, setNfs] = useState<NfRow[]>([])
@@ -343,7 +343,7 @@ export default function AdminEstudoMercado() {
 
   // Recomendações
   const recomendacoes = useMemo(() => {
-    const out: { tipo: CrossUF['quadrant']; titulo: string; sub: string; chips: string[] }[] = []
+    const out: { tipo: CrossUF['quadrant'] | 'atencao'; titulo: string; sub: string; chips: string[] }[] = []
     const top = crossing.slice(0, 8)
     top.forEach(r => {
       if (r.quadrant === 'oportunidade') {
@@ -768,7 +768,8 @@ export default function AdminEstudoMercado() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="uf" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 10 }} tickFormatter={v => fmtBRL(v).replace('R$', '')} />
-                      <Tooltip formatter={(v: number) => fmtBRL(v)} />
+                      { /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ }
+                      <Tooltip formatter={(v: any) => fmtBRL(Number(v))} />
                       <Bar dataKey="total" fill="#1a3a5c" name="Faturamento" radius={[4,4,0,0]} />
                     </BarChart>
                   </ResponsiveContainer>}
@@ -782,7 +783,8 @@ export default function AdminEstudoMercado() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={v => fmtBRL(v).replace('R$', '')} />
                       <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={60} />
-                      <Tooltip formatter={(v: number) => fmtBRL(v)} />
+                      { /* eslint-disable-next-line @typescript-eslint/no-explicit-any */ }
+                      <Tooltip formatter={(v: any) => fmtBRL(Number(v))} />
                       <Bar dataKey="total" fill="#2d6a9f" name="Faturamento" radius={[0,4,4,0]} />
                     </BarChart>
                   </ResponsiveContainer>}
@@ -1128,7 +1130,7 @@ export default function AdminEstudoMercado() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="uf" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 10 }} domain={[0, 100]} unit="%" />
-                      <Tooltip formatter={(v: number) => `${v}%`} />
+                      <Tooltip formatter={(v: any) => `${v}%`} />
                       <Legend />
                       <Bar dataKey="Busca (norm.)" fill="#27ae60" radius={[4,4,0,0]} />
                       <Bar dataKey="Vendas (norm.)" fill="#1a3a5c" radius={[4,4,0,0]} />
