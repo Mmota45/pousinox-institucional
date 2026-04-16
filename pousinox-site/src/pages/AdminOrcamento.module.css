@@ -108,9 +108,11 @@
 .imagemOrcPreview { display: flex; flex-direction: column; gap: 8px; }
 .imagemOrcThumb   { width: 100%; max-width: 260px; max-height: 160px; object-fit: contain; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #f8fafc; padding: 4px; }
 
-/* ── Preview imagem ── */
-.pImagemWrap { padding: 12px 24px; text-align: center; }
-.pImagem     { max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 6px; }
+/* ── Preview imagem (lado a lado com cliente) ── */
+.pClienteComImagem { display: flex; align-items: flex-start; gap: 16px; }
+.pClienteInfo      { flex: 1; min-width: 0; }
+.pClienteImagem    { flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.pClienteImg       { width: 140px; height: 140px; object-fit: contain; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #f8fafc; padding: 6px; }
 .toggleLabel  { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: #374151; cursor: pointer; }
 .toggleLabel input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #1a5fa8; }
 

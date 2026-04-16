@@ -817,8 +817,9 @@ export default function AdminOrcamento() {
 
                 <div className={styles.pAccentLine} />
 
-                {/* Cliente */}
-                <div className={styles.pCliente}>
+                {/* Cliente + imagem lado a lado */}
+                <div className={`${styles.pCliente} ${imagemUrl ? styles.pClienteComImagem : ''}`}>
+                  <div className={styles.pClienteInfo}>
                   <div className={styles.pClienteTitle}>DESTINATÁRIO</div>
                   <div className={styles.pClienteGrid}>
                     {cliente.empresa && <div><strong>{cliente.empresa}</strong></div>}
@@ -829,14 +830,13 @@ export default function AdminOrcamento() {
                     {cliente.endereco && <div className={styles.pClienteEnd}>{cliente.endereco}</div>}
                     {!cliente.empresa && !cliente.nome && <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>— Preencha os dados do cliente —</div>}
                   </div>
-                </div>
-
-                {/* Imagem opcional */}
-                {imagemUrl && (
-                  <div className={styles.pImagemWrap}>
-                    <img src={imagemUrl} alt="Referência visual" className={styles.pImagem} />
-                  </div>
-                )}
+                  </div>{/* /pClienteInfo */}
+                  {imagemUrl && (
+                    <div className={styles.pClienteImagem}>
+                      <img src={imagemUrl} alt="Produto" className={styles.pClienteImg} />
+                    </div>
+                  )}
+                </div>{/* /pCliente */}
 
                 {/* Tabela itens */}
                 <table className={styles.pTable}>
