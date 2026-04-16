@@ -928,8 +928,12 @@ export default function AdminOrcamento() {
                 <div className={styles.pAssinatura}>
                   <div className={styles.pAssinaturaBox}>
                     <div className={styles.pAssinaturaLinha} />
-                    <span>{empresaSel?.nome_fantasia ?? 'Fornecedor'}</span>
-                    {vendedorSel && <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>{vendedorSel.nome}</span>}
+                    <span>
+                      {empresaSel?.nome_fantasia
+                        ? (empresaSel.nome_fantasia.toLowerCase().includes('pousinox') ? empresaSel.nome_fantasia.replace(/Pousinox(?!®)/g, 'Pousinox®') : empresaSel.nome_fantasia)
+                        : 'Fornecedor'}
+                      {vendedorSel && ` · ${vendedorSel.nome}`}
+                    </span>
                   </div>
                   <div className={styles.pAssinaturaBox}>
                     <div className={styles.pAssinaturaLinha} />
