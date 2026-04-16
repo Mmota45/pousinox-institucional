@@ -390,14 +390,14 @@ export default function AdminFinanceiro() {
     const dimMes  = dreMes ? new Date(dreAno, dreMes, 0).getDate() : 31
     const dataFim = dreMes ? `${dreAno}-${String(dreMes).padStart(2,'0')}-${dimMes}` : `${dreAno}-12-31`
 
-    // Realizado: fin_movimentacoes no período
+    // Realizado: fin_movimentacoes no período (agrupado por tipo entrada/saida)
     const { data: movs } = await supabaseAdmin
       .from('fin_movimentacoes')
-      .select('tipo, valor, fin_lancamentos(categoria_id, fin_categorias(grupo, tipo))')
+      .select('tipo, valor')
       .gte('data_movimentacao', dataIni)
       .lte('data_movimentacao', dataFim)
 
-    // Previsto: fin_lancamentos pendente + vencimento futuro
+    // Previsto: fin_lancamentos pendente + vencimento futuro no período
     const { data: previstos } = await supabaseAdmin
       .from('fin_lancamentos')
       .select('tipo, valor, fin_categorias(grupo, tipo)')
@@ -406,7 +406,7 @@ export default function AdminFinanceiro() {
       .gte('data_vencimento', dataIni)
       .lte('data_vencimento', dataFim)
 
-    // Atrasado: fin_lancamentos pendente + vencimento passado
+    // Atrasado: fin_lancamentos pendente + vencimento passado dentro do período
     const { data: atrasados } = await supabaseAdmin
       .from('fin_lancamentos')
       .select('tipo, valor, fin_categorias(grupo, tipo)')
@@ -424,19 +424,22 @@ export default function AdminFinanceiro() {
       return map[k]
     }
 
+    // Realizado: sem categoria (movimentacoes não têm join direto configurado)
+    let totEntrada = 0; let totSaida = 0
     for (const m of (movs ?? []) as any[]) {
-      const lanc = m.fin_lancamentos
-      const cat  = lanc?.fin_categorias
-      const tipo = cat?.tipo ?? (m.tipo === 'entrada' ? 'receita' : 'despesa')
-      ensure(cat?.grupo ?? '', tipo).realizado += Number(m.valor) || 0
+      if (m.tipo === 'entrada') totEntrada += Number(m.valor) || 0
+      else totSaida += Number(m.valor) || 0
     }
+    if (totEntrada > 0) ensure('Caixa', 'receita').realizado += totEntrada
+    if (totSaida  > 0) ensure('Caixa', 'despesa').realizado += totSaida
+
     for (const l of (previstos ?? []) as any[]) {
-      const cat  = l.fin_categorias
+      const cat  = (l as any).fin_categorias
       const tipo = cat?.tipo ?? l.tipo
       ensure(cat?.grupo ?? '', tipo).previsto += Number(l.valor) || 0
     }
     for (const l of (atrasados ?? []) as any[]) {
-      const cat  = l.fin_categorias
+      const cat  = (l as any).fin_categorias
       const tipo = cat?.tipo ?? l.tipo
       ensure(cat?.grupo ?? '', tipo).atrasado += Number(l.valor) || 0
     }
@@ -1132,7 +1135,7 @@ export default function AdminFinanceiro() {
                                   <select value={ccSelecionado} onChange={e => setCcSelecionado(e.target.value)}
                                     style={{ fontSize: '0.78rem', padding: '3px 6px', borderRadius: 4, border: '1px solid #d0d7de' }}>
                                     <option value="">Centro de custo (opcional)</option>
-                                    {centrosCusto.map(cc => <option key={cc.id} value={String(cc.id)}>{cc.nome}</option>)}
+                                    {centros.map(cc => <option key={cc.id} value={String(cc.id)}>{cc.nome}</option>)}
                                   </select>
                                   <div style={{ display: 'flex', gap: 4 }}>
                                     <button disabled={!catSelecionada || salvando} onClick={() => confirmarCategorizacao(lanc)}
