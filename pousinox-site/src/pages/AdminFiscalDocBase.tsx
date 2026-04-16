@@ -22,6 +22,8 @@ interface Doc {
   recebimento_id:      number | null
   venda_id:            string | null
   estoque_movimentado: boolean
+  fin_lancado:         boolean
+  fin_lancamento_id:   number | null
   observacoes:         string | null
   created_at:          string
 }
@@ -415,6 +417,63 @@ export default function AdminFiscalDocBase({ tipo, titulo, subtitulo }: Props) {
     setMsg({ tipo: 'ok', texto: `${gerados} movimentação(ões) gerada(s).` })
   }
 
+  // ── Gerar Lançamento Financeiro ───────────────────────────────────
+  async function gerarLancamentoFinanceiro() {
+    if (!detalhe) return
+    setSalvando(true)
+    const tipoLanc = tipo === 'emitido' ? 'receita' : 'despesa'
+    const cnpj = (detalhe.contraparte_cnpj ?? '').replace(/\D/g, '')
+
+    // Busca memória de categorização por CNPJ (maybeSingle evita erro quando não existe)
+    const { data: mem } = await supabaseAdmin
+      .from('fin_categoria_cnpj')
+      .select('categoria_id, centro_custo_id')
+      .eq('cnpj', cnpj).eq('tipo', tipoLanc).limit(1).maybeSingle()
+
+    const categoriaId   = mem?.categoria_id    ?? null
+    const centroCustoId = mem?.centro_custo_id ?? null
+    const aguarda       = !categoriaId  // sem memória → entra na fila
+
+    const dataRef = detalhe.data_emissao ?? new Date().toISOString().slice(0, 10)
+
+    const { data: lanc, error } = await supabaseAdmin
+      .from('fin_lancamentos')
+      .insert({
+        tipo:                  tipoLanc,
+        descricao:             `NF ${detalhe.nf_numero ?? detalhe.id} — ${detalhe.contraparte_nome}`,
+        valor:                 detalhe.valor_total,
+        data_competencia:      dataRef,
+        data_vencimento:       dataRef,
+        status:                'pendente',
+        origem:                'nf',
+        nf_chave:              detalhe.nf_chave,
+        categoria_id:          categoriaId,
+        centro_custo_id:       centroCustoId,
+        aguarda_categorizacao: aguarda,
+      })
+      .select('id').single()
+
+    if (error || !lanc) {
+      setSalvando(false)
+      setMsg({ tipo: 'erro', texto: `Erro ao gerar lançamento: ${error?.message ?? 'resposta vazia'}` })
+      return
+    }
+
+    await supabaseAdmin.from('docs_fiscais')
+      .update({ fin_lancado: true, fin_lancamento_id: lanc.id }).eq('id', detalhe.id)
+
+    const atualizado = { ...detalhe, fin_lancado: true, fin_lancamento_id: lanc.id }
+    setDetalhe(atualizado)
+    setLista(l => l.map(d => d.id === detalhe.id ? atualizado : d))
+    setSalvando(false)
+    setMsg({
+      tipo: 'ok',
+      texto: aguarda
+        ? '💰 Lançamento criado — aguarda categorização no Financeiro.'
+        : `💰 Lançamento criado com categoria da memória (${tipoLanc}).`,
+    })
+  }
+
   // ── CSV Import ────────────────────────────────────────────────────
   // Detecta formato pelo header:
   //   cabecalho: Série;Número;CPF/CNPJ;Fornecedor;UF;Chave;Origem;Status;Emissão;Total
@@ -589,7 +648,8 @@ export default function AdminFiscalDocBase({ tipo, titulo, subtitulo }: Props) {
     setCsvPreview([]); setCsvRows([])
   }
 
-  const podeGerarEstoque = detalhe?.status === 'autorizada' && !detalhe.estoque_movimentado
+  const podeGerarEstoque    = detalhe?.status === 'autorizada' && !detalhe.estoque_movimentado
+  const podeGerarLancamento = detalhe?.status === 'autorizada' && !detalhe.fin_lancado
 
   // ── Render: Lista ─────────────────────────────────────────────────
   if (vista === 'lista') return (
@@ -1032,9 +1092,22 @@ export default function AdminFiscalDocBase({ tipo, titulo, subtitulo }: Props) {
             <strong>estoque_movimentacoes</strong> para itens vinculados a item de estoque.
           </div>
           <div className={styles.statusFlowBtns}>
-            <button className={styles.btnAvancar} onClick={gerarMovimentacaoEstoque} disabled={salvando}>
-              {salvando ? 'Processando…' : `📦 Gerar movimentação de ${tipoMovEstoque}`}
-            </button>
+            {podeGerarEstoque && (
+              <button className={styles.btnAvancar} onClick={gerarMovimentacaoEstoque} disabled={salvando}>
+                {salvando ? 'Processando…' : `📦 Gerar movimentação de ${tipoMovEstoque}`}
+              </button>
+            )}
+            {podeGerarLancamento && (
+              <button className={styles.btnAvancar} onClick={gerarLancamentoFinanceiro} disabled={salvando}
+                style={{ background: '#27ae60' }}>
+                {salvando ? 'Processando…' : '💰 Gerar lançamento financeiro'}
+              </button>
+            )}
+            {detalhe?.fin_lancado && (
+              <span style={{ fontSize: '0.8rem', color: '#27ae60', fontWeight: 600 }}>
+                ✓ Lançamento financeiro gerado
+              </span>
+            )}
           </div>
         </div>
       )}

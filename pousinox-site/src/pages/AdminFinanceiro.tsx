@@ -24,7 +24,8 @@ interface Lancamento {
   centro_custo_id: number | null
   nf_chave: string | null
   observacao: string | null
-  origem: 'manual' | 'venda' | 'nf' | 'projeto' | 'sistema'
+  origem: 'manual' | 'venda' | 'nf' | 'projeto' | 'sistema' | 'pipeline'
+  aguarda_categorizacao: boolean
   created_at: string
   fin_categorias?: { nome: string; cor: string } | null
   fin_centros_custo?: { nome: string } | null
@@ -84,7 +85,15 @@ const RFM_SEGMENTO_CONFIG: Record<string, { label: string; css: string; acao: st
   Inativo:    { label: 'Inativo',    css: 'rfmInativo',    acao: 'Cobrança direta'                         },
 }
 
-type Aba = 'painel' | 'lancamentos' | 'recebiveis' | 'fluxo' | 'budget' | 'configuracao'
+type Aba = 'painel' | 'lancamentos' | 'recebiveis' | 'fluxo' | 'budget' | 'dre' | 'configuracao'
+
+interface DreGrupo {
+  grupo: string
+  tipo: 'receita' | 'despesa'
+  realizado: number
+  previsto: number
+  atrasado: number
+}
 
 interface BudgetItem {
   id: number
@@ -202,6 +211,10 @@ export default function AdminFinanceiro() {
   // Filtros
   const [filtroTipo,   setFiltroTipo]   = useState<'' | 'receita' | 'despesa'>('')
   const [filtroStatus, setFiltroStatus] = useState<'' | 'pendente' | 'pago' | 'cancelado' | 'parcial'>('')
+  const [filtroAguarda, setFiltroAguarda] = useState(false)
+  const [categorizandoId, setCategorizandoId] = useState<number | null>(null)
+  const [catSelecionada,  setCatSelecionada]  = useState('')
+  const [ccSelecionado,   setCcSelecionado]   = useState('')
   const [filtroOrigem, setFiltroOrigem] = useState<'' | 'manual' | 'automatico'>('')
   const [filtroMes,    setFiltroMes]    = useState(mesAtual())
 
@@ -225,6 +238,14 @@ export default function AdminFinanceiro() {
   const [salvandoCat,    setSalvandoCat]    = useState(false)
   const [salvandoCentro, setSalvandoCentro] = useState(false)
 
+  // Categorização pendente
+  const [pendCatCount, setPendCatCount] = useState(0)
+
+  // DRE
+  const [dreGrupos, setDreGrupos] = useState<DreGrupo[]>([])
+  const [dreAno, setDreAno] = useState(new Date().getFullYear())
+  const [dreMes, setDreMes] = useState<number | 0>(0) // 0 = ano todo
+
   // Budget
   const [budgetItens,      setBudgetItens]      = useState<BudgetRow[]>([])
   const [anoB,             setAnoB]             = useState(new Date().getFullYear())
@@ -246,10 +267,12 @@ export default function AdminFinanceiro() {
 
   const carregarTudo = useCallback(async () => {
     setLoading(true)
-    const [{ data: cats }, { data: cts }] = await Promise.all([
+    const [{ data: cats }, { data: cts }, { count: pendCat }] = await Promise.all([
       supabaseAdmin.from('fin_categorias').select('*').eq('ativo', true).order('grupo').order('nome'),
       supabaseAdmin.from('fin_centros_custo').select('*').eq('ativo', true).order('nome'),
+      supabaseAdmin.from('fin_lancamentos').select('id', { count: 'exact', head: true }).eq('aguarda_categorizacao', true).eq('status', 'pendente'),
     ])
+    setPendCatCount(pendCat ?? 0)
     setCategorias(cats ?? [])
     setCentros(cts ?? [])
     setLoading(false)
@@ -274,8 +297,9 @@ export default function AdminFinanceiro() {
       .order('data_vencimento', { ascending: false })
       .limit(100)
 
-    if (filtroTipo)   q = q.eq('tipo', filtroTipo)
-    if (filtroStatus) q = q.eq('status', filtroStatus)
+    if (filtroTipo)    q = q.eq('tipo', filtroTipo)
+    if (filtroStatus)  q = q.eq('status', filtroStatus)
+    if (filtroAguarda) q = q.eq('aguarda_categorizacao', true)
     if (filtroOrigem === 'manual')     q = q.eq('origem', 'manual')
     if (filtroOrigem === 'automatico') q = q.neq('origem', 'manual')
     if (filtroMes) {
@@ -360,13 +384,76 @@ export default function AdminFinanceiro() {
     setBudgetItens(rows)
   }, [anoB, mesB])
 
+  const carregarDre = useCallback(async () => {
+    const hoje = new Date().toISOString().slice(0, 10)
+    const dataIni = dreMes ? `${dreAno}-${String(dreMes).padStart(2,'0')}-01` : `${dreAno}-01-01`
+    const dimMes  = dreMes ? new Date(dreAno, dreMes, 0).getDate() : 31
+    const dataFim = dreMes ? `${dreAno}-${String(dreMes).padStart(2,'0')}-${dimMes}` : `${dreAno}-12-31`
+
+    // Realizado: fin_movimentacoes no período
+    const { data: movs } = await supabaseAdmin
+      .from('fin_movimentacoes')
+      .select('tipo, valor, fin_lancamentos(categoria_id, fin_categorias(grupo, tipo))')
+      .gte('data_movimentacao', dataIni)
+      .lte('data_movimentacao', dataFim)
+
+    // Previsto: fin_lancamentos pendente + vencimento futuro
+    const { data: previstos } = await supabaseAdmin
+      .from('fin_lancamentos')
+      .select('tipo, valor, fin_categorias(grupo, tipo)')
+      .eq('status', 'pendente')
+      .gte('data_vencimento', hoje)
+      .gte('data_vencimento', dataIni)
+      .lte('data_vencimento', dataFim)
+
+    // Atrasado: fin_lancamentos pendente + vencimento passado
+    const { data: atrasados } = await supabaseAdmin
+      .from('fin_lancamentos')
+      .select('tipo, valor, fin_categorias(grupo, tipo)')
+      .eq('status', 'pendente')
+      .lt('data_vencimento', hoje)
+      .gte('data_vencimento', dataIni)
+      .lte('data_vencimento', dataFim)
+
+    // Agrega por grupo+tipo
+    const map: Record<string, DreGrupo> = {}
+    const key = (grupo: string, tipo: 'receita' | 'despesa') => `${tipo}::${grupo || 'Sem categoria'}`
+    const ensure = (grupo: string, tipo: 'receita' | 'despesa') => {
+      const k = key(grupo, tipo)
+      if (!map[k]) map[k] = { grupo: grupo || 'Sem categoria', tipo, realizado: 0, previsto: 0, atrasado: 0 }
+      return map[k]
+    }
+
+    for (const m of (movs ?? []) as any[]) {
+      const lanc = m.fin_lancamentos
+      const cat  = lanc?.fin_categorias
+      const tipo = cat?.tipo ?? (m.tipo === 'entrada' ? 'receita' : 'despesa')
+      ensure(cat?.grupo ?? '', tipo).realizado += Number(m.valor) || 0
+    }
+    for (const l of (previstos ?? []) as any[]) {
+      const cat  = l.fin_categorias
+      const tipo = cat?.tipo ?? l.tipo
+      ensure(cat?.grupo ?? '', tipo).previsto += Number(l.valor) || 0
+    }
+    for (const l of (atrasados ?? []) as any[]) {
+      const cat  = l.fin_categorias
+      const tipo = cat?.tipo ?? l.tipo
+      ensure(cat?.grupo ?? '', tipo).atrasado += Number(l.valor) || 0
+    }
+
+    setDreGrupos(Object.values(map).sort((a, b) =>
+      a.tipo !== b.tipo ? a.tipo.localeCompare(b.tipo) : a.grupo.localeCompare(b.grupo)
+    ))
+  }, [dreAno, dreMes])
+
   useEffect(() => {
     if (aba === 'painel')      { carregarSaldo(); carregarAgingResumo() }
     if (aba === 'lancamentos') carregarLancamentos()
     if (aba === 'recebiveis')  carregarAging()
     if (aba === 'fluxo')       carregarMovimentacoes()
     if (aba === 'budget')      carregarBudget()
-  }, [aba, carregarSaldo, carregarAgingResumo, carregarLancamentos, carregarAging, carregarMovimentacoes, carregarBudget])
+    if (aba === 'dre')         carregarDre()
+  }, [aba, carregarSaldo, carregarAgingResumo, carregarLancamentos, carregarAging, carregarMovimentacoes, carregarBudget, carregarDre])
 
   useEffect(() => {
     if (aba === 'lancamentos') carregarLancamentos()
@@ -456,6 +543,36 @@ export default function AdminFinanceiro() {
   }
 
   // ── Baixar (marcar como pago) ──────────────────────────────────────────────
+
+  async function confirmarCategorizacao(lanc: Lancamento) {
+    if (!catSelecionada) return
+    setSalvando(true)
+    // Atualiza o lançamento com a categoria escolhida
+    await supabaseAdmin.from('fin_lancamentos').update({
+      categoria_id:          catSelecionada || null,
+      centro_custo_id:       ccSelecionado  || null,
+      aguarda_categorizacao: false,
+    }).eq('id', lanc.id)
+
+    // Aprende CNPJ → categoria para próximas NFs
+    const cnpj = (lanc.nf_chave ?? '').slice(6, 20) // extrai CNPJ da chave NF-e (pos 6-19)
+    if (cnpj && cnpj.length === 14) {
+      await supabaseAdmin.from('fin_categoria_cnpj').upsert({
+        cnpj,
+        tipo:           lanc.tipo,
+        categoria_id:   catSelecionada || null,
+        centro_custo_id: ccSelecionado || null,
+        usos:           1,
+      }, { onConflict: 'cnpj,tipo', ignoreDuplicates: false })
+      // Incrementa usos se já existia
+      await supabaseAdmin.rpc('incrementar_usos_categoria_cnpj', { p_cnpj: cnpj, p_tipo: lanc.tipo }).throwOnError().then(() => {}).catch(() => {})
+    }
+
+    setCategorizandoId(null); setCatSelecionada(''); setCcSelecionado('')
+    setSalvando(false)
+    await carregarTudo()
+    setMsg({ tipo: 'ok', texto: 'Categoria confirmada e memória atualizada.' })
+  }
 
   async function baixarLancamento(lanc: Lancamento) {
     setSalvando(true)
@@ -625,6 +742,7 @@ export default function AdminFinanceiro() {
           { key: 'recebiveis',   label: '⏰ Recebíveis'      },
           { key: 'fluxo',        label: '💰 Fluxo de Caixa'  },
           { key: 'budget',       label: '🎯 Budget'           },
+          { key: 'dre',          label: '📈 DRE'              },
           { key: 'configuracao', label: '⚙️ Configuração'    },
         ] as { key: Aba; label: string }[]).map(a => (
           <button key={a.key}
@@ -675,6 +793,23 @@ export default function AdminFinanceiro() {
               <strong className={styles.cardVal}>{saldoMes?.pendentes ?? 0}</strong>
             </div>
           </div>
+
+          {pendCatCount > 0 && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              background: '#fff8e0', border: '1px solid #f39c12',
+              borderRadius: 8, padding: '10px 16px', marginBottom: 16,
+            }}>
+              <span style={{ fontSize: '1rem' }}>⚠️</span>
+              <span style={{ fontSize: '0.88rem', color: '#7a5000', fontWeight: 600 }}>
+                {pendCatCount} lançamento{pendCatCount > 1 ? 's' : ''} aguardando categorização
+              </span>
+              <button onClick={() => setAba('lancamentos')}
+                style={{ marginLeft: 'auto', fontSize: '0.8rem', color: '#7a5000', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                Categorizar →
+              </button>
+            </div>
+          )}
 
           {/* Aging de recebíveis */}
           {agingResumo.length > 0 && (
@@ -772,6 +907,22 @@ export default function AdminFinanceiro() {
             </select>
             <input type="month" className={styles.filtroSelect}
               value={filtroMes} onChange={e => setFiltroMes(e.target.value)} />
+
+            <button
+              onClick={() => setFiltroAguarda(v => !v)}
+              style={{
+                padding: '5px 12px', borderRadius: 6, fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600,
+                background: filtroAguarda ? '#fff8e0' : '#fff',
+                border: filtroAguarda ? '1px solid #f39c12' : '1px solid #d0d7de',
+                color: filtroAguarda ? '#7a5000' : '#555',
+              }}>
+              {filtroAguarda ? '⚠️ Aguardando categoria' : '⚠️ Aguardando categoria'}
+              {pendCatCount > 0 && !filtroAguarda && (
+                <span style={{ marginLeft: 6, background: '#f39c12', color: '#fff', borderRadius: 10, padding: '1px 6px', fontSize: '0.72rem' }}>
+                  {pendCatCount}
+                </span>
+              )}
+            </button>
 
             {/* Lançamento manual — secundário, não é o CTA principal */}
             <button className={styles.btnManual}
@@ -962,6 +1113,39 @@ export default function AdminFinanceiro() {
                             </div>
                           ) : (
                             <div className={styles.acoes}>
+                              {lanc.aguarda_categorizacao && categorizandoId !== lanc.id && (
+                                <button
+                                  onClick={() => { setCategorizandoId(lanc.id); setCatSelecionada(''); setCcSelecionado('') }}
+                                  style={{ padding: '4px 8px', fontSize: '0.75rem', borderRadius: 5, border: '1px solid #f39c12', background: '#fff8e0', color: '#7a5000', cursor: 'pointer', fontWeight: 600 }}>
+                                  ⚠️ Categorizar
+                                </button>
+                              )}
+                              {categorizandoId === lanc.id && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, background: '#fffbf0', border: '1px solid #f39c12', borderRadius: 6, padding: 8, minWidth: 220 }}>
+                                  <select value={catSelecionada} onChange={e => setCatSelecionada(e.target.value)}
+                                    style={{ fontSize: '0.78rem', padding: '3px 6px', borderRadius: 4, border: '1px solid #d0d7de' }}>
+                                    <option value="">Categoria…</option>
+                                    {categorias.filter(c => c.tipo === lanc.tipo).map(c => (
+                                      <option key={c.id} value={String(c.id)}>{c.grupo ? `${c.grupo} / ` : ''}{c.nome}</option>
+                                    ))}
+                                  </select>
+                                  <select value={ccSelecionado} onChange={e => setCcSelecionado(e.target.value)}
+                                    style={{ fontSize: '0.78rem', padding: '3px 6px', borderRadius: 4, border: '1px solid #d0d7de' }}>
+                                    <option value="">Centro de custo (opcional)</option>
+                                    {centrosCusto.map(cc => <option key={cc.id} value={String(cc.id)}>{cc.nome}</option>)}
+                                  </select>
+                                  <div style={{ display: 'flex', gap: 4 }}>
+                                    <button disabled={!catSelecionada || salvando} onClick={() => confirmarCategorizacao(lanc)}
+                                      style={{ flex: 1, fontSize: '0.75rem', padding: '3px 0', borderRadius: 4, border: 'none', background: '#27ae60', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
+                                      ✓ Confirmar
+                                    </button>
+                                    <button onClick={() => setCategorizandoId(null)}
+                                      style={{ fontSize: '0.75rem', padding: '3px 8px', borderRadius: 4, border: '1px solid #d0d7de', background: '#fff', cursor: 'pointer' }}>
+                                      ✕
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                               <button className={styles.btnBaixar}
                                 onClick={() => { setBaixandoId(lanc.id); setDataBaixa(hoje()) }}>
                                 Baixar
@@ -1340,6 +1524,115 @@ export default function AdminFinanceiro() {
               </form>
             )}
           </div>
+        )
+      })()}
+
+      {/* ══ DRE ══════════════════════════════════════════════════════════════ */}
+      {aba === 'dre' && (() => {
+        const fmtR = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+        const receitas = dreGrupos.filter(g => g.tipo === 'receita')
+        const despesas = dreGrupos.filter(g => g.tipo === 'despesa')
+        const totR = (arr: DreGrupo[], col: keyof DreGrupo) => arr.reduce((s, g) => s + (g[col] as number), 0)
+        const totRecReal = totR(receitas, 'realizado'); const totRecPrev = totR(receitas, 'previsto'); const totRecAtr = totR(receitas, 'atrasado')
+        const totDesReal = totR(despesas, 'realizado'); const totDesPrev = totR(despesas, 'previsto'); const totDesAtr = totR(despesas, 'atrasado')
+        const resReal = totRecReal - totDesReal; const resPrev = totRecPrev - totDesPrev; const resAtr = totRecAtr - totDesAtr
+        const thStyle: React.CSSProperties = { padding: '8px 14px', textAlign: 'right' as const, fontSize: '0.75rem', fontWeight: 700, color: '#555', textTransform: 'uppercase' as const, letterSpacing: '0.04em', background: '#f5f7fa', borderBottom: '2px solid #e0e4ea', whiteSpace: 'nowrap' as const }
+        const tdStyle: React.CSSProperties = { padding: '8px 14px', textAlign: 'right' as const, fontSize: '0.84rem', borderBottom: '1px solid #f0f2f5' }
+        const secStyle: React.CSSProperties = { padding: '7px 14px', fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase' as const, letterSpacing: '0.05em', background: '#f0f4f8', borderBottom: '1px solid #e0e4ea', color: '#1a3a5c' }
+        const totStyle: React.CSSProperties = { padding: '9px 14px', textAlign: 'right' as const, fontSize: '0.84rem', fontWeight: 700, borderTop: '2px solid #e0e4ea', background: '#f5f7fa' }
+        const resColor = (v: number) => v >= 0 ? '#27ae60' : '#c0392b'
+        return (
+          <>
+            {/* Filtros */}
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginBottom: 20, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#666', textTransform: 'uppercase' }}>Ano</label>
+                <select value={dreAno} onChange={e => setDreAno(Number(e.target.value))}
+                  style={{ padding: '6px 10px', border: '1px solid #d0d7de', borderRadius: 6, fontSize: '0.83rem' }}>
+                  {[2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#666', textTransform: 'uppercase' }}>Período</label>
+                <select value={dreMes} onChange={e => setDreMes(Number(e.target.value))}
+                  style={{ padding: '6px 10px', border: '1px solid #d0d7de', borderRadius: 6, fontSize: '0.83rem' }}>
+                  <option value={0}>Ano todo</option>
+                  {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i) => (
+                    <option key={i+1} value={i+1}>{m}</option>
+                  ))}
+                </select>
+              </div>
+              <button className={styles.btnFiltrar} onClick={carregarDre}>Atualizar</button>
+              <span style={{ marginLeft: 'auto', fontSize: '0.78rem', color: '#888', alignSelf: 'flex-end' }}>
+                Regime de caixa · {dreAno}{dreMes ? ` / ${String(dreMes).padStart(2,'0')}` : ''}
+              </span>
+            </div>
+
+            {/* Tabela DRE */}
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.83rem' }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...thStyle, textAlign: 'left', minWidth: 200 }}>Grupo / Categoria</th>
+                    <th style={thStyle}>Realizado</th>
+                    <th style={thStyle}>Previsto</th>
+                    <th style={thStyle}>Atrasado</th>
+                    <th style={{ ...thStyle, color: '#1a3a5c' }}>Resultado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {/* Receitas */}
+                  <tr><td colSpan={5} style={{ ...secStyle, color: '#27ae60' }}>🟢 Receitas</td></tr>
+                  {receitas.map(g => (
+                    <tr key={g.grupo}>
+                      <td style={{ padding: '8px 14px 8px 28px', borderBottom: '1px solid #f0f2f5', fontSize: '0.83rem' }}>{g.grupo}</td>
+                      <td style={{ ...tdStyle, color: '#27ae60' }}>{fmtR(g.realizado)}</td>
+                      <td style={{ ...tdStyle, color: '#888' }}>{fmtR(g.previsto)}</td>
+                      <td style={{ ...tdStyle, color: g.atrasado > 0 ? '#e67e22' : '#888' }}>{fmtR(g.atrasado)}</td>
+                      <td style={{ ...tdStyle, color: resColor(g.realizado - g.previsto - g.atrasado) }}></td>
+                    </tr>
+                  ))}
+                  {receitas.length === 0 && <tr><td colSpan={5} style={{ padding: '12px 28px', color: '#aaa', fontSize: '0.8rem' }}>Sem receitas no período</td></tr>}
+                  <tr>
+                    <td style={{ ...totStyle, textAlign: 'left', paddingLeft: 14 }}>Total Receitas</td>
+                    <td style={{ ...totStyle, color: '#27ae60' }}>{fmtR(totRecReal)}</td>
+                    <td style={totStyle}>{fmtR(totRecPrev)}</td>
+                    <td style={{ ...totStyle, color: totRecAtr > 0 ? '#e67e22' : '#333' }}>{fmtR(totRecAtr)}</td>
+                    <td style={totStyle}></td>
+                  </tr>
+
+                  {/* Despesas */}
+                  <tr><td colSpan={5} style={{ ...secStyle, color: '#c0392b', paddingTop: 16 }}>🔴 Despesas</td></tr>
+                  {despesas.map(g => (
+                    <tr key={g.grupo}>
+                      <td style={{ padding: '8px 14px 8px 28px', borderBottom: '1px solid #f0f2f5', fontSize: '0.83rem' }}>{g.grupo}</td>
+                      <td style={{ ...tdStyle, color: '#c0392b' }}>{fmtR(g.realizado)}</td>
+                      <td style={{ ...tdStyle, color: '#888' }}>{fmtR(g.previsto)}</td>
+                      <td style={{ ...tdStyle, color: g.atrasado > 0 ? '#e67e22' : '#888' }}>{fmtR(g.atrasado)}</td>
+                      <td style={{ ...tdStyle }}></td>
+                    </tr>
+                  ))}
+                  {despesas.length === 0 && <tr><td colSpan={5} style={{ padding: '12px 28px', color: '#aaa', fontSize: '0.8rem' }}>Sem despesas no período</td></tr>}
+                  <tr>
+                    <td style={{ ...totStyle, textAlign: 'left', paddingLeft: 14 }}>Total Despesas</td>
+                    <td style={{ ...totStyle, color: '#c0392b' }}>{fmtR(totDesReal)}</td>
+                    <td style={totStyle}>{fmtR(totDesPrev)}</td>
+                    <td style={{ ...totStyle, color: totDesAtr > 0 ? '#e67e22' : '#333' }}>{fmtR(totDesAtr)}</td>
+                    <td style={totStyle}></td>
+                  </tr>
+
+                  {/* Resultado */}
+                  <tr style={{ background: '#1a3a5c' }}>
+                    <td style={{ padding: '12px 14px', fontWeight: 800, fontSize: '0.88rem', color: '#fff' }}>Resultado Líquido</td>
+                    <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 800, fontSize: '0.88rem', color: resReal >= 0 ? '#7fffb4' : '#ffaaaa' }}>{fmtR(resReal)}</td>
+                    <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.84rem', color: resPrev >= 0 ? '#7fffb4' : '#ffaaaa' }}>{fmtR(resPrev)}</td>
+                    <td style={{ padding: '12px 14px', textAlign: 'right', fontWeight: 700, fontSize: '0.84rem', color: resAtr >= 0 ? '#7fffb4' : '#ffaaaa' }}>{fmtR(resAtr)}</td>
+                    <td style={{ padding: '12px 14px' }}></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </>
         )
       })()}
 
