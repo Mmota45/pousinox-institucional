@@ -134,13 +134,16 @@ export default function AdminOrcamento() {
   const [observacoes, setObservacoes] = useState(OBS_DEFAULT)
   const [watermarkAtivo, setWatermarkAtivo] = useState(false)
   const [watermarkTexto, setWatermarkTexto] = useState('CONFIDENCIAL')
+  const [imagemUrl, setImagemUrl]   = useState('')
+  const [uploadandoImagem, setUploadandoImagem] = useState(false)
+  const imagemRef = useRef<HTMLInputElement>(null)
   const [anexos, setAnexos]         = useState<Anexo[]>([])
   const [uploadandoAnexo, setUploadandoAnexo] = useState(false)
   const [historico, setHistorico]   = useState<HistoricoItem[]>([])
   const [salvando, setSalvando]     = useState(false)
   const [gerandoRec, setGerandoRec] = useState(false)
   const [msg, setMsg]               = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
-  const anexoRef = useRef<HTMLInputElement>(null)
+  const anexoRef  = useRef<HTMLInputElement>(null)
 
   const empresaSel  = empresas.find(e => e.id === empresaId) ?? null
   const vendedorSel = vendedores.find(v => v.id === vendedorId) ?? null
@@ -246,6 +249,7 @@ export default function AdminOrcamento() {
     setItens([{ ...ITEM_VAZIO }]); setDesconto(''); setTipoDesc('%')
     setCondicao(''); setPrazoEntrega(''); setValidadeDias('7'); setObservacoes(OBS_DEFAULT)
     setWatermarkAtivo(false); setWatermarkTexto('CONFIDENCIAL')
+    setImagemUrl('')
     setAnexos([]); setHistorico([]); setBuscaCliente(''); setVista('editor')
   }
 
@@ -268,6 +272,7 @@ export default function AdminOrcamento() {
     setCondicao(o.condicao_pagamento ?? ''); setPrazoEntrega(o.prazo_entrega ?? '')
     setValidadeDias(String(o.validade_dias ?? 7)); setObservacoes(o.observacoes ?? OBS_DEFAULT)
     setWatermarkAtivo(o.watermark_ativo ?? false); setWatermarkTexto(o.watermark_texto ?? 'CONFIDENCIAL')
+    setImagemUrl(o.imagem_url ?? '')
     setAnexos((anexosD ?? []) as Anexo[]); setHistorico((histD ?? []) as HistoricoItem[])
     setVista('editor')
   }
@@ -292,6 +297,7 @@ export default function AdminOrcamento() {
       condicao_pagamento: condicao || null, prazo_entrega: prazoEntrega || null,
       validade_dias: parseInt(validadeDias) || 7, observacoes: observacoes || null,
       watermark_ativo: watermarkAtivo, watermark_texto: watermarkTexto,
+      imagem_url: imagemUrl || null,
     }
     let orcId = editandoId
     if (editandoId) {
@@ -377,6 +383,17 @@ export default function AdminOrcamento() {
       await supabaseAdmin.from('orcamentos_historico').insert({ orcamento_id: editandoId, evento: 'anexo_adicionado', descricao: file.name })
     }
     setUploadandoAnexo(false)
+  }
+
+  async function uploadImagem(file: File) {
+    setUploadandoImagem(true)
+    const path = `img-${editandoId ?? 'novo'}-${Date.now()}.${file.name.split('.').pop()}`
+    const { data: up } = await supabaseAdmin.storage.from('orcamentos-anexos').upload(path, file, { upsert: true })
+    if (up) {
+      const { data: url } = supabaseAdmin.storage.from('orcamentos-anexos').getPublicUrl(path)
+      setImagemUrl(url.publicUrl)
+    }
+    setUploadandoImagem(false)
   }
 
   async function removerAnexo(id: number) {
@@ -639,6 +656,27 @@ export default function AdminOrcamento() {
                     <input className={styles.input} style={{ maxWidth: 220 }} placeholder="Ex: CONFIDENCIAL" value={watermarkTexto} onChange={e => setWatermarkTexto(e.target.value)} />
                   )}
                 </div>
+                <div className={styles.imagemOrcRow}>
+                  <span className={styles.imagemOrcLabel}>Imagem do produto / projeto <span style={{ color: '#94a3b8', fontWeight: 400 }}>(opcional)</span></span>
+                  {imagemUrl ? (
+                    <div className={styles.imagemOrcPreview}>
+                      <img src={imagemUrl} alt="Imagem orçamento" className={styles.imagemOrcThumb} />
+                      <div className={styles.imagemOrcActions}>
+                        <input className={styles.input} placeholder="URL da imagem" value={imagemUrl} onChange={e => setImagemUrl(e.target.value)} style={{ fontSize: '0.75rem' }} />
+                        <button className={styles.btnRemoveItem} onClick={() => setImagemUrl('')} title="Remover imagem">✕</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={styles.imagemOrcActions}>
+                      <input className={styles.input} placeholder="Cole a URL de uma imagem..." value={imagemUrl} onChange={e => setImagemUrl(e.target.value)} style={{ flex: 1, fontSize: '0.82rem' }} />
+                      <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>ou</span>
+                      <input type="file" ref={imagemRef} accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && uploadImagem(e.target.files[0])} />
+                      <button className={styles.btnAddItem} onClick={() => imagemRef.current?.click()} disabled={uploadandoImagem}>
+                        {uploadandoImagem ? 'Enviando...' : '📷 Upload'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Anexos */}
@@ -725,6 +763,13 @@ export default function AdminOrcamento() {
                     {!cliente.empresa && !cliente.nome && <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>— Preencha os dados do cliente —</div>}
                   </div>
                 </div>
+
+                {/* Imagem opcional */}
+                {imagemUrl && (
+                  <div className={styles.pImagemWrap}>
+                    <img src={imagemUrl} alt="Referência visual" className={styles.pImagem} />
+                  </div>
+                )}
 
                 {/* Tabela itens */}
                 <table className={styles.pTable}>

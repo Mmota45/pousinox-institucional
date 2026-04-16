@@ -99,7 +99,18 @@
 .descontoValor { font-size: 0.85rem; color: #dc2626; min-width: 80px; text-align: right; font-weight: 600; }
 
 /* ── Watermark ── */
-.watermarkRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.watermarkRow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+
+/* ── Imagem orçamento ── */
+.imagemOrcRow     { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.imagemOrcLabel   { font-size: 0.84rem; font-weight: 600; color: #374151; }
+.imagemOrcActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.imagemOrcPreview { display: flex; flex-direction: column; gap: 8px; }
+.imagemOrcThumb   { width: 100%; max-width: 260px; max-height: 160px; object-fit: contain; border: 1.5px solid #e2e8f0; border-radius: 8px; background: #f8fafc; padding: 4px; }
+
+/* ── Preview imagem ── */
+.pImagemWrap { padding: 12px 24px; text-align: center; }
+.pImagem     { max-width: 100%; max-height: 200px; object-fit: contain; border-radius: 6px; }
 .toggleLabel  { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; color: #374151; cursor: pointer; }
 .toggleLabel input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #1a5fa8; }
 
