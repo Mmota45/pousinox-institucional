@@ -158,6 +158,16 @@ export default function AdminOrcamento() {
   const vendedorSel = vendedores.find(v => v.id === vendedorId) ?? null
   const dataValidade = addDias(parseInt(validadeDias) || 7)
 
+  function economiaPorItens() {
+    return itens.reduce((s, i) => {
+      if (!i.preco_original) return s
+      const q = parseFloat(i.qtd.replace(',', '.')) || 0
+      const orig = parseFloat(i.preco_original) || 0
+      const venda = parseFloat(i.valorUnit.replace(',', '.')) || 0
+      return s + q * (orig - venda)
+    }, 0)
+  }
+
   function subtotal() {
     return itens.reduce((s, i) => {
       const q = parseFloat(i.qtd.replace(',', '.')) || 0
@@ -891,6 +901,11 @@ export default function AdminOrcamento() {
                     </div>
                   )}
                   <div className={`${styles.pTotaisRow} ${styles.pTotaisTotal}`}><span>TOTAL</span><span>{fmt(total())}</span></div>
+                  {(economiaPorItens() + valorDesc()) > 0 && (
+                    <div className={styles.pEconomia}>
+                      🏷️ Você economiza <strong>{fmt(economiaPorItens() + valorDesc())}</strong> neste orçamento
+                    </div>
+                  )}
                 </div>
 
                 {/* Condições */}
