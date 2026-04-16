@@ -24,7 +24,7 @@ interface OrcamentoResumo {
 }
 
 interface Item {
-  produto_id: number | null; descricao: string; qtd: string; unidade: string; valorUnit: string
+  produto_id: number | null; descricao: string; qtd: string; unidade: string; valorUnit: string; imagem_url?: string
 }
 
 interface ClienteInfo {
@@ -288,7 +288,7 @@ export default function AdminOrcamento() {
     setEmpresaId(o.empresa_id); setVendedorId(o.vendedor_id ?? null)
     setCliente({ nome: o.cliente_nome ?? '', empresa: o.cliente_empresa ?? '', cnpj: o.cliente_cnpj ?? '', telefone: o.cliente_telefone ?? '', email: o.cliente_email ?? '', endereco: o.cliente_endereco ?? '' })
     setItens((itensD ?? []).length > 0
-      ? (itensD as any[]).map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: String(i.qtd), unidade: i.unidade, valorUnit: String(i.valor_unit) }))
+      ? (itensD as any[]).map(i => ({ produto_id: i.produto_id, descricao: i.descricao, qtd: String(i.qtd), unidade: i.unidade, valorUnit: String(i.valor_unit), imagem_url: i.imagem_url ?? undefined }))
       : [{ ...ITEM_VAZIO }])
     setDesconto(o.desconto > 0 ? String(o.desconto) : ''); setTipoDesc(o.tipo_desconto ?? '%')
     setCondicao(o.condicao_pagamento ?? ''); setPrazoEntrega(o.prazo_entrega ?? '')
@@ -336,6 +336,7 @@ export default function AdminOrcamento() {
         qtd: parseFloat(i.qtd.replace(',', '.')) || 1, unidade: i.unidade,
         valor_unit: parseFloat(i.valorUnit.replace(',', '.')) || 0,
         total: (parseFloat(i.qtd.replace(',', '.')) || 1) * (parseFloat(i.valorUnit.replace(',', '.')) || 0),
+        imagem_url: i.imagem_url ?? null,
         ordem: idx,
       }))
       if (itensPayload.length) await supabaseAdmin.from('itens_orcamento').insert(itensPayload)
@@ -449,15 +450,15 @@ export default function AdminOrcamento() {
     setBuscaProduto(''); setResultadosProduto([]); setShowBuscaProduto(false)
   }
   function adicionarOutlet(p: OutletResult) {
-    // Preço sempre visível no orçamento independente de exibir_preco
     const precoBase = p.preco_original && p.preco_original > p.preco ? p.preco_original : p.preco
-    setItens(prev => [...prev, { produto_id: p.id, descricao: p.titulo, qtd: '1', unidade: 'UN', valorUnit: String(precoBase) }])
-    // Se tem preço original > preço de venda, preenche desconto em R$
+    setItens(prev => [...prev, {
+      produto_id: p.id, descricao: p.titulo, qtd: '1', unidade: 'UN',
+      valorUnit: String(precoBase), imagem_url: p.fotos?.[0] ?? undefined,
+    }])
     if (p.preco_original && p.preco_original > p.preco) {
       setDesconto(String(+(p.preco_original - p.preco).toFixed(2)))
       setTipoDesc('R$')
     }
-    if (p.fotos?.[0] && !imagemUrl) setImagemUrl(p.fotos[0])
     setBuscaOutlet(''); setResultadosOutlet([]); setShowBuscaOutlet(false)
   }
   function addItem() { setItens(prev => [...prev, { ...ITEM_VAZIO }]) }
@@ -818,7 +819,7 @@ export default function AdminOrcamento() {
                 <div className={styles.pAccentLine} />
 
                 {/* Cliente + imagem lado a lado */}
-                <div className={`${styles.pCliente} ${imagemUrl ? styles.pClienteComImagem : ''}`}>
+                <div className={styles.pCliente}>
                   <div className={styles.pClienteInfo}>
                   <div className={styles.pClienteTitle}>DESTINATÁRIO</div>
                   <div className={styles.pClienteGrid}>
@@ -831,11 +832,6 @@ export default function AdminOrcamento() {
                     {!cliente.empresa && !cliente.nome && <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>— Preencha os dados do cliente —</div>}
                   </div>
                   </div>{/* /pClienteInfo */}
-                  {imagemUrl && (
-                    <div className={styles.pClienteImagem}>
-                      <img src={imagemUrl} alt="Produto" className={styles.pClienteImg} />
-                    </div>
-                  )}
                 </div>{/* /pCliente */}
 
                 {/* Tabela itens */}
@@ -843,6 +839,7 @@ export default function AdminOrcamento() {
                   <thead>
                     <tr>
                       <th style={{ width: 24 }}>#</th>
+                      {itens.some(i => i.imagem_url) && <th style={{ width: 52 }} />}
                       <th>Descrição</th>
                       <th className={styles.pTdCenter}>Qtd</th>
                       <th className={styles.pTdCenter}>Un</th>
@@ -857,6 +854,14 @@ export default function AdminOrcamento() {
                       return (
                         <tr key={i}>
                           <td style={{ color: '#94a3b8', textAlign: 'center' }}>{i + 1}</td>
+                          {itens.some(it => it.imagem_url) && (
+                            <td style={{ padding: '4px 6px' }}>
+                              {item.imagem_url
+                                ? <img src={item.imagem_url} alt="" style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 5, border: '1px solid #e2e8f0', background: '#f8fafc', display: 'block' }} />
+                                : <div style={{ width: 44, height: 44 }} />
+                              }
+                            </td>
+                          )}
                           <td>{item.descricao}</td>
                           <td className={styles.pTdCenter}>{item.qtd}</td>
                           <td className={styles.pTdCenter}>{item.unidade}</td>
