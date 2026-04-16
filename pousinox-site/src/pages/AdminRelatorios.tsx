@@ -208,10 +208,12 @@ export default function AdminRelatorios() {
     const dataFim  = dreMes ? `${dreAno}-${String(dreMes).padStart(2,'0')}-${dimMes}` : `${dreAno}-12-31`
 
     const [{data:movs},{data:previstos},{data:atrasados}] = await Promise.all([
-      supabaseAdmin.from('fin_movimentacoes').select('tipo,valor').gte('data',dataIni).lte('data',dataFim),
-      supabaseAdmin.from('fin_lancamentos').select('tipo,valor,fin_categorias(grupo,tipo)')
+      supabaseAdmin.from('fin_movimentacoes')
+        .select('tipo,valor,categoria_id,fin_categorias(nome,grupo,tipo)')
+        .gte('data',dataIni).lte('data',dataFim).eq('status','realizado'),
+      supabaseAdmin.from('fin_lancamentos').select('tipo,valor,fin_categorias(grupo,tipo,nome)')
         .eq('status','pendente').gte('data_vencimento',hojeStr2).gte('data_vencimento',dataIni).lte('data_vencimento',dataFim),
-      supabaseAdmin.from('fin_lancamentos').select('tipo,valor,fin_categorias(grupo,tipo)')
+      supabaseAdmin.from('fin_lancamentos').select('tipo,valor,fin_categorias(grupo,tipo,nome)')
         .eq('status','pendente').lt('data_vencimento',hojeStr2).gte('data_vencimento',dataIni).lte('data_vencimento',dataFim),
     ])
 
@@ -221,12 +223,14 @@ export default function AdminRelatorios() {
       if(!map[k]) map[k]={grupo:grupo||'Sem categoria',tipo,realizado:0,previsto:0,atrasado:0}
       return map[k]
     }
-    let totE=0,totS=0
-    for(const m of (movs??[]) as any[]){ if(m.tipo==='entrada') totE+=Number(m.valor)||0; else totS+=Number(m.valor)||0 }
-    if(totE>0) ensure('Caixa','receita').realizado+=totE
-    if(totS>0) ensure('Caixa','despesa').realizado+=totS
-    for(const l of (previstos??[]) as any[]){ const cat=(l as any).fin_categorias; ensure(cat?.grupo??'',cat?.tipo??l.tipo).previsto+=Number(l.valor)||0 }
-    for(const l of (atrasados??[]) as any[]){ const cat=(l as any).fin_categorias; ensure(cat?.grupo??'',cat?.tipo??l.tipo).atrasado+=Number(l.valor)||0 }
+    for(const m of (movs??[]) as any[]){
+      const cat  = m.fin_categorias
+      const tipo : 'receita'|'despesa' = cat?.tipo ?? (m.tipo==='entrada'?'receita':'despesa')
+      const grupo: string = cat?.grupo ?? cat?.nome ?? (m.tipo==='entrada'?'Receitas':'Despesas')
+      ensure(grupo, tipo).realizado += Number(m.valor)||0
+    }
+    for(const l of (previstos??[]) as any[]){ const cat=(l as any).fin_categorias; ensure(cat?.grupo??cat?.nome??'',cat?.tipo??l.tipo).previsto+=Number(l.valor)||0 }
+    for(const l of (atrasados??[]) as any[]){ const cat=(l as any).fin_categorias; ensure(cat?.grupo??cat?.nome??'',cat?.tipo??l.tipo).atrasado+=Number(l.valor)||0 }
     setDreGrupos(Object.values(map).sort((a,b)=>a.tipo!==b.tipo?a.tipo.localeCompare(b.tipo):a.grupo.localeCompare(b.grupo)))
   },[dreAno,dreMes])
 
@@ -236,6 +240,14 @@ export default function AdminRelatorios() {
 
   return (
     <div className={styles.wrap}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+        <a href="/admin/financeiro" className={finStyles.btnLinkSmall} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          ← Financeiro
+        </a>
+        <span style={{ color: '#e2e8f0' }}>|</span>
+        <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Relatórios</span>
+      </div>
+
       {msg && <div className={msg.tipo==='ok'?finStyles.msgOk:finStyles.msgErro}>{msg.texto}</div>}
 
       {/* Abas */}
@@ -460,82 +472,107 @@ export default function AdminRelatorios() {
         const totRecReal=totR(receitas,'realizado'),totRecPrev=totR(receitas,'previsto'),totRecAtr=totR(receitas,'atrasado')
         const totDesReal=totR(despesas,'realizado'),totDesPrev=totR(despesas,'previsto'),totDesAtr=totR(despesas,'atrasado')
         const resReal=totRecReal-totDesReal,resPrev=totRecPrev-totDesPrev,resAtr=totRecAtr-totDesAtr
-        const thS:React.CSSProperties={padding:'8px 14px',textAlign:'right',fontSize:'0.75rem',fontWeight:700,color:'#555',textTransform:'uppercase',letterSpacing:'0.04em',background:'#f5f7fa',borderBottom:'2px solid #e0e4ea',whiteSpace:'nowrap'}
-        const tdS:React.CSSProperties={padding:'8px 14px',textAlign:'right',fontSize:'0.84rem',borderBottom:'1px solid #f0f2f5'}
-        const secS:React.CSSProperties={padding:'7px 14px',fontWeight:700,fontSize:'0.78rem',textTransform:'uppercase',letterSpacing:'0.05em',background:'#f0f4f8',borderBottom:'1px solid #e0e4ea',color:'#1a3a5c'}
-        const totS:React.CSSProperties={padding:'9px 14px',textAlign:'right',fontSize:'0.84rem',fontWeight:700,borderTop:'2px solid #e0e4ea',background:'#f5f7fa'}
-        const rc=(v:number)=>v>=0?'#27ae60':'#c0392b'
+        const margem=totRecReal>0?((resReal/totRecReal)*100):0
+        const dim=(v:number)=>v===0?{color:'#d1d5db'}:{}
+        const rc=(v:number):React.CSSProperties=>({color:v>=0?'#16a34a':'#dc2626',fontWeight:700})
         return (
           <>
+            {/* Filtros */}
             <div style={{display:'flex',gap:10,alignItems:'flex-end',marginBottom:20,flexWrap:'wrap'}}>
-              <div style={{display:'flex',flexDirection:'column',gap:2}}>
-                <label style={{fontSize:'0.68rem',fontWeight:700,color:'#666',textTransform:'uppercase'}}>Ano</label>
-                <select value={dreAno} onChange={e=>setDreAno(Number(e.target.value))} style={{padding:'6px 10px',border:'1px solid #d0d7de',borderRadius:6,fontSize:'0.83rem'}}>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <label style={{fontSize:'0.72rem',fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em'}}>Ano</label>
+                <select value={dreAno} onChange={e=>setDreAno(Number(e.target.value))} style={{padding:'7px 10px',border:'1px solid #e2e8f0',borderRadius:6,fontSize:'0.84rem',background:'#fff',color:'#1e293b'}}>
                   {[2024,2025,2026,2027].map(y=><option key={y} value={y}>{y}</option>)}
                 </select>
               </div>
-              <div style={{display:'flex',flexDirection:'column',gap:2}}>
-                <label style={{fontSize:'0.68rem',fontWeight:700,color:'#666',textTransform:'uppercase'}}>Período</label>
-                <select value={dreMes} onChange={e=>setDreMes(Number(e.target.value))} style={{padding:'6px 10px',border:'1px solid #d0d7de',borderRadius:6,fontSize:'0.83rem'}}>
+              <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                <label style={{fontSize:'0.72rem',fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em'}}>Período</label>
+                <select value={dreMes} onChange={e=>setDreMes(Number(e.target.value))} style={{padding:'7px 10px',border:'1px solid #e2e8f0',borderRadius:6,fontSize:'0.84rem',background:'#fff',color:'#1e293b'}}>
                   <option value={0}>Ano todo</option>
                   {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i)=><option key={i+1} value={i+1}>{m}</option>)}
                 </select>
               </div>
-              <button className={finStyles.btnFiltrar} onClick={carregarDre}>Atualizar</button>
-              <span style={{marginLeft:'auto',fontSize:'0.78rem',color:'#888',alignSelf:'flex-end'}}>
-                Regime de caixa · {dreAno}{dreMes?` / ${String(dreMes).padStart(2,'0')}`:''}
+              <button className={finStyles.btnFiltrar} onClick={carregarDre} style={{alignSelf:'flex-end'}}>Atualizar</button>
+              <span style={{marginLeft:'auto',fontSize:'0.75rem',color:'#94a3b8',alignSelf:'flex-end'}}>
+                Regime de caixa · {dreAno}{dreMes?' / '+String(dreMes).padStart(2,'0'):''}
               </span>
             </div>
-            <div style={{overflowX:'auto'}}>
-              <table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.83rem'}}>
-                <thead><tr>
-                  <th style={{...thS,textAlign:'left',minWidth:200}}>Grupo / Categoria</th>
-                  <th style={thS}>Realizado</th><th style={thS}>Previsto</th><th style={thS}>Atrasado</th>
-                  <th style={{...thS,color:'#1a3a5c'}}>Resultado</th>
-                </tr></thead>
+
+            {/* KPI Cards */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:14,marginBottom:24}}>
+              {[
+                {label:'Receitas Realizadas',val:totRecReal,color:'#16a34a',bg:'#f0fdf4',border:'#bbf7d0'},
+                {label:'Despesas Realizadas',val:totDesReal,color:'#dc2626',bg:'#fef2f2',border:'#fecaca'},
+                {label:'Resultado Líquido',val:resReal,color:resReal>=0?'#16a34a':'#dc2626',bg:resReal>=0?'#f0fdf4':'#fef2f2',border:resReal>=0?'#bbf7d0':'#fecaca'},
+                {label:'Margem',val:null,pct:margem,color:margem>=0?'#2563eb':'#dc2626',bg:'#eff6ff',border:'#bfdbfe'},
+              ].map(k=>(
+                <div key={k.label} style={{background:k.bg,border:'1px solid '+k.border,borderRadius:10,padding:'16px 18px'}}>
+                  <div style={{fontSize:'0.72rem',fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:6}}>{k.label}</div>
+                  <div style={{fontSize:'1.35rem',fontWeight:800,color:k.color}}>
+                    {k.val!=null?fmtBRLint(k.val):k.pct!.toFixed(1)+'%'}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Tabela DRE */}
+            <div style={{overflowX:'auto',borderRadius:10,border:'1px solid #e2e8f0'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.84rem',background:'#fff',minWidth:540}}>
+                <thead>
+                  <tr style={{background:'#f8fafc'}}>
+                    <th style={{padding:'10px 16px',textAlign:'left',fontSize:'0.72rem',fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.06em',borderBottom:'2px solid #e2e8f0',minWidth:200}}>Grupo / Categoria</th>
+                    <th style={{padding:'10px 16px',textAlign:'right',fontSize:'0.72rem',fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.06em',borderBottom:'2px solid #e2e8f0',whiteSpace:'nowrap'}}>Realizado</th>
+                    <th style={{padding:'10px 16px',textAlign:'right',fontSize:'0.72rem',fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.06em',borderBottom:'2px solid #e2e8f0',whiteSpace:'nowrap'}}>Previsto</th>
+                    <th style={{padding:'10px 16px',textAlign:'right',fontSize:'0.72rem',fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.06em',borderBottom:'2px solid #e2e8f0',whiteSpace:'nowrap'}}>Atrasado</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td colSpan={5} style={{...secS,color:'#27ae60'}}>🟢 Receitas</td></tr>
-                  {receitas.map(g=>(
-                    <tr key={g.grupo}>
-                      <td style={{padding:'8px 14px 8px 28px',borderBottom:'1px solid #f0f2f5',fontSize:'0.83rem'}}>{g.grupo}</td>
-                      <td style={{...tdS,color:'#27ae60'}}>{fmtBRLint(g.realizado)}</td>
-                      <td style={{...tdS,color:'#888'}}>{fmtBRLint(g.previsto)}</td>
-                      <td style={{...tdS,color:g.atrasado>0?'#e67e22':'#888'}}>{fmtBRLint(g.atrasado)}</td>
-                      <td style={tdS}></td>
+                  {/* Receitas */}
+                  <tr style={{background:'#f0fdf4'}}>
+                    <td colSpan={4} style={{padding:'7px 16px',fontWeight:700,fontSize:'0.75rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'#16a34a',borderBottom:'1px solid #dcfce7'}}>🟢 Receitas</td>
+                  </tr>
+                  {receitas.map((g,i)=>(
+                    <tr key={g.grupo} style={{background:i%2===0?'#fff':'#fafafa'}}>
+                      <td style={{padding:'9px 16px 9px 28px',borderBottom:'1px solid #f1f5f9',color:'#374151'}}>{g.grupo}</td>
+                      <td style={{padding:'9px 16px',textAlign:'right',borderBottom:'1px solid #f1f5f9',color:'#16a34a',fontWeight:600,...dim(g.realizado)}}>{fmtBRLint(g.realizado)}</td>
+                      <td style={{padding:'9px 16px',textAlign:'right',borderBottom:'1px solid #f1f5f9',color:'#64748b',...dim(g.previsto)}}>{fmtBRLint(g.previsto)}</td>
+                      <td style={{padding:'9px 16px',textAlign:'right',borderBottom:'1px solid #f1f5f9',color:g.atrasado>0?'#d97706':'#64748b',...dim(g.atrasado)}}>{fmtBRLint(g.atrasado)}</td>
                     </tr>
                   ))}
-                  {receitas.length===0 && <tr><td colSpan={5} style={{padding:'12px 28px',color:'#aaa',fontSize:'0.8rem'}}>Sem receitas no período</td></tr>}
-                  <tr>
-                    <td style={{...totS,textAlign:'left',paddingLeft:14}}>Total Receitas</td>
-                    <td style={{...totS,color:'#27ae60'}}>{fmtBRLint(totRecReal)}</td>
-                    <td style={totS}>{fmtBRLint(totRecPrev)}</td>
-                    <td style={{...totS,color:totRecAtr>0?'#e67e22':'#333'}}>{fmtBRLint(totRecAtr)}</td>
-                    <td style={totS}></td>
+                  {receitas.length===0 && <tr><td colSpan={4} style={{padding:'12px 28px',color:'#94a3b8',fontSize:'0.8rem'}}>Sem receitas no período</td></tr>}
+                  <tr style={{background:'#f0fdf4',borderTop:'2px solid #dcfce7'}}>
+                    <td style={{padding:'10px 16px',fontWeight:700,fontSize:'0.84rem',color:'#166534'}}>Total Receitas</td>
+                    <td style={{padding:'10px 16px',textAlign:'right',fontWeight:800,fontSize:'0.9rem',color:'#16a34a'}}>{fmtBRLint(totRecReal)}</td>
+                    <td style={{padding:'10px 16px',textAlign:'right',fontWeight:700,color:'#64748b'}}>{fmtBRLint(totRecPrev)}</td>
+                    <td style={{padding:'10px 16px',textAlign:'right',fontWeight:700,color:totRecAtr>0?'#d97706':'#64748b'}}>{fmtBRLint(totRecAtr)}</td>
                   </tr>
-                  <tr><td colSpan={5} style={{...secS,color:'#c0392b',paddingTop:16}}>🔴 Despesas</td></tr>
-                  {despesas.map(g=>(
-                    <tr key={g.grupo}>
-                      <td style={{padding:'8px 14px 8px 28px',borderBottom:'1px solid #f0f2f5',fontSize:'0.83rem'}}>{g.grupo}</td>
-                      <td style={{...tdS,color:'#c0392b'}}>{fmtBRLint(g.realizado)}</td>
-                      <td style={{...tdS,color:'#888'}}>{fmtBRLint(g.previsto)}</td>
-                      <td style={{...tdS,color:g.atrasado>0?'#e67e22':'#888'}}>{fmtBRLint(g.atrasado)}</td>
-                      <td style={tdS}></td>
+
+                  {/* Despesas */}
+                  <tr style={{background:'#fef2f2'}}>
+                    <td colSpan={4} style={{padding:'7px 16px',fontWeight:700,fontSize:'0.75rem',textTransform:'uppercase',letterSpacing:'0.06em',color:'#dc2626',borderBottom:'1px solid #fecaca',borderTop:'8px solid #f1f5f9'}}>🔴 Despesas</td>
+                  </tr>
+                  {despesas.map((g,i)=>(
+                    <tr key={g.grupo} style={{background:i%2===0?'#fff':'#fafafa'}}>
+                      <td style={{padding:'9px 16px 9px 28px',borderBottom:'1px solid #f1f5f9',color:'#374151'}}>{g.grupo}</td>
+                      <td style={{padding:'9px 16px',textAlign:'right',borderBottom:'1px solid #f1f5f9',color:'#dc2626',fontWeight:600,...dim(g.realizado)}}>{fmtBRLint(g.realizado)}</td>
+                      <td style={{padding:'9px 16px',textAlign:'right',borderBottom:'1px solid #f1f5f9',color:'#64748b',...dim(g.previsto)}}>{fmtBRLint(g.previsto)}</td>
+                      <td style={{padding:'9px 16px',textAlign:'right',borderBottom:'1px solid #f1f5f9',color:g.atrasado>0?'#d97706':'#64748b',...dim(g.atrasado)}}>{fmtBRLint(g.atrasado)}</td>
                     </tr>
                   ))}
-                  {despesas.length===0 && <tr><td colSpan={5} style={{padding:'12px 28px',color:'#aaa',fontSize:'0.8rem'}}>Sem despesas no período</td></tr>}
-                  <tr>
-                    <td style={{...totS,textAlign:'left',paddingLeft:14}}>Total Despesas</td>
-                    <td style={{...totS,color:'#c0392b'}}>{fmtBRLint(totDesReal)}</td>
-                    <td style={totS}>{fmtBRLint(totDesPrev)}</td>
-                    <td style={{...totS,color:totDesAtr>0?'#e67e22':'#333'}}>{fmtBRLint(totDesAtr)}</td>
-                    <td style={totS}></td>
+                  {despesas.length===0 && <tr><td colSpan={4} style={{padding:'12px 28px',color:'#94a3b8',fontSize:'0.8rem'}}>Sem despesas no período</td></tr>}
+                  <tr style={{background:'#fef2f2',borderTop:'2px solid #fecaca'}}>
+                    <td style={{padding:'10px 16px',fontWeight:700,fontSize:'0.84rem',color:'#991b1b'}}>Total Despesas</td>
+                    <td style={{padding:'10px 16px',textAlign:'right',fontWeight:800,fontSize:'0.9rem',color:'#dc2626'}}>{fmtBRLint(totDesReal)}</td>
+                    <td style={{padding:'10px 16px',textAlign:'right',fontWeight:700,color:'#64748b'}}>{fmtBRLint(totDesPrev)}</td>
+                    <td style={{padding:'10px 16px',textAlign:'right',fontWeight:700,color:totDesAtr>0?'#d97706':'#64748b'}}>{fmtBRLint(totDesAtr)}</td>
                   </tr>
-                  <tr style={{background:'#1a3a5c'}}>
-                    <td style={{padding:'12px 14px',fontWeight:800,fontSize:'0.88rem',color:'#fff'}}>Resultado Líquido</td>
-                    <td style={{padding:'12px 14px',textAlign:'right',fontWeight:800,fontSize:'0.88rem',color:rc(resReal)}}>{fmtBRLint(resReal)}</td>
-                    <td style={{padding:'12px 14px',textAlign:'right',fontWeight:700,fontSize:'0.84rem',color:rc(resPrev)}}>{fmtBRLint(resPrev)}</td>
-                    <td style={{padding:'12px 14px',textAlign:'right',fontWeight:700,fontSize:'0.84rem',color:rc(resAtr)}}>{fmtBRLint(resAtr)}</td>
-                    <td style={{padding:'12px 14px'}}></td>
+
+                  {/* Resultado */}
+                  <tr style={{background:'#f8fafc',borderTop:'3px solid #e2e8f0'}}>
+                    <td style={{padding:'14px 16px',fontWeight:800,fontSize:'0.9rem',color:'#1e293b'}}>Resultado Líquido</td>
+                    <td style={{padding:'14px 16px',textAlign:'right',fontSize:'1rem',...rc(resReal)}}>{fmtBRLint(resReal)}</td>
+                    <td style={{padding:'14px 16px',textAlign:'right',fontSize:'0.9rem',...rc(resPrev)}}>{fmtBRLint(resPrev)}</td>
+                    <td style={{padding:'14px 16px',textAlign:'right',fontSize:'0.9rem',...rc(resAtr)}}>{fmtBRLint(resAtr)}</td>
                   </tr>
                 </tbody>
               </table>

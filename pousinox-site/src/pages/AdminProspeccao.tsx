@@ -140,6 +140,8 @@ interface Prospect {
   score: number | null
   valor_venda: number | null
   cliente_ativo: boolean
+  nome_contato: string | null
+  cep: string | null
 }
 
 interface MultiDropdownProps {
@@ -311,11 +313,28 @@ export default function AdminProspeccao() {
   const [emailToast, setEmailToast] = useState<string | null>(null)
   const [prospectDetalhe, setProspectDetalhe] = useState<Prospect | null>(null)
   const [dealToast, setDealToast] = useState<string | null>(null)
+  const [drawerAba, setDrawerAba] = useState<'geral' | 'enderecos' | 'contatos' | 'historico'>('geral')
+  const [contatosExtra, setContatosExtra] = useState<{ id: number; nome: string | null; cargo: string | null; telefone: string | null; email: string | null }[]>([])
+  const [loadingContatos, setLoadingContatos] = useState(false)
+  const [novoContato, setNovoContato] = useState<{ nome: string; cargo: string; telefone: string; email: string } | null>(null)
+  const [enderecosExtra, setEnderecosExtra] = useState<{ id: number; tipo: string; logradouro: string | null; bairro: string | null; cidade: string | null; uf: string | null; cep: string | null; observacao: string | null }[]>([])
+  const [loadingEnderecos, setLoadingEnderecos] = useState(false)
+  const [novoEndereco, setNovoEndereco] = useState<{ tipo: string; logradouro: string; bairro: string; cidade: string; uf: string; cep: string; observacao: string } | null>(null)
   const [clienteNFs, setClienteNFs] = useState<{ numero: string; emissao: string | null; total: number | null }[]>([])
   const [loadingNFs, setLoadingNFs] = useState(false)
   const [nfExpandida, setNfExpandida] = useState<string | null>(null)
   const [nfItensCache, setNfItensCache] = useState<Record<string, { descricao: string | null; quantidade: number | null; valor_unitario: number | null; valor_total: number | null }[]>>({})
   const [clientesCidade, setClientesCidade] = useState<{ cidade: string; uf: string; count: number; lat: number | null; lng: number | null }[]>([])
+
+  // ── Cadastro / enriquecimento via BrasilAPI ───────────────────────────────
+  const [modalCadastro, setModalCadastro] = useState(false)
+  const [cnpjInput,     setCnpjInput]     = useState('')
+  const [buscandoCnpj,  setBuscandoCnpj]  = useState(false)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [dadosCnpjApi,  setDadosCnpjApi]  = useState<any>(null)
+  const [erroCnpj,      setErroCnpj]      = useState<string | null>(null)
+  const [salvandoCnpj,  setSalvandoCnpj]  = useState(false)
+  const [enriquecendo,  setEnriquecendo]  = useState(false)
 
   // Carregar mesorregiões quando UFs mudam
   useEffect(() => {
@@ -376,6 +395,15 @@ export default function AdminProspeccao() {
     if (busca.trim()) {
       const termo = busca.trim()
       const cnpjLimpo = termo.replace(/\D/g, '')
+      if (cnpjLimpo.length >= 14) {
+        // CNPJ completo — busca exata só pelo CNPJ, ignora demais filtros
+        return q.eq('cnpj', cnpjLimpo)
+      }
+      if (cnpjLimpo.length >= 8) {
+        // CNPJ parcial — busca pelo número limpo, sem outros filtros geográficos
+        q = q.ilike('cnpj', `%${cnpjLimpo}%`)
+        return q
+      }
       if (cnpjLimpo.length >= 4) {
         q = q.or(`razao_social.ilike.%${termo}%,nome_fantasia.ilike.%${termo}%,cnpj.ilike.%${cnpjLimpo}%`)
       } else {
@@ -433,7 +461,11 @@ export default function AdminProspeccao() {
     const termoBusca = busca.trim()
     if (termoBusca) {
       const cnpjLimpo = termoBusca.replace(/\D/g, '')
-      if (cnpjLimpo.length >= 4) {
+      if (cnpjLimpo.length >= 14) {
+        qCli = qCli.eq('cnpj', cnpjLimpo)
+      } else if (cnpjLimpo.length >= 8) {
+        qCli = qCli.ilike('cnpj', `%${cnpjLimpo}%`)
+      } else if (cnpjLimpo.length >= 4) {
         qCli = qCli.or(`razao_social.ilike.%${termoBusca}%,nome_fantasia.ilike.%${termoBusca}%,cnpj.ilike.%${cnpjLimpo}%`)
       } else {
         qCli = qCli.or(`razao_social.ilike.%${termoBusca}%,nome_fantasia.ilike.%${termoBusca}%`)
@@ -479,8 +511,7 @@ export default function AdminProspeccao() {
         grouped.get(key)!.count++
       }
       const clientesPorCidade = [...grouped.values()].sort((a, b) => b.count - a.count)
-      console.log('[qCli] registros retornados:', resCliCidade.data?.length ?? 0, '| cidades únicas:', clientesPorCidade.length)
-      setClientesCidade(clientesPorCidade)
+setClientesCidade(clientesPorCidade)
     }
     setLoading(false)
   }
@@ -624,6 +655,116 @@ export default function AdminProspeccao() {
     setDealToast(titulo)
     setTimeout(() => setDealToast(null), 5000)
     setProspectDetalhe(null)
+  }
+
+  // ── BrasilAPI helpers ────────────────────────────────────────────────────────
+  function mapCnaeSegmento(cnae: number): string | null {
+    const d2 = Math.floor(cnae / 100000) // 2 primeiros dígitos da divisão
+    const d4 = Math.floor(cnae / 1000)   // 4 primeiros dígitos (grupo)
+    // Construção civil
+    if (d2 >= 41 && d2 <= 43) return 'Construtoras'
+    // Arquitetura e engenharia
+    if (d4 === 7111 || d4 === 7119) return 'Arquitetura'
+    // Revestimentos / materiais de construção
+    if (d4 === 4744 || d4 === 4743 || d4 === 4679) return 'Revestimentos'
+    // Restaurantes e alimentação
+    if (d4 === 5611 || d4 === 5612 || d4 === 5620) return 'Restaurantes'
+    // Panificação
+    if (d4 === 1091) return 'Panificação'
+    // Supermercados
+    if (d4 === 4711 || d4 === 4712 || d4 === 4713) return 'Supermercados'
+    // Açougues
+    if (d4 === 4722) return 'Açougues'
+    // Peixarias
+    if (d4 === 4723) return 'Peixarias'
+    // Hospitalar
+    if (d2 === 86) return 'Hospitalar'
+    // Laboratórios
+    if (d4 === 8640 || d4 === 8650) return 'Laboratórios'
+    // Veterinária
+    if (d2 === 75) return 'Veterinária'
+    // Hotelaria
+    if (d4 === 5510 || d4 === 5590) return 'Hotelaria'
+    return null
+  }
+
+  function mapPorte(p: string) {
+    if (p === 'ME') return 'Micro Empresa'
+    if (p === 'EPP') return 'Pequeno Porte'
+    return 'Médio/Grande'
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function apiParaRow(d: any) {
+    const tel1 = (d.ddd_telefone_1 ?? '').replace(/\D/g, '')
+    const tel2 = (d.ddd_telefone_2 ?? '').replace(/\D/g, '')
+    const segmento = d.cnae_fiscal ? mapCnaeSegmento(Number(d.cnae_fiscal)) : null
+    return {
+      cnpj:         (d.cnpj ?? '').replace(/\D/g, ''),
+      razao_social: d.razao_social ?? null,
+      nome_fantasia: d.nome_fantasia || null,
+      uf:           d.uf ?? null,
+      cidade:       d.municipio ?? null,
+      bairro:       d.bairro || null,
+      endereco:     [d.logradouro, d.numero].filter(Boolean).join(', ') || null,
+      cep:          (d.cep ?? '').replace(/\D/g, '') || null,
+      telefone1:    tel1 || null,
+      telefone2:    tel2 || null,
+      email:        d.email || null,
+      porte:        mapPorte(d.porte ?? ''),
+      ...(segmento ? { segmento } : {}),
+    }
+  }
+
+  async function buscarCnpjApi() {
+    const limpo = cnpjInput.replace(/\D/g, '')
+    if (limpo.length !== 14) { setErroCnpj('Digite o CNPJ completo (14 dígitos).'); return }
+    setBuscandoCnpj(true)
+    setErroCnpj(null)
+    setDadosCnpjApi(null)
+    try {
+      const res = await fetch(`${import.meta.env.DEV ? '/api/brasilapi' : 'https://brasilapi.com.br'}/api/cnpj/v1/${limpo}`)
+      if (!res.ok) throw new Error('CNPJ não encontrado na Receita Federal.')
+      const data = await res.json()
+      setDadosCnpjApi(data)
+    } catch (e: unknown) {
+      setErroCnpj(e instanceof Error ? e.message : 'Erro ao consultar Receita Federal.')
+    }
+    setBuscandoCnpj(false)
+  }
+
+  async function salvarProspectApi() {
+    if (!dadosCnpjApi) return
+    setSalvandoCnpj(true)
+    const row = apiParaRow(dadosCnpjApi)
+    const { error } = await supabaseAdmin.from('prospeccao').upsert(row, { onConflict: 'cnpj' })
+    if (error) { setErroCnpj(error.message); setSalvandoCnpj(false); return }
+    setModalCadastro(false)
+    setCnpjInput('')
+    setDadosCnpjApi(null)
+    setSalvandoCnpj(false)
+    buscar(0)
+  }
+
+  async function enriquecerProspect(p: Prospect) {
+    setEnriquecendo(true)
+    try {
+      const limpo = p.cnpj.replace(/\D/g, '')
+      const res = await fetch(`${import.meta.env.DEV ? '/api/brasilapi' : 'https://brasilapi.com.br'}/api/cnpj/v1/${limpo}`)
+      if (!res.ok) throw new Error('CNPJ não encontrado.')
+      const d = await res.json()
+      const row = apiParaRow(d)
+      const { error } = await supabaseAdmin.from('prospeccao').update(row).eq('id', p.id)
+      if (!error) {
+        setProspectDetalhe(prev => prev ? { ...prev, ...row } : prev)
+        buscar(pagina)
+      } else {
+        alert(error.message)
+      }
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : 'Erro ao consultar Receita Federal.')
+    }
+    setEnriquecendo(false)
   }
 
   const totalPaginas = Math.ceil(total / POR_PAGINA)
@@ -836,6 +977,11 @@ export default function AdminProspeccao() {
           {loading ? 'Buscando...' : 'Buscar'}
         </button>
 
+        <button
+          onClick={() => { setModalCadastro(true); setCnpjInput(''); setDadosCnpjApi(null); setErroCnpj(null) }}
+          style={{ padding: '8px 14px', background: '#1e40af', color: '#fff', border: 'none', borderRadius: 6, fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+        >+ Prospect</button>
+
         <span className={styles.infoBase}>
           ✓ Base CNPJ ativa (mar/2026)
         </span>
@@ -984,13 +1130,13 @@ export default function AdminProspeccao() {
                                 </span>
                               )}
                               {p.score != null && (
-                                <span title={`Score: ${p.score}/11`} style={{
+                                <span title={`Score: ${p.score}/10`} style={{
                                   fontSize: '0.7rem', fontWeight: 700, padding: '1px 6px',
                                   borderRadius: 20, flexShrink: 0,
                                   background: p.score >= 9 ? '#dcfce7' : p.score >= 6 ? '#fef9c3' : '#f1f5f9',
                                   color: p.score >= 9 ? '#15803d' : p.score >= 6 ? '#92400e' : '#64748b',
                                 }}>
-                                  {p.score}/11
+                                  {p.score}/10
                                 </span>
                               )}
                             </div>
@@ -1012,8 +1158,8 @@ export default function AdminProspeccao() {
                             {p.uf && <div className={styles.fantasia}>{p.uf}{p.distancia_km != null ? ` · ${p.distancia_km} km` : ''}</div>}
                           </td>
                           <td>
-                            {p.telefone1 && <div>{p.telefone1}</div>}
-                            {p.telefone2 && <div className={styles.fantasia}>{p.telefone2}</div>}
+                            {p.telefone1 && <div>{p.telefone1.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3')}</div>}
+                            {p.telefone2 && <div className={styles.fantasia}>{p.telefone2.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3')}</div>}
                             {p.email && (
                               <button onClick={() => abrirEmail(p)} className={styles.fantasia} style={{ color: 'var(--color-primary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>
                                 {p.email}
@@ -1065,7 +1211,24 @@ export default function AdminProspeccao() {
                                 )}
                                 <button
                                   className={styles.checkBtn}
-                                  onClick={() => setProspectDetalhe(p)}
+                                  onClick={() => {
+                                    setProspectDetalhe(p)
+                                    setDrawerAba('geral')
+                                    setNovoContato(null)
+                                    setNovoEndereco(null)
+                                    setContatosExtra([])
+                                    setEnderecosExtra([])
+                                    setLoadingContatos(true)
+                                    setLoadingEnderecos(true)
+                                    supabaseAdmin.from('prospeccao_contatos').select('*').eq('prospect_id', p.id).order('id').then(({ data }) => {
+                                      setContatosExtra(data ?? [])
+                                      setLoadingContatos(false)
+                                    })
+                                    supabaseAdmin.from('prospeccao_enderecos').select('*').eq('prospect_id', p.id).order('id').then(({ data }) => {
+                                      setEnderecosExtra(data ?? [])
+                                      setLoadingEnderecos(false)
+                                    })
+                                  }}
                                   title="Ver detalhes e criar deal no Pipeline"
                                   style={{ color: 'var(--color-primary)' }}
                                 >
@@ -1115,6 +1278,62 @@ export default function AdminProspeccao() {
         </div>
       )}
 
+      {/* ── Modal Cadastrar Prospect por CNPJ ── */}
+      {modalCadastro && (
+        <>
+          <div onClick={() => setModalCadastro(false)} style={{ position: 'fixed', inset: 0, background: '#0005', zIndex: 1100 }} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 480, maxWidth: '95vw', background: '#fff', borderRadius: 14, boxShadow: '0 8px 40px #0003', zIndex: 1101, padding: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 700, fontSize: '1rem' }}>Cadastrar Prospect por CNPJ</span>
+              <button onClick={() => setModalCadastro(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8' }}>✕</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                style={{ flex: 1, padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.9rem', fontFamily: 'inherit' }}
+                placeholder="Digite o CNPJ (com ou sem formatação)"
+                value={cnpjInput}
+                onChange={e => setCnpjInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && buscarCnpjApi()}
+              />
+              <button onClick={buscarCnpjApi} disabled={buscandoCnpj}
+                style={{ padding: '8px 16px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                {buscandoCnpj ? 'Buscando...' : '🔍 Consultar'}
+              </button>
+            </div>
+
+            {erroCnpj && <div style={{ background: '#fee2e2', color: '#991b1b', borderRadius: 8, padding: '10px 14px', fontSize: '0.85rem' }}>{erroCnpj}</div>}
+
+            {dadosCnpjApi && (
+              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 16, display: 'flex', flexDirection: 'column', gap: 6, fontSize: '0.85rem' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 4 }}>{dadosCnpjApi.razao_social}</div>
+                {dadosCnpjApi.nome_fantasia && <div style={{ color: '#64748b' }}>{dadosCnpjApi.nome_fantasia}</div>}
+                <div><strong>CNPJ:</strong> {dadosCnpjApi.cnpj}</div>
+                <div><strong>Situação:</strong> {dadosCnpjApi.situacao_cadastral}</div>
+                <div><strong>Porte:</strong> {mapPorte(dadosCnpjApi.porte ?? '')}</div>
+                <div><strong>CNAE:</strong> {dadosCnpjApi.cnae_fiscal} — {dadosCnpjApi.cnae_fiscal_descricao}</div>
+                <div><strong>Endereço:</strong> {dadosCnpjApi.logradouro}, {dadosCnpjApi.numero} — {dadosCnpjApi.municipio}/{dadosCnpjApi.uf}</div>
+                {dadosCnpjApi.ddd_telefone_1 && <div><strong>Telefone:</strong> {dadosCnpjApi.ddd_telefone_1}</div>}
+                {dadosCnpjApi.email && <div><strong>E-mail:</strong> {dadosCnpjApi.email}</div>}
+              </div>
+            )}
+
+            {dadosCnpjApi && (
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button onClick={() => setModalCadastro(false)}
+                  style={{ padding: '8px 16px', background: '#f3f4f6', color: '#374151', border: '1px solid #e2e8f0', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}>
+                  Cancelar
+                </button>
+                <button onClick={salvarProspectApi} disabled={salvandoCnpj}
+                  style={{ padding: '8px 18px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, cursor: 'pointer' }}>
+                  {salvandoCnpj ? 'Salvando...' : '✓ Salvar prospect'}
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
       {dealToast && (
         <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 9999, background: '#dcfce7', color: '#15803d', border: '1px solid #86efac', borderRadius: 10, padding: '12px 20px', fontWeight: 600, fontSize: '0.9rem', boxShadow: '0 4px 16px #0001', display: 'flex', alignItems: 'center', gap: 12 }}>
           ✓ Deal criado: {dealToast}
@@ -1131,8 +1350,8 @@ export default function AdminProspeccao() {
         const cnpjRaw = p.cnpj?.replace(/\D/g, '') ?? ''
         return (
           <>
-            <div onClick={() => setProspectDetalhe(null)} style={{ position: 'fixed', inset: 0, background: '#0005', zIndex: 1000 }} />
-            <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 380, background: '#fff', zIndex: 1001, overflowY: 'auto', boxShadow: '-4px 0 24px #0002', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div onClick={() => { setProspectDetalhe(null); setNovoContato(null); setNovoEndereco(null); setContatosExtra([]); setEnderecosExtra([]) }} style={{ position: 'fixed', inset: 0, background: '#0005', zIndex: 1000 }} />
+            <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(440px, 100vw)', background: '#fff', zIndex: 1001, overflowY: 'auto', boxShadow: '-4px 0 24px #0002', padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: '1rem', lineHeight: 1.3 }}>{p.razao_social || '—'}</div>
@@ -1140,91 +1359,404 @@ export default function AdminProspeccao() {
                     <div style={{ fontSize: '0.82rem', color: '#64748b', marginTop: 2 }}>{p.nome_fantasia}</div>
                   )}
                 </div>
-                <button onClick={() => setProspectDetalhe(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8', padding: '0 4px' }}>✕</button>
+                <button onClick={() => { setProspectDetalhe(null); setNovoContato(null); setNovoEndereco(null); setContatosExtra([]); setEnderecosExtra([]) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', color: '#94a3b8', padding: '0 4px' }}>✕</button>
               </div>
 
-              <div style={{ fontSize: '0.82rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div><strong>CNPJ:</strong> {cnpjFmt}</div>
-                <div><strong>Porte:</strong> {p.porte || '—'}</div>
-                <div><strong>Segmento:</strong> {p.segmento || '—'}</div>
-                <div><strong>Cidade:</strong> {p.cidade}{p.uf ? ` / ${p.uf}` : ''}</div>
-                {p.score != null && <div><strong>Score:</strong> {p.score}/11</div>}
-              </div>
-
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Contato</div>
-                {[p.telefone1, p.telefone2].filter(Boolean).map((t, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{fmtTel(t!)}</span>
-                    <a href={`tel:+55${waNum(t!)}`} style={{ fontSize: '0.75rem', color: '#2563eb', textDecoration: 'none', background: '#eff6ff', borderRadius: 6, padding: '2px 8px' }}>Ligar</a>
-                    <a href={`https://wa.me/55${waNum(t!)}?text=Olá, estou entrando em contato sobre fixadores de porcelanato Pousinox.`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.75rem', color: '#15803d', textDecoration: 'none', background: '#dcfce7', borderRadius: 6, padding: '2px 8px' }}>WhatsApp</a>
-                  </div>
-                ))}
-                {(!p.telefone1 && !p.telefone2) && <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Sem telefone cadastrado</div>}
-                {p.email && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: '0.82rem', color: '#475569', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.email}</span>
-                    <button onClick={() => { navigator.clipboard.writeText(p.email!).catch(() => {}); setEmailToast(p.email!); setTimeout(() => setEmailToast(null), 3000) }}
-                      style={{ fontSize: '0.75rem', color: '#2563eb', background: '#eff6ff', border: 'none', borderRadius: 6, padding: '2px 8px', cursor: 'pointer' }}>Copiar</button>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pesquisar na internet</div>
-                <a href={`https://www.google.com/search?q=${googleQ}`} target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500 }}>
-                  🔍 Google — telefone, celular, site
-                </a>
-                {cnpjRaw.length === 14 && (
-                  <a href={`https://www.cnpj.biz/${cnpjRaw}`} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 500 }}>
-                    🏢 CNPJ.biz — dados Receita Federal
-                  </a>
-                )}
-              </div>
-
-              {p.cliente_ativo && (
-                <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12 }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-                    ✓ Cliente — Histórico de compras
-                  </div>
-                  {loadingNFs && <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Carregando…</div>}
-                  {!loadingNFs && clienteNFs.length === 0 && <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Nenhuma NF encontrada.</div>}
-                  {!loadingNFs && clienteNFs.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 300, overflowY: 'auto' }}>
-                      {clienteNFs.map(nf => (
-                        <div key={nf.numero}>
-                          <div
-                            onClick={() => expandirNF(nf.numero)}
-                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', padding: '5px 4px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', borderRadius: 4, background: nfExpandida === nf.numero ? '#f0fdf4' : 'transparent' }}
-                          >
-                            <span style={{ fontWeight: 600 }}>{nfExpandida === nf.numero ? '▾' : '▸'} NF {nf.numero}</span>
-                            <span style={{ color: '#64748b' }}>{nf.emissao ? new Date(nf.emissao).toLocaleDateString('pt-BR') : '—'}</span>
-                            <span style={{ fontWeight: 600, color: '#15803d' }}>
-                              {nf.total != null ? nf.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}
-                            </span>
+              {/* Linha CNPJ + badges */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: '0.8rem', color: '#64748b' }}>
+                <span style={{ fontFamily: 'monospace', letterSpacing: '0.02em' }}>{cnpjFmt}</span>
+                {p.porte && <span style={{ background: '#f1f5f9', borderRadius: 20, padding: '2px 8px', fontWeight: 500 }}>{p.porte}</span>}
+                {p.score != null && (() => {
+                  const scoreTel = p.telefone1 ? 3 : 0
+                  const scoreSegmento = { 'Revestimentos': 3, 'Construtoras': 2, 'Arquitetura': 2, 'Hotelaria': 1, 'Hospitalar': 1 }[p.segmento ?? ''] ?? 0
+                  const scoreDist = p.distancia_km != null ? (p.distancia_km <= 150 ? 3 : p.distancia_km <= 300 ? 2 : p.distancia_km <= 500 ? 1 : 0) : 0
+                  const scoreEmail = p.email ? 1 : 0
+                  const criterios = [
+                    { label: 'Telefone', pts: scoreTel, max: 3, ok: scoreTel > 0 },
+                    { label: 'Segmento', pts: scoreSegmento, max: 3, ok: scoreSegmento > 0 },
+                    { label: 'Distância', pts: scoreDist, max: 3, ok: scoreDist > 0, extra: p.distancia_km != null ? `${Math.round(p.distancia_km)} km` : 'sem coord.' },
+                    { label: 'E-mail', pts: scoreEmail, max: 1, ok: scoreEmail > 0 },
+                  ]
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <span style={{ background: p.score >= 8 ? '#dcfce7' : p.score >= 5 ? '#fef9c3' : '#fee2e2', color: p.score >= 8 ? '#166534' : p.score >= 5 ? '#854d0e' : '#991b1b', borderRadius: 20, padding: '2px 10px', fontWeight: 600, alignSelf: 'flex-start' }}>⭐ {p.score}/10</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '6px 8px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                        {criterios.map(c => (
+                          <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem' }}>
+                            <span style={{ width: 14, textAlign: 'center' }}>{c.ok ? '✅' : '❌'}</span>
+                            <span style={{ flex: 1, color: c.ok ? '#1e293b' : '#94a3b8' }}>{c.label}{c.extra ? ` — ${c.extra}` : ''}</span>
+                            <span style={{ fontWeight: 600, color: c.ok ? '#15803d' : '#cbd5e1' }}>+{c.pts}/{c.max}</span>
                           </div>
-                          {nfExpandida === nf.numero && (
-                            <div style={{ background: '#f8fafc', borderRadius: 4, padding: '6px 8px', marginBottom: 4 }}>
-                              {!nfItensCache[nf.numero] && <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Carregando…</div>}
-                              {nfItensCache[nf.numero]?.length === 0 && <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Sem itens.</div>}
-                              {nfItensCache[nf.numero]?.map((it, i) => (
-                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', padding: '2px 0', borderBottom: '1px solid #e2e8f0' }}>
-                                  <span style={{ flex: 1, color: '#1e293b' }}>{it.descricao || '—'}</span>
-                                  <span style={{ color: '#64748b', marginLeft: 8, whiteSpace: 'nowrap' }}>{it.quantidade}× {it.valor_unitario?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                                </div>
-                              ))}
-                            </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+                {p.cliente_ativo && <span style={{ background: '#dcfce7', color: '#15803d', borderRadius: 20, padding: '2px 8px', fontWeight: 600 }}>✓ Cliente</span>}
+              </div>
+
+              {/* ── Abas ── */}
+              <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', gap: 0 }}>
+                {([
+                  { id: 'geral', label: 'Geral' },
+                  { id: 'enderecos', label: `Endereços${enderecosExtra.length > 0 ? ` (${enderecosExtra.length + 1})` : ''}` },
+                  { id: 'contatos', label: `Contatos${contatosExtra.length > 0 ? ` (${contatosExtra.length + 1})` : ''}` },
+                  { id: 'historico', label: 'Histórico' },
+                ] as const).map(tab => (
+                  <button key={tab.id} onClick={() => setDrawerAba(tab.id)}
+                    style={{ flex: 1, padding: '8px 4px', fontSize: '0.78rem', fontWeight: drawerAba === tab.id ? 700 : 500, color: drawerAba === tab.id ? 'var(--color-primary)' : '#64748b', background: 'none', border: 'none', borderBottom: drawerAba === tab.id ? '2px solid var(--color-primary)' : '2px solid transparent', marginBottom: -2, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* ══ ABA GERAL ══ */}
+              {drawerAba === 'geral' && <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <label style={{ fontSize: '0.67rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Segmento</label>
+                    <select value={SEGMENTOS.includes(p.segmento ?? '') ? (p.segmento ?? '') : ''}
+                      onChange={async e => {
+                        const val = e.target.value || null
+                        await supabaseAdmin.from('prospeccao').update({ segmento: val }).eq('id', p.id)
+                        setProspectDetalhe(prev => prev ? { ...prev, segmento: val } : prev)
+                        setProspects(prev => prev.map(r => r.id === p.id ? { ...r, segmento: val } : r))
+                      }}
+                      style={{ padding: '5px 6px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.82rem', fontFamily: 'inherit', background: '#f8fafc' }}>
+                      <option value="">— Selecione —</option>
+                      {SEGMENTOS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <label style={{ fontSize: '0.67rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Produto</label>
+                    <select value={p.produto ?? ''}
+                      onChange={async e => {
+                        const val = e.target.value || null
+                        await supabaseAdmin.from('prospeccao').update({ produto: val }).eq('id', p.id)
+                        setProspectDetalhe(prev => prev ? { ...prev, produto: val } : prev)
+                        setProspects(prev => prev.map(r => r.id === p.id ? { ...r, produto: val } : r))
+                      }}
+                      style={{ padding: '5px 6px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: '0.82rem', fontFamily: 'inherit', background: '#f8fafc' }}>
+                      <option value="">— Selecione —</option>
+                      {PRODUTOS.map(pr => <option key={pr} value={pr}>{pr}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Links rápidos */}
+                <div style={{ display: 'grid', gridTemplateColumns: cnpjRaw.length === 14 && (p.endereco || p.cidade) ? '1fr 1fr 1fr' : cnpjRaw.length === 14 ? '1fr 1fr' : '1fr', gap: 6 }}>
+                  <a href={`https://www.google.com/search?q=${googleQ}`} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 8px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 500, textAlign: 'center' }}>
+                    <span style={{ fontSize: '1.2rem' }}>🔍</span>Google
+                  </a>
+                  {cnpjRaw.length === 14 && (
+                    <a href={`https://www.cnpj.biz/${cnpjRaw}`} target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 8px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 500, textAlign: 'center' }}>
+                      <span style={{ fontSize: '1.2rem' }}>🏢</span>CNPJ.biz
+                    </a>
+                  )}
+                  {(p.endereco || p.cidade) && (
+                    <a href={`https://www.google.com/maps/dir/${encodeURIComponent('Av. Antonio Mariosa, 4545, Santa Angelina, Pouso Alegre, MG, 37550-360')}/${encodeURIComponent([p.endereco, p.bairro, p.cidade, p.uf].filter(Boolean).join(', '))}`}
+                      target="_blank" rel="noopener noreferrer"
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 8px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 500, textAlign: 'center' }}>
+                      <span style={{ fontSize: '1.2rem' }}>📍</span>Maps
+                    </a>
+                  )}
+                </div>
+
+                <button onClick={() => enriquecerProspect(p)} disabled={enriquecendo}
+                  style={{ width: '100%', padding: '8px 0', background: enriquecendo ? '#f3f4f6' : '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: 8, fontWeight: 600, fontSize: '0.82rem', cursor: enriquecendo ? 'wait' : 'pointer' }}>
+                  {enriquecendo ? 'Consultando...' : '🔄 Enriquecer dados da Receita Federal'}
+                </button>
+              </>}
+
+              {/* ══ ABA ENDEREÇOS ══ */}
+              {drawerAba === 'enderecos' && (() => {
+                const fld = (label: string, value: string | null, placeholder: string, onSave: (v: string | null) => Promise<void>, flex = 1, upper = false, maxLen?: number) => (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex }}>
+                    <label style={{ fontSize: '0.67rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</label>
+                    <input type="text" defaultValue={value ?? ''} placeholder={placeholder} maxLength={maxLen}
+                      onBlur={async e => { const v = (upper ? e.target.value.trim().toUpperCase() : e.target.value.trim()) || null; if (v === (value ?? null)) return; await onSave(v) }}
+                      style={{ fontSize: '0.83rem', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontFamily: 'inherit', background: '#f8fafc', color: '#1e293b', textTransform: upper ? 'uppercase' : 'none', boxSizing: 'border-box' as const }} />
+                  </div>
+                )
+                const saveProsp = (col: string) => async (val: string | null) => {
+                  await supabaseAdmin.from('prospeccao').update({ [col]: val }).eq('id', p.id)
+                  setProspectDetalhe(prev => prev ? { ...prev, [col]: val } : prev)
+                  setProspects(prev => prev.map(r => r.id === p.id ? { ...r, [col]: val } : r))
+                }
+                return <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* Endereço principal (sede) */}
+                  <div style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>🏢 Sede (Receita Federal)</span>
+                      {(p.endereco || p.cidade) && (
+                        <a href={`https://www.google.com/maps/dir/${encodeURIComponent('Av. Antonio Mariosa, 4545, Santa Angelina, Pouso Alegre, MG, 37550-360')}/${encodeURIComponent([p.endereco, p.bairro, p.cidade, p.uf].filter(Boolean).join(', '))}`}
+                          target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#2563eb', textDecoration: 'none' }}>📍 Rota</a>
+                      )}
+                    </div>
+                    {fld('Logradouro', p.endereco, 'Ex: Av. Principal, 123', saveProsp('endereco'))}
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {fld('Bairro', p.bairro, 'Ex: Centro', saveProsp('bairro'), 2)}
+                      {fld('CEP', p.cep ? p.cep.replace(/^(\d{5})(\d{3})$/, '$1-$2') : null, '00000-000',
+                        async val => { const v = val?.replace(/\D/g, '') || null; await supabaseAdmin.from('prospeccao').update({ cep: v }).eq('id', p.id); setProspectDetalhe(prev => prev ? { ...prev, cep: v } : prev); setProspects(prev => prev.map(r => r.id === p.id ? { ...r, cep: v } : r)) }, 1)}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {fld('Cidade', p.cidade, 'Ex: Pouso Alegre', saveProsp('cidade'), 3)}
+                      {fld('UF', p.uf, 'MG', saveProsp('uf'), 1, true, 2)}
+                    </div>
+                  </div>
+
+                  {/* Endereços extras (obras/filiais) */}
+                  {loadingEnderecos && <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Carregando...</div>}
+                  {enderecosExtra.map(e => (
+                    <div key={e.id} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#fff', display: 'flex', flexDirection: 'column', gap: 6, position: 'relative' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <select value={e.tipo} onChange={async ev => {
+                          const val = ev.target.value
+                          await supabaseAdmin.from('prospeccao_enderecos').update({ tipo: val }).eq('id', e.id)
+                          setEnderecosExtra(prev => prev.map(x => x.id === e.id ? { ...x, tipo: val } : x))
+                        }} style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
+                          <option value="Obra">🏗 Obra</option>
+                          <option value="Filial">🏬 Filial</option>
+                          <option value="Sede">🏢 Sede</option>
+                          <option value="Outro">📌 Outro</option>
+                        </select>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          {(e.logradouro || e.cidade) && (
+                            <a href={`https://www.google.com/maps/dir/${encodeURIComponent('Av. Antonio Mariosa, 4545, Santa Angelina, Pouso Alegre, MG, 37550-360')}/${encodeURIComponent([e.logradouro, e.bairro, e.cidade, e.uf].filter(Boolean).join(', '))}`}
+                              target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#2563eb', textDecoration: 'none' }}>📍 Rota</a>
                           )}
+                          <button onClick={async () => {
+                            await supabaseAdmin.from('prospeccao_enderecos').delete().eq('id', e.id)
+                            setEnderecosExtra(prev => prev.filter(x => x.id !== e.id))
+                          }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: '0.85rem', lineHeight: 1, padding: 0 }}>✕</button>
+                        </div>
+                      </div>
+                      {[
+                        { label: 'Logradouro', col: 'logradouro', val: e.logradouro, ph: 'Ex: Rua da Obra, 100', flex: 1 },
+                      ].map(f => (
+                        <div key={f.col} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <label style={{ fontSize: '0.67rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{f.label}</label>
+                          <input type="text" defaultValue={f.val ?? ''} placeholder={f.ph}
+                            onBlur={async ev => {
+                              const v = ev.target.value.trim() || null
+                              await supabaseAdmin.from('prospeccao_enderecos').update({ [f.col]: v }).eq('id', e.id)
+                              setEnderecosExtra(prev => prev.map(x => x.id === e.id ? { ...x, [f.col]: v } : x))
+                            }}
+                            style={{ fontSize: '0.83rem', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontFamily: 'inherit', background: '#f8fafc', color: '#1e293b' }} />
                         </div>
                       ))}
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <label style={{ fontSize: '0.67rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Cidade</label>
+                          <input type="text" defaultValue={e.cidade ?? ''} placeholder="Cidade..."
+                            onBlur={async ev => { const v = ev.target.value.trim() || null; await supabaseAdmin.from('prospeccao_enderecos').update({ cidade: v }).eq('id', e.id); setEnderecosExtra(prev => prev.map(x => x.id === e.id ? { ...x, cidade: v } : x)) }}
+                            style={{ fontSize: '0.83rem', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontFamily: 'inherit', background: '#f8fafc', color: '#1e293b' }} />
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <label style={{ fontSize: '0.67rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>UF</label>
+                          <input type="text" defaultValue={e.uf ?? ''} placeholder="UF..." maxLength={2}
+                            onBlur={async ev => { const v = ev.target.value.trim().toUpperCase() || null; await supabaseAdmin.from('prospeccao_enderecos').update({ uf: v }).eq('id', e.id); setEnderecosExtra(prev => prev.map(x => x.id === e.id ? { ...x, uf: v } : x)) }}
+                            style={{ fontSize: '0.83rem', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontFamily: 'inherit', background: '#f8fafc', color: '#1e293b', textTransform: 'uppercase' }} />
+                        </div>
+                      </div>
+                      <input type="text" defaultValue={e.observacao ?? ''} placeholder="Observação (ex: canteiro de obras norte)..."
+                        onBlur={async ev => { const v = ev.target.value.trim() || null; await supabaseAdmin.from('prospeccao_enderecos').update({ observacao: v }).eq('id', e.id); setEnderecosExtra(prev => prev.map(x => x.id === e.id ? { ...x, observacao: v } : x)) }}
+                        style={{ fontSize: '0.8rem', padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontFamily: 'inherit', background: '#f8fafc', color: '#64748b' }} />
+                    </div>
+                  ))}
+
+                  {!novoEndereco ? (
+                    <button onClick={() => setNovoEndereco({ tipo: 'Obra', logradouro: '', bairro: '', cidade: p.cidade ?? '', uf: p.uf ?? '', cep: '', observacao: '' })}
+                      style={{ alignSelf: 'flex-start', fontSize: '0.8rem', color: 'var(--color-primary)', background: '#eff6ff', border: 'none', borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      + Endereço (obra/filial)
+                    </button>
+                  ) : (
+                    <div style={{ padding: '10px 12px', borderRadius: 8, border: '1px dashed #93c5fd', background: '#f0f9ff', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <select value={novoEndereco.tipo} onChange={ev => setNovoEndereco(x => x ? { ...x, tipo: ev.target.value } : x)}
+                        style={{ fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #bae6fd', borderRadius: 5, fontFamily: 'inherit', background: '#fff' }}>
+                        <option value="Obra">🏗 Obra</option>
+                        <option value="Filial">🏬 Filial</option>
+                        <option value="Sede">🏢 Sede</option>
+                        <option value="Outro">📌 Outro</option>
+                      </select>
+                      <input autoFocus value={novoEndereco.logradouro} onChange={ev => setNovoEndereco(x => x ? { ...x, logradouro: ev.target.value } : x)}
+                        placeholder="Logradouro e número..." style={{ fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #bae6fd', borderRadius: 5, fontFamily: 'inherit', background: '#fff' }} />
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input value={novoEndereco.cidade} onChange={ev => setNovoEndereco(x => x ? { ...x, cidade: ev.target.value } : x)}
+                          placeholder="Cidade..." style={{ flex: 3, fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #bae6fd', borderRadius: 5, fontFamily: 'inherit', background: '#fff' }} />
+                        <input value={novoEndereco.uf} onChange={ev => setNovoEndereco(x => x ? { ...x, uf: ev.target.value.toUpperCase() } : x)}
+                          placeholder="UF" maxLength={2} style={{ flex: 1, fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #bae6fd', borderRadius: 5, fontFamily: 'inherit', background: '#fff', textTransform: 'uppercase' }} />
+                      </div>
+                      <input value={novoEndereco.observacao} onChange={ev => setNovoEndereco(x => x ? { ...x, observacao: ev.target.value } : x)}
+                        placeholder="Observação (ex: canteiro norte)..." style={{ fontSize: '0.8rem', padding: '4px 6px', border: '1px solid #bae6fd', borderRadius: 5, fontFamily: 'inherit', background: '#fff' }} />
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button onClick={async () => {
+                          const { tipo, logradouro, bairro, cidade, uf, cep, observacao } = novoEndereco!
+                          const { data, error } = await supabaseAdmin.from('prospeccao_enderecos')
+                            .insert({ prospect_id: p.id, tipo, logradouro: logradouro || null, bairro: bairro || null, cidade: cidade || null, uf: uf || null, cep: cep.replace(/\D/g,'') || null, observacao: observacao || null })
+                            .select().single()
+                          if (error) { alert('Erro: ' + error.message); return }
+                          setEnderecosExtra(prev => [...prev, data])
+                          setNovoEndereco(null)
+                        }} style={{ flex: 1, fontSize: '0.8rem', padding: '5px 0', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>Salvar</button>
+                        <button onClick={() => setNovoEndereco(null)}
+                          style={{ fontSize: '0.8rem', padding: '5px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+                      </div>
                     </div>
                   )}
                 </div>
-              )}
+              })()}
 
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12, marginTop: 'auto' }}>
+              {/* ══ ABA CONTATOS ══ */}
+              {drawerAba === 'contatos' && <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Contato principal */}
+                <div style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>👤 Contato principal</span>
+                  <input type="text" defaultValue={p.nome_contato ?? ''} placeholder="Nome do responsável..."
+                    onBlur={async e => {
+                      const val = e.target.value.trim() || null
+                      if (val === (p.nome_contato ?? null)) return
+                      await supabaseAdmin.from('prospeccao').update({ nome_contato: val }).eq('id', p.id)
+                      setProspectDetalhe(prev => prev ? { ...prev, nome_contato: val } : prev)
+                      setProspects(prev => prev.map(r => r.id === p.id ? { ...r, nome_contato: val } : r))
+                    }}
+                    style={{ fontSize: '0.85rem', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontFamily: 'inherit', background: '#fff', color: '#1e293b' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', minWidth: 16 }}>📞</span>
+                    <input type="tel" defaultValue={p.telefone1 ? fmtTel(p.telefone1) : ''} placeholder="Telefone principal..."
+                      onBlur={async e => {
+                        const val = e.target.value.replace(/\D/g, '') || null
+                        if (val === (p.telefone1?.replace(/\D/g, '') ?? null)) return
+                        await supabaseAdmin.from('prospeccao').update({ telefone1: val }).eq('id', p.id)
+                        setProspectDetalhe(prev => prev ? { ...prev, telefone1: val } : prev)
+                        setProspects(prev => prev.map(r => r.id === p.id ? { ...r, telefone1: val } : r))
+                      }}
+                      style={{ flex: 1, fontSize: '0.85rem', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontFamily: 'inherit', background: '#fff', color: '#1e293b' }} />
+                    {p.telefone1 && <>
+                      <a href={`tel:+55${waNum(p.telefone1)}`} style={{ fontSize: '0.72rem', color: '#2563eb', textDecoration: 'none', background: '#eff6ff', borderRadius: 6, padding: '4px 7px', whiteSpace: 'nowrap' }}>Ligar</a>
+                      <a href={`https://wa.me/55${waNum(p.telefone1)}?text=Olá, estou entrando em contato sobre fixadores de porcelanato Pousinox.`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#15803d', textDecoration: 'none', background: '#dcfce7', borderRadius: 6, padding: '4px 7px', whiteSpace: 'nowrap' }}>WA</a>
+                    </>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', minWidth: 16 }}>📱</span>
+                    <input type="tel" defaultValue={p.telefone2 ? fmtTel(p.telefone2) : ''} placeholder="Telefone secundário..."
+                      onBlur={async e => {
+                        const val = e.target.value.replace(/\D/g, '') || null
+                        if (val === (p.telefone2?.replace(/\D/g, '') ?? null)) return
+                        await supabaseAdmin.from('prospeccao').update({ telefone2: val }).eq('id', p.id)
+                        setProspectDetalhe(prev => prev ? { ...prev, telefone2: val } : prev)
+                        setProspects(prev => prev.map(r => r.id === p.id ? { ...r, telefone2: val } : r))
+                      }}
+                      style={{ flex: 1, fontSize: '0.85rem', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontFamily: 'inherit', background: '#fff', color: '#1e293b' }} />
+                    {p.telefone2 && <>
+                      <a href={`tel:+55${waNum(p.telefone2)}`} style={{ fontSize: '0.72rem', color: '#2563eb', textDecoration: 'none', background: '#eff6ff', borderRadius: 6, padding: '4px 7px', whiteSpace: 'nowrap' }}>Ligar</a>
+                      <a href={`https://wa.me/55${waNum(p.telefone2)}?text=Olá, estou entrando em contato sobre fixadores de porcelanato Pousinox.`} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#15803d', textDecoration: 'none', background: '#dcfce7', borderRadius: 6, padding: '4px 7px', whiteSpace: 'nowrap' }}>WA</a>
+                    </>}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', minWidth: 16 }}>✉️</span>
+                    <input type="email" defaultValue={p.email ?? ''} placeholder="E-mail..."
+                      onBlur={async e => {
+                        const val = e.target.value.trim() || null
+                        if (val === (p.email ?? null)) return
+                        await supabaseAdmin.from('prospeccao').update({ email: val }).eq('id', p.id)
+                        setProspectDetalhe(prev => prev ? { ...prev, email: val } : prev)
+                      }}
+                      style={{ flex: 1, fontSize: '0.85rem', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontFamily: 'inherit', background: '#fff', color: '#1e293b' }} />
+                    {p.email && (
+                      <button onClick={() => { navigator.clipboard.writeText(p.email!).catch(() => {}); setEmailToast(p.email!); setTimeout(() => setEmailToast(null), 3000) }}
+                        style={{ fontSize: '0.72rem', color: '#2563eb', background: '#eff6ff', border: 'none', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Copiar</button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contatos por área */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Contatos por área</span>
+                  {!novoContato && (
+                    <button onClick={() => setNovoContato({ nome: '', cargo: '', telefone: '', email: '' })}
+                      style={{ fontSize: '0.75rem', color: 'var(--color-primary)', background: '#eff6ff', border: 'none', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      + Contato
+                    </button>
+                  )}
+                </div>
+                {loadingContatos && <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Carregando...</div>}
+                {contatosExtra.map(c => (
+                  <div key={c.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, padding: '8px 10px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', position: 'relative' }}>
+                    <button onClick={async () => { await supabaseAdmin.from('prospeccao_contatos').delete().eq('id', c.id); setContatosExtra(prev => prev.filter(x => x.id !== c.id)) }}
+                      style={{ position: 'absolute', top: 4, right: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: '0.8rem' }}>✕</button>
+                    <input defaultValue={c.nome ?? ''} placeholder="Nome..." onBlur={async e => { const val = e.target.value.trim() || null; await supabaseAdmin.from('prospeccao_contatos').update({ nome: val }).eq('id', c.id); setContatosExtra(prev => prev.map(x => x.id === c.id ? { ...x, nome: val } : x)) }}
+                      style={{ fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #e2e8f0', borderRadius: 5, fontFamily: 'inherit', background: '#fff', gridColumn: '1 / -1' }} />
+                    <input defaultValue={c.cargo ?? ''} placeholder="Área / cargo..." onBlur={async e => { const val = e.target.value.trim() || null; await supabaseAdmin.from('prospeccao_contatos').update({ cargo: val }).eq('id', c.id); setContatosExtra(prev => prev.map(x => x.id === c.id ? { ...x, cargo: val } : x)) }}
+                      style={{ fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #e2e8f0', borderRadius: 5, fontFamily: 'inherit', background: '#fff' }} />
+                    <input defaultValue={c.telefone ?? ''} placeholder="Telefone..." onBlur={async e => { const val = e.target.value.replace(/\D/g, '') || null; await supabaseAdmin.from('prospeccao_contatos').update({ telefone: val }).eq('id', c.id); setContatosExtra(prev => prev.map(x => x.id === c.id ? { ...x, telefone: val } : x)) }}
+                      style={{ fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #e2e8f0', borderRadius: 5, fontFamily: 'inherit', background: '#fff' }} />
+                    <input defaultValue={c.email ?? ''} placeholder="E-mail..." type="email" onBlur={async e => { const val = e.target.value.trim() || null; await supabaseAdmin.from('prospeccao_contatos').update({ email: val }).eq('id', c.id); setContatosExtra(prev => prev.map(x => x.id === c.id ? { ...x, email: val } : x)) }}
+                      style={{ fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #e2e8f0', borderRadius: 5, fontFamily: 'inherit', background: '#fff', gridColumn: '1 / -1' }} />
+                  </div>
+                ))}
+                {novoContato && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, padding: '8px 10px', background: '#f0f9ff', borderRadius: 8, border: '1px dashed #93c5fd' }}>
+                    <input autoFocus value={novoContato.nome} onChange={e => setNovoContato(x => x ? { ...x, nome: e.target.value } : x)} placeholder="Nome..."
+                      style={{ fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #bae6fd', borderRadius: 5, fontFamily: 'inherit', background: '#fff', gridColumn: '1 / -1' }} />
+                    <input value={novoContato.cargo} onChange={e => setNovoContato(x => x ? { ...x, cargo: e.target.value } : x)} placeholder="Área / cargo..."
+                      style={{ fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #bae6fd', borderRadius: 5, fontFamily: 'inherit', background: '#fff' }} />
+                    <input value={novoContato.telefone} onChange={e => setNovoContato(x => x ? { ...x, telefone: e.target.value } : x)} placeholder="Telefone..."
+                      style={{ fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #bae6fd', borderRadius: 5, fontFamily: 'inherit', background: '#fff' }} />
+                    <input value={novoContato.email} onChange={e => setNovoContato(x => x ? { ...x, email: e.target.value } : x)} placeholder="E-mail..." type="email"
+                      style={{ fontSize: '0.82rem', padding: '4px 6px', border: '1px solid #bae6fd', borderRadius: 5, fontFamily: 'inherit', background: '#fff', gridColumn: '1 / -1' }} />
+                    <div style={{ display: 'flex', gap: 6, gridColumn: '1 / -1' }}>
+                      <button onClick={async () => {
+                        const { nome, cargo, telefone, email } = novoContato
+                        const { data, error } = await supabaseAdmin.from('prospeccao_contatos')
+                          .insert({ prospect_id: p.id, nome: nome.trim() || null, cargo: cargo.trim() || null, telefone: telefone.replace(/\D/g,'') || null, email: email.trim() || null })
+                          .select().single()
+                        if (error) { alert('Erro: ' + error.message); return }
+                        setContatosExtra(prev => [...prev, data]); setNovoContato(null)
+                      }} style={{ flex: 1, fontSize: '0.8rem', padding: '5px 0', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>Salvar</button>
+                      <button onClick={() => setNovoContato(null)} style={{ fontSize: '0.8rem', padding: '5px 12px', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 6, cursor: 'pointer', fontFamily: 'inherit' }}>Cancelar</button>
+                    </div>
+                  </div>
+                )}
+                {!loadingContatos && contatosExtra.length === 0 && !novoContato && (
+                  <div style={{ fontSize: '0.78rem', color: '#cbd5e1', fontStyle: 'italic' }}>Nenhum contato por área cadastrado.</div>
+                )}
+              </div>}
+
+              {/* ══ ABA HISTÓRICO ══ */}
+              {drawerAba === 'historico' && <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {p.cliente_ativo ? <>
+                  {loadingNFs && <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Carregando…</div>}
+                  {!loadingNFs && clienteNFs.length === 0 && <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>Nenhuma NF encontrada.</div>}
+                  {clienteNFs.map(nf => (
+                    <div key={nf.numero}>
+                      <div onClick={() => expandirNF(nf.numero)}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem', padding: '6px 8px', borderRadius: 6, cursor: 'pointer', background: nfExpandida === nf.numero ? '#f0fdf4' : '#f8fafc', border: '1px solid #e2e8f0' }}>
+                        <span style={{ fontWeight: 600 }}>{nfExpandida === nf.numero ? '▾' : '▸'} NF {nf.numero}</span>
+                        <span style={{ color: '#64748b' }}>{nf.emissao ? new Date(nf.emissao).toLocaleDateString('pt-BR') : '—'}</span>
+                        <span style={{ fontWeight: 600, color: '#15803d' }}>{nf.total != null ? nf.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '—'}</span>
+                      </div>
+                      {nfExpandida === nf.numero && (
+                        <div style={{ background: '#f8fafc', borderRadius: 4, padding: '6px 8px', border: '1px solid #e2e8f0', borderTop: 'none' }}>
+                          {!nfItensCache[nf.numero] && <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Carregando…</div>}
+                          {nfItensCache[nf.numero]?.length === 0 && <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Sem itens.</div>}
+                          {nfItensCache[nf.numero]?.map((it, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', padding: '3px 0', borderBottom: '1px solid #e2e8f0' }}>
+                              <span style={{ flex: 1, color: '#1e293b' }}>{it.descricao || '—'}</span>
+                              <span style={{ color: '#64748b', marginLeft: 8, whiteSpace: 'nowrap' }}>{it.quantidade}× {it.valor_unitario?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </> : <div style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>Prospect ainda não é cliente — sem histórico de compras.</div>}
+              </div>}
+
+              {/* Botão fixo no rodapé */}
+              <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
                 <button onClick={() => criarDealDireto(p)}
                   style={{ width: '100%', padding: '12px', background: 'var(--color-primary, #2563eb)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}>
                   ➡ Criar deal no Pipeline
