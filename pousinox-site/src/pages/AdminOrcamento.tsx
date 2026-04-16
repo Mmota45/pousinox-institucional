@@ -44,7 +44,7 @@ interface ProdutoResult {
 }
 
 interface OutletResult {
-  id: number; titulo: string; preco: number; quantidade: number; exibir_preco: boolean
+  id: number; titulo: string; preco: number; quantidade: number; exibir_preco: boolean; fotos: string[] | null
 }
 
 interface ClienteResult {
@@ -253,7 +253,7 @@ export default function AdminOrcamento() {
     const t = setTimeout(async () => {
       setLoadingOutlet(true)
       const { data } = await supabaseAdmin
-        .from('produtos').select('id, titulo, preco, quantidade, exibir_preco')
+        .from('produtos').select('id, titulo, preco, quantidade, exibir_preco, fotos')
         .ilike('titulo', `%${buscaOutlet}%`).eq('disponivel', true).limit(8)
       setResultadosOutlet((data ?? []) as OutletResult[])
       setLoadingOutlet(false)
@@ -449,6 +449,7 @@ export default function AdminOrcamento() {
   }
   function adicionarOutlet(p: OutletResult) {
     setItens(prev => [...prev, { produto_id: p.id, descricao: p.titulo, qtd: '1', unidade: 'UN', valorUnit: p.exibir_preco ? String(p.preco) : '' }])
+    if (p.fotos?.[0] && !imagemUrl) setImagemUrl(p.fotos[0])
     setBuscaOutlet(''); setResultadosOutlet([]); setShowBuscaOutlet(false)
   }
   function addItem() { setItens(prev => [...prev, { ...ITEM_VAZIO }]) }
@@ -637,14 +638,14 @@ export default function AdminOrcamento() {
                     {resultadosOutlet.length > 0 && (
                       <div className={styles.dropdown} style={{ position: 'static', boxShadow: 'none', border: '1px solid #e2e8f0', borderTop: 'none' }}>
                         {resultadosOutlet.map(p => (
-                          <div key={p.id} className={styles.dropItem} onClick={() => adicionarOutlet(p)}>
-                            <strong>{p.titulo}</strong>
-                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                              {' · '}
-                              {p.exibir_preco ? fmtBRL(p.preco) : 'preço oculto'}
-                              {' · '}
-                              {p.quantidade} un. disponível
-                            </span>
+                          <div key={p.id} className={styles.dropItem} onClick={() => adicionarOutlet(p)} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            {p.fotos?.[0] && <img src={p.fotos[0]} alt={p.titulo} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0, border: '1px solid #e2e8f0' }} />}
+                            <div>
+                              <strong>{p.titulo}</strong>
+                              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                                {p.exibir_preco ? fmtBRL(p.preco) : 'preço oculto'} · {p.quantidade} un. disponível
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
