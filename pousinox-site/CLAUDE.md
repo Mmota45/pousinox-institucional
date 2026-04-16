@@ -227,6 +227,26 @@ Módulo financeiro automation-first — Fase 1b do ERP.
 ### Integrações implementadas
 - `AdminProjetos` → botão "💰 Gerar Recebível" → `fin_lancamentos` com `origem='projeto'`
 - `AdminPipeline` → botão "💰 Gerar Recebível" (deal ganho) → `fin_lancamentos` com `origem='pipeline'`
+- `AdminFiscalDocBase` → botão "💰 Gerar lançamento financeiro" em docs `status='autorizada'` e `fin_lancado=false`
+  → NF emitida (venda) → `tipo='receita'`; NF recebida (compra) → `tipo='despesa'`
+  → Consulta `fin_categoria_cnpj` para categorização automática por CNPJ
+  → Se CNPJ desconhecido: cria com `aguarda_categorizacao=true` → aparece na fila do Financeiro
+  → Migration: `supabase/migrations/20260415_fin_nf_integracao.sql`
+
+### Tabela de memória CNPJ
+- `fin_categoria_cnpj` — (cnpj, tipo) UNIQUE → `categoria_id`, `centro_custo_id`, `usos`
+- `usos` incrementado a cada confirmação — CNPJs mais usados têm categorização mais confiável
+
+### DRE (aba 📈 DRE)
+- Regime de caixa: **Realizado** = `fin_movimentacoes` baixadas; **Previsto** = `fin_lancamentos` pendentes futuros; **Atrasado** = pendentes vencidos
+- Agrupado por `fin_categorias.grupo` e `tipo` (receita/despesa)
+- Linha "Resultado Líquido" = Receitas − Despesas por coluna
+- Filtros: Ano + Período (mês específico ou ano todo)
+
+### Categorização assistida
+- Badge "⚠️ N aguardando categorização" no Painel
+- Filtro "⚠️ Aguardando" na aba Lançamentos expande UI inline por linha
+- `confirmarCategorizacao()` salva categoria/CC e faz upsert em `fin_categoria_cnpj` (aprendizado contínuo)
 
 ---
 
