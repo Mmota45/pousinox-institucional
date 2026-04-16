@@ -12,7 +12,7 @@ const normas = [
     descricao:
       'Define requisitos e métodos de ensaio para assentamento de revestimentos cerâmicos em paredes e tetos interiores com argamassa colante. Referência primária para especificação de fixação em ambientes internos.',
     relevancia:
-      'O Fixador Pousinox complementa o sistema de argamassa exigido por esta norma, adicionando ancoragem mecânica independente.',
+      'O Fixador Pousinox® complementa o sistema de argamassa exigido por esta norma, adicionando ancoragem mecânica independente.',
     aplicacao: 'Paredes internas · Tetos · Ambientes molhados',
   },
   {
@@ -30,7 +30,7 @@ const normas = [
     descricao:
       'Norma específica para fachadas cerâmicas. Define requisitos de projeto, execução e desempenho para revestimentos externos com placas cerâmicas e porcelanatos. Reconhece que fachadas exigem critérios mais rigorosos que paredes internas.',
     relevancia:
-      'Esta é a principal norma que fundamenta a recomendação de ancoragem mecânica em fachadas. O fixador Pousinox atende ao conceito de segurança adicional previsto na norma.',
+      'Esta é a principal norma que fundamenta a recomendação de ancoragem mecânica em fachadas. O fixador Pousinox® atende ao conceito de segurança adicional previsto na norma.',
     aplicacao: 'Fachadas · Revestimentos externos · Alturas elevadas',
   },
   {
@@ -47,7 +47,7 @@ const normas = [
 const boasPraticas = [
   {
     titulo: 'Use argamassa AC-III em fachadas',
-    desc: 'A NBR 13755 recomenda AC-III para revestimentos externos. Combine com o fixador Pousinox para segurança máxima.',
+    desc: 'A NBR 13755 recomenda AC-III para revestimentos externos. Combine com o fixador Pousinox® para segurança máxima.',
   },
   {
     titulo: 'Fixador obrigatório acima de 2,5 m',
@@ -55,7 +55,7 @@ const boasPraticas = [
   },
   {
     titulo: 'Documente no memorial descritivo',
-    desc: 'Inclua o fixador Pousinox e os ensaios LAMAT/SENAI no memorial descritivo — facilita aprovação em projetos e laudos técnicos.',
+    desc: 'Inclua o fixador Pousinox® e os ensaios LAMAT/SENAI no memorial descritivo — facilita aprovação em projetos e laudos técnicos.',
   },
   {
     titulo: 'Espaçamento correto',
@@ -67,8 +67,8 @@ export default function FixadorNormas() {
   return (
     <>
       <SEO
-        title="Normas Técnicas — Fixador de Porcelanato Pousinox"
-        description="Referências normativas ABNT para especificação do Fixador de Porcelanato Pousinox: NBR 13754, NBR 14081, NBR 13755 e NBR 15575. Guia de boas práticas para engenheiros e arquitetos."
+        title="Normas Técnicas — Fixador de Porcelanato Pousinox®"
+        description="Referências normativas ABNT para especificação do Fixador de Porcelanato Pousinox®: NBR 13754, NBR 14081, NBR 13755 e NBR 15575. Guia de boas práticas para engenheiros e arquitetos."
         path="/fixador-porcelanato/normas"
       />
 
@@ -82,7 +82,7 @@ export default function FixadorNormas() {
           </div>
           <h1 className={styles.pageTitle}>Normas e Referências Técnicas</h1>
           <p className={styles.pageSubtitle}>
-            Referências normativas ABNT para especificação do Fixador de Porcelanato Pousinox
+            Referências normativas ABNT para especificação do Fixador de Porcelanato Pousinox®
             em projetos de engenharia e arquitetura — fachadas, revestimentos externos e
             grandes formatos.
           </p>
@@ -130,7 +130,7 @@ export default function FixadorNormas() {
             <h2 className="section-title">Boas Práticas de Especificação</h2>
             <p className="section-subtitle">
               Recomendações para engenheiros, arquitetos e especificadores ao incluir
-              o Fixador Pousinox em projetos e memoriais descritivos.
+              o Fixador Pousinox® em projetos e memoriais descritivos.
             </p>
           </div>
           <div className={styles.praticasGrid}>

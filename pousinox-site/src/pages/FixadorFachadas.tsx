@@ -113,8 +113,8 @@ export default function FixadorFachadas() {
   return (
     <>
       <SEO
-        title="Fixador de Porcelanato para Fachadas e Grandes Formatos — Pousinox"
-        description="Ancoragem mecânica em aço inox para fachadas externas, grandes formatos e revestimentos especiais. Fabricado pela Pousinox em Pouso Alegre, MG. Segurança comprovada por ensaios laboratoriais."
+        title="Fixador de Porcelanato para Fachadas e Grandes Formatos — Pousinox®"
+        description="Ancoragem mecânica em aço inox para fachadas externas, grandes formatos e revestimentos especiais. Fabricado pela Pousinox® em Pouso Alegre, MG. Segurança comprovada por ensaios laboratoriais."
         path="/fixador-porcelanato/fachadas"
       />
 
@@ -188,7 +188,7 @@ export default function FixadorFachadas() {
       <section className={`section ${styles.aplicacoesSection}`}>
         <div className="container">
           <div className={styles.sectionHead}>
-            <h2 className="section-title">Onde o Fixador Pousinox é indicado</h2>
+            <h2 className="section-title">Onde o Fixador Pousinox® é indicado</h2>
             <p className="section-subtitle">
               Aplicações que exigem segurança máxima na fixação de revestimentos cerâmicos.
             </p>
@@ -235,11 +235,11 @@ export default function FixadorFachadas() {
             <div className={styles.comoImagem}>
               <img
                 src="/fixador-bucha-prego.webp"
-                alt="Fixador de porcelanato com bucha prego — Pousinox"
+                alt="Fixador de porcelanato com bucha prego — Pousinox®"
                 className={styles.buchaImg}
                 loading="lazy"
               />
-              <div className={styles.comoCaption}>Fixador Pousinox com bucha prego</div>
+              <div className={styles.comoCaption}>Fixador Pousinox® com bucha prego</div>
             </div>
           </div>
         </div>
@@ -284,7 +284,7 @@ export default function FixadorFachadas() {
               Fachada segura começa na especificação
             </h2>
             <p className={styles.ctaSubtitle}>
-              Inclua o Fixador Pousinox no memorial descritivo do projeto e garanta
+              Inclua o Fixador Pousinox® no memorial descritivo do projeto e garanta
               segurança estrutural comprovada em laboratório.
             </p>
             <div className={styles.ctaActions}>

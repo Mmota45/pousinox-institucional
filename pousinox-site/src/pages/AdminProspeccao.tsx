@@ -607,7 +607,7 @@ setClientesCidade(clientesPorCidade)
 
   function mensagemWA(p: Prospect) {
     return encodeURIComponent(
-      `Olá! Sou da Pousinox, fabricante de equipamentos em aço inox de Pouso Alegre/MG.\n\n` +
+      `Olá! Sou da Pousinox®, fabricante de equipamentos em aço inox de Pouso Alegre/MG.\n\n` +
       `Trabalhamos com soluções para ${p.segmento?.toLowerCase() || 'o seu segmento'} e gostaríamos de apresentar nossos produtos.\n\n` +
       `Podemos conversar?`
     )

@@ -90,12 +90,12 @@ function gerarResumo(crossing: CrossUF[]): string {
     const n = oportunidades.length
     const plural = n === 1 ? 'mercado a atacar' : 'mercados a atacar'
     const ufs = n <= 3 ? ` (${listUFs(oportunidades)})` : ''
-    return `Este recorte mostra ${n} ${plural}${ufs}, com demanda acima da presença comercial atual da Pousinox.`
+    return `Este recorte mostra ${n} ${plural}${ufs}, com demanda acima da presença comercial atual da Pousinox®.`
   }
 
   // Caso 3 — só validados
   if (validados.length && !oportunidades.length) {
-    return `A presença comercial da Pousinox acompanha bem a demanda nas UFs analisadas — ${listUFs(validados)} ${validados.length === 1 ? 'está' : 'estão'} com mercado validado neste recorte.`
+    return `A presença comercial da Pousinox® acompanha bem a demanda nas UFs analisadas — ${listUFs(validados)} ${validados.length === 1 ? 'está' : 'estão'} com mercado validado neste recorte.`
   }
 
   // Caso 4 — predomina relacionamento (baixa busca, alta venda)
@@ -653,7 +653,7 @@ export default function AdminEstudoMercado() {
     <div className={s.page}>
       <div className={s.header}>
         <h1>📊 Estudo de Mercado</h1>
-        <p>Cruzamento entre histórico interno da Pousinox e demanda de busca regional para identificar mercados validados, oportunidades e prioridades comerciais.</p>
+        <p>Cruzamento entre histórico interno da Pousinox® e demanda de busca regional para identificar mercados validados, oportunidades e prioridades comerciais.</p>
       </div>
 
       {/* Filtros */}
@@ -1118,7 +1118,7 @@ export default function AdminEstudoMercado() {
       {tab === 'cruzamento' && (
         <>
           <div className={s.section}>
-            <div className={s.sectionTitle}>Busca Regional × Vendas Pousinox por UF <span>(normalizado 0–100)</span></div>
+            <div className={s.sectionTitle}>Busca Regional × Vendas Pousinox® por UF <span>(normalizado 0–100)</span></div>
             {crossing.length === 0 ? (
               <div className={s.empty}>Importe keywords com UF preenchida para ativar o cruzamento entre demanda de busca e histórico de vendas.</div>
             ) : (

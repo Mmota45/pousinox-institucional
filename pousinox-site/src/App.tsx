@@ -74,7 +74,7 @@ function App() {
     const link = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null
     const appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement | null
     if (link) link.href = isAdmin ? '/admin-manifest.json' : '/manifest.json'
-    if (appleTitle) appleTitle.content = isAdmin ? 'Admin' : 'Pousinox'
+    if (appleTitle) appleTitle.content = isAdmin ? 'Admin' : 'Pousinox®'
   }, [isAdmin])
 
   // Rastreia cliques no WhatsApp

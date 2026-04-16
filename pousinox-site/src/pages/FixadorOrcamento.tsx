@@ -68,8 +68,8 @@ export default function FixadorOrcamento() {
   return (
     <>
       <SEO
-        title="Orçamento — Fixador de Porcelanato Pousinox"
-        description="Solicite orçamento do Fixador de Porcelanato em aço inox Pousinox. Atendemos construtoras, empreiteiras e instaladores em todo o Brasil. Resposta rápida por WhatsApp ou formulário."
+        title="Orçamento — Fixador de Porcelanato Pousinox®"
+        description="Solicite orçamento do Fixador de Porcelanato em aço inox Pousinox®. Atendemos construtoras, empreiteiras e instaladores em todo o Brasil. Resposta rápida por WhatsApp ou formulário."
         path="/fixador-porcelanato/orcamento"
       />
 
@@ -277,7 +277,7 @@ export default function FixadorOrcamento() {
                   <li><strong>Fixação:</strong> Bucha Prego 6 × 38 mm</li>
                   <li><strong>Ensaios:</strong> LAMAT/SENAI</li>
                   <li><strong>Entrega:</strong> Todo o Brasil</li>
-                  <li><strong>Fabricante:</strong> Pousinox — Pouso Alegre, MG</li>
+                  <li><strong>Fabricante:</strong> Pousinox® — Pouso Alegre, MG</li>
                 </ul>
               </div>
 

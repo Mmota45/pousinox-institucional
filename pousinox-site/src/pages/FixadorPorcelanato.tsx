@@ -241,8 +241,8 @@ export default function FixadorPorcelanato() {
   return (
     <>
       <SEO
-        title="Fixador de Porcelanato em Aço Inox — Linha Especializada Pousinox"
-        description="Fixador mecânico de porcelanato em aço inoxidável, fabricado pela Pousinox em Pouso Alegre, MG. Resistência comprovada por ensaios LAMAT/SENAI. Ancoragem complementar para fachadas, grandes formatos e revestimentos especiais."
+        title="Fixador de Porcelanato em Aço Inox — Linha Especializada Pousinox®"
+        description="Fixador mecânico de porcelanato em aço inoxidável, fabricado pela Pousinox® em Pouso Alegre, MG. Resistência comprovada por ensaios LAMAT/SENAI. Ancoragem complementar para fachadas, grandes formatos e revestimentos especiais."
         path="/fixador-porcelanato"
       />
       <Helmet>
@@ -259,7 +259,7 @@ export default function FixadorPorcelanato() {
         <div className={styles.heroOverlay} />
         <div className={`container ${styles.heroInner}`}>
           <div className={styles.heroContent}>
-            <span className={styles.heroEyebrow}>Reforço mecânico · Pousinox</span>
+            <span className={styles.heroEyebrow}>Reforço mecânico · Pousinox®</span>
             <h1 className={styles.heroTitle}>
               Fixador de<br />Porcelanato<br />
               <span className={styles.heroHighlight}>em Aço Inox</span>
@@ -320,7 +320,7 @@ export default function FixadorPorcelanato() {
                 Quando a aderência cede, a queda é abrupta — e pode causar acidentes graves.
               </p>
               <p>
-                O Fixador de Porcelanato Pousinox é o reforço mecânico que garante
+                O Fixador de Porcelanato Pousinox® é o reforço mecânico que garante
                 a retenção da placa independente da argamassa: mesmo que ela perca
                 aderência ao longo do tempo, o fixador mantém a placa no lugar —
                 eliminando o risco de desprendimento.
@@ -344,12 +344,12 @@ export default function FixadorPorcelanato() {
             <div className={styles.introImagem}>
               <img
                 src="/fixador-porcelanato.png"
-                alt="Fixador de Porcelanato em Aço Inox — Pousinox"
+                alt="Fixador de Porcelanato em Aço Inox — Pousinox®"
                 className={styles.produtoImg}
                 loading="lazy"
               />
               <div className={styles.introImageCaption}>
-                Fixador Pousinox — Aço Inoxidável
+                Fixador Pousinox® — Aço Inoxidável
               </div>
             </div>
           </div>
@@ -363,7 +363,7 @@ export default function FixadorPorcelanato() {
             <span className={styles.eyebrow}>Para quem é indicado</span>
             <h2 className="section-title">Principais aplicações</h2>
             <p className="section-subtitle">
-              O fixador Pousinox é indicado onde a argamassa sozinha não oferece segurança
+              O fixador Pousinox® é indicado onde a argamassa sozinha não oferece segurança
               suficiente para toda a vida útil do revestimento.
             </p>
           </div>
@@ -452,7 +452,7 @@ export default function FixadorPorcelanato() {
                 <strong>LAMAT/SENAI</strong>
               </h2>
               <p className={styles.lamatDesc}>
-                O Fixador Pousinox foi submetido a ensaios de resistência mecânica pelo
+                O Fixador Pousinox® foi submetido a ensaios de resistência mecânica pelo
                 LAMAT/SENAI, laboratório independente. Os ensaios avaliaram diferentes
                 configurações de abertura — compatíveis com diversas espessuras de porcelanato
                 — e comprovam a eficácia do produto em aplicações profissionais de fachada
@@ -489,7 +489,7 @@ export default function FixadorPorcelanato() {
         <div className="container">
           <div className={styles.sectionHead}>
             <span className={styles.eyebrow}>Para construtoras e empreiteiras</span>
-            <h2 className="section-title">Por que especificar o Fixador Pousinox?</h2>
+            <h2 className="section-title">Por que especificar o Fixador Pousinox®?</h2>
             <p className="section-subtitle">
               Além da segurança técnica, oferecemos a infraestrutura comercial que
               grandes obras precisam para especificar com confiança.
@@ -570,7 +570,7 @@ export default function FixadorPorcelanato() {
         <div className="container">
           <div className={styles.ctaBox}>
             <h2 className={styles.ctaTitle}>
-              Especifique o Fixador Pousinox no seu próximo projeto
+              Especifique o Fixador Pousinox® no seu próximo projeto
             </h2>
             <p className={styles.ctaSubtitle}>
               Atendemos construtoras, empreiteiras e instaladores em todo o Brasil.

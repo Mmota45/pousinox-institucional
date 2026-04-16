@@ -391,7 +391,7 @@ async function gerarFichaTecnica(
   </div>` : ''}
 
   <div class="footer">
-    <span>Pousinox — Fixadores de Porcelanato em Aço Inox — pousinox.com.br</span>
+    <span>Pousinox® — Fixadores de Porcelanato em Aço Inox — pousinox.com.br</span>
     <span>Documento gerado em ${dataEmissao}</span>
   </div>
 

@@ -8,7 +8,7 @@ const WA_LINK =
 const provas = [
   {
     titulo: 'Laboratório independente',
-    desc: 'Ensaios realizados pelo LAMAT/SENAI — laboratório acreditado e independente da Pousinox.',
+    desc: 'Ensaios realizados pelo LAMAT/SENAI — laboratório acreditado e independente da Pousinox®.',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0a3 3 0 1 0 6 0m-6 0H3m12 0h6" />
@@ -48,8 +48,8 @@ export default function FixadorTestesLamat() {
   return (
     <>
       <SEO
-        title="Ensaios LAMAT/SENAI — Fixador de Porcelanato Pousinox"
-        description="O Fixador de Porcelanato Pousinox tem resistência mecânica comprovada por ensaios realizados pelo LAMAT/SENAI. Indicado para fachadas, grandes formatos e revestimentos profissionais."
+        title="Ensaios LAMAT/SENAI — Fixador de Porcelanato Pousinox®"
+        description="O Fixador de Porcelanato Pousinox® tem resistência mecânica comprovada por ensaios realizados pelo LAMAT/SENAI. Indicado para fachadas, grandes formatos e revestimentos profissionais."
         path="/fixador-porcelanato/testes-lamat"
       />
 
@@ -64,7 +64,7 @@ export default function FixadorTestesLamat() {
           <h1 className={styles.pageTitle}>Ensaios LAMAT/SENAI</h1>
           <p className={styles.pageSubtitle}>
             Resultados laboratoriais independentes que comprovam a resistência mecânica do
-            Fixador Pousinox em configurações aplicáveis a diferentes espessuras de porcelanato.
+            Fixador Pousinox® em configurações aplicáveis a diferentes espessuras de porcelanato.
           </p>
         </div>
       </div>
@@ -105,7 +105,7 @@ export default function FixadorTestesLamat() {
               </p>
               <p>
                 Empreiteiras, construtoras, engenheiros e arquitetos que especificam o
-                Fixador Pousinox recebem o relatório junto ao pedido, como suporte técnico
+                Fixador Pousinox® recebem o relatório junto ao pedido, como suporte técnico
                 para laudos, memoriais descritivos e projetos executivos.
               </p>
               <div className={styles.relatorioItens}>

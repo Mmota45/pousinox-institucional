@@ -1026,7 +1026,7 @@ export default function AdminLayout() {
                 </svg>
               </div>
               <div className={styles.toastBody}>
-                <div className={styles.toastTitle}>Novo interesse — Pousinox Bot</div>
+                <div className={styles.toastTitle}>Novo interesse — Pousinox® Bot</div>
                 <div className={styles.toastMsg}>{n.texto}</div>
               </div>
               <button
