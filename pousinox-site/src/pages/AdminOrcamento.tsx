@@ -450,15 +450,15 @@ export default function AdminOrcamento() {
     setBuscaProduto(''); setResultadosProduto([]); setShowBuscaProduto(false)
   }
   function adicionarOutlet(p: OutletResult) {
-    const precoBase = p.preco_original && p.preco_original > p.preco ? p.preco_original : p.preco
+    // Usa o preço de venda real (p.preco) — sem alterar desconto global
+    // preco_original aparece riscado na descrição quando há promoção
+    const descricao = p.preco_original && p.preco_original > p.preco
+      ? `${p.titulo} (de ${fmtBRL(p.preco_original)})`
+      : p.titulo
     setItens(prev => [...prev, {
-      produto_id: p.id, descricao: p.titulo, qtd: '1', unidade: 'UN',
-      valorUnit: String(precoBase), imagem_url: p.fotos?.[0] ?? undefined,
+      produto_id: p.id, descricao, qtd: '1', unidade: 'UN',
+      valorUnit: String(p.preco), imagem_url: p.fotos?.[0] ?? undefined,
     }])
-    if (p.preco_original && p.preco_original > p.preco) {
-      setDesconto(String(+(p.preco_original - p.preco).toFixed(2)))
-      setTipoDesc('R$')
-    }
     setBuscaOutlet(''); setResultadosOutlet([]); setShowBuscaOutlet(false)
   }
   function addItem() { setItens(prev => [...prev, { ...ITEM_VAZIO }]) }
