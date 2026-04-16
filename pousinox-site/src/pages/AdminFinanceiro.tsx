@@ -41,14 +41,40 @@ interface SaldoMes {
   vencidos_pagar: number
 }
 
+interface ContaBancaria {
+  id: number
+  nome: string
+  banco: string | null
+  tipo: string
+  negocio: string
+  saldo_inicial: number
+  ativo: boolean
+}
+
 interface Movimentacao {
   id: number
   tipo: 'entrada' | 'saida'
   valor: number
   data: string
-  conta: string
-  descricao: string | null
+  conta: string | null           // legado (texto livre)
+  conta_id: number | null        // FK fin_contas
+  conta_nome: string | null
+  negocio: string | null
+  status: string
+  tipo_pagamento: string | null
+  documento_ref: string | null
+  conciliado: boolean
+  categoria_id: number | null
+  categoria_nome: string | null
+  categoria_grupo: string | null
+  centro_custo_id: number | null
+  centro_custo_nome: string | null
   lancamento_id: number | null
+  transferencia_id: number | null
+  origem_tipo: string | null
+  tags: string[]
+  descricao: string | null
+  created_at: string
 }
 
 interface AgingResumo {
@@ -199,6 +225,7 @@ export default function AdminFinanceiro() {
   const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([])
   const [categorias, setCategorias]     = useState<Categoria[]>([])
   const [centros, setCentros]           = useState<CentroCusto[]>([])
+  const [contas, setContas]             = useState<ContaBancaria[]>([])
 
   const [loading, setLoading]   = useState(true)
   const [salvando, setSalvando] = useState(false)
@@ -238,6 +265,29 @@ export default function AdminFinanceiro() {
   const [salvandoCat,    setSalvandoCat]    = useState(false)
   const [salvandoCentro, setSalvandoCentro] = useState(false)
 
+  // Fluxo de Caixa — formulário de entrada diária
+  const FORM_FLUXO_VAZIO = {
+    tipo: 'saida' as 'entrada' | 'saida',
+    descricao: '',
+    valor: '',
+    data: hoje(),
+    conta_id: '',
+    negocio: 'pousinox',
+    status: 'realizado',
+    tipo_pagamento: 'pix',
+    categoria_id: '',
+    centro_custo_id: '',
+    documento_ref: '',
+  }
+  const [mostrarFormFluxo,   setMostrarFormFluxo]   = useState(false)
+  const [formFluxo,          setFormFluxo]          = useState(FORM_FLUXO_VAZIO)
+  const [salvandoFluxo,      setSalvandoFluxo]      = useState(false)
+  const [filtroFluxoStatus,  setFiltroFluxoStatus]  = useState('')
+  const [filtroFluxoConta,   setFiltroFluxoConta]   = useState('')
+  const [filtroFluxoNegocio, setFiltroFluxoNegocio] = useState('')
+  const [filtroFluxoConcil,  setFiltroFluxoConcil]  = useState<'' | 'pendente' | 'conciliado'>('')
+  const [filtroFluxoMes,     setFiltroFluxoMes]     = useState(mesAtual())
+
   // Categorização pendente
   const [pendCatCount, setPendCatCount] = useState(0)
 
@@ -267,14 +317,16 @@ export default function AdminFinanceiro() {
 
   const carregarTudo = useCallback(async () => {
     setLoading(true)
-    const [{ data: cats }, { data: cts }, { count: pendCat }] = await Promise.all([
+    const [{ data: cats }, { data: cts }, { data: cts2 }, { count: pendCat }] = await Promise.all([
       supabaseAdmin.from('fin_categorias').select('*').eq('ativo', true).order('grupo').order('nome'),
       supabaseAdmin.from('fin_centros_custo').select('*').eq('ativo', true).order('nome'),
+      supabaseAdmin.from('fin_contas').select('*').eq('ativo', true).order('nome'),
       supabaseAdmin.from('fin_lancamentos').select('id', { count: 'exact', head: true }).eq('aguarda_categorizacao', true).eq('status', 'pendente'),
     ])
     setPendCatCount(pendCat ?? 0)
     setCategorias(cats ?? [])
     setCentros(cts ?? [])
+    setContas((cts2 ?? []) as ContaBancaria[])
     setLoading(false)
   }, [])
 
@@ -312,13 +364,68 @@ export default function AdminFinanceiro() {
   }, [filtroTipo, filtroStatus, filtroOrigem, filtroMes])
 
   const carregarMovimentacoes = useCallback(async () => {
-    const { data } = await supabaseAdmin
-      .from('fin_movimentacoes')
+    let q = supabaseAdmin
+      .from('vw_fin_extrato')
       .select('*')
       .order('data', { ascending: false })
-      .limit(100)
+      .limit(200)
+
+    if (filtroFluxoStatus)  q = q.eq('status', filtroFluxoStatus)
+    if (filtroFluxoConta)   q = q.eq('conta_id', filtroFluxoConta)
+    if (filtroFluxoNegocio) q = q.eq('negocio', filtroFluxoNegocio)
+    if (filtroFluxoConcil === 'pendente')   q = q.eq('conciliado', false)
+    if (filtroFluxoConcil === 'conciliado') q = q.eq('conciliado', true)
+    if (filtroFluxoMes) {
+      const [y, m] = filtroFluxoMes.split('-')
+      const dim = new Date(Number(y), Number(m), 0).getDate()
+      q = q.gte('data', `${y}-${m}-01`).lte('data', `${y}-${m}-${dim}`)
+    }
+
+    const { data } = await q
     setMovimentacoes((data ?? []) as Movimentacao[])
-  }, [])
+  }, [filtroFluxoStatus, filtroFluxoConta, filtroFluxoNegocio, filtroFluxoConcil, filtroFluxoMes])
+
+  const salvarMovimentacao = async () => {
+    if (!formFluxo.descricao || !formFluxo.valor || !formFluxo.data) {
+      setMsg({ tipo: 'erro', texto: 'Preencha descrição, valor e data.' }); return
+    }
+    setSalvandoFluxo(true)
+    const payload: Record<string, unknown> = {
+      tipo:           formFluxo.tipo,
+      descricao:      formFluxo.descricao,
+      valor:          Number(formFluxo.valor.replace(',', '.')),
+      data:           formFluxo.data,
+      negocio:        formFluxo.negocio,
+      status:         formFluxo.status,
+      tipo_pagamento: formFluxo.tipo_pagamento || null,
+      documento_ref:  formFluxo.documento_ref  || null,
+      origem_tipo:    'manual',
+      conta_id:       formFluxo.conta_id       ? Number(formFluxo.conta_id)       : null,
+      categoria_id:   formFluxo.categoria_id   ? Number(formFluxo.categoria_id)   : null,
+      centro_custo_id:formFluxo.centro_custo_id? Number(formFluxo.centro_custo_id): null,
+      conciliado:     formFluxo.status === 'realizado',
+      conciliado_em:  formFluxo.status === 'realizado' ? new Date().toISOString() : null,
+    }
+    const { error } = await supabaseAdmin.from('fin_movimentacoes').insert(payload)
+    setSalvandoFluxo(false)
+    if (error) { setMsg({ tipo: 'erro', texto: error.message }); return }
+    setMsg({ tipo: 'ok', texto: 'Movimentação registrada.' })
+    setMostrarFormFluxo(false)
+    setFormFluxo(FORM_FLUXO_VAZIO)
+    carregarMovimentacoes()
+  }
+
+  const conciliarMovimentacao = async (id: number, conciliado: boolean) => {
+    const { error } = await supabaseAdmin
+      .from('fin_movimentacoes')
+      .update({
+        conciliado,
+        conciliado_em:  conciliado ? new Date().toISOString() : null,
+        conciliado_por: conciliado ? 'admin' : null,
+      })
+      .eq('id', id)
+    if (!error) carregarMovimentacoes()
+  }
 
   const carregarAgingResumo = useCallback(async () => {
     const { data } = await supabaseAdmin.from('vw_fin_aging_resumo').select('*')
@@ -1313,58 +1420,279 @@ export default function AdminFinanceiro() {
       {/* ══ FLUXO DE CAIXA ══════════════════════════════════════════════════ */}
       {aba === 'fluxo' && (
         <div className={styles.fluxoWrap}>
-          <div className={styles.fluxoInfo}>
-            Extrato operacional — apenas movimentações de caixa reais. Lançamentos pendentes não aparecem aqui.
+
+          {/* ── Toolbar ── */}
+          <div className={styles.toolbar}>
+            <select className={styles.filtro} value={filtroFluxoMes}
+              onChange={e => setFiltroFluxoMes(e.target.value)}>
+              {Array.from({ length: 13 }, (_, i) => {
+                const d = new Date(); d.setMonth(d.getMonth() - 6 + i)
+                const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+                return <option key={val} value={val}>{val}</option>
+              })}
+            </select>
+
+            <select className={styles.filtro} value={filtroFluxoStatus}
+              onChange={e => setFiltroFluxoStatus(e.target.value)}>
+              <option value="">Todos os status</option>
+              <option value="realizado">Realizado</option>
+              <option value="previsto">Previsto</option>
+              <option value="atrasado">Atrasado</option>
+              <option value="negociado">Negociado</option>
+            </select>
+
+            <select className={styles.filtro} value={filtroFluxoConta}
+              onChange={e => setFiltroFluxoConta(e.target.value)}>
+              <option value="">Todas as contas</option>
+              {contas.map(c => <option key={c.id} value={String(c.id)}>{c.nome}</option>)}
+            </select>
+
+            <select className={styles.filtro} value={filtroFluxoNegocio}
+              onChange={e => setFiltroFluxoNegocio(e.target.value)}>
+              <option value="">Todos os negócios</option>
+              <option value="pousinox">Pousinox</option>
+              <option value="mp">MP</option>
+              <option value="pouso_inox">Pouso Inox</option>
+            </select>
+
+            <select className={styles.filtro} value={filtroFluxoConcil}
+              onChange={e => setFiltroFluxoConcil(e.target.value as '' | 'pendente' | 'conciliado')}>
+              <option value="">Conciliação: todas</option>
+              <option value="pendente">⚠ Pendente</option>
+              <option value="conciliado">✓ Conciliado</option>
+            </select>
+
+            <button className={styles.btnFiltrar} onClick={carregarMovimentacoes}>Filtrar</button>
+            <button className={styles.btnNovo} onClick={() => setMostrarFormFluxo(f => !f)}>
+              {mostrarFormFluxo ? '✕ Cancelar' : '+ Registrar'}
+            </button>
           </div>
 
-          {movimentacoes.length === 0 ? (
-            <div className={styles.vazio}>
-              Nenhuma movimentação ainda. As entradas e saídas aparecem aqui quando você baixar um lançamento.
-            </div>
-          ) : (
-            <>
-              {(() => {
-                const saldo = movimentacoes.reduce((acc, m) =>
-                  acc + (m.tipo === 'entrada' ? m.valor : -m.valor), 0)
-                return (
-                  <div className={styles.saldoExtrato}>
-                    <span>Saldo do extrato:</span>
-                    <strong className={saldo >= 0 ? styles.saldoPos : styles.saldoNeg}>
-                      {fmtBRL(saldo, ocultarValores)}
-                    </strong>
-                  </div>
-                )
-              })()}
-
-              <div className={styles.tableScroll}>
-                <table className={styles.tabela}>
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>Descrição</th>
-                      <th>Conta</th>
-                      <th>Entrada</th>
-                      <th>Saída</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {movimentacoes.map(m => (
-                      <tr key={m.id}>
-                        <td className={styles.data}>{fmtData(m.data)}</td>
-                        <td className={styles.descCell}>{m.descricao ?? '—'}</td>
-                        <td><span className={styles.contaBadge}>{m.conta}</span></td>
-                        <td className={styles.valorReceita}>
-                          {m.tipo === 'entrada' ? fmtBRL(m.valor, ocultarValores) : ''}
-                        </td>
-                        <td className={styles.valorDespesa}>
-                          {m.tipo === 'saida' ? fmtBRL(m.valor, ocultarValores) : ''}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {/* ── Formulário de registro ── */}
+          {mostrarFormFluxo && (
+            <div className={styles.formFluxo}>
+              <div className={styles.formGrid}>
+                <div className={styles.field}>
+                  <label>Tipo</label>
+                  <select className={styles.input} value={formFluxo.tipo}
+                    onChange={e => setFormFluxo(f => ({ ...f, tipo: e.target.value as 'entrada'|'saida' }))}>
+                    <option value="entrada">Entrada</option>
+                    <option value="saida">Saída</option>
+                  </select>
+                </div>
+                <div className={styles.field}>
+                  <label>Data</label>
+                  <input type="date" className={styles.input} value={formFluxo.data}
+                    onChange={e => setFormFluxo(f => ({ ...f, data: e.target.value }))} />
+                </div>
+                <div className={styles.field} style={{ flex: 2 }}>
+                  <label>Descrição *</label>
+                  <input className={styles.input} value={formFluxo.descricao}
+                    onChange={e => setFormFluxo(f => ({ ...f, descricao: e.target.value }))}
+                    placeholder="Histórico da movimentação" />
+                </div>
+                <div className={styles.field}>
+                  <label>Valor (R$) *</label>
+                  <input className={styles.input} value={formFluxo.valor}
+                    onChange={e => setFormFluxo(f => ({ ...f, valor: e.target.value }))}
+                    placeholder="0,00" />
+                </div>
               </div>
-            </>
+              <div className={styles.formGrid}>
+                <div className={styles.field}>
+                  <label>Conta</label>
+                  <select className={styles.input} value={formFluxo.conta_id}
+                    onChange={e => setFormFluxo(f => ({ ...f, conta_id: e.target.value }))}>
+                    <option value="">Não informada</option>
+                    {contas.map(c => <option key={c.id} value={String(c.id)}>{c.nome}</option>)}
+                  </select>
+                </div>
+                <div className={styles.field}>
+                  <label>Negócio</label>
+                  <select className={styles.input} value={formFluxo.negocio}
+                    onChange={e => setFormFluxo(f => ({ ...f, negocio: e.target.value }))}>
+                    <option value="pousinox">Pousinox</option>
+                    <option value="mp">MP</option>
+                    <option value="pouso_inox">Pouso Inox</option>
+                  </select>
+                </div>
+                <div className={styles.field}>
+                  <label>Status</label>
+                  <select className={styles.input} value={formFluxo.status}
+                    onChange={e => setFormFluxo(f => ({ ...f, status: e.target.value }))}>
+                    <option value="realizado">Realizado</option>
+                    <option value="previsto">Previsto</option>
+                    <option value="negociado">Negociado</option>
+                  </select>
+                </div>
+                <div className={styles.field}>
+                  <label>Pagamento</label>
+                  <select className={styles.input} value={formFluxo.tipo_pagamento}
+                    onChange={e => setFormFluxo(f => ({ ...f, tipo_pagamento: e.target.value }))}>
+                    <option value="">—</option>
+                    <option value="pix">PIX</option>
+                    <option value="transferencia">Transferência</option>
+                    <option value="boleto">Boleto</option>
+                    <option value="dinheiro">Dinheiro</option>
+                    <option value="cartao_credito">Cartão Crédito</option>
+                    <option value="cartao_debito">Cartão Débito</option>
+                    <option value="cheque">Cheque</option>
+                    <option value="outro">Outro</option>
+                  </select>
+                </div>
+                <div className={styles.field}>
+                  <label>Categoria (plano de contas)</label>
+                  <select className={styles.input} value={formFluxo.categoria_id}
+                    onChange={e => setFormFluxo(f => ({ ...f, categoria_id: e.target.value }))}>
+                    <option value="">Sem categoria</option>
+                    {categorias.map(c => (
+                      <option key={c.id} value={String(c.id)}>
+                        {c.grupo ? `${c.grupo} / ` : ''}{c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.field}>
+                  <label>Centro de custo</label>
+                  <select className={styles.input} value={formFluxo.centro_custo_id}
+                    onChange={e => setFormFluxo(f => ({ ...f, centro_custo_id: e.target.value }))}>
+                    <option value="">—</option>
+                    {centros.map(c => <option key={c.id} value={String(c.id)}>{c.nome}</option>)}
+                  </select>
+                </div>
+                <div className={styles.field}>
+                  <label>Doc. referência</label>
+                  <input className={styles.input} value={formFluxo.documento_ref}
+                    onChange={e => setFormFluxo(f => ({ ...f, documento_ref: e.target.value }))}
+                    placeholder="Chave PIX, nº boleto…" />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+                <button className={styles.btnSalvar} onClick={salvarMovimentacao} disabled={salvandoFluxo}>
+                  {salvandoFluxo ? 'Salvando…' : '✓ Salvar movimentação'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Cards de saldo rápido ── */}
+          {(() => {
+            const entradas = movimentacoes.filter(m => m.tipo === 'entrada' && m.status === 'realizado').reduce((s, m) => s + m.valor, 0)
+            const saidas   = movimentacoes.filter(m => m.tipo === 'saida'   && m.status === 'realizado').reduce((s, m) => s + m.valor, 0)
+            const previsto = movimentacoes.filter(m => m.status === 'previsto' || m.status === 'negociado').reduce((s, m) =>
+              s + (m.tipo === 'entrada' ? m.valor : -m.valor), 0)
+            return (
+              <div className={styles.fluxoCards}>
+                <div className={styles.fluxoCard}>
+                  <span>Entradas realizadas</span>
+                  <strong className={styles.saldoPos}>{fmtBRL(entradas, ocultarValores)}</strong>
+                </div>
+                <div className={styles.fluxoCard}>
+                  <span>Saídas realizadas</span>
+                  <strong className={styles.saldoNeg}>{fmtBRL(saidas, ocultarValores)}</strong>
+                </div>
+                <div className={styles.fluxoCard}>
+                  <span>Saldo realizado</span>
+                  <strong className={(entradas - saidas) >= 0 ? styles.saldoPos : styles.saldoNeg}>
+                    {fmtBRL(entradas - saidas, ocultarValores)}
+                  </strong>
+                </div>
+                <div className={styles.fluxoCard}>
+                  <span>Saldo projetado</span>
+                  <strong className={(entradas - saidas + previsto) >= 0 ? styles.saldoPos : styles.saldoNeg}>
+                    {fmtBRL(entradas - saidas + previsto, ocultarValores)}
+                  </strong>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* ── Tabela ── */}
+          {movimentacoes.length === 0 ? (
+            <div className={styles.vazio}>Nenhuma movimentação encontrada para os filtros selecionados.</div>
+          ) : (
+            <div className={styles.tableScroll}>
+              <table className={styles.tabela}>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Descrição</th>
+                    <th>Negócio</th>
+                    <th>Conta</th>
+                    <th>Categoria</th>
+                    <th>Pgto</th>
+                    <th>Status</th>
+                    <th>Entrada</th>
+                    <th>Saída</th>
+                    <th>✓</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {movimentacoes.map(m => (
+                    <tr key={m.id} style={{ opacity: m.status === 'cancelado' ? 0.4 : 1 }}>
+                      <td className={styles.data}>{fmtData(m.data)}</td>
+                      <td className={styles.descCell}>
+                        {m.descricao ?? '—'}
+                        {m.documento_ref && (
+                          <span style={{ fontSize: '0.72rem', color: '#888', marginLeft: 6 }}>
+                            {m.documento_ref}
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <span style={{ fontSize: '0.75rem', background: '#f0f4ff', borderRadius: 4, padding: '2px 6px' }}>
+                          {m.negocio ?? '—'}
+                        </span>
+                      </td>
+                      <td>
+                        {m.conta_nome
+                          ? <span className={styles.contaBadge}>{m.conta_nome}</span>
+                          : m.conta
+                            ? <span className={styles.contaBadge}>{m.conta}</span>
+                            : <span style={{ color: '#bbb' }}>—</span>
+                        }
+                      </td>
+                      <td style={{ fontSize: '0.78rem', color: '#555' }}>
+                        {m.categoria_grupo ? `${m.categoria_grupo} / ` : ''}{m.categoria_nome ?? '—'}
+                      </td>
+                      <td style={{ fontSize: '0.75rem', color: '#666' }}>
+                        {m.tipo_pagamento?.toUpperCase() ?? '—'}
+                      </td>
+                      <td>
+                        <span style={{
+                          fontSize: '0.72rem', fontWeight: 600, borderRadius: 4, padding: '2px 7px',
+                          background: m.status === 'realizado' ? '#d1fae5'
+                            : m.status === 'previsto'  ? '#dbeafe'
+                            : m.status === 'atrasado'  ? '#fee2e2'
+                            : m.status === 'negociado' ? '#fef9c3'
+                            : '#f3f4f6',
+                          color: m.status === 'realizado' ? '#065f46'
+                            : m.status === 'previsto'  ? '#1d4ed8'
+                            : m.status === 'atrasado'  ? '#991b1b'
+                            : m.status === 'negociado' ? '#92400e'
+                            : '#374151',
+                        }}>
+                          {m.status}
+                        </span>
+                      </td>
+                      <td className={styles.valorReceita}>
+                        {m.tipo === 'entrada' ? fmtBRL(m.valor, ocultarValores) : ''}
+                      </td>
+                      <td className={styles.valorDespesa}>
+                        {m.tipo === 'saida' ? fmtBRL(m.valor, ocultarValores) : ''}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <input type="checkbox" checked={m.conciliado}
+                          title={m.conciliado ? 'Conciliado — clique para desmarcar' : 'Marcar como conciliado'}
+                          onChange={() => conciliarMovimentacao(m.id, !m.conciliado)}
+                          style={{ cursor: 'pointer', accentColor: '#16a34a' }}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}

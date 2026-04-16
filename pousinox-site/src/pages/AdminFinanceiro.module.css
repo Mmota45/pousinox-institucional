@@ -451,7 +451,7 @@
 .pagoDia { font-size: 0.78rem; color: #16a34a; font-weight: 600; }
 
 /* ── Fluxo de caixa ────────────────────────────────────────────────────────── */
-.fluxoWrap { display: flex; flex-direction: column; gap: 20px; }
+.fluxoWrap { display: flex; flex-direction: column; gap: 16px; }
 
 .fluxoInfo {
   background: #f0f9ff;
@@ -460,6 +460,43 @@
   padding: 12px 16px;
   font-size: 0.85rem;
   color: #0369a1;
+}
+
+.fluxoCards {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.fluxoCard {
+  flex: 1;
+  min-width: 160px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fluxoCard span {
+  font-size: 0.78rem;
+  color: var(--color-text-light);
+}
+
+.fluxoCard strong {
+  font-size: 1.1rem;
+}
+
+.formFluxo {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .saldoExtrato {
