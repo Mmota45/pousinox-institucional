@@ -8,7 +8,7 @@ const WA_LINK =
 const provas = [
   {
     titulo: 'Laboratório independente',
-    desc: 'Ensaios realizados pelo LAMAT/SENAI Itaúna — laboratório acreditado e independente da Pousinox.',
+    desc: 'Ensaios realizados pelo LAMAT/SENAI — laboratório acreditado e independente da Pousinox.',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11m0 0a3 3 0 1 0 6 0m-6 0H3m12 0h6" />
@@ -48,8 +48,8 @@ export default function FixadorTestesLamat() {
   return (
     <>
       <SEO
-        title="Ensaios LAMAT/SENAI Itaúna — Fixador de Porcelanato Pousinox"
-        description="O Fixador de Porcelanato Pousinox tem resistência mecânica comprovada por ensaios realizados pelo LAMAT/SENAI Itaúna. Indicado para fachadas, grandes formatos e revestimentos profissionais."
+        title="Ensaios LAMAT/SENAI — Fixador de Porcelanato Pousinox"
+        description="O Fixador de Porcelanato Pousinox tem resistência mecânica comprovada por ensaios realizados pelo LAMAT/SENAI. Indicado para fachadas, grandes formatos e revestimentos profissionais."
         path="/fixador-porcelanato/testes-lamat"
       />
 
@@ -59,9 +59,9 @@ export default function FixadorTestesLamat() {
           <div className={styles.breadcrumb}>
             <Link to="/fixador-porcelanato">Fixador de Porcelanato</Link>
             <span>/</span>
-            <span>Ensaios LAMAT/SENAI Itaúna</span>
+            <span>Ensaios LAMAT/SENAI</span>
           </div>
-          <h1 className={styles.pageTitle}>Ensaios LAMAT/SENAI Itaúna</h1>
+          <h1 className={styles.pageTitle}>Ensaios LAMAT/SENAI</h1>
           <p className={styles.pageSubtitle}>
             Resultados laboratoriais independentes que comprovam a resistência mecânica do
             Fixador Pousinox em configurações aplicáveis a diferentes espessuras de porcelanato.
@@ -75,7 +75,7 @@ export default function FixadorTestesLamat() {
           <div className={styles.sectionHead}>
             <h2 className="section-title">O que os ensaios comprovam</h2>
             <p className="section-subtitle">
-              Os ensaios foram conduzidos pelo LAMAT/SENAI Itaúna, laboratório independente,
+              Os ensaios foram conduzidos pelo LAMAT/SENAI, laboratório independente,
               com metodologia documentada e resultados que fundamentam a especificação do
               produto em projetos técnicos.
             </p>
@@ -100,7 +100,7 @@ export default function FixadorTestesLamat() {
               <span className={styles.eyebrow}>Documentação técnica</span>
               <h2 className="section-title">Relatório técnico completo</h2>
               <p>
-                O relatório técnico completo LAMAT/SENAI Itaúna acompanha negócio fechado
+                O relatório técnico completo LAMAT/SENAI acompanha negócio fechado
                 e é disponibilizado em contexto técnico-comercial apropriado.
               </p>
               <p>
@@ -134,7 +134,7 @@ export default function FixadorTestesLamat() {
                   <polyline points="10 9 9 9 8 9" />
                 </svg>
                 <h3 className={styles.relatorioBoxTitulo}>
-                  Acesso ao relatório LAMAT/SENAI Itaúna
+                  Acesso ao relatório LAMAT/SENAI
                 </h3>
                 <p className={styles.relatorioBoxDesc}>
                   O relatório completo acompanha o negócio fechado. Solicite orçamento

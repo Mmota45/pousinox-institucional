@@ -275,7 +275,7 @@ export default function FixadorOrcamento() {
                   <li><strong>Comprimento:</strong> 120 mm</li>
                   <li><strong>Largura:</strong> 40 mm</li>
                   <li><strong>Fixação:</strong> Bucha Prego 6 × 38 mm</li>
-                  <li><strong>Ensaios:</strong> LAMAT/SENAI Itaúna</li>
+                  <li><strong>Ensaios:</strong> LAMAT/SENAI</li>
                   <li><strong>Entrega:</strong> Todo o Brasil</li>
                   <li><strong>Fabricante:</strong> Pousinox — Pouso Alegre, MG</li>
                 </ul>
@@ -285,7 +285,7 @@ export default function FixadorOrcamento() {
                 <h3 className={styles.sideTitle}>Links úteis</h3>
                 <div className={styles.sideLinks}>
                   <Link to="/fixador-porcelanato/ensaios" className={styles.sideLink}>
-                    Ensaios LAMAT/SENAI Itaúna
+                    Ensaios LAMAT/SENAI
                   </Link>
                   <Link to="/fixador-porcelanato/normas" className={styles.sideLink}>
                     Normas técnicas

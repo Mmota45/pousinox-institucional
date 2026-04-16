@@ -497,7 +497,7 @@ export default function Home() {
               <h2 className="section-title">Fixador de Porcelanato POUSINOX®</h2>
               <p>
                 Sistema de fixação mecânica em aço inox para fachadas, grandes formatos e
-                áreas externas. Aprovado em ensaios laboratoriais LAMAT/SENAI Itaúna —
+                áreas externas. Aprovado em ensaios laboratoriais LAMAT/SENAI —
                 a solução que construtoras e empreiteiras precisam para obras que durem décadas.
               </p>
               <ul className={styles.fixadorBullets}>
@@ -528,7 +528,7 @@ export default function Home() {
               <p className={styles.fixadorVisualTitle}>Desempenho comprovado</p>
               {[
                 { value: '100%', label: 'Aço inox AISI 304', divider: true },
-                { value: 'LAMAT', label: 'Ensaio laboratorial SENAI Itaúna', divider: true },
+                { value: 'LAMAT', label: 'Ensaio laboratorial SENAI', divider: true },
                 { value: '5–25mm', label: 'Espessuras compatíveis', divider: false },
               ].map(({ value, label, divider }) => (
                 <Fragment key={value}>

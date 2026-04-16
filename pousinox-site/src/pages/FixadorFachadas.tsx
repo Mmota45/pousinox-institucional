@@ -292,7 +292,7 @@ export default function FixadorFachadas() {
                 Solicitar Orçamento
               </Link>
               <Link to="/fixador-porcelanato/ensaios" className={styles.btnOutlineLight}>
-                Ver Ensaios LAMAT/SENAI Itaúna
+                Ver Ensaios LAMAT/SENAI
               </Link>
             </div>
           </div>

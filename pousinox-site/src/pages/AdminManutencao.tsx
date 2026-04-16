@@ -342,6 +342,13 @@ export default function AdminManutencao() {
     setOrdens(prev => prev.map(x => x.id === o.id ? { ...x, status: 'cancelada' } : x))
   }
 
+  async function excluirOrdem(e: React.MouseEvent, o: OrdemManutencao) {
+    e.stopPropagation()
+    if (!confirm(`Excluir ${o.numero} — ${o.titulo}? Esta ação não pode ser desfeita.`)) return
+    await supabaseAdmin.from('ordens_manutencao').delete().eq('id', o.id)
+    setOrdens(prev => prev.filter(x => x.id !== o.id))
+  }
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   const mostraNav   = vista === 'ativos' || vista === 'ordens'
@@ -586,6 +593,15 @@ export default function AdminManutencao() {
                         <td><span className={OM_STATUS_CLASS[o.status]}>{OM_STATUS_LABEL[o.status]}</span></td>
                         <td><span className={styles.data}>{fmtData(o.data_programada)}</span></td>
                         <td><span style={{ fontSize: '0.85rem' }}>{o.responsavel ?? '—'}</span></td>
+                        <td onClick={e => e.stopPropagation()}>
+                          <button
+                            onClick={e => excluirOrdem(e, o)}
+                            title="Excluir ordem"
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: '0.85rem', padding: '2px 6px', borderRadius: 4 }}
+                            onMouseEnter={e => (e.currentTarget.style.color = '#dc2626', e.currentTarget.style.background = '#fee2e2')}
+                            onMouseLeave={e => (e.currentTarget.style.color = '#d1d5db', e.currentTarget.style.background = 'none')}
+                          >✕</button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

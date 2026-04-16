@@ -45,6 +45,12 @@ Rotas `/admin/*` com layout próprio (`AdminLayout`). Todos os módulos usam `su
 - Permissões ficam salvas em `admin_perfis.permissoes` (array text[]) por usuário
 - **Atenção:** ao adicionar nova permissão, usar `UPDATE admin_perfis SET permissoes = permissoes || '{nova-permissao}';`
 
+### Componentes reutilizáveis
+
+- `SearchableSelect` — dropdown com busca, highlight, fecha ao clicar fora, botão ✕ limpar. Props: `value, onChange, options, placeholder, searchPlaceholder, minWidth`
+- `SeloValidacao` — badge shield SVG "Validado em ensaio técnico". Props: `descricao` (default "Ensaios técnicos LAMAT · SENAI"). Usado na hero de `/fixador-porcelanato`
+- `WatermarkPdf` — modal para envio controlado de PDF com marca d'água diagonal CONFIDENCIAL + UUID; grava em `docs_enviados` (Supabase). Table: `docs_enviados` (id UUID, watermark_id UUID, tipo_doc, empresa, contato, email, observacao, enviado_por, criado_em). Migration: `20260415_docs_enviados.sql`
+
 ### Padrões de implementação
 
 - **Vista pattern**: `type Vista` para alternar entre lista/form/detalhe dentro de uma página (sem nova rota)
@@ -93,6 +99,7 @@ Rotas `/admin/*` com layout próprio (`AdminLayout`). Todos os módulos usam `su
 | `/admin/conciliacao` | `AdminConciliacao` | Financeiro | ✅ multi-critério, 9 categorias |
 | `/admin/relatorios` | `AdminRelatorios` | Relatórios | ✅ |
 | `/admin/usuarios` | `AdminUsuarios` | Configuração | ✅ |
+| `/admin/estudo-mercado` | `AdminEstudoMercado` | Comercial | ✅ cruzamento interno×externo, import GKP, score por UF — ver abaixo |
 
 ---
 
@@ -317,6 +324,36 @@ Botão 🔍 (azul) na coluna Ações abre drawer lateral com:
 - Aba **Importar NFs**: CSVs NFSTok → upsert em `nf_cabecalho` + `nf_itens` → consolidação em `clientes` → cruzamento com `prospeccao`
 - Aba **Clientes**: tabela com busca, ordenação, campos RFM
 - Aba **RFM**: segmentação via RPC `fn_calcular_rfm()`. Cron diário às 3h. Migration: `supabase/migrations/20260414_rfm_cron.sql`
+
+---
+
+## Módulo AdminEstudoMercado (src/pages/AdminEstudoMercado.tsx)
+
+Inteligência de mercado — cruzamento entre histórico interno (NFs + clientes) e demanda de busca regional.
+
+### Abas
+- **Visão Geral** — KPIs (faturamento, clientes, UFs atendidas, volume de busca), matriz de quadrantes (validado/oportunidade/relacionamento/baixa), resumo executivo dinâmico, gráficos por UF e segmento
+- **Busca Regional** — tabela de keywords internas com busca, ordenação, badge de intenção, barra de volume; formulário inline para cadastro manual
+- **Oportunidades Externas** — import de Google Keyword Planner (CSV tab-separated) ou CSV estendido; score por UF (volume × tendência × gap de presença); tabela de termos com ordenação em todas as colunas
+- **Cruzamento** — matriz UF×segmento cruzando vendas internas e volume de busca externo; quadrante por threshold 0.5
+- **Recomendações** — lista priorizada por quadrante com keywords e ações sugeridas
+
+### Tabelas Supabase
+- `market_keywords` — camada: `interna|externa`, campos: uf, mesorregiao, cluster, segmento, familia_produto, volume_mensal, intencao, fonte, trend_score, variacao_3m, variacao_yoy, competicao, cpc_max, ativo
+- Migrations: `20260415_market_keywords.sql` + `20260415_market_keywords_externa.sql`
+
+### Import Google KP
+- Detecta delimitador automaticamente: `\t` (GKP), `;` (PT-BR) ou `,` (padrão)
+- Header GKP buscado até linha 20 (ignora metadados); header estendido detectado por `termo` + `volume_mensal` na linha 0
+- Colunas GKP mapeadas: Keyword→termo, Avg. monthly searches→volume, Mudança em três meses→var_3m, Mudança YoY→var_yoy, Competition→competicao, Competition (indexed value)→trend_score
+- Competition PT-BR: "Alto/Alta"→alta, "Baixo/Baixa"→baixa, "Médio/Média"→media
+- **UF do import**: dropdown obrigatório antes de importar — todos os termos recebem a UF selecionada (reimportar por UF para cobrir múltiplos estados)
+
+### Componente reutilizável
+`src/components/SearchableSelect/SearchableSelect.tsx` — dropdown com busca, highlight na seleção, fecha ao clicar fora, botão ✕ para limpar. Usado em todos os filtros do módulo e disponível para outros módulos.
+
+### Dados de exemplo
+`public/keywords-externas-pousinox.csv` — 60 keywords no formato estendido cobrindo MG/SP/RJ/PR/SC/RS.
 
 ---
 

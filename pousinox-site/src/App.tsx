@@ -28,6 +28,7 @@ import AdminUsuarios from './pages/AdminUsuarios'
 import AdminConteudo from './pages/AdminConteudo'
 import AdminAnalytics from './pages/AdminAnalytics'
 import AdminProspeccao from './pages/AdminProspeccao'
+import AdminEstudoMercado from './pages/AdminEstudoMercado'
 import AdminCobertura from './pages/AdminCobertura'
 import AdminFunil from './pages/AdminFunil'
 import AdminLeads from './pages/AdminLeads'
@@ -131,6 +132,7 @@ function App() {
             <Route path="prospeccao" element={<AdminProspeccao />} />
             <Route path="cobertura" element={<AdminCobertura />} />
             <Route path="funil" element={<AdminFunil />} />
+            <Route path="estudo-mercado" element={<AdminEstudoMercado />} />
             <Route path="leads" element={<AdminLeads />} />
             <Route path="clientes" element={<AdminClientes />} />
             <Route path="produtos" element={<AdminProdutos />} />

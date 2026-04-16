@@ -68,7 +68,7 @@ export default function Header() {
             Fachadas e Grandes Formatos
           </Link>
           <Link to="/fixador-porcelanato/ensaios" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
-            Ensaios LAMAT/SENAI Itaúna
+            Ensaios LAMAT/SENAI
           </Link>
           <Link to="/fixador-porcelanato/normas" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
             Normas Técnicas

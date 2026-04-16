@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import fachadaPousinox from '../assets/fachada-pousinox.webp'
 import SEO from '../components/SEO/SEO'
+import SeloValidacao from '../components/SeloValidacao/SeloValidacao'
 import styles from './FixadorPorcelanato.module.css'
 
 const PRODUCT_SCHEMA = {
   '@context': 'https://schema.org',
   '@type': 'Product',
   name: 'Fixador de Porcelanato em Aço Inox',
-  description: 'Sistema de ancoragem mecânica em aço inoxidável para fixação complementar de porcelanatos, cerâmicas e revestimentos de grande formato em paredes e fachadas. Resistência comprovada por ensaios LAMAT/SENAI Itaúna.',
+  description: 'Sistema de ancoragem mecânica em aço inoxidável para fixação complementar de porcelanatos, cerâmicas e revestimentos de grande formato em paredes e fachadas. Resistência comprovada por ensaios LAMAT/SENAI.',
   url: 'https://pousinox.com.br/fixador-porcelanato',
   image: 'https://pousinox.com.br/fixador-porcelanato.png',
   brand: {
@@ -35,7 +36,7 @@ const PRODUCT_SCHEMA = {
     { '@type': 'PropertyValue', name: 'Largura', value: '40 mm' },
     { '@type': 'PropertyValue', name: 'Sistema de Fixação', value: 'Bucha Prego 6 × 38 mm' },
     { '@type': 'PropertyValue', name: 'Normas de Referência', value: 'ABNT NBR 13754 / NBR 14081' },
-    { '@type': 'PropertyValue', name: 'Ensaios', value: 'LAMAT/SENAI Itaúna' },
+    { '@type': 'PropertyValue', name: 'Ensaios', value: 'LAMAT/SENAI' },
   ],
   offers: {
     '@type': 'Offer',
@@ -54,7 +55,7 @@ const WA_LINK =
 
 const stats = [
   { value: '25+', label: 'Anos fabricando em aço inox' },
-  { value: 'LAMAT', label: 'Resistência comprovada por laboratório independente' },
+  { value: '2 formatos', label: 'Abertura 5 mm e 11 mm — espessuras de 5 a 14 mm' },
   { value: '100%', label: 'Fabricação própria — Pouso Alegre MG' },
 ]
 
@@ -128,7 +129,7 @@ const compat = [
 const empreiteiras = [
   {
     title: 'Documentação técnica completa',
-    desc: 'Relatório LAMAT/SENAI Itaúna e ficha técnica para composição de memorial descritivo, laudos e projetos executivos.',
+    desc: 'Relatório LAMAT/SENAI e ficha técnica para composição de memorial descritivo, laudos e projetos executivos.',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" />
@@ -179,7 +180,7 @@ const faqs = [
   },
   {
     q: 'Qual a diferença entre abertura 5 mm e 11 mm?',
-    a: 'As aberturas correspondem à espessura da placa cerâmica. A abertura 5 mm é indicada para placas entre 5 e 8 mm; a abertura 11 mm para placas de 9 a 14 mm. Ambas as configurações foram avaliadas nos ensaios LAMAT/SENAI Itaúna.',
+    a: 'As aberturas correspondem à espessura da placa cerâmica. A abertura 5 mm é indicada para placas entre 5 e 8 mm; a abertura 11 mm para placas de 9 a 14 mm. Ambas as configurações foram avaliadas nos ensaios LAMAT/SENAI.',
   },
   {
     q: 'O fixador aparece após a instalação?',
@@ -204,7 +205,7 @@ const subpages = [
   },
   {
     href: '/fixador-porcelanato/ensaios',
-    title: 'Ensaios LAMAT/SENAI Itaúna',
+    title: 'Ensaios LAMAT/SENAI',
     desc: 'Resistência mecânica comprovada por laboratório independente em configurações aplicáveis a diferentes espessuras de porcelanato.',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -241,7 +242,7 @@ export default function FixadorPorcelanato() {
     <>
       <SEO
         title="Fixador de Porcelanato em Aço Inox — Linha Especializada Pousinox"
-        description="Fixador mecânico de porcelanato em aço inoxidável, fabricado pela Pousinox em Pouso Alegre, MG. Resistência comprovada por ensaios LAMAT/SENAI Itaúna. Ancoragem complementar para fachadas, grandes formatos e revestimentos especiais."
+        description="Fixador mecânico de porcelanato em aço inoxidável, fabricado pela Pousinox em Pouso Alegre, MG. Resistência comprovada por ensaios LAMAT/SENAI. Ancoragem complementar para fachadas, grandes formatos e revestimentos especiais."
         path="/fixador-porcelanato"
       />
       <Helmet>
@@ -258,15 +259,16 @@ export default function FixadorPorcelanato() {
         <div className={styles.heroOverlay} />
         <div className={`container ${styles.heroInner}`}>
           <div className={styles.heroContent}>
-            <span className={styles.heroEyebrow}>Linha especializada · Pousinox</span>
+            <span className={styles.heroEyebrow}>Reforço mecânico · Pousinox</span>
             <h1 className={styles.heroTitle}>
               Fixador de<br />Porcelanato<br />
               <span className={styles.heroHighlight}>em Aço Inox</span>
             </h1>
+            <SeloValidacao />
             <p className={styles.heroSubtitle}>
-              Ancoragem mecânica complementar para instalação segura de porcelanatos,
-              cerâmicas e revestimentos de grande formato em paredes e fachadas.
-              Para empreiteiras, construtoras e especificadores em todo o Brasil.
+              Reforço mecânico obrigatório para porcelanatos de grande formato,
+              fachadas externas e revestimentos especiais. Quando a argamassa cede,
+              o fixador mantém a placa no lugar — evitando quedas e acidentes.
             </p>
             <div className={styles.heroCta}>
               <Link to="/fixador-porcelanato/orcamento" className="btn-primary">
@@ -318,8 +320,9 @@ export default function FixadorPorcelanato() {
                 Quando a aderência cede, a queda é abrupta — e pode causar acidentes graves.
               </p>
               <p>
-                O Fixador de Porcelanato Pousinox atua como ancoragem mecânica complementar:
-                mesmo que a argamassa perca aderência, o fixador mantém a placa no lugar,
+                O Fixador de Porcelanato Pousinox é o reforço mecânico que garante
+                a retenção da placa independente da argamassa: mesmo que ela perca
+                aderência ao longo do tempo, o fixador mantém a placa no lugar —
                 eliminando o risco de desprendimento.
               </p>
               <div className={styles.introBullets}>
@@ -424,7 +427,7 @@ export default function FixadorPorcelanato() {
             <h2 className="section-title">Espessuras e formatos compatíveis</h2>
             <p className="section-subtitle">
               O fixador está disponível em duas aberturas para atender diferentes
-              espessuras de placa. Ambas foram avaliadas nos ensaios LAMAT/SENAI Itaúna.
+              espessuras de placa. Ambas foram avaliadas nos ensaios LAMAT/SENAI.
             </p>
           </div>
           <div className={styles.compatGrid}>
@@ -446,11 +449,11 @@ export default function FixadorPorcelanato() {
               <span className={styles.eyebrowLight}>Prova técnica independente</span>
               <h2 className={styles.lamatTitle}>
                 Resistência mecânica comprovada pelo{' '}
-                <strong>LAMAT/SENAI Itaúna</strong>
+                <strong>LAMAT/SENAI</strong>
               </h2>
               <p className={styles.lamatDesc}>
                 O Fixador Pousinox foi submetido a ensaios de resistência mecânica pelo
-                LAMAT/SENAI Itaúna, laboratório independente. Os ensaios avaliaram diferentes
+                LAMAT/SENAI, laboratório independente. Os ensaios avaliaram diferentes
                 configurações de abertura — compatíveis com diversas espessuras de porcelanato
                 — e comprovam a eficácia do produto em aplicações profissionais de fachada
                 e revestimento.
