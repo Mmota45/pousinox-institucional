@@ -501,8 +501,8 @@ export default function AdminFinanceiro() {
     const { data: movs } = await supabaseAdmin
       .from('fin_movimentacoes')
       .select('tipo, valor')
-      .gte('data_movimentacao', dataIni)
-      .lte('data_movimentacao', dataFim)
+      .gte('data', dataIni)
+      .lte('data', dataFim)
 
     // Previsto: fin_lancamentos pendente + vencimento futuro no período
     const { data: previstos } = await supabaseAdmin
