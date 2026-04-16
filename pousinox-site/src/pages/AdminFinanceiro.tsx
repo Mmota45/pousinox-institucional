@@ -111,7 +111,7 @@ const RFM_SEGMENTO_CONFIG: Record<string, { label: string; css: string; acao: st
   Inativo:    { label: 'Inativo',    css: 'rfmInativo',    acao: 'Cobrança direta'                         },
 }
 
-type Aba = 'painel' | 'lancamentos' | 'recebiveis' | 'fluxo' | 'budget' | 'dre' | 'configuracao'
+type Aba = 'painel' | 'lancamentos' | 'fluxo'
 
 interface DreGrupo {
   grupo: string
@@ -847,13 +847,9 @@ export default function AdminFinanceiro() {
       {/* Abas */}
       <div className={styles.abas}>
         {([
-          { key: 'painel',       label: '📊 Painel'          },
-          { key: 'lancamentos',  label: '📋 Lançamentos'     },
-          { key: 'recebiveis',   label: '⏰ Recebíveis'      },
-          { key: 'fluxo',        label: '💰 Fluxo de Caixa'  },
-          { key: 'budget',       label: '🎯 Budget'           },
-          { key: 'dre',          label: '📈 DRE'              },
-          { key: 'configuracao', label: '⚙️ Configuração'    },
+          { key: 'painel',      label: '📊 Painel'         },
+          { key: 'lancamentos', label: '📋 Lançamentos'    },
+          { key: 'fluxo',       label: '💰 Fluxo de Caixa' },
         ] as { key: Aba; label: string }[]).map(a => (
           <button key={a.key}
             className={`${styles.aba} ${aba === a.key ? styles.abaAtiva : ''}`}
@@ -861,6 +857,8 @@ export default function AdminFinanceiro() {
             {a.label}
           </button>
         ))}
+        <a href="/admin/relatorios" className={styles.aba} style={{ textDecoration: 'none' }}>🎯 Budget / DRE</a>
+        <a href="/admin/configuracao-financeiro" className={styles.aba} style={{ textDecoration: 'none' }}>⚙️ Categorias</a>
       </div>
 
       {/* ══ PAINEL ══════════════════════════════════════════════════════════ */}
@@ -926,7 +924,7 @@ export default function AdminFinanceiro() {
             <div>
               <div className={styles.secaoTitulo}>
                 Recebíveis em aberto
-                <button className={styles.btnLinkSmall} onClick={() => setAba('recebiveis')}>
+                <button className={styles.btnLinkSmall} onClick={() => setAba('lancamentos')}>
                   Ver todos →
                 </button>
               </div>
@@ -937,7 +935,7 @@ export default function AdminFinanceiro() {
                   return (
                     <div key={faixa}
                       className={`${styles.agingCard} ${faixa !== 'a_vencer' ? styles.agingCardVencido : ''}`}
-                      onClick={() => { setFiltroFaixa(faixa); setAba('recebiveis') }}>
+                      onClick={() => { setFiltroFaixa(faixa); setAba('lancamentos') }}>
                       <span className={styles.agingFaixa}>{FAIXA_LABELS[faixa]}</span>
                       <strong className={styles.agingTotal}>{fmtBRL(item.total, ocultarValores)}</strong>
                       <span className={styles.agingQtd}>{item.quantidade} título{item.quantidade !== 1 ? 's' : ''}</span>
@@ -1280,8 +1278,8 @@ export default function AdminFinanceiro() {
         </div>
       )}
 
-      {/* ══ RECEBÍVEIS ══════════════════════════════════════════════════════ */}
-      {aba === 'recebiveis' && (
+      {/* ══ RECEBÍVEIS (removido — ver Lançamentos) ══ */}
+      {false && (
         <div className={styles.lancWrap}>
 
           {/* Filtros */}
@@ -1697,8 +1695,8 @@ export default function AdminFinanceiro() {
         </div>
       )}
 
-      {/* ══ BUDGET ══════════════════════════════════════════════════════════ */}
-      {aba === 'budget' && (() => {
+      {/* ══ BUDGET (removido — ver Relatórios) ══ */}
+      {false && (() => {
         const catsSemBudget = categorias.filter(c =>
           c.tipo === 'despesa' && !budgetItens.find(b => b.categoria_id === c.id)
         )
@@ -1858,8 +1856,8 @@ export default function AdminFinanceiro() {
         )
       })()}
 
-      {/* ══ DRE ══════════════════════════════════════════════════════════════ */}
-      {aba === 'dre' && (() => {
+      {/* ══ DRE (removido — ver Relatórios) ══ */}
+      {false && (() => {
         const fmtR = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
         const receitas = dreGrupos.filter(g => g.tipo === 'receita')
         const despesas = dreGrupos.filter(g => g.tipo === 'despesa')
@@ -1967,8 +1965,8 @@ export default function AdminFinanceiro() {
         )
       })()}
 
-      {/* ══ CONFIGURAÇÃO ════════════════════════════════════════════════════ */}
-      {aba === 'configuracao' && (
+      {/* ══ CONFIGURAÇÃO (removido — ver /admin/configuracao-financeiro) ══ */}
+      {false && (
         <div className={styles.configWrap}>
 
           {/* Categorias */}

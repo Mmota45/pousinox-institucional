@@ -53,6 +53,7 @@ import AdminCotacoesCompra from './pages/AdminCotacoesCompra'
 import AdminPedidosCompra from './pages/AdminPedidosCompra'
 import AdminRecebimentosCompra from './pages/AdminRecebimentosCompra'
 import AdminBensFrota from './pages/AdminBensFrota'
+import AdminConfiguracaoFinanceiro from './pages/AdminConfiguracaoFinanceiro'
 
 const WA_LINK = 'https://wa.me/553534238994?text=Olá%2C%20gostaria%20de%20solicitar%20um%20orçamento.'
 
@@ -124,6 +125,7 @@ function App() {
             <Route path="estoque" element={<AdminEstoque />} />
             <Route path="vendas" element={<AdminVendas />} />
             <Route path="relatorios" element={<AdminRelatorios />} />
+            <Route path="configuracao-financeiro" element={<AdminConfiguracaoFinanceiro />} />
             <Route path="analise-nf" element={<AdminAnaliseNF />} />
             <Route path="orcamento" element={<AdminOrcamento />} />
             <Route path="usuarios" element={<AdminUsuarios />} />
