@@ -1420,7 +1420,7 @@ export default function AdminFinanceiro() {
         <div className={styles.fluxoWrap}>
 
           {/* ── Toolbar ── */}
-          <div className={styles.toolbar}>
+          <div className={styles.fluxoToolbar}>
             <select className={styles.filtro} value={filtroFluxoMes}
               onChange={e => setFiltroFluxoMes(e.target.value)}>
               {Array.from({ length: 13 }, (_, i) => {
@@ -1460,8 +1460,9 @@ export default function AdminFinanceiro() {
               <option value="conciliado">✓ Conciliado</option>
             </select>
 
-            <button className={styles.btnFiltrar} onClick={carregarMovimentacoes}>Filtrar</button>
-            <button className={styles.btnNovo} onClick={() => setMostrarFormFluxo(f => !f)}>
+            <button className={styles.btnSecondary} onClick={carregarMovimentacoes}>Aplicar</button>
+            <div className={styles.fluxoToolbarSpacer} />
+            <button className={styles.btnPrimary} onClick={() => setMostrarFormFluxo(f => !f)}>
               {mostrarFormFluxo ? '✕ Cancelar' : '+ Registrar'}
             </button>
           </div>
@@ -1469,6 +1470,7 @@ export default function AdminFinanceiro() {
           {/* ── Formulário de registro ── */}
           {mostrarFormFluxo && (
             <div className={styles.formFluxo}>
+              <div className={styles.formFluxoTitulo}>Nova movimentação</div>
               <div className={styles.formGrid}>
                 <div className={styles.field}>
                   <label>Tipo</label>
@@ -1581,25 +1583,29 @@ export default function AdminFinanceiro() {
               s + (m.tipo === 'entrada' ? m.valor : -m.valor), 0)
             return (
               <div className={styles.fluxoCards}>
-                <div className={styles.fluxoCard}>
-                  <span>Entradas realizadas</span>
-                  <strong className={styles.saldoPos}>{fmtBRL(entradas, ocultarValores)}</strong>
+                <div className={`${styles.fluxoCard} ${styles.fluxoCardEntrada}`}>
+                  <span className={styles.fluxoCardLabel}>Entradas realizadas</span>
+                  <span className={`${styles.fluxoCardVal} ${styles.fluxoCardValPos}`}>{fmtBRL(entradas, ocultarValores)}</span>
+                  <span className={styles.fluxoCardSub}>no período</span>
                 </div>
-                <div className={styles.fluxoCard}>
-                  <span>Saídas realizadas</span>
-                  <strong className={styles.saldoNeg}>{fmtBRL(saidas, ocultarValores)}</strong>
+                <div className={`${styles.fluxoCard} ${styles.fluxoCardSaida}`}>
+                  <span className={styles.fluxoCardLabel}>Saídas realizadas</span>
+                  <span className={`${styles.fluxoCardVal} ${styles.fluxoCardValNeg}`}>{fmtBRL(saidas, ocultarValores)}</span>
+                  <span className={styles.fluxoCardSub}>no período</span>
                 </div>
-                <div className={styles.fluxoCard}>
-                  <span>Saldo realizado</span>
-                  <strong className={(entradas - saidas) >= 0 ? styles.saldoPos : styles.saldoNeg}>
+                <div className={`${styles.fluxoCard} ${styles.fluxoCardSaldo}`}>
+                  <span className={styles.fluxoCardLabel}>Saldo realizado</span>
+                  <span className={`${styles.fluxoCardVal} ${(entradas - saidas) >= 0 ? styles.fluxoCardValPos : styles.fluxoCardValNeg}`}>
                     {fmtBRL(entradas - saidas, ocultarValores)}
-                  </strong>
+                  </span>
+                  <span className={styles.fluxoCardSub}>entradas − saídas</span>
                 </div>
-                <div className={styles.fluxoCard}>
-                  <span>Saldo projetado</span>
-                  <strong className={(entradas - saidas + previsto) >= 0 ? styles.saldoPos : styles.saldoNeg}>
+                <div className={`${styles.fluxoCard} ${styles.fluxoCardProj}`}>
+                  <span className={styles.fluxoCardLabel}>Saldo projetado</span>
+                  <span className={`${styles.fluxoCardVal} ${(entradas - saidas + previsto) >= 0 ? styles.fluxoCardValPos : styles.fluxoCardValNeg}`}>
                     {fmtBRL(entradas - saidas + previsto, ocultarValores)}
-                  </strong>
+                  </span>
+                  <span className={styles.fluxoCardSub}>inclui previstos</span>
                 </div>
               </div>
             )
@@ -1610,7 +1616,7 @@ export default function AdminFinanceiro() {
             <div className={styles.vazio}>Nenhuma movimentação encontrada para os filtros selecionados.</div>
           ) : (
             <div className={styles.tableScroll}>
-              <table className={styles.tabela}>
+              <table className={styles.tabelaFluxo}>
                 <thead>
                   <tr>
                     <th>Data</th>
@@ -1620,9 +1626,9 @@ export default function AdminFinanceiro() {
                     <th>Categoria</th>
                     <th>Pgto</th>
                     <th>Status</th>
-                    <th>Entrada</th>
-                    <th>Saída</th>
-                    <th>✓</th>
+                    <th style={{ textAlign: 'right' }}>Entrada</th>
+                    <th style={{ textAlign: 'right' }}>Saída</th>
+                    <th style={{ textAlign: 'center' }}>✓</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1632,13 +1638,13 @@ export default function AdminFinanceiro() {
                       <td className={styles.descCell}>
                         {m.descricao ?? '—'}
                         {m.documento_ref && (
-                          <span style={{ fontSize: '0.72rem', color: '#888', marginLeft: 6 }}>
+                          <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 2 }}>
                             {m.documento_ref}
-                          </span>
+                          </div>
                         )}
                       </td>
                       <td>
-                        <span style={{ fontSize: '0.75rem', background: '#f0f4ff', borderRadius: 4, padding: '2px 6px' }}>
+                        <span className={styles.contaBadge} style={{ textTransform: 'lowercase', background: '#eff6ff', color: '#1d4ed8' }}>
                           {m.negocio ?? '—'}
                         </span>
                       </td>
@@ -1647,43 +1653,44 @@ export default function AdminFinanceiro() {
                           ? <span className={styles.contaBadge}>{m.conta_nome}</span>
                           : m.conta
                             ? <span className={styles.contaBadge}>{m.conta}</span>
-                            : <span style={{ color: '#bbb' }}>—</span>
+                            : <span style={{ color: '#d1d5db' }}>—</span>
                         }
                       </td>
-                      <td style={{ fontSize: '0.78rem', color: '#555' }}>
-                        {m.categoria_grupo ? `${m.categoria_grupo} / ` : ''}{m.categoria_nome ?? '—'}
+                      <td style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                        {m.categoria_grupo
+                          ? <><span style={{ color: '#94a3b8' }}>{m.categoria_grupo} /</span> {m.categoria_nome}</>
+                          : (m.categoria_nome ?? <span style={{ color: '#d1d5db' }}>—</span>)
+                        }
                       </td>
-                      <td style={{ fontSize: '0.75rem', color: '#666' }}>
-                        {m.tipo_pagamento?.toUpperCase() ?? '—'}
+                      <td style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600, letterSpacing: '0.03em' }}>
+                        {m.tipo_pagamento?.toUpperCase() ?? <span style={{ color: '#d1d5db' }}>—</span>}
                       </td>
                       <td>
-                        <span style={{
-                          fontSize: '0.72rem', fontWeight: 600, borderRadius: 4, padding: '2px 7px',
-                          background: m.status === 'realizado' ? '#d1fae5'
-                            : m.status === 'previsto'  ? '#dbeafe'
-                            : m.status === 'atrasado'  ? '#fee2e2'
-                            : m.status === 'negociado' ? '#fef9c3'
-                            : '#f3f4f6',
-                          color: m.status === 'realizado' ? '#065f46'
-                            : m.status === 'previsto'  ? '#1d4ed8'
-                            : m.status === 'atrasado'  ? '#991b1b'
-                            : m.status === 'negociado' ? '#92400e'
-                            : '#374151',
-                        }}>
-                          {m.status}
+                        <span className={
+                          m.status === 'realizado' ? styles.badgeRealizado
+                          : m.status === 'previsto'  ? styles.badgePrevisto
+                          : m.status === 'atrasado'  ? styles.badgeAtrasado
+                          : m.status === 'negociado' ? styles.badgeNegociado
+                          : styles.badgeCancelado2
+                        }>
+                          {m.status === 'realizado' ? '✓ realizado'
+                            : m.status === 'previsto'  ? '◷ previsto'
+                            : m.status === 'atrasado'  ? '⚠ atrasado'
+                            : m.status === 'negociado' ? '↻ negociado'
+                            : m.status}
                         </span>
                       </td>
-                      <td className={styles.valorReceita}>
+                      <td className={styles.valorReceita} style={{ textAlign: 'right' }}>
                         {m.tipo === 'entrada' ? fmtBRL(m.valor, ocultarValores) : ''}
                       </td>
-                      <td className={styles.valorDespesa}>
+                      <td className={styles.valorDespesa} style={{ textAlign: 'right' }}>
                         {m.tipo === 'saida' ? fmtBRL(m.valor, ocultarValores) : ''}
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <input type="checkbox" checked={m.conciliado}
                           title={m.conciliado ? 'Conciliado — clique para desmarcar' : 'Marcar como conciliado'}
                           onChange={() => conciliarMovimentacao(m.id, !m.conciliado)}
-                          style={{ cursor: 'pointer', accentColor: '#16a34a' }}
+                          style={{ cursor: 'pointer', accentColor: '#16a34a', width: 16, height: 16 }}
                         />
                       </td>
                     </tr>

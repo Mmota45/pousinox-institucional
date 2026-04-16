@@ -451,7 +451,7 @@
 .pagoDia { font-size: 0.78rem; color: #16a34a; font-weight: 600; }
 
 /* ── Fluxo de caixa ────────────────────────────────────────────────────────── */
-.fluxoWrap { display: flex; flex-direction: column; gap: 16px; }
+.fluxoWrap { display: flex; flex-direction: column; gap: 20px; }
 
 .fluxoInfo {
   background: #f0f9ff;
@@ -462,41 +462,87 @@
   color: #0369a1;
 }
 
-.fluxoCards {
+/* toolbar do fluxo: filtros à esquerda, botão à direita */
+.fluxoToolbar {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+}
+.fluxoToolbar .filtro {
+  padding: 7px 11px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 0.84rem;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: #f9fafb;
+  cursor: pointer;
+}
+.fluxoToolbar .filtro:focus { outline: none; border-color: var(--color-primary); background: #fff; }
+.fluxoToolbarSpacer { flex: 1; }
+
+/* cards KPI executivos */
+.fluxoCards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
 }
 
 .fluxoCard {
-  flex: 1;
-  min-width: 160px;
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: var(--radius);
-  padding: 14px 18px;
+  border-top: 3px solid #e5e7eb;
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
+.fluxoCardEntrada { border-top-color: #16a34a; }
+.fluxoCardSaida   { border-top-color: #dc2626; }
+.fluxoCardSaldo   { border-top-color: #2563eb; }
+.fluxoCardProj    { border-top-color: #7c3aed; }
 
-.fluxoCard span {
-  font-size: 0.78rem;
+.fluxoCardLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
   color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
 }
-
-.fluxoCard strong {
-  font-size: 1.1rem;
+.fluxoCardVal {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--color-heading);
+  line-height: 1.1;
+}
+.fluxoCardValPos { color: #16a34a; }
+.fluxoCardValNeg { color: #dc2626; }
+.fluxoCardSub {
+  font-size: 0.76rem;
+  color: var(--color-text-light);
 }
 
 .formFluxo {
   background: #f8fafc;
   border: 1px dashed #cbd5e1;
-  border-radius: var(--radius);
-  padding: 16px;
+  border-radius: var(--radius-lg);
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+}
+.formFluxoTitulo {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .saldoExtrato {
@@ -513,6 +559,50 @@
 }
 .saldoPos { color: #16a34a; font-size: 1.1rem; }
 .saldoNeg { color: #dc2626; font-size: 1.1rem; }
+
+/* badges de status — pill design */
+.badgeRealizado  { display: inline-flex; align-items: center; gap: 4px; background: #dcfce7; color: #166534; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.badgePrevisto   { display: inline-flex; align-items: center; gap: 4px; background: #dbeafe; color: #1e40af; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.badgeAtrasado   { display: inline-flex; align-items: center; gap: 4px; background: #fee2e2; color: #991b1b; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.badgeNegociado  { display: inline-flex; align-items: center; gap: 4px; background: #fef9c3; color: #854d0e; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.badgeCancelado2 { display: inline-flex; align-items: center; gap: 4px; background: #f3f4f6; color: #6b7280; font-size: 0.72rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+
+/* zebra na tabela do fluxo */
+.tabelaFluxo {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.87rem;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  min-width: 800px;
+}
+.tabelaFluxo th {
+  background: #f8fafc;
+  padding: 11px 14px;
+  text-align: left;
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+.tabelaFluxo td {
+  padding: 11px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: var(--color-text);
+  vertical-align: middle;
+}
+.tabelaFluxo tr:last-child td { border-bottom: none; }
+.tabelaFluxo tbody tr:nth-child(even) td { background: #fafbfc; }
+.tabelaFluxo tbody tr:hover td { background: #f0f4ff; }
+
+@media (max-width: 900px) {
+  .fluxoCards { grid-template-columns: repeat(2, 1fr); }
+}
 
 /* ── Configuração (categorias / centros) ───────────────────────────────────── */
 .configWrap { display: flex; flex-direction: column; gap: 28px; }
