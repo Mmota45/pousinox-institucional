@@ -44,7 +44,7 @@ interface ProdutoResult {
 }
 
 interface OutletResult {
-  id: number; titulo: string; preco: number; quantidade: number; exibir_preco: boolean; fotos: string[] | null
+  id: number; titulo: string; preco: number; preco_original: number | null; quantidade: number; exibir_preco: boolean; fotos: string[] | null
 }
 
 interface ClienteResult {
@@ -148,6 +148,7 @@ export default function AdminOrcamento() {
   const [anexos, setAnexos]         = useState<Anexo[]>([])
   const [uploadandoAnexo, setUploadandoAnexo] = useState(false)
   const [historico, setHistorico]   = useState<HistoricoItem[]>([])
+  const [previewFullscreen, setPreviewFullscreen] = useState(false)
   const [salvando, setSalvando]     = useState(false)
   const [gerandoRec, setGerandoRec] = useState(false)
   const [msg, setMsg]               = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
@@ -253,7 +254,7 @@ export default function AdminOrcamento() {
     const t = setTimeout(async () => {
       setLoadingOutlet(true)
       const { data } = await supabaseAdmin
-        .from('produtos').select('id, titulo, preco, quantidade, exibir_preco, fotos')
+        .from('produtos').select('id, titulo, preco, preco_original, quantidade, exibir_preco, fotos')
         .ilike('titulo', `%${buscaOutlet}%`).eq('disponivel', true).limit(8)
       setResultadosOutlet((data ?? []) as OutletResult[])
       setLoadingOutlet(false)
@@ -448,7 +449,14 @@ export default function AdminOrcamento() {
     setBuscaProduto(''); setResultadosProduto([]); setShowBuscaProduto(false)
   }
   function adicionarOutlet(p: OutletResult) {
-    setItens(prev => [...prev, { produto_id: p.id, descricao: p.titulo, qtd: '1', unidade: 'UN', valorUnit: p.exibir_preco ? String(p.preco) : '' }])
+    // Preço sempre visível no orçamento independente de exibir_preco
+    const precoBase = p.preco_original && p.preco_original > p.preco ? p.preco_original : p.preco
+    setItens(prev => [...prev, { produto_id: p.id, descricao: p.titulo, qtd: '1', unidade: 'UN', valorUnit: String(precoBase) }])
+    // Se tem preço original > preço de venda, preenche desconto em R$
+    if (p.preco_original && p.preco_original > p.preco) {
+      setDesconto(String(+(p.preco_original - p.preco).toFixed(2)))
+      setTipoDesc('R$')
+    }
     if (p.fotos?.[0] && !imagemUrl) setImagemUrl(p.fotos[0])
     setBuscaOutlet(''); setResultadosOutlet([]); setShowBuscaOutlet(false)
   }
@@ -643,7 +651,10 @@ export default function AdminOrcamento() {
                             <div>
                               <strong>{p.titulo}</strong>
                               <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                                {p.exibir_preco ? fmtBRL(p.preco) : 'preço oculto'} · {p.quantidade} un. disponível
+                                {p.preco_original && p.preco_original > p.preco
+                                  ? <><s style={{ color: '#94a3b8' }}>{fmtBRL(p.preco_original)}</s> {fmtBRL(p.preco)}</>
+                                  : fmtBRL(p.preco)
+                                } · {p.quantidade} un. disponível
                               </div>
                             </div>
                           </div>
@@ -768,8 +779,13 @@ export default function AdminOrcamento() {
             </div>
 
             {/* Preview */}
-            <div className={styles.previewCol}>
-              <div className={styles.previewLabel}>Pré-visualização · PDF</div>
+            <div className={`${styles.previewCol} ${previewFullscreen ? styles.previewColFull : ''}`}>
+              <div className={styles.previewLabel}>
+                Pré-visualização · PDF
+                <button className={styles.btnFullscreen} onClick={() => setPreviewFullscreen(v => !v)}>
+                  {previewFullscreen ? '✕ Fechar' : '⛶ Ampliar'}
+                </button>
+              </div>
               <div className={styles.previewSheet} id="orcamento-print">
                 {watermarkAtivo && watermarkTexto && (
                   <div className={styles.watermark}>{watermarkTexto}</div>
