@@ -1,0 +1,60 @@
+termo,volume_mensal,var_3m,var_yoy,competicao,trend_score,uf,mesorregiao,cluster,segmento
+fixador de porcelanato,1900,5,12,alta,82,MG,Sul/Sudoeste de Minas,fixador porcelanato,Construção Civil
+fixador porcelanato inox,590,3,8,media,70,MG,Sul/Sudoeste de Minas,fixador porcelanato,Construção Civil
+fixador de revestimento,320,0,5,baixa,55,MG,Sul/Sudoeste de Minas,fixador porcelanato,Construção Civil
+ancoragem mecânica porcelanato,210,8,22,baixa,48,MG,Sul/Sudoeste de Minas,fixador porcelanato,Construção Civil
+fixador porcelanato fachada,180,12,35,baixa,61,MG,Sul/Sudoeste de Minas,fixador porcelanato,Construção Civil
+fixador de porcelanato,2800,8,15,alta,85,MG,Metropolitana de Belo Horizonte,fixador porcelanato,Construção Civil
+ancoragem porcelanato grande formato,310,15,40,baixa,72,MG,Metropolitana de Belo Horizonte,fixador porcelanato,Construção Civil
+fixador inox fachada,250,10,28,baixa,66,MG,Metropolitana de Belo Horizonte,fixador porcelanato,Construção Civil
+revestimento fachada fixação mecânica,190,6,18,baixa,52,MG,Metropolitana de Belo Horizonte,fixador porcelanato,Construção Civil
+fixador de porcelanato,5400,10,18,alta,90,SP,São Paulo,fixador porcelanato,Construção Civil
+fixador porcelanato inox SP,1100,7,14,alta,78,SP,São Paulo,fixador porcelanato,Construção Civil
+fixador de revestimento externo,870,5,10,media,65,SP,São Paulo,fixador porcelanato,Construção Civil
+ancoragem mecânica fachada,640,12,30,media,70,SP,São Paulo,fixador porcelanato,Construção Civil
+fixador de porcelanato,2100,6,12,alta,80,SP,Campinas,fixador porcelanato,Construção Civil
+fixador fachada inox campinas,380,4,9,media,58,SP,Campinas,fixador porcelanato,Construção Civil
+fixador de porcelanato,1800,9,20,alta,82,RJ,Metropolitana do Rio de Janeiro,fixador porcelanato,Construção Civil
+fixador porcelanato inox RJ,420,8,18,media,68,RJ,Metropolitana do Rio de Janeiro,fixador porcelanato,Construção Civil
+ancoragem fachada revestimento,310,14,35,baixa,62,RJ,Metropolitana do Rio de Janeiro,fixador porcelanato,Construção Civil
+fixador de porcelanato,1300,5,11,alta,75,PR,Curitiba,fixador porcelanato,Construção Civil
+fixador porcelanato inox PR,290,3,8,media,55,PR,Curitiba,fixador porcelanato,Construção Civil
+fixador revestimento externo PR,210,6,14,baixa,48,PR,Curitiba,fixador porcelanato,Construção Civil
+fixador de porcelanato,480,4,9,media,58,SC,Grande Florianópolis,fixador porcelanato,Construção Civil
+fixador de porcelanato,620,5,11,media,60,RS,Metropolitana de Porto Alegre,fixador porcelanato,Construção Civil
+bancada inox restaurante,720,6,14,media,68,MG,Sul/Sudoeste de Minas,bancada inox,Restaurantes e Food Service
+bancada inox cozinha industrial,580,8,20,media,72,MG,Sul/Sudoeste de Minas,bancada inox,Restaurantes e Food Service
+bancada inox para cozinha,490,5,12,media,65,MG,Sul/Sudoeste de Minas,bancada inox,Restaurantes e Food Service
+bancada inox industrial,1200,10,22,alta,80,MG,Metropolitana de Belo Horizonte,bancada inox,Restaurantes e Food Service
+bancada inox sob medida,380,7,16,baixa,60,MG,Metropolitana de Belo Horizonte,bancada inox,Restaurantes e Food Service
+bancada inox restaurante,3100,12,25,alta,88,SP,São Paulo,bancada inox,Restaurantes e Food Service
+bancada inox cozinha profissional,1400,8,18,alta,78,SP,São Paulo,bancada inox,Restaurantes e Food Service
+bancada inox industrial SP,980,6,14,media,70,SP,Campinas,bancada inox,Restaurantes e Food Service
+bancada inox cozinha,860,7,16,media,68,RJ,Metropolitana do Rio de Janeiro,bancada inox,Restaurantes e Food Service
+bancada inox restaurante PR,540,5,12,media,58,PR,Curitiba,bancada inox,Restaurantes e Food Service
+coifa inox industrial,820,8,18,media,72,MG,Sul/Sudoeste de Minas,coifa inox,Restaurantes e Food Service
+coifa industrial inox,650,6,14,media,65,MG,Metropolitana de Belo Horizonte,coifa inox,Restaurantes e Food Service
+coifa inox cozinha industrial,2400,14,28,alta,86,SP,São Paulo,coifa inox,Restaurantes e Food Service
+coifa industrial inox SP,980,10,22,media,74,SP,Campinas,coifa inox,Restaurantes e Food Service
+coifa inox para restaurante,720,8,18,media,68,RJ,Metropolitana do Rio de Janeiro,coifa inox,Restaurantes e Food Service
+lavatório inox hospitalar,420,10,25,media,70,MG,Sul/Sudoeste de Minas,lavatório inox,Hospitalar e Clínicas
+lavatório cirúrgico inox,310,8,20,media,65,MG,Sul/Sudoeste de Minas,lavatório inox,Hospitalar e Clínicas
+cuba inox hospitalar,280,7,18,baixa,58,MG,Sul/Sudoeste de Minas,lavatório inox,Hospitalar e Clínicas
+lavatório inox clínica,390,12,28,media,68,MG,Metropolitana de Belo Horizonte,lavatório inox,Hospitalar e Clínicas
+lavatório inox hospitalar,1100,15,32,alta,82,SP,São Paulo,lavatório inox,Hospitalar e Clínicas
+lavatório cirúrgico inox SP,480,10,24,media,70,SP,São Paulo,lavatório inox,Hospitalar e Clínicas
+lavatório inox hospital,680,8,20,media,68,RJ,Metropolitana do Rio de Janeiro,lavatório inox,Hospitalar e Clínicas
+bancada inox hospitalar,540,12,28,media,72,MG,Sul/Sudoeste de Minas,bancada inox,Hospitalar e Clínicas
+bancada técnica inox,320,8,18,baixa,58,MG,Sul/Sudoeste de Minas,bancada inox,Hospitalar e Clínicas
+bancada inox laboratório,280,10,24,baixa,62,MG,Metropolitana de Belo Horizonte,bancada inox,Laboratório Farmacêutico
+bancada inox laboratório SP,720,12,28,media,72,SP,São Paulo,bancada inox,Laboratório Farmacêutico
+prateleira inox cozinha industrial,380,5,12,baixa,52,MG,Sul/Sudoeste de Minas,prateleira inox,Restaurantes e Food Service
+prateleira inox industrial,620,7,16,media,62,SP,São Paulo,prateleira inox,Restaurantes e Food Service
+cuba inox industrial,480,6,14,media,60,SP,São Paulo,cuba inox,Restaurantes e Food Service
+cuba inox dupla,320,5,11,baixa,52,MG,Sul/Sudoeste de Minas,cuba inox,Restaurantes e Food Service
+fixador de porcelanato preço,890,4,10,media,58,MG,Sul/Sudoeste de Minas,fixador porcelanato,Construção Civil
+fixador de porcelanato onde comprar,540,3,8,baixa,48,MG,Sul/Sudoeste de Minas,fixador porcelanato,Construção Civil
+fixador de porcelanato preço,2100,6,13,alta,72,SP,São Paulo,fixador porcelanato,Construção Civil
+inox sob medida Pouso Alegre,180,2,5,baixa,45,MG,Sul/Sudoeste de Minas,inox sob medida,
+equipamento inox cozinha industrial,920,8,18,media,70,SP,São Paulo,equipamentos inox,Restaurantes e Food Service
+equipamento inox hospitalar,480,10,24,media,68,SP,São Paulo,equipamentos inox,Hospitalar e Clínicas

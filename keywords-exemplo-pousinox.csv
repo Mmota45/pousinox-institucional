@@ -1,0 +1,31 @@
+termo,cluster,uf,mesorregiao,cidade,segmento,familia_produto,volume_mensal,intencao
+fixador de porcelanato,fixador porcelanato,MG,Sul/Sudoeste de Minas,,Construção Civil,fixador,1200,comercial
+fixador porcelanato inox,fixador porcelanato,MG,Sul/Sudoeste de Minas,,Construção Civil,fixador,480,comercial
+fixador de revestimento,fixador porcelanato,MG,Sul/Sudoeste de Minas,,Construção Civil,fixador,320,comercial
+ancoragem mecânica porcelanato,fixador porcelanato,MG,Sul/Sudoeste de Minas,,Construção Civil,fixador,210,comercial
+fixador de porcelanato fachada,fixador porcelanato,MG,Metropolitana de Belo Horizonte,,Construção Civil,fixador,890,comercial
+fixador inox fachada,fixador porcelanato,MG,Metropolitana de Belo Horizonte,,Construção Civil,fixador,340,comercial
+fixador porcelanato grande formato,fixador porcelanato,MG,Metropolitana de Belo Horizonte,,Construção Civil,fixador,270,comercial
+fixador de porcelanato,fixador porcelanato,SP,Campinas,,Construção Civil,fixador,3200,comercial
+fixador de porcelanato inox,fixador porcelanato,SP,São Paulo,,Construção Civil,fixador,1800,comercial
+fixador de revestimento externo,fixador porcelanato,SP,São Paulo,,Construção Civil,fixador,950,comercial
+fixador porcelanato fachada,fixador porcelanato,SP,São Paulo,,Construção Civil,fixador,720,comercial
+bancada inox hospitalar,bancada inox,MG,Sul/Sudoeste de Minas,,Hospitalar e Clínicas,bancada,290,comercial
+bancada inox cirúrgica,bancada inox,MG,Metropolitana de Belo Horizonte,,Hospitalar e Clínicas,bancada,410,comercial
+bancada inox para cozinha industrial,bancada inox,MG,Sul/Sudoeste de Minas,,Restaurantes e Food Service,bancada,520,comercial
+bancada inox restaurante,bancada inox,MG,Sul/Sudoeste de Minas,,Restaurantes e Food Service,bancada,380,comercial
+bancada inox industrial,bancada inox,SP,São Paulo,,Restaurantes e Food Service,bancada,2100,comercial
+bancada inox cozinha profissional,bancada inox,SP,Campinas,,Restaurantes e Food Service,bancada,890,comercial
+coifa inox industrial,coifa inox,MG,Sul/Sudoeste de Minas,,Restaurantes e Food Service,coifa,310,comercial
+coifa inox cozinha industrial,coifa inox,MG,Metropolitana de Belo Horizonte,,Restaurantes e Food Service,coifa,440,comercial
+coifa industrial inox,coifa inox,SP,São Paulo,,Restaurantes e Food Service,coifa,1600,transacional
+lavatório inox hospitalar,lavatório inox,MG,Sul/Sudoeste de Minas,,Hospitalar e Clínicas,lavatório,180,comercial
+lavatório cirúrgico inox,lavatório inox,MG,Metropolitana de Belo Horizonte,,Hospitalar e Clínicas,lavatório,260,comercial
+lavatório inox clínica,lavatório inox,SP,São Paulo,,Hospitalar e Clínicas,lavatório,490,comercial
+cuba inox hospitalar,lavatório inox,MG,Sul/Sudoeste de Minas,,Hospitalar e Clínicas,lavatório,140,comercial
+fixador de porcelanato,fixador porcelanato,PR,Curitiba,,Construção Civil,fixador,1100,comercial
+fixador porcelanato inox,fixador porcelanato,PR,Curitiba,,Construção Civil,fixador,390,comercial
+fixador revestimento externo,fixador porcelanato,PR,Norte Central Paranaense,,Construção Civil,fixador,280,comercial
+bancada inox cozinha,bancada inox,PR,Curitiba,,Restaurantes e Food Service,bancada,560,comercial
+fixador de porcelanato,fixador porcelanato,RJ,Metropolitana do Rio de Janeiro,,Construção Civil,fixador,2400,comercial
+ancoragem mecânica fachada,fixador porcelanato,RJ,Metropolitana do Rio de Janeiro,,Construção Civil,fixador,430,comercial
