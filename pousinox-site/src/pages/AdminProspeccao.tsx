@@ -266,7 +266,7 @@ function MultiDropdown({ label, options, value, onChange, placeholder = 'Todos',
 // ── Constantes ────────────────────────────────────────────────────────────────
 
 const SEGMENTOS = [
-  'Restaurantes', 'Panificação', 'Supermercados', 'Açougues', 'Peixarias',
+  'Restaurantes', 'Panificação / Confeitaria', 'Supermercados', 'Açougues', 'Peixarias',
   'Hospitalar', 'Laboratórios', 'Veterinária', 'Hotelaria',
   'Construtoras', 'Revestimentos', 'Arquitetura',
 ]
@@ -729,8 +729,8 @@ setClientesCidade(clientesPorCidade)
     if (d4 === 4744 || d4 === 4743 || d4 === 4679) return 'Revestimentos'
     // Restaurantes e alimentação
     if (d4 === 5611 || d4 === 5612 || d4 === 5620) return 'Restaurantes'
-    // Panificação
-    if (d4 === 1091) return 'Panificação'
+    // Panificação / Confeitaria
+    if (d4 === 1091 || d4 === 4721) return 'Panificação / Confeitaria'
     // Supermercados
     if (d4 === 4711 || d4 === 4712 || d4 === 4713) return 'Supermercados'
     // Açougues

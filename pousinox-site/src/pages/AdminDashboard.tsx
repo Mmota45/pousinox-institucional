@@ -14,11 +14,23 @@ interface DashData {
   topProdutos: { titulo: string; total: number; valor: number }[]
 }
 
+interface TabelaSize {
+  tablename: string
+  tamanho_total: string
+  bytes: number
+}
+
+interface DbInfo {
+  tamanho_banco: string
+  tabelas: TabelaSize[]
+}
+
 export default function AdminDashboard() {
   const [data, setData] = useState<DashData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [dbInfo, setDbInfo] = useState<DbInfo | null>(null)
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { fetchData(); fetchDbInfo() }, [])
 
   async function fetchData() {
     setLoading(true)
@@ -55,6 +67,19 @@ export default function AdminDashboard() {
 
     setData({ totalProdutos, valorEstoque, vendasMes: totalMes, ticketMedio, interessesMes: (interesses.data ?? []).length, estoquesBaixo: estoqueBaixo, topProdutos })
     setLoading(false)
+  }
+
+  async function fetchDbInfo() {
+    const [bancoRes, tabelasRes] = await Promise.all([
+      supabaseAdmin.rpc('get_db_size'),
+      supabaseAdmin.rpc('get_top_tables_size'),
+    ])
+    if (bancoRes.data && tabelasRes.data) {
+      setDbInfo({
+        tamanho_banco: bancoRes.data,
+        tabelas: tabelasRes.data,
+      })
+    }
   }
 
   const { ocultarValores } = useAdmin()
@@ -115,6 +140,36 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* ── Banco de dados ── */}
+      {dbInfo && (
+        <>
+          <h3 className={styles.secTitle}>Banco de dados</h3>
+          <div className={styles.dbWrap}>
+            <div className={styles.dbTotal}>
+              <span className={styles.dbTotalLabel}>Tamanho total do banco</span>
+              <strong className={styles.dbTotalVal}>{dbInfo.tamanho_banco}</strong>
+            </div>
+            <div className={styles.dbTabelas}>
+              {dbInfo.tabelas.map((t) => {
+                const pct = Math.min(100, Math.round((t.bytes / dbInfo.tabelas[0].bytes) * 100))
+                return (
+                  <div key={t.tablename} className={styles.dbItem}>
+                    <span className={styles.dbNome}>{t.tablename}</span>
+                    <div className={styles.dbBarra}>
+                      <div
+                        className={styles.dbBarraFill}
+                        style={{ width: `${pct}%`, background: pct > 80 ? '#ef4444' : pct > 50 ? '#f59e0b' : '#3b82f6' }}
+                      />
+                    </div>
+                    <span className={styles.dbSize}>{t.tamanho_total}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
