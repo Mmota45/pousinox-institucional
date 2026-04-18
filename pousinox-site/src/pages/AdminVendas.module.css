@@ -355,8 +355,38 @@
 .msgOk { background: #dcfce7; color: #166534; }
 .msgErro { background: #fee2e2; color: #991b1b; }
 
-@media (max-width: 768px) {
-  .row3 { grid-template-columns: 1fr; }
-  .grid2col { grid-template-columns: 1fr; }
-  .indicadores { grid-template-columns: 1fr; }
+/* ── Mobile-first: base = mobile ── */
+.row  { grid-template-columns: 1fr; }
+.row3 { grid-template-columns: 1fr; }
+.grid2col { grid-template-columns: 1fr; }
+.indicadores { grid-template-columns: 1fr 1fr; }
+.form { padding: 16px; }
+.toolbar, .filtros { flex-direction: column; align-items: stretch; }
+.toolbar > *, .filtros > * { width: 100%; min-height: 44px; }
+.btnPrimary, .btnSecondary, .btnDanger { min-height: 44px; width: 100%; }
+.card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabela, table { min-width: 500px; }
+.navTabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; }
+.navTabs::-webkit-scrollbar { display: none; }
+.navBtn, .navTab { min-height: 44px; white-space: nowrap; }
+.formCard { padding: 14px; }
+.formActions { flex-direction: column; gap: 8px; }
+.formActions > * { flex: 1; min-height: 44px; }
+.recebimentoToggle { flex-wrap: wrap; }
+.recebBtn { flex: 1; min-height: 44px; }
+
+/* ── Tablet/Desktop (640px+) ── */
+@media (min-width: 640px) {
+  .row  { grid-template-columns: 1fr 1fr; }
+  .row3 { grid-template-columns: 1fr 1fr 1fr; }
+  .grid2col { grid-template-columns: 1fr 1fr; }
+  .indicadores { grid-template-columns: repeat(3, 1fr); }
+  .form { padding: 28px; }
+  .toolbar, .filtros { flex-direction: row; align-items: center; }
+  .toolbar > *, .filtros > * { width: auto; }
+  .btnPrimary, .btnSecondary, .btnDanger { width: auto; }
+  .tabela, table { min-width: unset; }
+  .formCard { padding: 20px; }
+  .formActions { flex-direction: row; justify-content: flex-end; }
+  .formActions > * { flex: none; }
 }

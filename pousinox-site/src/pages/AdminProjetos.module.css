@@ -812,3 +812,25 @@
   .atributosLayout { grid-template-columns: 1fr; }
   .similaresPanel { position: static; }
 }
+
+/* ── Mobile-first overrides ── */
+.toolbar, .filtros { flex-direction: column; align-items: stretch; }
+.toolbar > *, .filtros > * { width: 100%; min-height: 44px; }
+.btnPrimary, .btnSecondary, .btnDanger { min-height: 44px; }
+.card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabela { min-width: 500px; }
+.navTabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; }
+.navTabs::-webkit-scrollbar { display: none; }
+.navBtn { min-height: 44px; white-space: nowrap; }
+.formCard, .detalheCard { padding: 14px; }
+.formActions { flex-wrap: wrap; }
+.formActions > * { flex: 1; min-height: 44px; }
+
+@media (min-width: 640px) {
+  .toolbar, .filtros { flex-direction: row; align-items: center; }
+  .toolbar > *, .filtros > * { width: auto; }
+  .tabela { min-width: unset; }
+  .formCard, .detalheCard { padding: 24px; }
+  .formActions { justify-content: flex-end; }
+  .formActions > * { flex: none; }
+}

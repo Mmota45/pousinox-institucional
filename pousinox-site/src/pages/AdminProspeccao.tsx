@@ -153,12 +153,15 @@ interface MultiDropdownProps {
   disabled?: boolean
   loading?: boolean
   minWidth?: number
+  portal?: boolean
 }
 
-function MultiDropdown({ label, options, value, onChange, placeholder = 'Todos', disabled, loading, minWidth = 160 }: MultiDropdownProps) {
+function MultiDropdown({ label, options, value, onChange, placeholder = 'Todos', disabled, loading, minWidth = 160, portal = false }: MultiDropdownProps) {
   const [open, setOpen] = useState(false)
   const [busca, setBusca] = useState('')
+  const [dropPos, setDropPos] = useState<{ top: number; left: number; width: number } | null>(null)
   const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -174,7 +177,11 @@ function MultiDropdown({ label, options, value, onChange, placeholder = 'Todos',
 
   useEffect(() => {
     if (open && searchRef.current) searchRef.current.focus()
-  }, [open])
+    if (open && portal && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect()
+      setDropPos({ top: r.bottom + 4, left: r.left, width: r.width })
+    }
+  }, [open, portal])
 
   function toggle(opt: string) {
     onChange(value.includes(opt) ? value.filter(x => x !== opt) : [...value, opt])
@@ -197,10 +204,51 @@ function MultiDropdown({ label, options, value, onChange, placeholder = 'Todos',
     ? value[0]
     : `${value.length} selecionados`
 
+  const dropdown = open && (
+    <div
+      className={styles.segDropdown}
+      style={portal && dropPos ? {
+        position: 'fixed',
+        top: dropPos.top,
+        left: dropPos.left,
+        width: dropPos.width,
+        zIndex: 9999,
+      } : undefined}
+    >
+      {options.length >= 8 && (
+        <div className={styles.segSearch}>
+          <input
+            ref={searchRef}
+            type="text"
+            placeholder="Filtrar..."
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+            onClick={e => e.stopPropagation()}
+            className={styles.segSearchInput}
+          />
+        </div>
+      )}
+      <label className={styles.segItem}>
+        <input type="checkbox" checked={value.length === 0} onChange={() => { onChange([]); setBusca('') }} />
+        <span>Todos</span>
+      </label>
+      {filtrados.map(opt => (
+        <label key={opt} className={styles.segItem}>
+          <input type="checkbox" checked={value.includes(opt)} onChange={() => toggle(opt)} />
+          <span>{opt}</span>
+        </label>
+      ))}
+      {filtrados.length === 0 && (
+        <div style={{ padding: '8px 14px', fontSize: '0.82rem', color: '#94a3b8' }}>Nenhum resultado</div>
+      )}
+    </div>
+  )
+
   return (
     <div className={styles.filtroGrupo} ref={ref} style={{ position: 'relative' }}>
       <span className={styles.filtroLabel}>{label}</span>
       <button
+        ref={btnRef}
         className={styles.filtroSelect}
         style={{ textAlign: 'left', cursor: disabled ? 'not-allowed' : 'pointer', minWidth, opacity: disabled ? 0.5 : 1 }}
         onClick={() => !disabled && !loading && setOpen(o => !o)}
@@ -209,36 +257,7 @@ function MultiDropdown({ label, options, value, onChange, placeholder = 'Todos',
         <span style={{ flex: 1 }}>{btnLabel}</span>
         <span style={{ float: 'right', opacity: 0.5 }}>▾</span>
       </button>
-      {open && (
-        <div className={styles.segDropdown}>
-          {options.length >= 8 && (
-            <div className={styles.segSearch}>
-              <input
-                ref={searchRef}
-                type="text"
-                placeholder="Filtrar..."
-                value={busca}
-                onChange={e => setBusca(e.target.value)}
-                onClick={e => e.stopPropagation()}
-                className={styles.segSearchInput}
-              />
-            </div>
-          )}
-          <label className={styles.segItem}>
-            <input type="checkbox" checked={value.length === 0} onChange={() => { onChange([]); setBusca('') }} />
-            <span>Todos</span>
-          </label>
-          {filtrados.map(opt => (
-            <label key={opt} className={styles.segItem}>
-              <input type="checkbox" checked={value.includes(opt)} onChange={() => toggle(opt)} />
-              <span>{opt}</span>
-            </label>
-          ))}
-          {filtrados.length === 0 && (
-            <div style={{ padding: '8px 14px', fontSize: '0.82rem', color: '#94a3b8' }}>Nenhum resultado</div>
-          )}
-        </div>
-      )}
+      {portal && dropPos ? createPortal(dropdown, document.body) : dropdown}
     </div>
   )
 }
@@ -335,6 +354,44 @@ export default function AdminProspeccao() {
   const [erroCnpj,      setErroCnpj]      = useState<string | null>(null)
   const [salvandoCnpj,  setSalvandoCnpj]  = useState(false)
   const [enriquecendo,  setEnriquecendo]  = useState(false)
+  const [filtroDrawer,  setFiltroDrawer]  = useState(false)
+
+  // Badge: conta filtros secundários ativos
+  const filtrosAtivos = [
+    produtos.length > 0,
+    segmentos.length > 0,
+    ufs.length > 0,
+    cidadesSel.length > 0,
+    mesorregioesSel.length > 0,
+    portes.length > 0,
+    contatoFiltro !== 'todos',
+    tipoFiltro !== 'todos',
+    temTelefone,
+    raioKm !== '',
+  ].filter(Boolean).length
+
+  // Calcular distância quando drawer abre e distancia_km está ausente
+  useEffect(() => {
+    const p = prospectDetalhe
+    if (!p || p.distancia_km != null || !p.cidade || !p.uf) return
+    supabaseAdmin
+      .from('ibge_municipios')
+      .select('lat, lng')
+      .eq('uf', p.uf)
+      .ilike('nome', p.cidade)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data?.lat || !data?.lng) return
+        const R = 6371
+        const dLat = (data.lat - (-22.2289)) * Math.PI / 180
+        const dLng = (data.lng - (-45.9358)) * Math.PI / 180
+        const a = Math.sin(dLat/2)**2 + Math.cos((-22.2289)*Math.PI/180) * Math.cos(data.lat*Math.PI/180) * Math.sin(dLng/2)**2
+        const dist = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)))
+        supabaseAdmin.from('prospeccao').update({ distancia_km: dist }).eq('id', p.id)
+        setProspectDetalhe(prev => prev ? { ...prev, distancia_km: dist } : prev)
+        setProspects(prev => prev.map((x: Prospect) => x.id === p.id ? { ...x, distancia_km: dist } : x))
+      })
+  }, [prospectDetalhe?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Carregar mesorregiões quando UFs mudam
   useEffect(() => {
@@ -389,6 +446,8 @@ export default function AdminProspeccao() {
         setLoadingCidadesRaio(false)
       })
   }, [raioKm])
+
+  // Busca só quando o usuário clicar em "Buscar"
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function aplicarFiltrosBase(q: any) {
@@ -750,13 +809,32 @@ setClientesCidade(clientesPorCidade)
     setEnriquecendo(true)
     try {
       const limpo = p.cnpj.replace(/\D/g, '')
+
+      // Busca prospect completo do banco para garantir todos os campos atuais
+      const { data: pCompleto } = await supabaseAdmin.from('prospeccao').select('*').eq('id', p.id).single()
+      if (!pCompleto) throw new Error('Prospect não encontrado.')
+
       const res = await fetch(`${import.meta.env.DEV ? '/api/brasilapi' : 'https://brasilapi.com.br'}/api/cnpj/v1/${limpo}`)
       if (!res.ok) throw new Error('CNPJ não encontrado.')
       const d = await res.json()
-      const row = apiParaRow(d)
-      const { error } = await supabaseAdmin.from('prospeccao').update(row).eq('id', p.id)
+      const apiRow = apiParaRow(d)
+
+      // Só preenche campos que estão vazios/nulos no banco — preserva edições manuais
+      const mergedRow: Record<string, unknown> = {}
+      for (const [key, val] of Object.entries(apiRow)) {
+        const atual = (pCompleto as Record<string, unknown>)[key]
+        if (atual === null || atual === undefined || atual === '') {
+          mergedRow[key] = val
+        }
+      }
+      if (Object.keys(mergedRow).length === 0) {
+        alert('Todos os campos já estão preenchidos — nenhum dado novo da Receita Federal.')
+        setEnriquecendo(false)
+        return
+      }
+      const { error } = await supabaseAdmin.from('prospeccao').update(mergedRow).eq('id', p.id)
       if (!error) {
-        setProspectDetalhe(prev => prev ? { ...prev, ...row } : prev)
+        setProspectDetalhe(prev => prev ? { ...prev, ...mergedRow } : prev)
         buscar(pagina)
       } else {
         alert(error.message)
@@ -788,6 +866,42 @@ setClientesCidade(clientesPorCidade)
         </div>
       )}
 
+      {/* ── Filtros mobile: barra compacta + drawer ── */}
+      <div className={styles.filtroBarMobile}>
+        <input
+          className={styles.filtroInputMobile}
+          type="text"
+          placeholder="Buscar empresa..."
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && buscar(0)}
+        />
+        <button
+          className={`${styles.filtroToggleBtn} ${filtrosAtivos > 0 ? styles.filtroToggleBtnAtivo : ''}`}
+          onClick={() => setFiltroDrawer(true)}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          Filtros{filtrosAtivos > 0 && <span className={styles.filtroBadge}>{filtrosAtivos}</span>}
+        </button>
+        <button className={styles.buscarBtnMobile} onClick={() => buscar(0)} disabled={loading}>
+          {loading ? '...' : 'Buscar'}
+        </button>
+        <button
+          className={styles.novoProspectBtn}
+          onClick={() => { setModalCadastro(true); setCnpjInput(''); setDadosCnpjApi(null); setErroCnpj(null) }}
+        >+</button>
+      </div>
+
+      {/* Drawer de filtros — mobile */}
+      {filtroDrawer && <div className={styles.drawerOverlay} onClick={() => setFiltroDrawer(false)} />}
+      <div className={`${styles.filtroDrawer} ${filtroDrawer ? styles.filtroDrawerAberto : ''}`}>
+        <div className={styles.drawerHandle} />
+        <div className={styles.drawerHeader}>
+          <span className={styles.drawerTitulo}>Filtros</span>
+          <button className={styles.drawerFechar} onClick={() => setFiltroDrawer(false)}>✕</button>
+        </div>
+        <div className={styles.drawerBody}>
+
       {/* ── Filtros ── */}
       <div className={styles.filtros}>
 
@@ -810,6 +924,7 @@ setClientesCidade(clientesPorCidade)
           options={PRODUTOS}
           value={produtos}
           onChange={setProdutos}
+          portal={filtroDrawer}
         />
 
         <MultiDropdown
@@ -818,6 +933,7 @@ setClientesCidade(clientesPorCidade)
           value={segmentos}
           onChange={setSegmentos}
           minWidth={180}
+          portal={filtroDrawer}
         />
 
         {parseFloat(raioKm) > 0 ? (
@@ -829,6 +945,7 @@ setClientesCidade(clientesPorCidade)
             placeholder="Todas no raio"
             loading={loadingCidadesRaio}
             minWidth={220}
+            portal={filtroDrawer}
           />
         ) : (
           <>
@@ -838,6 +955,7 @@ setClientesCidade(clientesPorCidade)
               value={ufs}
               onChange={setUfs}
               minWidth={80}
+              portal={filtroDrawer}
             />
 
             {ufs.length > 0 && (
@@ -849,6 +967,7 @@ setClientesCidade(clientesPorCidade)
                 placeholder="Todas"
                 loading={loadingMeso}
                 minWidth={200}
+                portal={filtroDrawer}
               />
             )}
 
@@ -861,6 +980,7 @@ setClientesCidade(clientesPorCidade)
               disabled={ufs.length === 0 || mesorregioesSel.length === 0}
               loading={loadingCidades}
               minWidth={180}
+              portal={filtroDrawer}
             />
           </>
         )}
@@ -870,6 +990,7 @@ setClientesCidade(clientesPorCidade)
           options={PORTES}
           value={portes}
           onChange={setPortes}
+          portal={filtroDrawer}
         />
 
         {/* Região */}
@@ -891,101 +1012,93 @@ setClientesCidade(clientesPorCidade)
           </select>
         </div>
 
-        {/* Contato */}
-        <div className={styles.filtroGrupo}>
-          <span className={styles.filtroLabel}>Contato</span>
-          <select
-            className={styles.filtroSelect}
-            value={contatoFiltro}
-            onChange={e => setContatoFiltro(e.target.value as 'todos' | 'sim' | 'nao')}
-          >
-            <option value="todos">Todos</option>
-            <option value="sim">Contatados</option>
-            <option value="nao">Não contatados</option>
-          </select>
-        </div>
-
-        {/* Tipo: cliente ou novo prospect */}
-        <div className={styles.filtroGrupo}>
-          <span className={styles.filtroLabel}>Tipo</span>
-          <select
-            className={styles.filtroSelect}
-            value={tipoFiltro}
-            onChange={e => setTipoFiltro(e.target.value as 'todos' | 'clientes' | 'novos')}
-          >
-            <option value="todos">Todos</option>
-            <option value="clientes">Já clientes</option>
-            <option value="novos">Novos prospects</option>
-          </select>
-        </div>
-
-        {/* Tem telefone */}
-        <div className={styles.filtroGrupo} style={{ justifyContent: 'flex-end' }}>
-          <span className={styles.filtroLabel}>Telefone</span>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.88rem', paddingBottom: 2 }}>
-            <input
-              type="checkbox"
-              checked={temTelefone}
-              onChange={e => setTemTelefone(e.target.checked)}
-              style={{ accentColor: 'var(--color-primary)', width: 15, height: 15, cursor: 'pointer' }}
-            />
-            Só com telefone
-          </label>
-        </div>
-
-        {/* Raio */}
-        <div className={styles.filtroGrupo}>
-          <span className={styles.filtroLabel}>Raio de Pouso Alegre</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <input
-              className={styles.filtroInput}
-              style={{ minWidth: 80, maxWidth: 100 }}
-              type="number"
-              min="0"
-              step="50"
-              placeholder="km"
-              value={raioKm}
-              onChange={e => setRaioKm(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && buscar(0)}
-            />
-            {raioKm && (
-              <button
-                type="button"
-                onClick={() => setRaioKm('')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '1rem', lineHeight: 1 }}
-                title="Limpar raio"
-              >×</button>
-            )}
+        {/* Contato + Tipo + Telefone */}
+        <div className={styles.filtroRow3}>
+          <div className={styles.filtroGrupo}>
+            <span className={styles.filtroLabel}>Contato</span>
+            <select
+              className={styles.filtroSelect}
+              value={contatoFiltro}
+              onChange={e => setContatoFiltro(e.target.value as 'todos' | 'sim' | 'nao')}
+            >
+              <option value="todos">Todos</option>
+              <option value="sim">Contatados</option>
+              <option value="nao">Não contatados</option>
+            </select>
+          </div>
+          <div className={styles.filtroGrupo}>
+            <span className={styles.filtroLabel}>Tipo</span>
+            <select
+              className={styles.filtroSelect}
+              value={tipoFiltro}
+              onChange={e => setTipoFiltro(e.target.value as 'todos' | 'clientes' | 'novos')}
+            >
+              <option value="todos">Todos</option>
+              <option value="clientes">Já clientes</option>
+              <option value="novos">Novos prospects</option>
+            </select>
+          </div>
+          <div className={styles.filtroGrupo}>
+            <span className={styles.filtroLabel}>Telefone</span>
+            <select
+              className={styles.filtroSelect}
+              value={temTelefone ? 'sim' : 'todos'}
+              onChange={e => setTemTelefone(e.target.value === 'sim')}
+            >
+              <option value="todos">Todos</option>
+              <option value="sim">Com telefone</option>
+            </select>
           </div>
         </div>
 
-        {/* Ordenação */}
-        <div className={styles.filtroGrupo}>
-          <span className={styles.filtroLabel}>Ordenar por</span>
-          <select
-            className={styles.filtroSelect}
-            style={{ minWidth: 130 }}
-            value={ordenar}
-            onChange={e => setOrdenar(e.target.value as 'score' | 'nome')}
-          >
-            <option value="score">⭐ Score (melhor primeiro)</option>
-            <option value="nome">A–Z Nome</option>
-          </select>
+        {/* Raio + Ordenação — row compacta */}
+        <div className={styles.filtroRow2}>
+          <div className={styles.filtroGrupo}>
+            <span className={styles.filtroLabel}>Raio (km)</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <input
+                className={styles.filtroInput}
+                style={{ minWidth: 70 }}
+                type="number"
+                min="0"
+                step="50"
+                placeholder="km"
+                value={raioKm}
+                onChange={e => setRaioKm(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && buscar(0)}
+              />
+              {raioKm && (
+                <button
+                  type="button"
+                  onClick={() => setRaioKm('')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '1rem', lineHeight: 1 }}
+                  title="Limpar raio"
+                >×</button>
+              )}
+            </div>
+          </div>
+          <div className={styles.filtroGrupo}>
+            <span className={styles.filtroLabel}>Ordenar</span>
+            <select
+              className={styles.filtroSelect}
+              value={ordenar}
+              onChange={e => setOrdenar(e.target.value as 'score' | 'nome')}
+            >
+              <option value="score">⭐ Score</option>
+              <option value="nome">A–Z Nome</option>
+            </select>
+          </div>
         </div>
 
-        <button className={styles.buscarBtn} onClick={() => buscar(0)} disabled={loading}>
-          {loading ? 'Buscando...' : 'Buscar'}
-        </button>
-
-        <button
-          onClick={() => { setModalCadastro(true); setCnpjInput(''); setDadosCnpjApi(null); setErroCnpj(null) }}
-          style={{ padding: '8px 14px', background: '#1e40af', color: '#fff', border: 'none', borderRadius: 6, fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-        >+ Prospect</button>
-
-        <span className={styles.infoBase}>
-          ✓ Base CNPJ ativa (mar/2026)
-        </span>
       </div>
+
+        </div>{/* drawerBody */}
+        <div className={styles.drawerFooter}>
+          <button className={styles.drawerAplicar} onClick={() => { buscar(0); setFiltroDrawer(false) }}>
+            Aplicar filtros{filtrosAtivos > 0 ? ` (${filtrosAtivos})` : ''}
+          </button>
+        </div>
+      </div>{/* filtroDrawer */}
 
       {/* ── Aviso de filtro insuficiente ── */}
       {ufs.length > 0 && mesorregioesSel.length === 0 && cidadesSel.length === 0 && segmentos.length === 0 && produtos.length === 0 && (
@@ -1055,21 +1168,18 @@ setClientesCidade(clientesPorCidade)
             <span className={styles.tableTitle}>
               {loading ? 'Carregando...' : `${total.toLocaleString('pt-BR')} prospects`}
             </span>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <div style={{ display: 'flex', border: '1px solid var(--color-border)', borderRadius: 6, overflow: 'hidden' }}>
+            <div className={styles.tableActions}>
+              <div className={styles.vistaTabs}>
                 <button
-                  className={styles.exportBtn}
-                  style={{ border: 'none', borderRadius: 0, background: vistaAtiva === 'lista' ? '#e2e8f0' : '#f1f5f9' }}
+                  className={`${styles.vistaTab} ${vistaAtiva === 'lista' ? styles.vistaTabAtiva : ''}`}
                   onClick={() => setVistaAtiva('lista')}
                 >☰ Lista</button>
                 <button
-                  className={styles.exportBtn}
-                  style={{ border: 'none', borderRadius: 0, borderLeft: '1px solid var(--color-border)', background: vistaAtiva === 'mapa' ? '#e2e8f0' : '#f1f5f9' }}
+                  className={`${styles.vistaTab} ${vistaAtiva === 'mapa' ? styles.vistaTabAtiva : ''}`}
                   onClick={() => { setVistaAtiva('mapa'); if (buscado && dadosMapa.length === 0) buscarMapa() }}
                 >⬡ Mapa</button>
                 <button
-                  className={styles.exportBtn}
-                  style={{ border: 'none', borderRadius: 0, borderLeft: '1px solid var(--color-border)', background: vistaAtiva === 'calor' ? '#e2e8f0' : '#f1f5f9' }}
+                  className={`${styles.vistaTab} ${vistaAtiva === 'calor' ? styles.vistaTabAtiva : ''}`}
                   onClick={() => { setVistaAtiva('calor'); if (buscado && dadosMapa.length === 0) buscarMapa() }}
                 >🔥 Calor</button>
               </div>
@@ -1296,9 +1406,11 @@ setClientesCidade(clientesPorCidade)
                 onChange={e => setCnpjInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && buscarCnpjApi()}
               />
-              <button onClick={buscarCnpjApi} disabled={buscandoCnpj}
-                style={{ padding: '8px 16px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                {buscandoCnpj ? 'Buscando...' : '🔍 Consultar'}
+              <button onClick={buscarCnpjApi} disabled={buscandoCnpj} title="Consultar CNPJ"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', flexShrink: 0, opacity: buscandoCnpj ? 0.6 : 1 }}>
+                {buscandoCnpj
+                  ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 0.7s linear infinite' }}><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+                  : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>}
               </button>
             </div>
 

@@ -455,3 +455,47 @@
 }
 .tabelaNfs tbody tr:hover { background: #f8fafc; }
 .tabelaNfs tbody tr:last-child td { border-bottom: none; }
+
+/* ── Mobile-first ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Abas scrolláveis */
+  .abas {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  .abas::-webkit-scrollbar { display: none; }
+  .aba { padding: 10px 18px; font-size: 0.84rem; }
+
+  /* Upload */
+  .uploadRow { flex-direction: column; gap: 12px; }
+  .uploadBox { min-width: 0; padding: 20px 16px; }
+  .importBtn { width: 100%; min-height: 44px; font-size: 0.92rem; }
+
+  /* Result grid igual */
+  .resultGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .resultCard { min-width: 0; }
+
+  /* Busca clientes */
+  .buscaRow { flex-direction: column; gap: 8px; }
+  .buscaInput { max-width: none; min-height: 44px; box-sizing: border-box; }
+  .buscarBtn { min-height: 44px; }
+
+  /* Tabela scroll */
+  .tableScroll { -webkit-overflow-scrolling: touch; }
+  .table { min-width: 620px; }
+
+  /* RFM */
+  .rfmHeader { flex-direction: column; align-items: stretch; gap: 10px; }
+  .rfmFiltros { flex-wrap: wrap; gap: 8px; }
+  .rfmFiltros .filtroSelect { flex: 1; min-height: 44px; }
+  .recalcularBtn { width: 100%; min-height: 44px; }
+
+  /* Paginação */
+  .paginacao { flex-direction: column; gap: 8px; align-items: center; text-align: center; }
+}

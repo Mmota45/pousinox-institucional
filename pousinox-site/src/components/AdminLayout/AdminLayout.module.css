@@ -421,8 +421,20 @@
   .topbarUser { display: none; }
   .topbarLinkText { display: none; }
 
-  /* Conteúdo ocupa tela cheia */
-  .content { padding: 16px 14px; }
+  /* Touch targets maiores na topbar */
+  .collapseBtn, .logoutBtn, .privacyBtn {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Conteúdo ocupa tela cheia com padding confortável */
+  .content {
+    padding: 16px 12px;
+    padding-bottom: 32px; /* espaço extra no final */
+  }
+
+  /* Nav items maiores para toque */
+  .navItem { padding: 12px 10px; }
 }
 
 /* ── Toast de notificação ── */

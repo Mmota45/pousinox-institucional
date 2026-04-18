@@ -250,3 +250,21 @@
 .statusProposta   { background: #ede9fe; color: #6d28d9; }
 .statusFechado    { background: #dcfce7; color: #166534; }
 .statusPerdido    { background: #fee2e2; color: #991b1b; }
+
+/* ── Mobile-first ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .topRow { flex-direction: column; align-items: stretch; gap: 8px; }
+  .exportBtn { align-self: flex-start; min-height: 40px; }
+
+  .filtros { flex-direction: column; gap: 8px; }
+  .buscaInput { max-width: none; width: 100%; min-height: 44px; box-sizing: border-box; }
+  .statusFiltro, .dataInput { width: 100%; min-height: 44px; box-sizing: border-box; }
+  .dataGrupo { width: 100%; }
+  .buscaBtn { width: 100%; min-height: 44px; }
+
+  .table { min-width: 600px; }
+  .tableScroll { -webkit-overflow-scrolling: touch; }
+
+  .paginacao { flex-direction: column; gap: 8px; align-items: center; text-align: center; }
+  .pagBtn { min-height: 40px; padding: 6px 16px; }
+}

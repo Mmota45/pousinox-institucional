@@ -743,3 +743,50 @@
   padding: 2px 10px;
   white-space: nowrap;
 }
+
+/* ── Mobile-first ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Abas scrolláveis */
+  .abas {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  .abas::-webkit-scrollbar { display: none; }
+  .aba { padding: 10px 16px; font-size: 0.84rem; }
+
+  /* Período */
+  .periodoRow { flex-direction: column; gap: 10px; }
+  .periodoBtns { flex-wrap: wrap; }
+  .periodoBtn { flex: 1; min-height: 40px; text-align: center; }
+  .customDatas { flex-direction: column; gap: 8px; }
+  .dataInput { width: 100%; min-height: 44px; box-sizing: border-box; }
+
+  /* Busca */
+  .buscaRow { flex-direction: column; gap: 8px; }
+  .buscaInput { max-width: none; width: 100%; min-height: 44px; box-sizing: border-box; }
+  .buscarBtn { width: 100%; min-height: 44px; }
+
+  /* Tabela scroll */
+  .table { min-width: 580px; }
+  .tableScroll { -webkit-overflow-scrolling: touch; }
+
+  /* Form inline */
+  .formInline { flex-direction: column; gap: 10px; }
+  .formGrupo { min-width: 0; width: 100%; }
+  .formInput { width: 100%; min-height: 44px; box-sizing: border-box; }
+  .formAcoes { width: 100%; }
+  .salvarBtn { flex: 1; min-height: 44px; }
+  .cancelarBtn { min-height: 44px; padding: 7px 20px; }
+
+  /* Cabeçalho catálogo */
+  .catHeader { flex-direction: column; align-items: stretch; gap: 8px; }
+  .novoBtn { width: 100%; min-height: 44px; }
+
+  /* Filtros análise */
+  .filtrosRow { gap: 8px; }
+  .tipoRow { gap: 8px; }
+  .anosRow { flex-direction: column; align-items: stretch; }
+  .anoSelect { width: 100%; min-height: 44px; }
+}

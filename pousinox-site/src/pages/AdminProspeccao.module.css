@@ -22,6 +22,18 @@
   gap: 4px;
 }
 
+.filtroRow2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.filtroRow3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
 .filtroLabel {
   font-size: 0.75rem;
   font-weight: 600;
@@ -125,11 +137,258 @@
 .buscarBtn:hover { opacity: 0.88; }
 .buscarBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+/* ── Mobile: barra de busca compacta ── */
+.filtroBarMobile {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.filtroInputMobile {
+  width: 100%;
+  padding: 0 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.93rem;
+  font-family: inherit;
+  background: #fff;
+  outline: none;
+  min-height: 48px;
+  box-sizing: border-box;
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.filtroInputMobile:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(30,58,95,0.08);
+}
+
+.filtroToggleBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 16px;
+  height: 48px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.filtroToggleBtn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+.filtroToggleBtnAtivo {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+}
+.filtroToggleBtnAtivo:hover {
+  background: #1e293b;
+  border-color: #1e293b;
+}
+
+.filtroBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.buscarBtnMobile {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 18px;
+  height: 48px;
+  background: var(--color-primary, #0f172a);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.18);
+  transition: opacity 0.15s, transform 0.1s;
+}
+.buscarBtnMobile:active { transform: scale(0.97); }
+.buscarBtnMobile:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+.novoProspectBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #1e40af;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.3rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.novoProspectBtn:hover { background: #1e3a8a; }
+
+/* ── Drawer overlay ── */
+.drawerOverlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  z-index: 200; backdrop-filter: blur(2px);
+}
+
+/* ── Filtro Drawer (bottom sheet) ── */
+.filtroDrawer {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 201;
+  background: #fff; border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.15);
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 85vh; display: flex; flex-direction: column;
+}
+.filtroDrawerAberto { transform: translateY(0); }
+
+.drawerHandle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: #cbd5e1; margin: 8px auto 0; flex-shrink: 0;
+}
+.drawerHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 16px 4px; flex-shrink: 0;
+}
+.drawerTitulo {
+  font-size: 0.88rem; font-weight: 700; color: var(--color-text);
+}
+.drawerFechar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #f1f5f9; border: none; cursor: pointer;
+  font-size: 0.9rem; color: #64748b; display: flex;
+  align-items: center; justify-content: center;
+}
+.drawerBody {
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 12px;
+  padding-bottom: 160px;
+}
+.drawerBody .filtros {
+  display: flex;
+  border: none; border-radius: 0; padding: 2px 0 0;
+  flex-direction: column; gap: 6px;
+}
+.drawerBody .filtroGrupo { width: 100%; position: relative; z-index: 10; gap: 2px; }
+.drawerBody .filtroGrupo:focus-within { z-index: 20; }
+.drawerBody .filtroLabel { font-size: 0.7rem; margin: 0; }
+.drawerBody .filtroRow2 {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.drawerBody .filtroRow3 {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+}
+.drawerBody .filtroSelect,
+.drawerBody .filtroInput {
+  width: 100%; max-width: none; min-width: 0;
+  min-height: 38px; font-size: 0.86rem; box-sizing: border-box;
+  padding: 5px 10px;
+}
+.drawerFooter {
+  padding: 8px 12px; border-top: 1px solid #f1f5f9; flex-shrink: 0;
+}
+.drawerAplicar {
+  width: 100%; padding: 12px; border-radius: 10px;
+  background: var(--color-primary); color: #fff;
+  border: none; font-size: 0.9rem; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+}
+
+/* Mobile: oculta filtros fora do drawer */
+@media (max-width: 767px) {
+  .filtros { display: none; }
+}
+
+/* Desktop: oculta elementos mobile, transforma drawer em barra inline */
+@media (min-width: 768px) {
+  .filtroBarMobile { display: none; }
+  .drawerOverlay   { display: none; }
+
+  /* Drawer vira filtro inline — sem slide, sem overlay */
+  .filtroDrawer {
+    position: static !important;
+    transform: none !important;
+    background: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    max-height: none !important;
+    display: flex !important;
+    flex-direction: column;
+    transition: none !important;
+  }
+  .drawerHandle  { display: none; }
+  .drawerHeader  { display: none; }
+  .drawerFooter  { display: none; }
+
+  .drawerBody {
+    overflow: visible !important;
+    padding-bottom: 0 !important;
+    flex: none;
+  }
+
+  .drawerBody .filtros {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 14px 18px;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+  }
+
+  .drawerBody .filtroGrupo {
+    width: auto !important;
+    position: relative;
+    z-index: 10;
+  }
+  .drawerBody .filtroGrupo:focus-within { z-index: 20; }
+
+  .drawerBody .filtroSelect,
+  .drawerBody .filtroInput {
+    width: auto !important;
+    max-width: 220px !important;
+    min-width: 160px !important;
+    min-height: unset !important;
+    font-size: 0.88rem !important;
+  }
+}
+
 /* ── Stats ── */
 .stats {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
-  flex-wrap: wrap;
 }
 
 .statCard {
@@ -140,7 +399,6 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 140px;
 }
 
 .statLabel {
@@ -177,31 +435,81 @@
 
 .tableHeader {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--color-border);
 }
 
 .tableTitle {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--color-text);
 }
 
+.tableActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Grupo de abas Lista/Mapa/Calor */
+.vistaTabs {
+  display: flex;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.vistaTab {
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: none;
+  border-left: 1px solid var(--color-border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+  min-height: 40px;
+}
+
+.vistaTab:first-child { border-left: none; }
+.vistaTab:hover { background: #e2e8f0; }
+
+.vistaTabAtiva {
+  background: #0f172a;
+  color: #fff;
+}
+.vistaTabAtiva:hover { background: #1e293b; }
+
 .exportBtn {
-  padding: 6px 14px;
+  padding: 8px 14px;
   background: #f1f5f9;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  font-size: 0.82rem;
-  font-weight: 500;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
   color: var(--color-text);
   cursor: pointer;
   transition: background 0.15s;
+  white-space: nowrap;
+  min-height: 40px;
 }
 
 .exportBtn:hover { background: #e2e8f0; }
+
+@media (min-width: 640px) {
+  .tableHeader {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+  }
+}
 
 .table {
   width: 100%;

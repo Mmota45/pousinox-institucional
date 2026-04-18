@@ -208,11 +208,11 @@
   flex-shrink: 0;
 }
 
-/* cards KPI do mês */
+/* cards KPI do mês — base mobile = 1 col, escalado via min-width */
 .cards {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 12px;
 }
 
 .card {
@@ -363,8 +363,8 @@
   margin-bottom: 4px;
 }
 
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.row2 { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.row3 { display: grid; grid-template-columns: 1fr; gap: 16px; }
 
 .field {
   display: flex;
@@ -590,11 +590,11 @@
 .fluxoToolbar .filtro:focus { outline: none; border-color: var(--color-primary); background: #fff; }
 .fluxoToolbarSpacer { flex: 1; }
 
-/* cards KPI executivos */
+/* cards KPI executivos — base mobile = 1 col */
 .fluxoCards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: 1fr;
+  gap: 12px;
 }
 
 .fluxoCard {
@@ -704,10 +704,6 @@
 .tabelaFluxo tbody tr:nth-child(even) td { background: #fafbfc; }
 .tabelaFluxo tbody tr:hover td { background: #f0f4ff; }
 
-@media (max-width: 900px) {
-  .fluxoCards { grid-template-columns: repeat(2, 1fr); }
-}
-
 /* ── Botões globais ────────────────────────────────────────────────────────── */
 .btnPrimary {
   padding: 9px 22px;
@@ -753,17 +749,7 @@
   padding: 0;
 }
 
-/* ── Responsivo ────────────────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .cards { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 600px) {
-  .cards { grid-template-columns: 1fr; }
-  .row2, .row3 { grid-template-columns: 1fr; }
-  .filtros { flex-direction: column; align-items: stretch; }
-  .abas { gap: 0; }
-  .aba { padding: 8px 12px; font-size: 0.82rem; }
-}
+/* (regras responsivas consolidadas no bloco mobile-first abaixo) */
 
 .inputSmall { width: 90px; padding: 3px 6px; border: 1px solid var(--color-primary); border-radius: 4px; font-size: 0.85rem; }
 
@@ -771,13 +757,13 @@
 .budgetWrap       { display: flex; flex-direction: column; gap: 24px; }
 .budgetFiltros    { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
 
-.budgetResumo     { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.budgetResumo     { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .budgetCard       { background: var(--color-bg-alt, #f9fafb); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 14px 18px; display: flex; flex-direction: column; gap: 4px; }
 .budgetCardLabel  { font-size: 0.78rem; color: var(--color-text-light); font-weight: 500; }
 .budgetCardVal    { font-size: 1.1rem; font-weight: 700; color: var(--color-text); }
 .budgetCardExcedido .budgetCardVal { color: var(--color-danger, #dc2626); }
 .budgetCardOk     .budgetCardVal   { color: var(--color-success, #16a34a); }
-@media (max-width: 900px) { .budgetResumo { grid-template-columns: repeat(2, 1fr); } }
+/* budgetResumo escala via min-width abaixo */
 
 .budgetGrupo      { display: flex; flex-direction: column; gap: 8px; }
 .budgetGrupoTitulo { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-text-light); padding: 4px 0; border-bottom: 1px solid var(--color-border); }
@@ -820,8 +806,7 @@
 .btnCancelarBaixa { padding: 3px 6px; background: #f3f4f6; color: #374151; border: 1px solid #e2e8f0; border-radius: 4px; font-size: 0.78rem; cursor: pointer; }
 
 /* ── Configuração (AdminConfiguracaoFinanceiro) ─────────────────────────────── */
-.configWrap  { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
-@media (max-width: 900px) { .configWrap { grid-template-columns: 1fr; } }
+.configWrap  { display: grid; grid-template-columns: 1fr; gap: 24px; align-items: start; }
 
 .configSecao { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-text-light); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--color-border); }
 
@@ -836,3 +821,53 @@
 .editRow  { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #f0f4ff; border: 1px solid var(--color-primary); border-radius: var(--radius); margin-bottom: 2px; }
 .btnIcone { background: none; border: none; cursor: pointer; font-size: 0.85rem; opacity: 0.5; padding: 2px 4px; line-height: 1; flex-shrink: 0; }
 .btnIcone:hover { opacity: 1; }
+
+/* ── Mobile-first: base = mobile ── */
+
+/* Toolbars empilhadas */
+.toolbar, .filtros { flex-direction: column; align-items: stretch; }
+.toolbar > *, .filtros > * { width: 100%; min-height: 44px; }
+
+/* Touch targets */
+.btnPrimary, .btnSecondary, .btnDanger { min-height: 44px; }
+.tipoToggle > * { min-height: 44px; flex: 1; }
+
+/* Abas scroll horizontal em mobile */
+.abas { gap: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.abas::-webkit-scrollbar { display: none; }
+.aba { padding: 10px 14px; font-size: 0.84rem; white-space: nowrap; min-height: 44px; }
+
+/* Tabelas com scroll */
+.tabelaWrap, .tableScroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Nav tabs scroll */
+.navTabs {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; flex-wrap: nowrap;
+}
+.navTabs::-webkit-scrollbar { display: none; }
+.navTab { min-height: 44px; white-space: nowrap; }
+
+/* Formulário — padding mais apertado em mobile */
+.form, .formSmall { padding: 16px; }
+
+/* ── Tablet (640px+) ── */
+@media (min-width: 640px) {
+  .cards      { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .fluxoCards { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .row2       { grid-template-columns: 1fr 1fr; }
+  .row3       { grid-template-columns: 1fr 1fr; }
+  .toolbar, .filtros { flex-direction: row; align-items: center; }
+  .toolbar > *, .filtros > * { width: auto; }
+  .abas { gap: 4px; }
+  .form, .formSmall { padding: 24px; }
+  .budgetResumo { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ── Desktop (1024px+) ── */
+@media (min-width: 1024px) {
+  .cards      { grid-template-columns: repeat(3, 1fr); }
+  .fluxoCards { grid-template-columns: repeat(4, 1fr); }
+  .row3       { grid-template-columns: 1fr 1fr 1fr; }
+  .configWrap { grid-template-columns: 1fr 1fr; }
+}
