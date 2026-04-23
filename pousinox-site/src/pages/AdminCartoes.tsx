@@ -326,7 +326,7 @@ function FormCartao({ inicial, onSalvo, onCancelar }: FormProps) {
           const lista = (data as { id: string; titulo: string; fotos: string[] | null }[])
             .filter(p => p.titulo && p.fotos?.length && !vistos.has(p.titulo) && vistos.add(p.titulo))
             .map(p => ({
-              id: p.id,
+              id: String(p.id),
               titulo: p.titulo,
               foto_url: p.fotos?.[0] ?? '',
               link: `https://pousinox.com.br/produto/${p.id}`,
