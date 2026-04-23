@@ -239,7 +239,7 @@ export default function AdminOutlet() {
   const [form, setForm] = useState({ ...FORM_VAZIO })
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
-  const [uploadando, setUploadando] = useState(false)
+
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -342,24 +342,6 @@ export default function AdminOutlet() {
     setLoading(false)
   }
 
-  async function handleUploadFoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploadando(true)
-    const ext = file.name.split('.').pop()
-    const nome = `${Date.now()}.${ext}`
-    const { error } = await supabaseAdmin.storage.from(BUCKET).upload(nome, file, { upsert: true })
-    if (!error) {
-      const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${nome}`
-      setForm(f => ({ ...f, fotos: [...f.fotos, url] }))
-      const s = await sugerirPorImagem(file, form.titulo.trim() || undefined, form.marca.trim() || undefined)
-      if (s) setSugestao(s)
-    } else {
-      setMsg({ tipo: 'erro', texto: 'Erro ao fazer upload da foto.' })
-    }
-    setUploadando(false)
-    if (fileRef.current) fileRef.current.value = ''
-  }
 
   function removerFoto(url: string) {
     setForm(f => ({ ...f, fotos: f.fotos.filter(u => u !== url) }))

@@ -237,7 +237,7 @@ function FormCartao({ inicial, onSalvo, onCancelar }: FormProps) {
   const [slugManual, setSlugManual] = useState(!!inicial)
   const [saving, setSaving] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
-  const [produtosDisponiveis, setProdutosDisponiveis] = useState<{ id: number; titulo: string; foto_url: string; link: string }[]>([])
+  const [produtosDisponiveis, setProdutosDisponiveis] = useState<{ id: string; titulo: string; foto_url: string; link: string }[]>([])
   const [midiaPickerCampo, setMidiaPickerCampo] = useState<'foto_url' | 'logo_url' | null>(null)
   const [midiaArquivos, setMidiaArquivos] = useState<{ name: string; url: string }[]>([])
   const [midiaCarregando, setMidiaCarregando] = useState(false)
