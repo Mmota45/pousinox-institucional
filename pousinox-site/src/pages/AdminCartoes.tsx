@@ -329,7 +329,7 @@ function FormCartao({ inicial, onSalvo, onCancelar }: FormProps) {
               id: String(p.id),
               titulo: p.titulo,
               foto_url: p.fotos?.[0] ?? '',
-              link: `https://pousinox.com.br/produto/${p.id}`,
+              link: `https://pousinox.com.br/pronta-entrega`,
             }))
           setProdutosDisponiveis(lista)
         }
