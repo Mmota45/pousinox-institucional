@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wireframe — Proposta Comercial Pousinox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue-deep:    #152d4a;
+      --blue-mid:     #1e3f6e;
+      --blue-light:   #eaf0f8;
+      --silver:       #8a9bb0;
+      --silver-light: #d1d9e4;
+      --text-primary: #0f1923;
+      --text-secondary: #4b5563;
+      --text-muted:   #94a3b8;
+      --surface:      #ffffff;
+      --bg:           #f0f3f7;
+      --border:       #e4e9f0;
+      --red-strike:   #dc2626;
+      --green-wa:     #16a34a;
+      --radius-card:  14px;
+      --radius-btn:   10px;
+      --shadow-card:  0 1px 3px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.05);
+      --shadow-total: 0 2px 8px rgba(21,45,74,.16), 0 8px 32px rgba(21,45,74,.12);
+
+      /* Espaçamentos responsivos */
+      --gap-section:  12px;
+      --pad-h:        16px;
+      --pad-card:     16px 18px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #e8ecf1;
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    /* ══════════════════════════════════════════════
+       CONTAINER PRINCIPAL
+       Mobile: coluna única, largura total
+       Desktop: centralizado com max-width elegante
+    ══════════════════════════════════════════════ */
+    .phone-shell {
+      width: 100%;
+      max-width: 480px;          /* mobile — leitura confortável */
+      background: var(--bg);
+      min-height: 100vh;
+      padding-bottom: 48px;
+    }
+
+    /* ── Utilitários ── */
+    .section {
+      padding: 0 var(--pad-h);
+      margin-bottom: var(--gap-section);
+    }
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      padding: var(--pad-card);
+      border: 1px solid var(--border);
+    }
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      padding-left: 1px;
+    }
+
+    /* ════════════════════════════════════════════
+       1. HEADER
+    ════════════════════════════════════════════ */
+    .header {
+      background: var(--blue-deep);
+      padding: 14px var(--pad-h) 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .logo-box {
+      width: 44px;
+      height: 44px;
+      background: rgba(255,255,255,.08);
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .company-data { flex: 1; min-width: 0; }
+    .company-data-row {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+      line-height: 1.55;
+    }
+    .company-data-key {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: #4a7296;
+      flex-shrink: 0;
+      min-width: 36px;
+    }
+    .company-data-val {
+      font-size: 11px;
+      font-weight: 400;
+      color: #b8d0e8;
+      letter-spacing: .01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ════════════════════════════════════════════
+       2. META BAR
+    ════════════════════════════════════════════ */
+    .meta-bar {
+      background: #0e1f33;
+      padding: 6px var(--pad-h);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .meta-bar span {
+      font-size: 11px;
+      color: #3d6380;
+      letter-spacing: .02em;
+    }
+    .meta-bar .meta-dot {
+      width: 2px; height: 2px;
+      border-radius: 50%;
+      background: #264560;
+      flex-shrink: 0;
+    }
+    .meta-bar .meta-highlight {
+      font-weight: 600;
+      color: #6a96b8;
+    }
+
+    /* ════════════════════════════════════════════
+       3. DESTINATÁRIO
+    ════════════════════════════════════════════ */
+    .recipient-company {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -.01em;
+      line-height: 1.25;
+      margin-bottom: 10px;
+    }
+    .info-list { display: flex; flex-direction: column; gap: 0; }
+    .info-row {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 3px 0;
+      border-bottom: 1px solid #f3f5f8;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-key {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      min-width: 36px;
+    }
+    .info-val {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      line-height: 1.45;
+    }
+    .recipient-contact {
+      margin-top: 10px;
+      padding-top: 9px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .recipient-contact-icon {
+      width: 16px; height: 16px;
+      flex-shrink: 0;
+      color: var(--silver-light);
+    }
+    .recipient-contact-name {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .recipient-contact-cargo {
+      font-size: 11px;
+      color: #b0bdc9;
+      margin-left: 3px;
+    }
+
+    /* ════════════════════════════════════════════
+       4. ITEM DO ORÇAMENTO
+    ════════════════════════════════════════════ */
+    .item-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--blue-light);
+      color: var(--blue-mid);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+    .item-desc {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.4;
+      margin-bottom: 14px;
+      letter-spacing: -.01em;
+    }
+    .item-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      background: #f5f7fb;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+    }
+    .item-grid-cell {
+      padding: 10px 12px;
+      border-right: 1px solid var(--border);
+    }
+    .item-grid-cell:last-child { border-right: none; }
+    .g-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .g-value {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .item-total-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .t-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .t-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--blue-deep);
+      letter-spacing: -.02em;
+    }
+
+    /* ════════════════════════════════════════════
+       5. VANTAGENS
+    ════════════════════════════════════════════ */
+    .advantage-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid #f0f3f7;
+    }
+    .advantage-row:last-of-type { border-bottom: none; padding-bottom: 0; }
+    .adv-left { display: flex; gap: 9px; align-items: flex-start; flex: 1; }
+    .adv-check {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--blue-light);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: var(--blue-mid);
+    }
+    .adv-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+      line-height: 1.3;
+    }
+    .adv-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .adv-right { text-align: right; flex-shrink: 0; }
+    .adv-original-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .adv-original {
+      font-size: 13px;
+      color: var(--red-strike);
+      text-decoration: line-through;
+      font-weight: 500;
+    }
+    .savings-bar {
+      background: #f6f9fc;
+      border: 1px solid var(--silver-light);
+      border-left: 3px solid #1e3f6e;
+      border-radius: 8px;
+      padding: 10px 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .s-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    .s-value {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--blue-deep);
+      letter-spacing: -.01em;
+      flex-shrink: 0;
+    }
+
+    /* ════════════════════════════════════════════
+       6. TOTAL FINAL
+    ════════════════════════════════════════════ */
+    .total-card {
+      background: var(--blue-deep);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-total);
+      padding: 22px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .tl-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .09em;
+      text-transform: uppercase;
+      color: #5a82a6;
+      margin-bottom: 6px;
+    }
+    .tl-value {
+      font-size: 30px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -.03em;
+      line-height: 1;
+    }
+    .tl-sub {
+      font-size: 10.5px;
+      color: #4d7496;
+      margin-top: 7px;
+    }
+    .total-shield {
+      width: 42px; height: 42px;
+      background: rgba(255,255,255,.07);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      border: 1px solid rgba(255,255,255,.10);
+      flex-shrink: 0;
+    }
+
+    /* ════════════════════════════════════════════
+       7. CONDIÇÕES COMERCIAIS
+       Mobile: lista vertical
+       Desktop: grid 3 colunas (via breakpoint)
+    ════════════════════════════════════════════ */
+    .cond-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .cond-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid #f0f3f7;
+    }
+    .cond-row:first-child { padding-top: 0; }
+    .cond-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .cond-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: var(--blue-light);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      color: var(--blue-mid);
+    }
+    .cond-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: .07em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+    .cond-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+
+    /* ════════════════════════════════════════════
+       8. ASSINATURA + CONTATO
+       Mobile: stack vertical
+       Desktop: 2 colunas (via breakpoint)
+    ════════════════════════════════════════════ */
+    .sig-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sig-card, .comercial-card {
+      background: var(--surface);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      padding: 16px 18px;
+      border: 1px solid var(--border);
+    }
+    .sc-label {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .sig-spacer { height: 32px; }
+    .sig-line {
+      border-bottom: 1.5px solid var(--silver-light);
+      margin-bottom: 6px;
+    }
+    .sig-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .comercial-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .comercial-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -.01em;
+    }
+    .comercial-role {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: -2px;
+    }
+    .wa-contact {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f0fdf4;
+      border: 1px solid #c6f0d4;
+      border-radius: 8px;
+      padding: 9px 12px;
+      margin-top: 4px;
+      color: #15803d;
+      text-decoration: none;
+    }
+    .wa-contact span {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* ════════════════════════════════════════════
+       9. CTAS
+       Mobile: coluna empilhada
+       Desktop: linha com botões equilibrados
+    ════════════════════════════════════════════ */
+    .ctas {
+      padding: 6px var(--pad-h) 0;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      border: none;
+      border-radius: var(--radius-btn);
+      padding: 15px 20px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      letter-spacing: .01em;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: #16a34a;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(22,163,74,.26), 0 6px 20px rgba(22,163,74,.14);
+    }
+    .btn-secondary {
+      background: var(--blue-deep);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(21,45,74,.18), 0 6px 20px rgba(21,45,74,.10);
+    }
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--text-secondary);
+      border: 1.5px solid var(--border);
+      box-shadow: var(--shadow-card);
+    }
+
+    /* ════════════════════════════════════════════
+       FOOTER
+    ════════════════════════════════════════════ */
+    .footer {
+      margin-top: 20px;
+      padding: 0 var(--pad-h);
+      text-align: center;
+    }
+    .footer p {
+      font-size: 10px;
+      color: #b0bcc8;
+      line-height: 1.7;
+    }
+    .footer a { color: var(--silver); text-decoration: none; }
+
+    .body-start { padding-top: 16px; }
+
+
+    /* ════════════════════════════════════════════
+       ≥ 560px — assinatura em 2 colunas + CTAs 2+1
+       Ponto guiado pelo conteúdo: a partir daqui
+       os cards de assinatura têm largura suficiente
+       e o layout 2+1 dos CTAs é confortável.
+    ════════════════════════════════════════════ */
+    @media (min-width: 560px) {
+      /* Assinatura: 2 colunas — cards têm ~240px cada, suficiente */
+      .sig-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+      .sig-spacer { height: 40px; }
+
+      /* CTAs 2+1: WA ocupa linha inteira, Email e PDF lado a lado
+         Evita apertamento dos 3 em fila antes dos 900px */
+      .ctas {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      .btn { width: auto; }
+      .btn-primary {
+        grid-column: 1 / -1;  /* WA: linha inteira */
+        padding: 15px 20px;
+      }
+      .btn-secondary,
+      .btn-ghost {
+        padding: 13px 16px;
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       ≥ 768px — container elevado, mais respiro
+       Ponto guiado pelo conteúdo: shell vira
+       documento flutuante sobre o fundo.
+    ════════════════════════════════════════════ */
+    @media (min-width: 768px) {
+      :root {
+        --gap-section: 16px;
+        --pad-h:       28px;
+        --pad-card:    18px 22px;
+      }
+
+      body { background: #dde3eb; }
+
+      .phone-shell {
+        max-width: 700px;
+        margin-top: 24px;
+        margin-bottom: 48px;
+        min-height: auto;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.07);
+        padding-bottom: 40px;
+      }
+
+      .body-start { padding-top: 22px; }
+      .section-title { font-size: 10.5px; }
+
+      /* Header */
+      .logo-box { width: 52px; height: 52px; border-radius: 10px; }
+      .company-data-key { font-size: 9.5px; min-width: 40px; }
+      .company-data-val { font-size: 11.5px; }
+
+      /* Meta-bar */
+      .meta-bar { padding: 7px var(--pad-h); }
+      .meta-bar span { font-size: 11.5px; }
+
+      /* Destinatário */
+      .recipient-company { font-size: 17px; }
+      .info-val { font-size: 12.5px; }
+
+      /* Item */
+      .item-desc { font-size: 15.5px; }
+      .g-value { font-size: 14px; }
+      .t-value { font-size: 23px; }
+
+      /* Vantagens */
+      .adv-name { font-size: 13.5px; }
+      .s-value { font-size: 15.5px; }
+
+      /* Total */
+      .tl-value { font-size: 33px; }
+      .tl-sub { font-size: 11px; }
+      .total-shield { width: 48px; height: 48px; }
+
+      /* Assinatura — já ativa em 560px, mantém */
+      .sig-section { gap: 14px; }
+      .sig-spacer { height: 44px; }
+    }
+
+
+    /* ════════════════════════════════════════════
+       ≥ 900px — CTAs em 3 colunas
+       Ponto guiado pelo conteúdo: a partir daqui
+       os 3 botões têm ~240px cada — texto não quebra.
+    ════════════════════════════════════════════ */
+    @media (min-width: 900px) {
+      .ctas {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+      }
+      .btn-primary {
+        grid-column: auto;  /* volta para coluna normal */
+      }
+      .btn-secondary,
+      .btn-ghost {
+        padding: 14px 16px;
+      }
+    }
+
+
+    /* ════════════════════════════════════════════
+       ≥ 1024px — condições em 3 colunas + desktop pleno
+       Ponto guiado pelo conteúdo: "15 dias úteis
+       após confirmação" precisa de ~220px mínimos.
+       Em 1024px cada coluna fica ~260px — confortável.
+    ════════════════════════════════════════════ */
+    @media (min-width: 1024px) {
+      :root {
+        --gap-section: 20px;
+        --pad-h:       36px;
+        --pad-card:    22px 26px;
+      }
+
+      .phone-shell {
+        max-width: 860px;
+        margin-top: 32px;
+        margin-bottom: 64px;
+        border-radius: 20px;
+      }
+
+      /* Header */
+      .header { padding: 18px var(--pad-h) 16px; gap: 16px; }
+      .logo-box { width: 58px; height: 58px; }
+      .company-data-val { font-size: 12px; }
+
+      /* Conteúdo */
+      .recipient-company { font-size: 19px; }
+      .info-val { font-size: 13px; }
+      .item-desc { font-size: 16px; }
+      .t-value { font-size: 25px; }
+
+      /* Vantagens */
+      .adv-name { font-size: 14px; }
+      .adv-original { font-size: 14px; }
+      .s-label { font-size: 12px; }
+      .s-value { font-size: 16px; }
+
+      /* Total */
+      .tl-value { font-size: 38px; }
+      .tl-sub { font-size: 11.5px; }
+      .total-shield { width: 52px; height: 52px; }
+
+      /* Condições: 3 colunas — conteúdo tem espaço suficiente aqui */
+      .cond-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0;
+      }
+      .cond-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 0 16px 0 0;
+        border-bottom: none;
+        border-right: 1px solid #e8ecf2;
+      }
+      .cond-row:first-child { padding-left: 0; }
+      .cond-row:nth-child(2) { padding-left: 16px; }
+      .cond-row:last-child {
+        border-right: none;
+        padding-right: 0;
+        padding-left: 16px;
+      }
+      .cond-icon { width: 36px; height: 36px; }
+      .cond-label { font-size: 9.5px; }
+      .cond-value { font-size: 13px; }
+
+      /* Assinatura */
+      .sig-spacer { height: 50px; }
+
+      .body-start { padding-top: 28px; }
+    }
+
+
+    /* ════════════════════════════════════════════
+       ≥ 1280px — desktop largo
+       Max-width controlado para não esticar a leitura.
+       Nenhuma nova estrutura — apenas respiro adicional.
+    ════════════════════════════════════════════ */
+    @media (min-width: 1280px) {
+      :root {
+        --pad-h:    44px;
+        --pad-card: 24px 28px;
+      }
+
+      .phone-shell {
+        max-width: 920px;
+        margin-top: 40px;
+      }
+
+      .logo-box { width: 62px; height: 62px; }
+      .recipient-company { font-size: 20px; }
+      .tl-value { font-size: 40px; }
+      .total-card { padding: 26px 28px; }
+      .total-shield { width: 54px; height: 54px; }
+
+      /* Condições: gap ligeiramente maior em tela larga */
+      .cond-row { padding-right: 20px; }
+      .cond-row:nth-child(2) { padding-left: 20px; }
+      .cond-row:last-child { padding-left: 20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="phone-shell">
+
+  <!-- ══════════════════════════════════════════
+       1. HEADER — logo + dados empresa
+  ══════════════════════════════════════════ -->
+  <header class="header">
+    <div class="logo-box">
+      <svg width="30" height="30" viewBox="0 0 32 32" fill="none">
+        <rect x="4" y="8" width="10" height="16" rx="2" fill="#5a8ab0"/>
+        <rect x="18" y="8" width="10" height="16" rx="2" fill="#3a6a90"/>
+        <rect x="10" y="4" width="12" height="4" rx="1.5" fill="#7aafd4"/>
+      </svg>
+    </div>
+    <div class="company-data">
+      <div class="company-data-row">
+        <span class="company-data-key">CNPJ</span>
+        <span class="company-data-val">12.115.379/0001-64</span>
+      </div>
+      <div class="company-data-row">
+        <span class="company-data-key">End.</span>
+        <span class="company-data-val">Av. Antônio Mariosa, 4545</span>
+      </div>
+      <div class="company-data-row">
+        <span class="company-data-key">Tel.</span>
+        <span class="company-data-val">(35) 3423-8994</span>
+      </div>
+      <div class="company-data-row">
+        <span class="company-data-key">E-mail</span>
+        <span class="company-data-val">adm@pousinox.com.br</span>
+      </div>
+      <div class="company-data-row">
+        <span class="company-data-key">Site</span>
+        <span class="company-data-val">pousinox.com.br</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════
+       2. META BAR — discreta
+  ══════════════════════════════════════════ -->
+  <div class="meta-bar">
+    <span>Proposta Comercial</span>
+    <span class="meta-dot"></span>
+    <span class="meta-highlight">PC-0042</span>
+    <span class="meta-dot"></span>
+    <span>Válida até 28/04/2026</span>
+  </div>
+
+  <div class="body-start">
+
+    <!-- ══════════════════════════════════════════
+         3. DESTINATÁRIO — hierarquia institucional
+    ══════════════════════════════════════════ -->
+    <div class="section">
+      <p class="section-title">Destinatário</p>
+      <div class="card">
+        <p class="recipient-company">Cerâmica Del Rio Ltda.</p>
+
+        <div class="info-list">
+          <div class="info-row">
+            <span class="info-key">CNPJ</span>
+            <span class="info-val">12.345.678/0001-90</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">End.</span>
+            <span class="info-val">Av. Principal, 1000 — Lauro de Freitas/BA</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">Tel.</span>
+            <span class="info-val">(35) 3411-2200</span>
+          </div>
+          <div class="info-row">
+            <span class="info-key">E-mail</span>
+            <span class="info-val">carlos@ceramicadelrio.com.br</span>
+          </div>
+        </div>
+
+        <div class="recipient-contact">
+          <svg class="recipient-contact-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span class="recipient-contact-name">
+            Carlos Eduardo Oliveira
+            <span class="recipient-contact-cargo">· Diretor Comercial</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         4. ITEM DO ORÇAMENTO
+    ══════════════════════════════════════════ -->
+    <div class="section">
+      <p class="section-title">Item da Proposta</p>
+      <div class="card">
+        <div class="item-badge">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="20 6 9 17 4 12"/></svg>
+          1 item
+        </div>
+        <p class="item-desc">Fixador de Porcelanato Inox — Modelo FP-300 Escondido</p>
+        <div class="item-grid">
+          <div class="item-grid-cell">
+            <p class="g-label">Quantidade</p>
+            <p class="g-value">2.400</p>
+          </div>
+          <div class="item-grid-cell">
+            <p class="g-label">Unidade</p>
+            <p class="g-value">pç</p>
+          </div>
+          <div class="item-grid-cell">
+            <p class="g-label">Vlr. Unit.</p>
+            <p class="g-value">R$ 4,20</p>
+          </div>
+        </div>
+        <div class="item-total-row">
+          <span class="t-label">Total do item</span>
+          <span class="t-value">R$ 10.080,00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         5. VANTAGENS — mais madura, padronizada
+    ══════════════════════════════════════════ -->
+    <div class="section">
+      <p class="section-title">Vantagens desta proposta</p>
+      <div class="card">
+        <!-- Preço especial nos itens -->
+        <div class="advantage-row">
+          <div class="adv-left">
+            <div class="adv-check">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div>
+              <p class="adv-name">Descontos especiais nos itens</p>
+              <p class="adv-sub">Abaixo do preço de tabela</p>
+            </div>
+          </div>
+          <div class="adv-right">
+            <p class="adv-original-label">Tabela</p>
+            <p class="adv-original">R$ 11.280,00</p>
+          </div>
+        </div>
+
+        <!-- Frete bonificado -->
+        <div class="advantage-row">
+          <div class="adv-left">
+            <div class="adv-check">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div>
+              <p class="adv-name">Frete Bonificado</p>
+              <p class="adv-sub">Entrega na obra · CIF</p>
+            </div>
+          </div>
+          <div class="adv-right">
+            <p class="adv-original-label">Tabela</p>
+            <p class="adv-original">R$ 480,00</p>
+          </div>
+        </div>
+
+        <!-- Instalação bonificada -->
+        <div class="advantage-row">
+          <div class="adv-left">
+            <div class="adv-check">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div>
+              <p class="adv-name">Instalação Bonificada</p>
+              <p class="adv-sub">Técnico Pousinox no local</p>
+            </div>
+          </div>
+          <div class="adv-right">
+            <p class="adv-original-label">Tabela</p>
+            <p class="adv-original">R$ 320,00</p>
+          </div>
+        </div>
+
+        <!-- Economia total -->
+        <div class="savings-bar">
+          <span class="s-label">Economia total</span>
+          <span class="s-value">R$ 2.080,00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         6. TOTAL FINAL
+    ══════════════════════════════════════════ -->
+    <div class="section">
+      <div class="total-card">
+        <div>
+          <p class="tl-label">Total da proposta</p>
+          <p class="tl-value">R$ 10.080,00</p>
+          <p class="tl-sub">50% entrada · 50% na entrega</p>
+        </div>
+        <div class="total-shield">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a7296" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         7. CONDIÇÕES COMERCIAIS
+    ══════════════════════════════════════════ -->
+    <div class="section">
+      <p class="section-title">Condições Comerciais</p>
+      <div class="card">
+        <div class="cond-list">
+          <div class="cond-row">
+            <div class="cond-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            </div>
+            <div>
+              <p class="cond-label">Pagamento</p>
+              <p class="cond-value">50% entrada + 50% na entrega</p>
+            </div>
+          </div>
+          <div class="cond-row">
+            <div class="cond-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+            </div>
+            <div>
+              <p class="cond-label">Prazo de Entrega</p>
+              <p class="cond-value">15 dias úteis após confirmação</p>
+            </div>
+          </div>
+          <div class="cond-row">
+            <div class="cond-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div>
+              <p class="cond-label">Validade da Proposta</p>
+              <p class="cond-value">10 dias — até 28 de abril de 2026</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         8. ASSINATURA + CONTATO COMERCIAL
+    ══════════════════════════════════════════ -->
+    <div class="section">
+      <p class="section-title">Confirmação &amp; Contato</p>
+      <div class="sig-section">
+        <div class="sig-card">
+          <p class="sc-label">Assinatura do cliente</p>
+          <div class="sig-spacer"></div>
+          <div class="sig-line"></div>
+          <p class="sig-sub">Carlos Eduardo Oliveira</p>
+        </div>
+        <div class="comercial-card">
+          <p class="sc-label">Consultor comercial</p>
+          <p class="comercial-name">João Silva</p>
+          <p class="comercial-role">Pousinox · Comercial</p>
+          <a class="wa-contact" href="#">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.557 4.113 1.528 5.833L0 24l6.335-1.51A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.003-1.372l-.36-.214-3.72.887.934-3.617-.235-.372A9.818 9.818 0 0 1 12 2.182c5.42 0 9.818 4.398 9.818 9.818 0 5.42-4.398 9.818-9.818 9.818z"/></svg>
+            <span>(35) 3423-8994</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         9. CTAS
+    ══════════════════════════════════════════ -->
+    <div class="ctas">
+      <button class="btn btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.557 4.113 1.528 5.833L0 24l6.335-1.51A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.818 9.818 0 0 1-5.003-1.372l-.36-.214-3.72.887.934-3.617-.235-.372A9.818 9.818 0 0 1 12 2.182c5.42 0 9.818 4.398 9.818 9.818 0 5.42-4.398 9.818-9.818 9.818z"/></svg>
+        Enviar pelo WhatsApp
+      </button>
+      <button class="btn btn-secondary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+        Enviar por E-mail
+      </button>
+      <button class="btn btn-ghost">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Baixar / Imprimir PDF
+      </button>
+    </div>
+
+    <!-- RODAPÉ -->
+    <div class="footer">
+      <p>Proposta gerada em 19/04/2026 · <a href="#">pousinox.com.br</a></p>
+      <p>Documento de caráter comercial — sujeito a alterações sem aviso prévio.</p>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

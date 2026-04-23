@@ -44,9 +44,10 @@ const ROTA_PERMISSAO: Record<string, string> = {
   'docs-recebidos':      'docs-recebidos',
   'docs-emitidos':       'docs-emitidos',
   'configuracao-financeiro': 'configuracao-financeiro',
+  cartoes: 'cartoes',
 }
 
-const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao', 'cobertura', 'funil', 'clientes', 'produtos', 'projetos', 'fornecedores', 'financeiro', 'campanhas', 'conciliacao', 'pipeline', 'producao', 'qualidade', 'manutencao', 'solicitacoes-compra', 'cotacoes-compra', 'pedidos-compra', 'recebimentos-compra', 'estoque-mp', 'estoque-pa', 'inventario', 'docs-recebidos', 'docs-emitidos', 'bens-frota', 'estudo-mercado', 'configuracao-financeiro']
+const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao', 'cobertura', 'funil', 'clientes', 'produtos', 'projetos', 'fornecedores', 'financeiro', 'campanhas', 'conciliacao', 'pipeline', 'producao', 'qualidade', 'manutencao', 'solicitacoes-compra', 'cotacoes-compra', 'pedidos-compra', 'recebimentos-compra', 'estoque-mp', 'estoque-pa', 'inventario', 'docs-recebidos', 'docs-emitidos', 'bens-frota', 'estudo-mercado', 'configuracao-financeiro', 'cartoes']
 
 interface NavItem {
   to: string
@@ -126,6 +127,17 @@ const NAV_ITEMS: NavItem[] = [
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>
         <line x1="12" y1="7" x2="12" y2="10"/><line x1="12" y1="14" x2="12" y2="17"/>
+      </svg>
+    ),
+  },
+  {
+    to: '/admin/cartoes',
+    label: 'Cartões Digitais',
+    permissao: 'cartoes',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="5" width="20" height="14" rx="2"/>
+        <line x1="2" y1="10" x2="22" y2="10"/>
       </svg>
     ),
   },

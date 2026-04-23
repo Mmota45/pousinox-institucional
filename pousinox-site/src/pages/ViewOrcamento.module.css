@@ -1,520 +1,976 @@
-/* ── ViewOrcamento — mobile-first ──────────────────────────────────────────── */
+/* ── ViewOrcamento — mobile-first premium ──────────────────────────────────── */
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 .page {
   font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-  font-size: 0.85rem;
-  color: #1e293b;
-  background: #f1f5f9;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #f0f3f7;
   min-height: 100vh;
-  padding-bottom: 40px;
+  padding-bottom: 52px;
 }
 
-/* ── Sticky top bar ── */
-.topBar {
-  background: #1a2f4e;
-  padding: 10px 16px;
+/* ── 1. Header ── */
+.header {
+  background: #fff;
+  padding: 16px 16px 14px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  gap: 14px;
+  border-bottom: 3px solid #152d4a;
 }
 
-.topBarInfo {
-  color: #94a3b8;
-  font-size: 0.78rem;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-  min-width: 0;
-}
-
-.topBarBtn {
-  background: #c0c0c0;
-  color: #1a2f4e;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 16px;
-  font-weight: 700;
-  cursor: pointer;
-  font-size: 0.82rem;
-  white-space: nowrap;
+.logoBox {
+  height: 64px;
+  max-width: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-}
-
-/* ── Card principal ── */
-.card {
-  background: #fff;
-  margin: 16px 12px;
-  border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
   overflow: hidden;
-  position: relative;
-}
-
-/* ── Header ── */
-.header {
-  padding: 18px 16px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.headerTop {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
 }
 
 .logo {
-  width: 56px;
-  height: 56px;
+  height: 64px;
+  max-width: 160px;
+  width: auto;
   object-fit: contain;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  flex-shrink: 0;
+  display: block;
 }
 
 .logoPlaceholder {
-  width: 56px;
-  height: 56px;
-  border-radius: 6px;
-  background: #1a2f4e;
-  color: #fff;
+  width: 48px;
+  height: 48px;
+  background: #152d4a;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
-  font-weight: 700;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -.01em;
   flex-shrink: 0;
 }
 
-.empresaInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.companyData {
   flex: 1;
   min-width: 0;
 }
 
-.empresaNome {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #1a2f4e;
-  line-height: 1.2;
+.companyData p {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.empresaMeta {
-  font-size: 0.72rem;
+.companyData p strong {
+  font-weight: 600;
+  color: #1e293b;
+  margin-right: 3px;
+}
+
+/* ── 2. Meta bar ── */
+.metaBar {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.metaItem {
+  font-size: 11.5px;
   color: #64748b;
+  letter-spacing: .01em;
+}
+
+.metaItemBold {
+  font-size: 12px;
+  font-weight: 700;
+  color: #152d4a;
+  letter-spacing: .01em;
+}
+
+.metaDot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  flex-shrink: 0;
+}
+
+/* ── Body ── */
+.body {
+  padding-top: 16px;
+}
+
+/* ── Section label ── */
+.sectionLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+
+/* ── Generic card ── */
+.card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.section {
+  padding: 0 16px;
+  margin-bottom: 12px;
+}
+
+/* ── 3. Destinatário ── */
+.recipientRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.recipientInitial {
+  width: 48px;
+  height: 48px;
+  background: #152d4a;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: -.01em;
+}
+
+.recipientData {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  column-count: 1;
+}
+
+/* Impede auto-link de telefone/WhatsApp pelo browser */
+.recipientData a {
+  color: inherit !important;
+  text-decoration: none !important;
+  pointer-events: none;
+}
+
+.recipientCompany {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recipientData p {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recipientData p strong {
+  font-weight: 600;
+  color: #1e293b;
+  margin-right: 3px;
+}
+
+.recipientCargo {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-left: 4px;
+  font-style: normal;
+}
+
+.recipientDocs {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.75;
+}
+
+.recipientContatos {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.75;
+}
+
+.docSep {
+  color: #cbd5e1;
+  font-weight: 400;
+}
+
+.recipientAc {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.75;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.recipientEndereco {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.75;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.recipientCidade {
+  font-size: 11.5px;
+  color: #475569;
+  line-height: 1.6;
+}
+
+/* legado — mantido para não quebrar outros usos */
+.contactRow { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+.contactIcon { width: 28px; height: 28px; border-radius: 7px; background: #e8eef6; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #1e3f6e; }
+
+.contactText {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.entregaText {
+  font-size: 13px;
+  color: #4b5563;
   line-height: 1.5;
 }
 
-.headerMeta {
-  background: #f8fafc;
+/* ── 4. Itens ── */
+.itemCard {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+  padding: 20px;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  margin-bottom: 10px;
 }
 
-.metaLabel {
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #94a3b8;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.metaNumero {
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: #1a2f4e;
-  letter-spacing: 0.02em;
-  line-height: 1;
-}
-
-.metaData {
-  font-size: 0.72rem;
-  color: #64748b;
-}
-
-/* ── Accent line ── */
-.accentLine {
-  height: 3px;
-  background: linear-gradient(90deg, #1a2f4e, #c0c0c0);
-  margin: 14px 16px 0;
-  border-radius: 2px;
-}
-
-/* ── Seções ── */
-.section {
-  padding: 12px 16px;
-}
-
-.sectionTitle {
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #94a3b8;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-
-.clienteBox {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px 14px;
-}
-
-.clienteNome {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #1a2f4e;
-  margin-bottom: 4px;
-}
-
-.clienteMeta {
-  font-size: 0.78rem;
-  color: #475569;
-  line-height: 1.6;
-}
-
-.entregaBox {
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-left: 3px solid #3b82f6;
-  border-radius: 6px;
-  padding: 8px 12px;
-}
-
-/* ── Tabela de itens ── */
-.tableScroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  border-top: 1px solid #f1f5f9;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.78rem;
-  min-width: 480px;
-}
-
-.table th {
-  background: #1a2f4e;
-  color: #fff;
-  padding: 8px 10px;
-  text-align: left;
+.itemBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #e8eef6;
+  color: #1e3f6e;
+  font-size: 10.5px;
   font-weight: 600;
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
 }
 
-.table th.right { text-align: right; }
-.table th.center { text-align: center; }
-
-.table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid #f1f5f9;
-  vertical-align: top;
-  color: #1e293b;
+.itemImage {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  float: right;
+  margin: 0 0 10px 14px;
 }
 
-.table td.right { text-align: right; }
-.table td.center { text-align: center; }
-
-.table tbody tr:nth-child(even) td { background: #f8fafc; }
-
-.precoOriginal {
-  font-size: 0.68rem;
-  color: #94a3b8;
-  text-decoration: line-through;
-  line-height: 1;
-  display: block;
+.itemDesc {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.4;
+  margin-bottom: 14px;
+  letter-spacing: -.01em;
+  clear: right;
 }
 
 .obsTecnica {
-  font-size: 0.68rem;
-  color: #64748b;
-  margin-top: 2px;
+  font-size: 11.5px;
+  color: #6b7280;
   font-style: italic;
+  margin-top: -8px;
+  margin-bottom: 12px;
 }
 
-/* ── Totais ── */
-.totaisBox {
-  background: #f8fafc;
+.itemGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  background: #f0f3f7;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 14px;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 
-.totaisRow {
+.itemGridCell {
+  padding: 10px 12px;
+  border-right: 1px solid #e2e8f0;
+}
+
+.itemGridCell:last-child {
+  border-right: none;
+}
+
+.gLabel {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 4px;
+}
+
+.gValue {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.precoOriginal {
+  font-size: 11px;
+  color: #dc2626;
+  text-decoration: line-through;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.itemTotalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.itemTotalLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.itemTotalValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: #152d4a;
+  letter-spacing: -.02em;
+}
+
+.subtotalRow {
   display: flex;
   justify-content: space-between;
-  font-size: 0.82rem;
-  color: #475569;
+  padding: 10px 20px;
+  font-size: 13px;
+  color: #6b7280;
+  background: #fafafa;
+  border: 1px solid #e2e8f0;
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  margin-top: -2px;
 }
 
-.totaisTotal {
-  border-top: 2px solid #1a2f4e;
-  padding-top: 8px;
-  margin-top: 2px;
+.subtotalValue {
   font-weight: 700;
-  font-size: 1rem;
-  color: #1a2f4e;
+  color: #152d4a;
 }
 
-.economia {
-  font-size: 0.72rem;
-  color: #16a34a;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  border-radius: 6px;
-  padding: 5px 10px;
-  margin-top: 4px;
-  text-align: center;
-}
-
-/* ── Condições ── */
-.condicoesBox {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px 14px;
+/* ── 5. Vantagens ── */
+.advantageRow {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.condicaoItem {
-  font-size: 0.78rem;
-  color: #334155;
-  line-height: 1.4;
-}
-
-/* ── Observações ── */
-.obsBox {
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 10px 14px;
-}
-
-.obsText {
-  font-size: 0.76rem;
-  color: #475569;
-  line-height: 1.6;
-  white-space: pre-line;
-}
-
-/* ── Assinatura ── */
-.assinaturas {
-  display: flex;
-  gap: 24px;
-  padding: 16px 16px 0;
-}
-
-.assinatura {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.assinaturaLinha {
-  width: 100%;
-  height: 1px;
-  background: #cbd5e1;
-}
-
-.assinaturaNome {
-  font-size: 0.70rem;
-  color: #64748b;
-  text-align: center;
-}
-
-/* ── Selo de verificação ── */
-.seloWrap {
-  margin: 16px;
-  background: #f0fdf4;
-  border: 1px solid #86efac;
-  border-radius: 10px;
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.seloIcone {
-  width: 36px;
-  height: 36px;
-  background: #16a34a;
+.advantageRow:last-of-type {
+  border-bottom: none;
+  padding-bottom: 4px;
+}
+
+.advLeft {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.advCheck {
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
+  background: #eaf0f8;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-top: 1px;
+  color: #1e3f6e;
 }
 
-.seloTexto {
-  flex: 1;
-  min-width: 0;
+.advName {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 2px;
 }
 
-.seloTitulo {
-  font-size: 0.78rem;
+.advSub {
+  font-size: 11.5px;
+  color: #9ca3af;
+}
+
+.advRight {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.advOriginal {
+  font-size: 12px;
+  color: #dc2626;
+  text-decoration: line-through;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.advBonus {
+  font-size: 13.5px;
   font-weight: 700;
-  color: #15803d;
+  color: #16a34a;
 }
 
-.seloCodigo {
-  font-size: 0.70rem;
-  color: #166534;
-  margin-top: 2px;
-  word-break: break-all;
+.savingsBar {
+  background: #f6f9fc;
+  border: 1px solid #d1d9e4;
+  border-left: 3px solid #1e3f6e;
+  border-radius: 8px;
+  padding: 10px 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
 }
 
-/* ── Footer ── */
-.footer {
-  border-top: 1px solid #f1f5f9;
-  padding: 10px 16px;
-  text-align: center;
-  font-size: 0.68rem;
-  color: #94a3b8;
+.savingsLabel {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #4b5563;
 }
 
-/* ── CTAs ── */
-.ctaWrap {
-  padding: 16px;
+.savingsValue {
+  font-size: 15px;
+  font-weight: 800;
+  color: #152d4a;
+  letter-spacing: -.01em;
+  flex-shrink: 0;
+}
+
+/* ── 6. Total final ── */
+.totalCard {
+  background: #152d4a;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(21,45,74,.16), 0 8px 32px rgba(21,45,74,.12);
+  padding: 22px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.totalLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #7aa3c8;
+  margin-bottom: 6px;
+}
+
+.totalValue {
+  font-size: 30px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -.03em;
+  line-height: 1;
+}
+
+.totalSub {
+  font-size: 11px;
+  color: #6a90b0;
+  margin-top: 7px;
+  line-height: 1.4;
+}
+
+.totalShield {
+  width: 44px;
+  height: 44px;
+  background: rgba(255,255,255,.08);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255,255,255,.12);
+  flex-shrink: 0;
+}
+
+/* ── 7. Condições ── */
+.condRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.condRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.condRow:first-child {
+  padding-top: 0;
+}
+
+.condIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #e8eef6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #1e3f6e;
+}
+
+.condLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.condValue {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #111827;
+  line-height: 1.4;
+}
+
+/* ── 8. Observações ── */
+.obsText {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+/* ── 9. Assinatura + Comercial ── */
+.sigSection {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.btnWhatsapp {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 14px;
-  background: #25d366;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.92rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s;
-  font-family: inherit;
+.sigCard {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+  padding: 16px;
+  border: 1px solid #e2e8f0;
 }
-.btnWhatsapp:hover { background: #1ebe5b; }
 
-.btnEmail {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 14px;
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.92rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s;
-  font-family: inherit;
+.sigCardLabel {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  margin-bottom: 10px;
 }
-.btnEmail:hover { background: #1d4ed8; }
 
-.btnPdf {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 14px;
-  background: #1a2f4e;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.92rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s;
-  font-family: inherit;
+.sigSpacer {
+  height: 44px;
 }
-.btnPdf:hover { background: #0f1f35; }
 
-.ctaValidade {
-  font-size: 0.70rem;
-  color: #94a3b8;
+.sigLine {
+  border-bottom: 1.5px solid #c8d3de;
+  margin-bottom: 6px;
+}
+
+.sigName {
+  font-size: 10px;
+  color: #9ca3af;
   text-align: center;
-  padding-bottom: 8px;
 }
 
-/* ── Estado de erro/carregando ── */
+.comercialCard {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.comercialName {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.comercialRole {
+  font-size: 11px;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.waContact {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 7px 10px;
+  text-decoration: none;
+  color: #15803d;
+  margin-top: 2px;
+}
+
+.telContact {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #e8eef6;
+  border: 1px solid #c8d3de;
+  border-radius: 8px;
+  padding: 7px 10px;
+  text-decoration: none;
+  color: #1e3f6e;
+  margin-top: 2px;
+}
+
+.waContactText {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ── 10. CTAs ── */
+.ctas {
+  padding: 6px 16px 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: none;
+  border-radius: 10px;
+  padding: 15px 20px;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  letter-spacing: .01em;
+  text-decoration: none;
+  transition: opacity .15s, transform .1s;
+}
+
+.btn:active {
+  opacity: .88;
+  transform: scale(.98);
+}
+
+.btnPrimary {
+  background: #16a34a;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(22,163,74,.28), 0 6px 20px rgba(22,163,74,.14);
+}
+
+.btnSecondary {
+  background: #152d4a;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(21,45,74,.20), 0 6px 20px rgba(21,45,74,.10);
+}
+
+.btnGhost {
+  background: #fff;
+  color: #4b5563;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+}
+
+/* ── Footer ── */
+.footer {
+  margin-top: 32px;
+  padding: 0 16px;
+  text-align: center;
+}
+
+.footer p {
+  font-size: 10.5px;
+  color: #9ca3af;
+  line-height: 1.7;
+}
+
+/* ── Estados de erro / carregando ── */
 .erroWrap {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Inter', sans-serif;
-  background: #f8fafc;
+  background: #f0f3f7;
   padding: 24px;
 }
 
 .erroCard {
   text-align: center;
-  color: #64748b;
+  color: #6b7280;
   max-width: 320px;
 }
 
 .erroIcone { font-size: 3rem; margin-bottom: 16px; }
-.erroTitulo { font-size: 1.1rem; font-weight: 600; color: #1e293b; }
-.erroMsg { margin-top: 8px; font-size: 0.88rem; }
+.erroTitulo { font-size: 1.1rem; font-weight: 600; color: #111827; }
+.erroMsg { margin-top: 8px; font-size: 0.9rem; }
 
-/* ── Desktop (640px+) ── */
-@media (min-width: 640px) {
-  .card { margin: 24px auto; max-width: 860px; }
+/* ── Wrapper condições — mobile: lista vertical ── */
+.condList {
+  display: flex;
+  flex-direction: column;
+}
 
-  .header { padding: 24px 28px 0; flex-direction: row; align-items: flex-start; justify-content: space-between; }
-  .headerTop { flex: 1; }
-  .headerMeta { text-align: right; align-items: flex-end; min-width: 200px; }
-  .metaNumero { font-size: 1.5rem; }
 
-  .logo { width: 72px; height: 72px; }
-  .logoPlaceholder { width: 72px; height: 72px; font-size: 1.4rem; }
+/* ══════════════════════════════════════════════
+   RESPONSIVIDADE — breakpoints guiados por conteúdo
+   Referência: wireframe-proposta.html aprovado
+   ══════════════════════════════════════════════ */
 
-  .accentLine { margin: 14px 28px 0; }
-  .section { padding: 12px 28px; }
-  .tableScroll { margin: 0; }
-  .table { min-width: unset; }
-  .totaisBox { max-width: 320px; margin-left: auto; }
-  .assinaturas { padding: 16px 28px 0; }
-  .seloWrap { margin: 16px 28px; }
-  .footer { padding: 10px 28px; }
+/* ── ≥ 560px: assinatura 2-col + CTAs 2+1
+   Gatilho: cards de assinatura têm ~240px cada,
+   botão ghost tem 187px de área útil — texto cabe. ── */
+@media (min-width: 560px) {
+  .sigSection {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    align-items: start;
+  }
+  .sigSpacer { height: 40px; }
 
-  .ctaWrap { flex-direction: row; justify-content: center; padding: 24px 28px; }
-  .btnWhatsapp, .btnEmail, .btnPdf { width: auto; padding: 12px 28px; }
+  /* CTAs: 3 colunas iguais */
+  .ctas {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .btn { width: auto; }
+  .btnPrimary {
+    grid-column: auto;
+    padding: 13px 12px;
+  }
+  .btnSecondary,
+  .btnGhost {
+    padding: 13px 12px;
+  }
+}
 
-  .topBar { padding: 12px 24px; }
+
+/* ── ≥ 768px: container documento elevado + mais respiro ── */
+@media (min-width: 768px) {
+  .page {
+    max-width: 700px;
+    margin: 24px auto 48px;
+    min-height: auto;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(0,0,0,.10), 0 1px 4px rgba(0,0,0,.07);
+    padding-bottom: 40px;
+  }
+
+  .body { padding-top: 22px; }
+
+  .section {
+    padding: 0 28px;
+    margin-bottom: 16px;
+  }
+
+  .header { padding: 18px 28px 16px; }
+  .metaBar { padding: 7px 28px; }
+  .metaItem,
+  .metaItemBold { font-size: 11.5px; }
+
+  .footer { padding: 0 28px; }
+  .ctas { padding: 6px 28px 0; }
+
+  .logoBox { width: 54px; height: 54px; }
+
+  .companyData p { font-size: 11.5px; }
+
+  .recipientCompany { font-size: 18px; }
+  .itemDesc { font-size: 15.5px; }
+  .gValue { font-size: 14px; }
+  .itemTotalValue { font-size: 23px; }
+
+  .advName { font-size: 14px; }
+  .savingsValue { font-size: 16px; }
+
+  .totalValue { font-size: 33px; }
+  .totalSub { font-size: 11.5px; }
+  .totalShield { width: 50px; height: 50px; }
+
+  .sigSpacer { height: 44px; }
+  .sigSection { gap: 14px; }
+}
+
+
+/* ── ≥ 900px: CTAs 3 colunas iguais
+   Gatilho: cada botão tem ~213px — "Baixar / Imprimir PDF" + ícone cabe. ── */
+@media (min-width: 900px) {
+  .ctas {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+  }
+  .btnPrimary {
+    grid-column: auto;
+    padding: 14px 16px;
+  }
+  .btnSecondary,
+  .btnGhost {
+    padding: 14px 16px;
+  }
+}
+
+
+/* ── ≥ 1024px: condições em 3 colunas + desktop pleno
+   Gatilho: cada coluna tem ~213px de área útil —
+   textos de condição mais longos cabem sem quebra. ── */
+@media (min-width: 1024px) {
+  .page {
+    max-width: 860px;
+    margin-top: 32px;
+    margin-bottom: 64px;
+    border-radius: 20px;
+  }
+
+  .body { padding-top: 28px; }
+
+  .section {
+    padding: 0 36px;
+    margin-bottom: 20px;
+  }
+
+  .header { padding: 20px 36px 18px; gap: 16px; }
+  .metaBar { padding: 8px 36px; }
+  .footer { padding: 0 36px; }
+  .ctas { padding: 6px 36px 0; }
+
+  .logoBox { width: 58px; height: 58px; }
+  .companyData p { font-size: 12px; }
+
+  .recipientCompany { font-size: 19px; }
+  .itemDesc { font-size: 16px; }
+  .itemTotalValue { font-size: 25px; }
+
+  .totalValue { font-size: 38px; }
+  .totalShield { width: 52px; height: 52px; }
+
+  .advName { font-size: 14px; }
+  .advOriginal { font-size: 13px; }
+  .savingsValue { font-size: 16px; }
+
+  .sigSpacer { height: 50px; }
+
+  /* Condições: 3 colunas com divisores verticais
+     gap 16px/col-lado → área útil col-2 = ~213px — "15 dias úteis" cabe */
+  .condList {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  .condRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 0 16px 0 0;
+    border-bottom: none;
+    border-right: 1px solid #e8ecf2;
+  }
+  .condRow:first-child { padding-left: 0; }
+  .condRow:nth-child(2) { padding-left: 16px; }
+  .condRow:last-child {
+    border-right: none;
+    padding-right: 0;
+    padding-left: 16px;
+  }
+  .condRow:first-child { padding-top: 0; }  /* anula base */
+  .condIcon { width: 36px; height: 36px; }
+}
+
+
+/* ── ≥ 1280px: desktop largo — limite elegante, sem nova estrutura ── */
+@media (min-width: 1280px) {
+  .page {
+    max-width: 920px;
+    margin-top: 40px;
+  }
+
+  .section {
+    padding: 0 44px;
+    margin-bottom: 22px;
+  }
+
+  .header { padding: 20px 44px 18px; }
+  .metaBar { padding: 8px 44px; }
+  .footer { padding: 0 44px; }
+  .ctas { padding: 6px 44px 0; }
+
+  .logoBox { width: 62px; height: 62px; }
+
+  .totalValue { font-size: 40px; }
+  .totalCard { padding: 26px 28px; }
+  .totalShield { width: 54px; height: 54px; }
+
+  .sigSpacer { height: 52px; }
+
+  /* Condições: gap levemente maior em tela larga */
+  .condRow { padding-right: 20px; }
+  .condRow:nth-child(2) { padding-left: 20px; }
+  .condRow:last-child { padding-left: 20px; }
 }

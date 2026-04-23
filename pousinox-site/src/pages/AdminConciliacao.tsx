@@ -57,7 +57,7 @@ function fmtData(v: string | null) {
 function fmtBRL(v: number) {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
-function hoje() { return new Date().toISOString().slice(0, 10) }
+
 
 // ── Parser OFX (SGML 1.x — formato padrão bancos BR) ─────────────────────────
 function parseOFX(text: string): EntradaExtrato[] {

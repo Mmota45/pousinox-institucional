@@ -1,0 +1,144 @@
+.wrap {
+  margin: 2.5rem 0 1rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.wrapParceiro {
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+.wrapOrcamento {
+  background: #f0f6ff;
+  border-color: #bfdbfe;
+}
+
+.label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #94a3b8;
+  margin-bottom: 1rem;
+}
+
+/* ── Pronta Entrega ── */
+.cardPE {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.cardFoto {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+}
+
+.cardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cardTitulo {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.badgeDisp {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #16a34a;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badgeIndisп {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* ── Parceiro ── */
+.parceiroTexto {
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
+/* ── Orçamento ── */
+.orcTexto {
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
+.btnRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Botões ── */
+.btnPE {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: #1e3f6e;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+  width: fit-content;
+}
+.btnPE:hover { background: #152d4a; }
+
+.btnWA {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #16a34a;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+  width: fit-content;
+}
+.btnWA:hover { background: #15803d; }
+
+.btnContato {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: #fff;
+  color: #1e3f6e;
+  border: 1px solid #1e3f6e;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.btnContato:hover { background: #f0f6ff; }

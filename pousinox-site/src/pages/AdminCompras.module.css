@@ -552,3 +552,27 @@
 }
 .sugestaoItem:last-child { border-bottom: none; }
 .sugestaoItem:hover { background: #f0f6ff; }
+
+/* ── Mobile-first overrides (usado por AdminFiscalDocBase) ── */
+.toolbar, .filtros { flex-direction: column; align-items: stretch; }
+.toolbar > *, .filtros > * { width: 100%; min-height: 44px; }
+.btnPrimary, .btnSecondary, .btnDanger, .btnAcao { min-height: 44px; }
+.card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabela, table { min-width: 520px; }
+.navTabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap; }
+.navTabs::-webkit-scrollbar { display: none; }
+.navBtn, .navTab { min-height: 44px; white-space: nowrap; }
+.formCard { padding: 14px; }
+.formGrid { grid-template-columns: 1fr; }
+.formActions { flex-wrap: wrap; }
+.formActions > * { flex: 1; min-height: 44px; }
+
+@media (min-width: 640px) {
+  .toolbar, .filtros { flex-direction: row; align-items: center; }
+  .toolbar > *, .filtros > * { width: auto; }
+  .tabela, table { min-width: unset; }
+  .formCard { padding: 20px; }
+  .formGrid { grid-template-columns: 1fr 1fr; }
+  .formActions { justify-content: flex-end; }
+  .formActions > * { flex: none; }
+}

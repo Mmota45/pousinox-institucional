@@ -1,0 +1,2 @@
+ALTER TABLE cartoes_digitais
+  ADD COLUMN IF NOT EXISTS produtos TEXT[] NOT NULL DEFAULT '{}';

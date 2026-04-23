@@ -25,8 +25,8 @@ AS $$
     p.uf,
     COUNT(*)::bigint,
     COUNT(*) FILTER (WHERE p.contatado = true)::bigint,
-    COUNT(*) FILTER (WHERE p.status_contato = 'Interessado')::bigint,
-    COUNT(*) FILTER (WHERE p.status_contato = 'Aguardando')::bigint,
+    COUNT(*) FILTER (WHERE p.status_contato IN ('Interessado', 'Orçamento enviado', 'Venda fechada'))::bigint,
+    COUNT(*) FILTER (WHERE p.status_contato IN ('Aguardando', 'Retornar'))::bigint,
     ROUND(COUNT(*) FILTER (WHERE p.contatado = true) * 100.0 / NULLIF(COUNT(*), 0), 1),
     ROUND(AVG(p.score), 1),
     (

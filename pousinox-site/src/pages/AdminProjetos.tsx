@@ -834,14 +834,15 @@ export default function AdminProjetos() {
     const { data: lanc, error } = await supabaseAdmin
       .from('fin_lancamentos')
       .insert({
-        tipo:            'receita',
+        tipo:             'receita',
         descricao,
-        valor:           projeto.valor_total,
-        status:          'pendente',
-        data_vencimento: dataVencimento,
-        categoria_id:    categoriaId,
-        origem:          'projeto',
-        nf_chave:        null,
+        valor:            projeto.valor_total,
+        status:           'pendente',
+        data_vencimento:  dataVencimento,
+        data_competencia: new Date().toISOString().slice(0, 10),
+        categoria_id:     categoriaId,
+        origem:           'projeto',
+        nf_chave:         null,
       })
       .select('id')
       .single()

@@ -243,6 +243,84 @@ export default function AdminOutlet() {
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
+  // ── Picker de mídia ────────────────────────────────────────────────────────
+  const [pickerAberto, setPickerAberto] = useState(false)
+  const [pickerArquivos, setPickerArquivos] = useState<{ name: string; url: string }[]>([])
+  const [pickerCarregando, setPickerCarregando] = useState(false)
+  const [pickerUploadando, setPickerUploadando] = useState(false)
+
+  async function listarBucket() {
+    const { data } = await supabaseAdmin.storage.from(BUCKET).list('', { limit: 200, sortBy: { column: 'created_at', order: 'desc' } })
+    setPickerArquivos((data ?? []).filter(f => f.name !== '.emptyFolderPlaceholder').map(f => ({
+      name: f.name,
+      url: `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${f.name}`,
+    })))
+  }
+
+  async function abrirPicker() {
+    setPickerAberto(true)
+    setPickerCarregando(true)
+    await listarBucket()
+    setPickerCarregando(false)
+  }
+
+  async function comprimirFoto(file: File, maxWidth = 1200, qualidade = 0.82): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width)
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
+        const canvas = document.createElement('canvas')
+        canvas.width = w; canvas.height = h
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h)
+        URL.revokeObjectURL(url)
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Falha ao comprimir')), 'image/webp', qualidade)
+      }
+      img.onerror = reject
+      img.src = url
+    })
+  }
+
+  async function uploadPicker(file: File) {
+    setPickerUploadando(true)
+    try {
+      const blob = await comprimirFoto(file)
+      const nome = `${Date.now()}.webp`
+      const { error } = await supabaseAdmin.storage.from(BUCKET).upload(nome, blob, { contentType: 'image/webp' })
+      if (!error) {
+        const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${nome}`
+        setForm(f => ({ ...f, fotos: [...f.fotos, url] }))
+        const s = await sugerirPorImagem(file, form.titulo.trim() || undefined, form.marca.trim() || undefined)
+        if (s) setSugestao(s)
+        await listarBucket()
+        setPickerAberto(false)
+      }
+    } catch {
+      const nome = `${Date.now()}.${file.name.split('.').pop()}`
+      const { error } = await supabaseAdmin.storage.from(BUCKET).upload(nome, file, { contentType: file.type })
+      if (!error) {
+        const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${nome}`
+        setForm(f => ({ ...f, fotos: [...f.fotos, url] }))
+        await listarBucket()
+        setPickerAberto(false)
+      }
+    }
+    setPickerUploadando(false)
+  }
+
+  async function excluirDoBucket(nome: string) {
+    await supabaseAdmin.storage.from(BUCKET).remove([nome])
+    setForm(f => ({ ...f, fotos: f.fotos.filter(u => !u.includes(nome)) }))
+    await listarBucket()
+  }
+
+  function selecionarDoPicke(url: string) {
+    if (!form.fotos.includes(url)) setForm(f => ({ ...f, fotos: [...f.fotos, url] }))
+    setPickerAberto(false)
+  }
+
   useEffect(() => { fetchProdutos(); fetchMarcasExtras() }, [])
 
   async function fetchMarcasExtras() {
@@ -580,12 +658,56 @@ export default function AdminOutlet() {
                 <button type="button" className={styles.fotoRemove} onClick={() => removerFoto(url)}>✕</button>
               </div>
             ))}
-            <label className={styles.uploadBtn}>
-              {uploadando ? 'Enviando...' : '+ Foto'}
-              <input ref={fileRef} type="file" accept="image/*" onChange={handleUploadFoto} disabled={uploadando} hidden />
-            </label>
+            <button type="button" onClick={abrirPicker}
+              style={{ padding: '6px 14px', borderRadius: 8, border: '1px dashed #94a3b8', background: '#f8fafc', color: '#1e3f6e', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer' }}>
+              🖼 Escolher / Upload
+            </button>
           </div>
         </div>
+
+        {/* Modal picker */}
+        {pickerAberto && (
+          <div onClick={() => setPickerAberto(false)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 720, maxHeight: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid #f1f5f9' }}>
+                <span style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.95rem' }}>Imagens — outlet-fotos</span>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <label style={{ padding: '0.4rem 0.875rem', fontSize: '0.82rem', fontWeight: 600, border: '1px solid #bfdbfe', borderRadius: 6, background: '#eff6ff', color: '#1e3f6e', cursor: 'pointer' }}>
+                    {pickerUploadando ? 'Enviando…' : '⬆ Upload'}
+                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadPicker(f) }} />
+                  </label>
+                  <button onClick={() => setPickerAberto(false)}
+                    style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: '#64748b', lineHeight: 1 }}>×</button>
+                </div>
+              </div>
+              <div style={{ padding: '0.5rem 1.25rem', background: '#f8fafc', borderBottom: '1px solid #f1f5f9', fontSize: '0.78rem', color: '#64748b' }}>
+                ✅ Upload comprime automaticamente para WebP 82%
+              </div>
+              <div style={{ overflowY: 'auto', padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.75rem' }}>
+                {pickerCarregando ? (
+                  <p style={{ gridColumn: '1/-1', color: '#94a3b8', textAlign: 'center', padding: '2rem 0' }}>Carregando…</p>
+                ) : pickerArquivos.length === 0 ? (
+                  <p style={{ gridColumn: '1/-1', color: '#94a3b8', textAlign: 'center', padding: '2rem 0' }}>Nenhuma imagem. Faça upload acima.</p>
+                ) : pickerArquivos.map(img => (
+                  <div key={img.name} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: form.fotos.includes(img.url) ? '3px solid #1e3f6e' : '2px solid #e2e8f0', aspectRatio: '4/3' }}>
+                    <img src={img.url} alt={img.name} onClick={() => selecionarDoPicke(img.url)}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }} />
+                    <div style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 4 }}>
+                      <a href={img.url} download={img.name} onClick={e => e.stopPropagation()}
+                        style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', borderRadius: '50%', width: 22, height: 22, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}
+                        title="Download">⬇</a>
+                      <button type="button" onClick={e => { e.stopPropagation(); if (confirm(`Excluir "${img.name}"?`)) excluirDoBucket(img.name) }}
+                        style={{ background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', borderRadius: '50%', width: 22, height: 22, fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        title="Excluir">×</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Checkboxes */}
         <div className={styles.checkRow}>

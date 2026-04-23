@@ -1093,6 +1093,25 @@ setClientesCidade(clientesPorCidade)
 
       </div>
 
+      {/* Ações desktop — abaixo dos filtros */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+        <button
+          className={styles.buscarBtnMobile}
+          onClick={() => buscar(0)}
+          disabled={loading}
+          style={{ flex: '1 1 auto', minWidth: 120 }}
+        >
+          {loading ? '…' : '🔍 Buscar'}
+        </button>
+        <button
+          className={styles.buscarBtnMobile}
+          onClick={() => { setModalCadastro(true); setCnpjInput(''); setDadosCnpjApi(null); setErroCnpj(null) }}
+          style={{ flex: '0 0 auto', background: '#1e40af' }}
+        >
+          + Cadastrar CNPJ
+        </button>
+      </div>
+
         </div>{/* drawerBody */}
         <div className={styles.drawerFooter}>
           <button className={styles.drawerAplicar} onClick={() => { buscar(0); setFiltroDrawer(false) }}>

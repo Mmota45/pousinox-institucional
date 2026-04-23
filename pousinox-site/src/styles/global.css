@@ -1,5 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@800;900&display=swap');
 
+@media print {
+  /* Rota /print/ — remove constraints de overflow/height em todos os ancestrais */
+  body.print-page,
+  body.print-page #root,
+  body.print-page main,
+  body.print-page #root > *,
+  body.print-page main > * {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+  }
+  body.print-page .no-print { display: none !important; }
+  body.print-page .table-scroll { overflow: visible !important; margin: 0 !important; }
+}
+
 :root {
   --color-primary: #1a2f4e;
   --color-primary-light: #243d63;

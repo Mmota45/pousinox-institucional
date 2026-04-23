@@ -462,3 +462,50 @@
   transition: background 0.15s;
 }
 .btnCancelar:hover { background: #f9fafb; }
+
+/* ── Mobile-first overrides ── */
+
+/* Nav com scroll horizontal */
+.navPrincipal {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
+}
+.navPrincipal::-webkit-scrollbar { display: none; }
+.navBtn { min-height: 44px; display: inline-flex; align-items: center; }
+
+/* Touch targets */
+.btnPrimary   { min-height: 44px; }
+.btnSecondary { min-height: 44px; }
+.btnAvancar   { min-height: 44px; padding: 10px 18px; }
+.btnCancelar  { min-height: 44px; padding: 10px 16px; }
+
+/* Toolbar empilha no mobile */
+.toolbar { flex-direction: column; align-items: stretch; }
+.inputBusca { min-width: 0; width: 100%; }
+.selectFiltro { width: 100%; min-height: 44px; }
+
+/* Ações do form não transbordam */
+.formActions { flex-wrap: wrap; justify-content: stretch; }
+.formActions > * { flex: 1; min-height: 44px; }
+
+/* Padding menor no mobile */
+.formCard   { padding: 14px; }
+.detalheCard { padding: 14px; }
+
+/* Tabela com scroll no mobile */
+.card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabela { min-width: 600px; }
+
+/* Tablet (640px+): restaura layout horizontal */
+@media (min-width: 640px) {
+  .toolbar { flex-direction: row; align-items: center; }
+  .inputBusca { min-width: 200px; width: auto; flex: 1; }
+  .selectFiltro { width: auto; }
+  .formActions { justify-content: flex-end; }
+  .formActions > * { flex: none; }
+  .formCard   { padding: 24px; }
+  .detalheCard { padding: 24px; }
+  .tabela { min-width: unset; }
+}

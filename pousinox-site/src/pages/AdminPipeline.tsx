@@ -227,6 +227,19 @@ export default function AdminPipeline() {
 
     setGerandoId(deal.id)
 
+    // Verifica no banco se já existe lançamento (evita duplicata por duplo clique)
+    const { data: check } = await supabaseAdmin
+      .from('pipeline_deals')
+      .select('fin_lancamento_id')
+      .eq('id', deal.id)
+      .single()
+    if (check?.fin_lancamento_id) {
+      setDeals(ds => ds.map(d => d.id === deal.id ? { ...d, fin_lancamento_id: check.fin_lancamento_id } : d))
+      setMsg({ tipo: 'erro', texto: 'Este deal já possui um recebível vinculado.' })
+      setGerandoId(null)
+      return
+    }
+
     const { data: cats } = await supabaseAdmin
       .from('fin_categorias')
       .select('id')
@@ -240,13 +253,14 @@ export default function AdminPipeline() {
     const { data: lanc, error } = await supabaseAdmin
       .from('fin_lancamentos')
       .insert({
-        tipo:            'receita',
+        tipo:             'receita',
         descricao,
-        valor:           deal.valor_estimado,
-        status:          'pendente',
-        data_vencimento: new Date().toISOString().slice(0, 10),
-        categoria_id:    categoriaId,
-        origem:          'pipeline',
+        valor:            deal.valor_estimado,
+        status:           'pendente',
+        data_vencimento:  new Date().toISOString().slice(0, 10),
+        data_competencia: new Date().toISOString().slice(0, 10),
+        categoria_id:     categoriaId,
+        origem:           'pipeline',
       })
       .select('id')
       .single()

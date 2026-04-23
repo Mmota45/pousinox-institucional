@@ -221,9 +221,9 @@
 
 /* Article full view */
 .articleWrapper {
-  max-width: 760px;
+  max-width: 920px;
   margin: 0 auto;
-  padding: 40px 0 64px;
+  padding: 48px 0 72px;
 }
 
 .backBtn {
@@ -254,43 +254,233 @@
 }
 
 .articleTitle {
-  font-size: 1.9rem;
-  font-weight: 800;
+  font-size: 2.6rem;
+  font-weight: 900;
   color: var(--color-primary);
-  line-height: 1.3;
-  margin-bottom: 36px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
 }
 
+.articleSubtitulo {
+  font-size: 1.15rem;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0 0 20px;
+  font-weight: 400;
+}
+
+.tipoPostBadge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: #eaf0f8;
+  color: #1e3f6e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 24px;
+}
+
+/* Hero image — apoio, não dominância */
+.articleHeroImage {
+  margin: 1.25rem 0 0;
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 3 / 1;
+}
+
+.articleHeroImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Badge + share row */
+.shareRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+/* Resumo rápido */
+.resumoBox {
+  margin: 2rem 0 2.25rem;
+  padding: 1.5rem 1.75rem 1.5rem 2rem;
+  background: #e8f0fb;
+  border-left: 5px solid var(--color-primary);
+  border-radius: 0 14px 14px 0;
+  box-shadow: 0 2px 12px rgba(26, 47, 78, 0.08);
+}
+
+.resumoLabel {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-primary);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.resumoText {
+  font-size: 0.98rem;
+  color: #1e293b;
+  line-height: 1.75;
+  margin: 0;
+  font-weight: 450;
+}
+
+.resumoList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.resumoList li {
+  font-size: 0.96rem;
+  color: #1e293b;
+  line-height: 1.6;
+  padding-left: 1.25rem;
+  position: relative;
+}
+
+.resumoList li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  top: 2px;
+}
+
+/* Article body */
 .articleBody {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 0;
+}
+
+.articleIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 2.25rem;
+}
+
+/* Section — card (listas, múltiplos blocos) */
+.articleSection {
+  background: #f8fafc;
+  border: 1px solid #e8edf5;
+  border-left: 3px solid #c7d8ef;
+  border-radius: 0 12px 12px 0;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Section — minimal (parágrafo único, sem card) */
+.articleSectionMinimal {
+  padding: 0;
+  margin-bottom: 2.25rem;
 }
 
 .articleH3 {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--color-primary);
-  margin-top: 8px;
+  margin: 0 0 1rem;
+  padding-bottom: 0.65rem;
+  border-bottom: 1.5px solid #dde5f0;
+  letter-spacing: -0.01em;
+}
+
+.articleSectionMinimal .articleH3 {
+  border-bottom: none;
+  padding-bottom: 0.4rem;
+  font-size: 1rem;
+  color: #334155;
+}
+
+.articleSectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .articleP {
-  font-size: 1rem;
+  font-size: 0.97rem;
   color: var(--color-text);
-  line-height: 1.8;
+  line-height: 1.85;
+  margin: 0;
 }
 
 .articleList {
-  padding-left: 20px;
+  padding-left: 0;
+  list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  margin: 0;
 }
 
 .articleList li {
-  font-size: 1rem;
+  font-size: 0.97rem;
   color: var(--color-text);
   line-height: 1.7;
+  padding-left: 1.4rem;
+  position: relative;
+}
+
+.articleList li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  top: 3px;
+}
+
+/* Newsletter/CTA block no article — secundário, leve */
+.ctaBlock {
+  margin-top: 3rem;
+  padding: 1.75rem 2rem;
+  background: #f0f6ff;
+  border: 1px solid #bfdbfe;
+  border-top: 3px solid var(--color-primary);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.ctaBlock .newsletterContent h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 4px;
+}
+
+.ctaBlock .newsletterContent p {
+  font-size: 0.85rem;
+  color: #475569;
+  max-width: 340px;
+  line-height: 1.5;
+}
+
+.ctaBlock .newsletterInput {
+  background: var(--color-white);
+  border: 1px solid #cbd5e1;
 }
 
 @media (max-width: 1024px) {
@@ -315,6 +505,39 @@
   }
 
   .newsletterInput {
+    width: 100%;
+  }
+
+  .articleHeroImage {
+    aspect-ratio: 16 / 9;
+    border-radius: 10px;
+  }
+
+  .articleSection {
+    padding: 1.25rem 1.25rem;
+  }
+
+  .articleTitle {
+    font-size: 1.8rem;
+    letter-spacing: -0.01em;
+  }
+
+  .articleSubtitulo {
+    font-size: 1rem;
+  }
+
+  .ctaBlock {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.5rem;
+  }
+
+  .ctaBlock .newsletterForm {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .ctaBlock .newsletterInput {
     width: 100%;
   }
 }

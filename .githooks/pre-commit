@@ -1,0 +1,9 @@
+#!/bin/sh
+# Executa validação de SEO/Schema antes de cada commit
+echo "Validando SEO e Schema.org..."
+node scripts/validate-seo.js
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "Commit bloqueado: corrija os erros acima antes de commitar."
+  exit 1
+fi

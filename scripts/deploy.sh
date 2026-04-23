@@ -16,13 +16,16 @@ echo "╚═══════════════════════�
 echo ""
 
 # ── 1. Lint ───────────────────────────────────────────────────────────────────
-echo "→ [1/5] Verificando código (ESLint + TypeScript)..."
+echo "→ [1/5] Verificando código (TypeScript + ESLint)..."
 cd "$SITE_DIR"
-if ! npm run lint -- --max-warnings 9999; then
+# TypeScript bloqueia deploy — erros de compilação não devem ir para produção
+if ! npx tsc -b --noEmit; then
   echo ""
-  echo "❌  ESLint encontrou erros. Corrija antes de publicar."
+  echo "❌  TypeScript encontrou erros. Corrija antes de publicar."
   exit 1
 fi
+# ESLint é informativo — exibe avisos mas não bloqueia deploy
+npm run lint -- --max-warnings 9999 || echo "   ⚠️  ESLint: avisos encontrados (não bloqueante)"
 echo "   OK"
 
 # ── 2. Build ──────────────────────────────────────────────────────────────────

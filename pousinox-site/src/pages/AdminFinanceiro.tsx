@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import { useAdmin } from '../contexts/AdminContext'
 import styles from './AdminFinanceiro.module.css'
@@ -78,7 +78,27 @@ interface Movimentacao {
 }
 
 
-type Aba = 'painel' | 'lancamentos' | 'fluxo'
+type Aba = 'painel' | 'lancamentos' | 'fluxo' | 'comissoes'
+
+interface Comissao {
+  id: number; vendedor_id: number; vendedor_nome: string | null
+  periodo: string; base_valor: number; comissao_pct: number; valor_comissao: number
+  status: 'pendente' | 'pago' | 'cancelado'
+  data_vencimento: string | null; data_pagamento: string | null
+  fin_lancamento_id: number | null
+}
+
+// Retorna o N-ésimo dia útil (seg-sex) de um mês
+function diaPorUteis(ano: number, mes: number, nUteis: number): string {
+  const d = new Date(ano, mes - 1, 1)
+  let count = 0
+  while (count < nUteis) {
+    const dow = d.getDay()
+    if (dow !== 0 && dow !== 6) count++
+    if (count < nUteis) d.setDate(d.getDate() + 1)
+  }
+  return d.toISOString().slice(0, 10)
+}
 
 const FORMAS_PAGAMENTO = [
   { value: 'pix',           label: 'PIX' },
@@ -197,6 +217,20 @@ export default function AdminFinanceiro() {
   const [filtroFluxoConcil,  setFiltroFluxoConcil]  = useState<'' | 'pendente' | 'conciliado'>('')
   const [filtroFluxoMes,     setFiltroFluxoMes]     = useState(mesAtual())
 
+  // Comissões
+  const [comissoes,       setComissoes]       = useState<Comissao[]>([])
+  const [periodoComissao, setPeriodoComissao] = useState(mesAtual())
+  const [calculando,      setCalculando]      = useState(false)
+
+  // Edição inline — Fluxo de Caixa
+  const [editMovId, setEditMovId] = useState<number | null>(null)
+  const [editMovForm, setEditMovForm] = useState<{ descricao: string; valor: string; data: string; tipo_pagamento: string; status: string; categoria_id: number | null; conta_id: number | null }>({ descricao: '', valor: '', data: '', tipo_pagamento: '', status: '', categoria_id: null, conta_id: null })
+
+  // Edição inline — Agenda Financeira (lançamentos)
+  const [editLancId, setEditLancId] = useState<number | null>(null)
+  const [editLancForm, setEditLancForm] = useState<{ descricao: string; valor: string; data_vencimento: string; categoria_id: string; observacao: string }>({ descricao: '', valor: '', data_vencimento: '', categoria_id: '', observacao: '' })
+
+
   // Categorização pendente
   const [pendCatCount, setPendCatCount] = useState(0)
 
@@ -260,7 +294,7 @@ export default function AdminFinanceiro() {
     }
     const { data } = await q
     setLancamentos((data ?? []) as Lancamento[])
-  }, [filtroTipo, filtroStatus, filtroOrigem, filtroMes])
+  }, [filtroTipo, filtroStatus, filtroOrigem, filtroMes, filtroAguarda])
 
   const carregarMovimentacoes = useCallback(async () => {
     let q = supabaseAdmin
@@ -326,6 +360,42 @@ export default function AdminFinanceiro() {
     if (!error) carregarMovimentacoes()
   }
 
+  const excluirMovimentacao = async (id: number) => {
+    if (!confirm('Excluir esta movimentação? Se vinculada a um lançamento, ele voltará para pendente.')) return
+    // Busca o lancamento_id antes de excluir
+    const { data: mov } = await supabaseAdmin.from('fin_movimentacoes').select('lancamento_id').eq('id', id).single()
+    const { error } = await supabaseAdmin.from('fin_movimentacoes').delete().eq('id', id)
+    if (error) { setMsg({ tipo: 'erro', texto: 'Erro ao excluir: ' + error.message }); return }
+    // Reverte o lançamento vinculado para pendente
+    if (mov?.lancamento_id) {
+      await supabaseAdmin.from('fin_lancamentos')
+        .update({ status: 'pendente', data_pagamento: null })
+        .eq('id', mov.lancamento_id)
+    }
+    setEditMovId(null)
+    carregarMovimentacoes()
+    carregarLancamentos()
+    carregarSaldo()
+  }
+
+  const salvarEdicaoMov = async () => {
+    if (!editMovId) return
+    setSalvandoFluxo(true)
+    const { error } = await supabaseAdmin.from('fin_movimentacoes').update({
+      descricao:      editMovForm.descricao,
+      valor:          parseFloat(editMovForm.valor.replace(',', '.')),
+      data:           editMovForm.data,
+      tipo_pagamento: editMovForm.tipo_pagamento || null,
+      status:         editMovForm.status,
+      categoria_id:   editMovForm.categoria_id,
+      conta_id:       editMovForm.conta_id,
+    }).eq('id', editMovId)
+    setSalvandoFluxo(false)
+    if (error) { setMsg({ tipo: 'erro', texto: 'Erro ao salvar: ' + error.message }); return }
+    setEditMovId(null)
+    carregarMovimentacoes()
+  }
+
   const carregarPainel = useCallback(async () => {
     const hj = hoje()
     const em7 = new Date(); em7.setDate(em7.getDate() + 7)
@@ -373,7 +443,126 @@ export default function AdminFinanceiro() {
     if (aba === 'painel')      carregarPainel()
     if (aba === 'lancamentos') carregarLancamentos()
     if (aba === 'fluxo')       carregarMovimentacoes()
-  }, [aba, carregarPainel, carregarLancamentos, carregarMovimentacoes])
+    if (aba === 'comissoes')   carregarComissoes()
+  }, [aba, carregarPainel, carregarLancamentos, carregarMovimentacoes])  // eslint-disable-line
+
+  async function carregarComissoes() {
+    const { data } = await supabaseAdmin
+      .from('comissoes')
+      .select('*')
+      .eq('periodo', periodoComissao)
+      .order('vendedor_nome')
+    setComissoes((data ?? []) as Comissao[])
+  }
+
+  async function calcularComissoes() {
+    setCalculando(true)
+    const [ano, mes] = periodoComissao.split('-').map(Number)
+    const ini = `${periodoComissao}-01`
+    const fim = new Date(ano, mes, 0).toISOString().slice(0, 10) // último dia do mês
+
+    // 5º dia útil do mês seguinte
+    const mesVenc = mes === 12 ? 1 : mes + 1
+    const anoVenc = mes === 12 ? ano + 1 : ano
+    const dataVenc = diaPorUteis(anoVenc, mesVenc, 5)
+
+    // Orcamentos aprovados no período
+    const { data: orcs } = await supabaseAdmin
+      .from('orcamentos')
+      .select('vendedor_id, vendedor_nome, total')
+      .eq('status', 'aprovado')
+      .gte('criado_em', ini)
+      .lte('criado_em', fim + 'T23:59:59')
+
+    // Vendas com vendedor_id no período
+    const { data: vdas } = await supabaseAdmin
+      .from('vendas')
+      .select('vendedor_id, vendedor_nome, valor_recebido')
+      .not('vendedor_id', 'is', null)
+      .gte('data_venda', ini)
+      .lte('data_venda', fim)
+
+    // Vendedores com comissao_pct
+    const { data: vends } = await supabaseAdmin
+      .from('vendedores')
+      .select('id, nome, comissao_pct')
+      .eq('ativo', true)
+
+    if (!vends) { setCalculando(false); return }
+
+    // Agrupa por vendedor
+    const map: Record<number, { nome: string; base: number; pct: number }> = {}
+    for (const v of vends) {
+      map[v.id] = { nome: v.nome, base: 0, pct: Number(v.comissao_pct ?? 0) }
+    }
+    for (const o of (orcs ?? [])) {
+      if (!o.vendedor_id) continue
+      if (!map[o.vendedor_id]) map[o.vendedor_id] = { nome: o.vendedor_nome ?? '', base: 0, pct: 0 }
+      map[o.vendedor_id].base += Number(o.total ?? 0)
+    }
+    for (const v of (vdas ?? [])) {
+      if (!v.vendedor_id) continue
+      if (!map[v.vendedor_id]) map[v.vendedor_id] = { nome: v.vendedor_nome ?? '', base: 0, pct: 0 }
+      map[v.vendedor_id].base += Number(v.valor_recebido ?? 0)
+    }
+
+    // Upsert comissões
+    const rows = Object.entries(map)
+      .filter(([, v]) => v.base > 0)
+      .map(([idStr, v]) => ({
+        vendedor_id:    Number(idStr),
+        vendedor_nome:  v.nome,
+        periodo:        periodoComissao,
+        base_valor:     v.base,
+        comissao_pct:   v.pct,
+        valor_comissao: parseFloat((v.base * v.pct / 100).toFixed(2)),
+        data_vencimento: dataVenc,
+        calculado_em:   new Date().toISOString(),
+      }))
+
+    if (rows.length > 0) {
+      await supabaseAdmin.from('comissoes').upsert(rows, { onConflict: 'vendedor_id,periodo' })
+    }
+
+    await carregarComissoes()
+    setCalculando(false)
+  }
+
+  async function gerarLancamentoComissao(c: Comissao) {
+    const { data: lanc, error } = await supabaseAdmin
+      .from('fin_lancamentos')
+      .insert({
+        tipo:             'despesa',
+        descricao:        `Comissão ${c.vendedor_nome} — ${c.periodo}`,
+        valor:            c.valor_comissao,
+        status:           'pendente',
+        data_competencia: `${c.periodo}-01`,
+        data_vencimento:  c.data_vencimento,
+        origem:           'comissao',
+      })
+      .select('id')
+      .single()
+    if (error || !lanc) return
+    await supabaseAdmin.from('comissoes').update({ fin_lancamento_id: lanc.id }).eq('id', c.id)
+    await carregarComissoes()
+  }
+
+  async function pagarComissao(c: Comissao) {
+    const hoje = new Date().toISOString().slice(0, 10)
+    await supabaseAdmin.from('comissoes').update({ status: 'pago', data_pagamento: hoje }).eq('id', c.id)
+    if (c.fin_lancamento_id) {
+      await supabaseAdmin.from('fin_lancamentos').update({ status: 'pago', data_pagamento: hoje }).eq('id', c.fin_lancamento_id)
+      await supabaseAdmin.from('fin_movimentacoes').insert({
+        lancamento_id: c.fin_lancamento_id,
+        tipo:          'saida',
+        valor:         c.valor_comissao,
+        data:          hoje,
+        descricao:     `Comissão ${c.vendedor_nome} — ${c.periodo}`,
+        status:        'realizado',
+      })
+    }
+    await carregarComissoes()
+  }
 
   useEffect(() => {
     if (aba === 'lancamentos') carregarLancamentos()
@@ -439,7 +628,7 @@ export default function AdminFinanceiro() {
         usos:           1,
       }, { onConflict: 'cnpj,tipo', ignoreDuplicates: false })
       // Incrementa usos se já existia
-      await supabaseAdmin.rpc('incrementar_usos_categoria_cnpj', { p_cnpj: cnpj, p_tipo: lanc.tipo }).throwOnError().then(() => {}).catch(() => {})
+      try { await supabaseAdmin.rpc('incrementar_usos_categoria_cnpj', { p_cnpj: cnpj, p_tipo: lanc.tipo }) } catch { /* ignora */ }
     }
 
     setCategorizandoId(null); setCatSelecionada(''); setCcSelecionado('')
@@ -479,6 +668,30 @@ export default function AdminFinanceiro() {
     const { error } = await supabaseAdmin
       .from('fin_lancamentos').update({ status: 'cancelado' }).eq('id', id)
     if (!error) { carregarLancamentos(); carregarSaldo() }
+  }
+
+  const excluirLancamento = async (id: number) => {
+    if (!confirm('Excluir este lançamento? As movimentações vinculadas também serão excluídas.')) return
+    const { error } = await supabaseAdmin.rpc('excluir_lancamento', { p_id: id })
+    if (error) { setMsg({ tipo: 'erro', texto: 'Erro ao excluir: ' + error.message }); return }
+    setEditLancId(null)
+    carregarLancamentos(); carregarSaldo(); carregarMovimentacoes()
+  }
+
+  const salvarEdicaoLanc = async () => {
+    if (!editLancId) return
+    setSalvando(true)
+    const { error } = await supabaseAdmin.from('fin_lancamentos').update({
+      descricao:      editLancForm.descricao,
+      valor:          parseFloat(editLancForm.valor.replace(',', '.')),
+      data_vencimento: editLancForm.data_vencimento,
+      categoria_id:   editLancForm.categoria_id ? Number(editLancForm.categoria_id) : null,
+      observacao:     editLancForm.observacao || null,
+    }).eq('id', editLancId)
+    setSalvando(false)
+    if (error) { setMsg({ tipo: 'erro', texto: 'Erro ao salvar: ' + error.message }); return }
+    setEditLancId(null)
+    carregarLancamentos(); carregarSaldo()
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -531,6 +744,7 @@ export default function AdminFinanceiro() {
           { key: 'painel',      label: '📊 Painel'         },
           { key: 'lancamentos', label: '📋 Agenda Financeira' },
           { key: 'fluxo',       label: '💰 Fluxo de Caixa' },
+          { key: 'comissoes',   label: '🤝 Comissões'       },
         ] as { key: Aba; label: string }[]).map(a => (
           <button key={a.key}
             className={`${styles.aba} ${aba === a.key ? styles.abaAtiva : ''}`}
@@ -896,7 +1110,8 @@ export default function AdminFinanceiro() {
                 </thead>
                 <tbody>
                   {lancamentos.map(lanc => (
-                    <tr key={lanc.id} className={lanc.origem === 'manual' ? styles.rowManual : ''}>
+                    <Fragment key={lanc.id}>
+                    <tr className={lanc.origem === 'manual' ? styles.rowManual : ''}>
                       <td>
                         <span className={lanc.tipo === 'receita' ? styles.tipoReceita : styles.tipoDespesa}>
                           {lanc.tipo === 'receita' ? '↑' : '↓'} {lanc.tipo}
@@ -981,8 +1196,64 @@ export default function AdminFinanceiro() {
                         {lanc.status === 'pago' && (
                           <span className={styles.pagoDia}>{fmtData(lanc.data_pagamento)}</span>
                         )}
+                        {(lanc.status === 'pendente' || lanc.status === 'cancelado') && (
+                          <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+                            <button title="Editar" onClick={() => {
+                              setEditLancId(editLancId === lanc.id ? null : lanc.id)
+                              setEditLancForm({ descricao: lanc.descricao, valor: String(lanc.valor), data_vencimento: lanc.data_vencimento, categoria_id: lanc.categoria_id ? String(lanc.categoria_id) : '', observacao: lanc.observacao ?? '' })
+                            }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#64748b', padding: '2px 4px' }}>✏️</button>
+                            <button title="Excluir" onClick={() => excluirLancamento(lanc.id)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#ef4444', padding: '2px 4px' }}>🗑</button>
+                          </div>
+                        )}
                       </td>
                     </tr>
+                    {editLancId === lanc.id && (
+                      <tr key={`edit-lanc-${lanc.id}`} style={{ background: '#f8fafc' }}>
+                        <td colSpan={8} style={{ padding: '10px 16px' }}>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Descrição</div>
+                              <input className={styles.inputSmall} value={editLancForm.descricao}
+                                onChange={e => setEditLancForm(f => ({ ...f, descricao: e.target.value }))}
+                                style={{ width: 240 }} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Valor</div>
+                              <input className={styles.inputSmall} type="number" step="0.01" value={editLancForm.valor}
+                                onChange={e => setEditLancForm(f => ({ ...f, valor: e.target.value }))}
+                                style={{ width: 110 }} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Vencimento</div>
+                              <input className={styles.inputSmall} type="date" value={editLancForm.data_vencimento}
+                                onChange={e => setEditLancForm(f => ({ ...f, data_vencimento: e.target.value }))} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Categoria</div>
+                              <select className={styles.inputSmall} value={editLancForm.categoria_id}
+                                onChange={e => setEditLancForm(f => ({ ...f, categoria_id: e.target.value }))}>
+                                <option value="">—</option>
+                                {categorias.filter(c => c.tipo === lanc.tipo).map(c => (
+                                  <option key={c.id} value={String(c.id)}>{c.grupo ? `${c.grupo} / ` : ''}{c.nome}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Observação</div>
+                              <input className={styles.inputSmall} value={editLancForm.observacao}
+                                onChange={e => setEditLancForm(f => ({ ...f, observacao: e.target.value }))}
+                                style={{ width: 180 }} />
+                            </div>
+                            <button className={styles.btnBaixa} onClick={salvarEdicaoLanc} disabled={salvando}>
+                              {salvando ? '...' : '✓ Salvar'}
+                            </button>
+                            <button className={styles.btnCancelarBaixa} onClick={() => setEditLancId(null)}>✕</button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -1205,11 +1476,13 @@ export default function AdminFinanceiro() {
                     <th style={{ textAlign: 'right' }}>Entrada</th>
                     <th style={{ textAlign: 'right' }}>Saída</th>
                     <th style={{ textAlign: 'center' }}>✓</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
                   {movimentacoes.map(m => (
-                    <tr key={m.id} style={{ opacity: m.status === 'cancelado' ? 0.4 : 1 }}>
+                    <Fragment key={m.id}>
+                    <tr style={{ opacity: m.status === 'cancelado' ? 0.4 : 1 }}>
                       <td className={styles.data}>{fmtData(m.data)}</td>
                       <td className={styles.descCell}>
                         {m.descricao ?? '—'}
@@ -1269,10 +1542,164 @@ export default function AdminFinanceiro() {
                           style={{ cursor: 'pointer', accentColor: '#16a34a', width: 16, height: 16 }}
                         />
                       </td>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <button title="Editar" onClick={() => {
+                          setEditMovId(editMovId === m.id ? null : m.id)
+                          setEditMovForm({ descricao: m.descricao ?? '', valor: String(m.valor), data: m.data.slice(0,10), tipo_pagamento: m.tipo_pagamento ?? '', status: m.status, categoria_id: m.categoria_id, conta_id: m.conta_id })
+                        }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#64748b', padding: '2px 4px' }}>✏️</button>
+                        <button title="Excluir" onClick={() => excluirMovimentacao(m.id)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.85rem', color: '#ef4444', padding: '2px 4px' }}>🗑</button>
+                      </td>
                     </tr>
+                    {editMovId === m.id && (
+                      <tr key={`edit-${m.id}`} style={{ background: '#f8fafc' }}>
+                        <td colSpan={11} style={{ padding: '10px 16px' }}>
+                          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Descrição</div>
+                              <input className={styles.inputSmall} value={editMovForm.descricao}
+                                onChange={e => setEditMovForm(f => ({ ...f, descricao: e.target.value }))}
+                                style={{ width: 220 }} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Valor</div>
+                              <input className={styles.inputSmall} type="number" step="0.01" value={editMovForm.valor}
+                                onChange={e => setEditMovForm(f => ({ ...f, valor: e.target.value }))}
+                                style={{ width: 110 }} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Data</div>
+                              <input className={styles.inputSmall} type="date" value={editMovForm.data}
+                                onChange={e => setEditMovForm(f => ({ ...f, data: e.target.value }))} />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Forma pgto</div>
+                              <select className={styles.inputSmall} value={editMovForm.tipo_pagamento}
+                                onChange={e => setEditMovForm(f => ({ ...f, tipo_pagamento: e.target.value }))}>
+                                <option value="">—</option>
+                                {FORMAS_PAGAMENTO.map(fp => <option key={fp.value} value={fp.value}>{fp.label}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Status</div>
+                              <select className={styles.inputSmall} value={editMovForm.status}
+                                onChange={e => setEditMovForm(f => ({ ...f, status: e.target.value }))}>
+                                {['realizado','previsto','negociado','atrasado','cancelado'].map(s => <option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Categoria</div>
+                              <select className={styles.inputSmall} value={editMovForm.categoria_id ?? ''}
+                                onChange={e => setEditMovForm(f => ({ ...f, categoria_id: e.target.value ? Number(e.target.value) : null }))}>
+                                <option value="">—</option>
+                                {categorias.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                              </select>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginBottom: 2 }}>Conta</div>
+                              <select className={styles.inputSmall} value={editMovForm.conta_id ?? ''}
+                                onChange={e => setEditMovForm(f => ({ ...f, conta_id: e.target.value ? Number(e.target.value) : null }))}>
+                                <option value="">—</option>
+                                {contas.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                              </select>
+                            </div>
+                            <button className={styles.btnBaixa} onClick={salvarEdicaoMov} disabled={salvandoFluxo}>
+                              {salvandoFluxo ? '...' : '✓ Salvar'}
+                            </button>
+                            <button className={styles.btnCancelarBaixa} onClick={() => setEditMovId(null)}>✕</button>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══ COMISSÕES ══════════════════════════════════════════════════════════ */}
+      {aba === 'comissoes' && (
+        <div style={{ padding: '0 24px 40px' }}>
+
+          {/* Seletor de período + ações */}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+            <input
+              type="month"
+              className={styles.input}
+              style={{ width: 160 }}
+              value={periodoComissao}
+              onChange={e => { setPeriodoComissao(e.target.value); setComissoes([]) }}
+            />
+            <button className={styles.btnSalvar} onClick={calcularComissoes} disabled={calculando}>
+              {calculando ? '⏳ Calculando…' : '🔄 Calcular comissões'}
+            </button>
+            <button className={styles.btnSecondary} onClick={carregarComissoes}>↻ Atualizar</button>
+          </div>
+
+          {comissoes.length === 0 ? (
+            <p style={{ color: '#94a3b8', fontSize: '0.875rem' }}>
+              Nenhuma comissão calculada para {periodoComissao}. Clique em "Calcular comissões".
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Totais */}
+              <div style={{ display: 'flex', gap: 16, marginBottom: 8, flexWrap: 'wrap' }}>
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '8px 16px', fontSize: '0.8rem' }}>
+                  <div style={{ color: '#16a34a', fontWeight: 700, fontSize: '1.1rem' }}>
+                    {comissoes.reduce((s, c) => s + c.valor_comissao, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </div>
+                  <div style={{ color: '#64748b' }}>Total a pagar</div>
+                </div>
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 16px', fontSize: '0.8rem' }}>
+                  <div style={{ color: '#2563eb', fontWeight: 700, fontSize: '1.1rem' }}>
+                    {comissoes.reduce((s, c) => s + c.base_valor, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </div>
+                  <div style={{ color: '#64748b' }}>Base de cálculo</div>
+                </div>
+              </div>
+
+              {comissoes.map(c => (
+                <div key={c.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                    <div>
+                      <span style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem' }}>{c.vendedor_nome}</span>
+                      <span style={{ marginLeft: 10, fontSize: '0.78rem', color: '#64748b' }}>
+                        Base: {c.base_valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        {' · '}{c.comissao_pct}%
+                        {' · '}Venc: {c.data_vencimento ? new Date(c.data_vencimento + 'T12:00:00').toLocaleDateString('pt-BR') : '—'}
+                      </span>
+                      <div style={{ marginTop: 2 }}>
+                        <span style={{
+                          fontSize: '1rem', fontWeight: 800,
+                          color: c.status === 'pago' ? '#16a34a' : '#dc2626',
+                        }}>
+                          {c.valor_comissao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                        </span>
+                        <span style={{ marginLeft: 8, fontSize: '0.72rem', background: c.status === 'pago' ? '#dcfce7' : '#fef9c3', color: c.status === 'pago' ? '#166534' : '#92400e', borderRadius: 4, padding: '1px 6px' }}>
+                          {c.status === 'pago' ? `✓ Pago em ${new Date((c.data_pagamento ?? '') + 'T12:00:00').toLocaleDateString('pt-BR')}` : 'Pendente'}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {c.status === 'pendente' && !c.fin_lancamento_id && (
+                        <button className={styles.btnSecondary} style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                          onClick={() => gerarLancamentoComissao(c)}>
+                          💰 Gerar lançamento
+                        </button>
+                      )}
+                      {c.status === 'pendente' && (
+                        <button className={styles.btnSalvar} style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                          onClick={() => pagarComissao(c)}>
+                          ✓ Marcar pago
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

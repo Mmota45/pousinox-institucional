@@ -1,13 +1,16 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import SEO from '../components/SEO/SEO'
 import styles from './Blog.module.css'
 import { supabase } from '../lib/supabase'
+import CTABlog from '../components/CTABlog/CTABlog'
+import { renderArticleContent, renderResumo } from '../lib/articleParser'
 
 interface Artigo {
   id: number
   slug: string
   titulo: string
+  subtitulo?: string | null
   categoria: string
   resumo: string
   conteudo: string
@@ -17,7 +20,20 @@ interface Artigo {
   palavras_chave: string[]
   imagem_destaque: string
   video_url: string
+  tipo_post?: string | null
+  origem_oferta?: string | null
+  cta_tipo?: string | null
+  fabricante_parceiro?: string | null
+  produto_relacionado_id?: string | null
 }
+
+const TIPO_POST_LABEL: Record<string, string> = {
+  solucao: 'Solução',
+  guia: 'Guia',
+  aplicacao: 'Aplicação',
+  institucional: 'Institucional',
+}
+
 
 export default function Blog() {
   const { slug } = useParams<{ slug?: string }>()
@@ -136,52 +152,52 @@ export default function Blog() {
 
             <h1 className={styles.articleTitle}>{selectedPost.titulo}</h1>
 
-            <button
-              className={styles.shareBtn}
-              onClick={() => compartilharPost(selectedPost)}
-              type="button"
-              title="Compartilhar artigo"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-              Compartilhar
-            </button>
+            {selectedPost.subtitulo && (
+              <p className={styles.articleSubtitulo}>{selectedPost.subtitulo}</p>
+            )}
+
+            <div className={styles.shareRow}>
+              {selectedPost.tipo_post && TIPO_POST_LABEL[selectedPost.tipo_post] && (
+                <span className={styles.tipoPostBadge}>{TIPO_POST_LABEL[selectedPost.tipo_post]}</span>
+              )}
+              <button
+                className={styles.shareBtn}
+                onClick={() => compartilharPost(selectedPost)}
+                type="button"
+                title="Compartilhar artigo"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                Compartilhar
+              </button>
+            </div>
 
             {selectedPost.imagem_destaque && (
-              <img
-                src={selectedPost.imagem_destaque}
-                alt={selectedPost.titulo}
-                style={{ width: '100%', maxHeight: '420px', objectFit: 'cover', borderRadius: '12px', margin: '1.5rem 0' }}
-              />
+              <div className={styles.articleHeroImage}>
+                <img
+                  src={selectedPost.imagem_destaque}
+                  alt={selectedPost.titulo}
+                />
+              </div>
+            )}
+
+            {selectedPost.resumo && (
+              <div className={styles.resumoBox}>
+                <div className={styles.resumoLabel}>✦ Resumo rápido</div>
+                {renderResumo(selectedPost.resumo)}
+              </div>
             )}
 
             <div className={styles.articleBody}>
-              {selectedPost.conteudo.split('\n\n').map((block, i) => {
-                if (block.startsWith('**') && block.endsWith('**')) {
-                  return <h3 key={i} className={styles.articleH3}>{block.replace(/\*\*/g, '')}</h3>
-                }
-                if (block.includes('\n- ')) {
-                  const [intro, ...items] = block.split('\n- ')
-                  return (
-                    <div key={i}>
-                      {intro && <p className={styles.articleP}>{intro.replace(/\*\*/g, '')}</p>}
-                      <ul className={styles.articleList}>
-                        {items.map((item, j) => {
-                          const parts = item.split('**: ')
-                          return (
-                            <li key={j}>
-                              {parts.length > 1
-                                ? <><strong>{parts[0].replace('**', '')}</strong>: {parts[1]}</>
-                                : item}
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </div>
-                  )
-                }
-                return <p key={i} className={styles.articleP}>{block.replace(/\*\*/g, '')}</p>
-              })}
+              {renderArticleContent(selectedPost.conteudo)}
             </div>
+
+            <CTABlog
+              ctaTipo={(selectedPost.cta_tipo as 'pronta_entrega'|'orcamento'|'parceiro'|'nenhum') ?? 'orcamento'}
+              origemOferta={selectedPost.origem_oferta}
+              produtoRelacionadoId={selectedPost.produto_relacionado_id}
+              fabricanteParceiro={selectedPost.fabricante_parceiro}
+              tituloPost={selectedPost.titulo}
+            />
 
             {selectedPost.video_url && (
               <div style={{ margin: '2rem 0', borderRadius: '12px', overflow: 'hidden', aspectRatio: '16/9' }}>
@@ -196,7 +212,7 @@ export default function Blog() {
             )}
           </div>
 
-          <div className={styles.newsletter}>
+          <div className={styles.ctaBlock}>
             <div className={styles.newsletterContent}>
               <h3>Receba novidades da POUSINOX®</h3>
               <p>Dicas de manutenção, tendências do setor e informações sobre nossos produtos no seu e-mail.</p>

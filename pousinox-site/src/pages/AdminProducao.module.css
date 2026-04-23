@@ -449,3 +449,28 @@
   transition: background 0.15s;
 }
 .btnCancelar:hover { background: #fffbeb; }
+
+/* ── Mobile-first overrides ── */
+.toolbar { flex-direction: column; align-items: stretch; }
+.selectFiltro { width: 100%; min-height: 44px; }
+.btnPrimary   { min-height: 44px; }
+.btnSecondary { min-height: 44px; }
+.btnDanger    { min-height: 44px; }
+.btnAvancar   { min-height: 44px; padding: 10px 18px; }
+.btnCancelar  { min-height: 44px; padding: 10px 16px; }
+.formCard    { padding: 14px; }
+.detalheCard { padding: 14px; }
+.card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabela { min-width: 560px; }
+.formActions { flex-wrap: wrap; }
+.formActions > * { flex: 1; min-height: 44px; }
+
+@media (min-width: 640px) {
+  .toolbar { flex-direction: row; align-items: center; }
+  .selectFiltro { width: auto; }
+  .formCard    { padding: 24px; }
+  .detalheCard { padding: 24px; }
+  .tabela { min-width: unset; }
+  .formActions { justify-content: flex-end; }
+  .formActions > * { flex: none; }
+}
