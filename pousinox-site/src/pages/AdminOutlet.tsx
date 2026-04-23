@@ -241,7 +241,6 @@ export default function AdminOutlet() {
   const [salvando, setSalvando] = useState(false)
 
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
-  const fileRef = useRef<HTMLInputElement>(null)
 
   // ── Picker de mídia ────────────────────────────────────────────────────────
   const [pickerAberto, setPickerAberto] = useState(false)
