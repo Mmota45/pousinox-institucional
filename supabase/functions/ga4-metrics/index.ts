@@ -19,7 +19,7 @@ async function getAccessToken(sa: Record<string, string>): Promise<string> {
   const header = { alg: 'RS256', typ: 'JWT' }
   const payload = {
     iss: sa.client_email,
-    scope: 'https://www.googleapis.com/auth/analytics.readonly',
+    scope: 'https://www.googleapis.com/auth/analytics.readonly https://www.googleapis.com/auth/webmasters.readonly',
     aud: 'https://oauth2.googleapis.com/token',
     iat: now,
     exp: now + 3600,
@@ -75,6 +75,80 @@ Deno.serve(async (req: Request) => {
     const token = await getAccessToken(sa)
 
     const params = new URL(req.url).searchParams
+
+    // ── Teste GSC ──────────────────────────────────────────────────────────
+    // ── Search Console ──────────────────────────────────────────────────────
+    if (params.get('gsc') === '1') {
+      const siteUrl = 'https://pousinox.com.br/'
+      const gscStart = params.get('startDate') ?? (() => { const d = new Date(); d.setDate(d.getDate() - 28); return d.toISOString().slice(0, 10) })()
+      const gscEnd = params.get('endDate') ?? new Date().toISOString().slice(0, 10)
+
+      const gscRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: gscStart,
+          endDate: gscEnd,
+          dimensions: ['query'],
+          rowLimit: 20,
+        }),
+      })
+      const gscData = await gscRes.json()
+      if (!gscRes.ok || gscData.error) throw new Error(JSON.stringify(gscData.error ?? gscData))
+
+      // Top páginas por query
+      const gscPagesRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: gscStart,
+          endDate: gscEnd,
+          dimensions: ['page'],
+          rowLimit: 10,
+        }),
+      })
+      const gscPagesData = await gscPagesRes.json()
+
+      // Oportunidades: posição 5-20 (quase na 1ª página ou início da 2ª)
+      const gscOppRes = await fetch(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          startDate: gscStart,
+          endDate: gscEnd,
+          dimensions: ['query'],
+          rowLimit: 50,
+        }),
+      })
+      const gscOppData = await gscOppRes.json()
+      const oportunidades = (gscOppData.rows ?? [])
+        .filter((r: { position: number }) => r.position >= 5 && r.position <= 20)
+        .slice(0, 15)
+
+      return new Response(JSON.stringify({
+        queries: (gscData.rows ?? []).map((r: { keys: string[]; clicks: number; impressions: number; ctr: number; position: number }) => ({
+          query: r.keys[0],
+          cliques: r.clicks,
+          impressoes: r.impressions,
+          ctr: r.ctr,
+          posicao: r.position,
+        })),
+        paginas: (gscPagesData.rows ?? []).map((r: { keys: string[]; clicks: number; impressions: number; ctr: number; position: number }) => ({
+          pagina: r.keys[0].replace('https://pousinox.com.br', ''),
+          cliques: r.clicks,
+          impressoes: r.impressions,
+          ctr: r.ctr,
+          posicao: r.position,
+        })),
+        oportunidades: oportunidades.map((r: { keys: string[]; clicks: number; impressions: number; ctr: number; position: number }) => ({
+          query: r.keys[0],
+          cliques: r.clicks,
+          impressoes: r.impressions,
+          ctr: r.ctr,
+          posicao: r.position,
+        })),
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
 
     // ── Tempo Real ──────────────────────────────────────────────────────────
     if (params.get('realtime') === '1') {
@@ -151,11 +225,11 @@ Deno.serve(async (req: Request) => {
       return data
     }
 
-    const [r30, r7, rPaginas, rCanais, rCidades, rEstados] = await Promise.all([
+    const [r30, r7, rPaginas, rCanais, rCidades, rEstados, rDispositivos, rNovosRec, rConversoes, rDiario] = await Promise.all([
       // Métricas gerais — período selecionado, apenas Brasil
       run({
         dateRanges: [{ startDate, endDate }],
-        metrics: [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'bounceRate' }, { name: 'averageSessionDuration' }],
+        metrics: [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'bounceRate' }, { name: 'averageSessionDuration' }, { name: 'screenPageViews' }],
         ...brasilFilter,
       }),
       // Métricas 7 dias fixos, apenas Brasil
@@ -200,10 +274,57 @@ Deno.serve(async (req: Request) => {
         limit: 10,
         ...brasilFilter,
       }),
+      // Dispositivos — período selecionado, apenas Brasil
+      run({
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'deviceCategory' }],
+        metrics: [{ name: 'sessions' }],
+        orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+        ...brasilFilter,
+      }),
+      // Novos vs Recorrentes — período selecionado, apenas Brasil
+      run({
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'newVsReturning' }],
+        metrics: [{ name: 'activeUsers' }],
+        orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }],
+        ...brasilFilter,
+      }),
+      // Conversões (eventos-chave) — período selecionado, apenas Brasil
+      run({
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'eventName' }],
+        metrics: [{ name: 'eventCount' }],
+        orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
+        dimensionFilter: {
+          andGroup: {
+            expressions: [
+              { filter: { fieldName: 'country', stringFilter: { matchType: 'EXACT', value: 'Brazil' } } },
+              { filter: { fieldName: 'eventName', inListFilter: { values: ['whatsapp_click', 'generate_lead', 'form_submit', 'contact_click'] } } },
+            ],
+          },
+        },
+      }),
+      // Evolução diária — período selecionado, apenas Brasil
+      run({
+        dateRanges: [{ startDate, endDate }],
+        dimensions: [{ name: 'date' }],
+        metrics: [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'screenPageViews' }],
+        orderBys: [{ dimension: { dimensionName: 'date' } }],
+        ...brasilFilter,
+      }),
     ])
 
     const m30 = r30.rows?.[0]?.metricValues ?? []
     const m7 = r7.rows?.[0]?.metricValues ?? []
+
+    const deviceLabel: Record<string, string> = { desktop: 'Desktop', mobile: 'Mobile', tablet: 'Tablet' }
+    const eventoLabel: Record<string, string> = {
+      whatsapp_click: 'Cliques WhatsApp',
+      generate_lead: 'Leads gerados',
+      form_submit: 'Formulários enviados',
+      contact_click: 'Cliques contato',
+    }
 
     const resultado = {
       ultimos30dias: {
@@ -216,6 +337,7 @@ Deno.serve(async (req: Request) => {
         sessoes: parseInt(m7[0]?.value ?? '0'),
         usuarios: parseInt(m7[1]?.value ?? '0'),
       },
+      pageviews: parseInt(m30[4]?.value ?? '0'),
       topPaginas: (rPaginas.rows ?? []).map((r: { dimensionValues: {value: string}[]; metricValues: {value: string}[] }) => ({
         titulo: r.dimensionValues[0].value,
         visualizacoes: parseInt(r.metricValues[0].value),
@@ -234,6 +356,24 @@ Deno.serve(async (req: Request) => {
       estados: (rEstados.rows ?? []).map((r: { dimensionValues: {value: string}[]; metricValues: {value: string}[] }) => ({
         estado: r.dimensionValues[0].value,
         usuarios: parseInt(r.metricValues[0].value),
+      })),
+      dispositivos: (rDispositivos.rows ?? []).map((r: { dimensionValues: {value: string}[]; metricValues: {value: string}[] }) => ({
+        tipo: deviceLabel[r.dimensionValues[0].value] ?? r.dimensionValues[0].value,
+        sessoes: parseInt(r.metricValues[0].value),
+      })),
+      novosVsRecorrentes: (rNovosRec.rows ?? []).map((r: { dimensionValues: {value: string}[]; metricValues: {value: string}[] }) => ({
+        tipo: r.dimensionValues[0].value,
+        usuarios: parseInt(r.metricValues[0].value),
+      })),
+      conversoes: (rConversoes.rows ?? []).map((r: { dimensionValues: {value: string}[]; metricValues: {value: string}[] }) => ({
+        evento: eventoLabel[r.dimensionValues[0].value] ?? r.dimensionValues[0].value,
+        total: parseInt(r.metricValues[0].value),
+      })),
+      diario: (rDiario.rows ?? []).map((r: { dimensionValues: {value: string}[]; metricValues: {value: string}[] }) => ({
+        data: r.dimensionValues[0].value,
+        sessoes: parseInt(r.metricValues[0].value),
+        usuarios: parseInt(r.metricValues[1].value),
+        pageviews: parseInt(r.metricValues[2].value),
       })),
     }
 

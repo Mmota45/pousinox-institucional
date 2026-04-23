@@ -47,7 +47,7 @@ const ROTA_PERMISSAO: Record<string, string> = {
   cartoes: 'cartoes',
 }
 
-const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao', 'cobertura', 'funil', 'clientes', 'produtos', 'projetos', 'fornecedores', 'financeiro', 'campanhas', 'conciliacao', 'pipeline', 'producao', 'qualidade', 'manutencao', 'solicitacoes-compra', 'cotacoes-compra', 'pedidos-compra', 'recebimentos-compra', 'estoque-mp', 'estoque-pa', 'inventario', 'docs-recebidos', 'docs-emitidos', 'bens-frota', 'estudo-mercado', 'configuracao-financeiro', 'cartoes']
+const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao', 'clientes', 'produtos', 'projetos', 'fornecedores', 'financeiro', 'campanhas', 'conciliacao', 'pipeline', 'producao', 'qualidade', 'manutencao', 'solicitacoes-compra', 'cotacoes-compra', 'pedidos-compra', 'recebimentos-compra', 'estoque-mp', 'estoque-pa', 'inventario', 'docs-recebidos', 'docs-emitidos', 'bens-frota', 'estudo-mercado', 'configuracao-financeiro', 'cartoes']
 
 interface NavItem {
   to: string
@@ -84,27 +84,6 @@ const NAV_ITEMS: NavItem[] = [
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         <line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>
-      </svg>
-    ),
-  },
-  {
-    to: '/admin/cobertura',
-    label: 'Cobertura',
-    permissao: 'cobertura',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
-        <circle cx="12" cy="9" r="2.5"/>
-      </svg>
-    ),
-  },
-  {
-    to: '/admin/funil',
-    label: 'Funil',
-    permissao: 'funil',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
       </svg>
     ),
   },

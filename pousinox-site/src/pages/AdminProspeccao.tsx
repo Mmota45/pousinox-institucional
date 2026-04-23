@@ -315,6 +315,7 @@ export default function AdminProspeccao() {
   const [cidadesRaio, setCidadesRaio]     = useState<string[]>([])
   const [loadingCidadesRaio, setLoadingCidadesRaio] = useState(false)
   const [ordenar, setOrdenar]             = useState<'score' | 'nome'>('score')
+  const [scoreMin, setScoreMin]           = useState<string>('')
 
   const [prospects, setProspects]   = useState<Prospect[]>([])
   const [total, setTotal]           = useState(0)
@@ -326,7 +327,17 @@ export default function AdminProspeccao() {
   const [loading, setLoading]       = useState(false)
   const [buscado, setBuscado]       = useState(false)
   const [erroQuery, setErroQuery]   = useState<string | null>(null)
-  const [vistaAtiva, setVistaAtiva]     = useState<'lista' | 'mapa' | 'calor'>('lista')
+  const [vistaAtiva, setVistaAtiva]     = useState<'lista' | 'mapa' | 'calor' | 'cobertura' | 'funil'>('lista')
+
+  // ── Cobertura e Funil ──
+  type Cobertura = { mesorregiao: string; uf: string; total: number; contatados: number; interessados: number; aguardando: number; cobertura_pct: number; score_medio: number; clientes: number }
+  type Funil = { mercado: number; contatados: number; interessados: number; orcamentos: number; vendas: number; receita: number; ticket_medio: number }
+  const [coberturaData, setCoberturaData] = useState<Cobertura[]>([])
+  const [coberturaLoading, setCoberturaLoading] = useState(false)
+  const [coberturaOrdem, setCoberturaOrdem] = useState<'total' | 'cobertura_pct' | 'score_medio' | 'clientes' | 'virgem'>('total')
+  const [coberturaAsc, setCoberturaAsc] = useState(false)
+  const [funilData, setFunilData] = useState<Funil | null>(null)
+  const [funilLoading, setFunilLoading] = useState(false)
   const [dadosMapa, setDadosMapa]       = useState<CidadeMapa[]>([])
   const [loadingMapa, setLoadingMapa]   = useState(false)
   const [historicoProspect, setHistoricoProspect] = useState<{ id: number; nome: string } | null>(null)
@@ -488,6 +499,8 @@ export default function AdminProspeccao() {
     if (tipoFiltro === 'novos')       q = q.eq('cliente_ativo', false)
     const raio = parseFloat(raioKm)
     if (!isNaN(raio) && raio > 0)    q = q.lte('distancia_km', raio)
+    const sMin = parseInt(scoreMin)
+    if (!isNaN(sMin) && sMin > 0)    q = q.gte('score', sMin)
     return q
   }
 
@@ -623,6 +636,28 @@ setClientesCidade(clientesPorCidade)
       return coord?.lat != null ? { ...c, lat: coord.lat, lng: coord.lng } : c
     }))
     setLoadingMapa(false)
+  }
+
+  async function buscarCobertura() {
+    setCoberturaLoading(true)
+    const { data } = await supabaseAdmin.rpc('get_cobertura_regional', {
+      p_segmentos: segmentos.length > 0 ? segmentos : null,
+      p_ufs: ufs.length > 0 ? ufs : null,
+      p_raio: parseFloat(raioKm) || null,
+    })
+    setCoberturaData(data ?? [])
+    setCoberturaLoading(false)
+  }
+
+  async function buscarFunil() {
+    setFunilLoading(true)
+    const { data } = await supabaseAdmin.rpc('get_funil_prospects', {
+      p_segmentos: segmentos.length > 0 ? segmentos : null,
+      p_ufs: ufs.length > 0 ? ufs : null,
+      p_raio: parseFloat(raioKm) || null,
+    })
+    setFunilData(data?.[0] ?? null)
+    setFunilLoading(false)
   }
 
   async function toggleContatado(p: Prospect) {
@@ -906,115 +941,141 @@ setClientesCidade(clientesPorCidade)
       {/* ── Filtros ── */}
       <div className={styles.filtros}>
 
-        {/* Busca livre */}
-        <div className={styles.filtroGrupo} style={{ flex: 1, minWidth: 200 }}>
-          <span className={styles.filtroLabel}>Empresa</span>
+        {/* Busca + ações na mesma linha */}
+        <div className={styles.filtroPrimario}>
+          <span className={styles.searchIcon}>🔍</span>
           <input
             className={styles.filtroInput}
-            style={{ minWidth: 200 }}
             type="text"
-            placeholder="Nome ou razão social..."
+            placeholder="Buscar por nome, razão social ou CNPJ..."
             value={busca}
             onChange={e => setBusca(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && buscar(0)}
           />
+          <button
+            className={styles.buscarBtnPrimary}
+            onClick={() => buscar(0)}
+            disabled={loading}
+          >
+            {loading ? '...' : 'Buscar'}
+          </button>
+          <button
+            className={styles.cadastrarBtn}
+            onClick={() => { setModalCadastro(true); setCnpjInput(''); setDadosCnpjApi(null); setErroCnpj(null) }}
+          >
+            + CNPJ
+          </button>
         </div>
 
-        <MultiDropdown
-          label="Produto"
-          options={PRODUTOS}
-          value={produtos}
-          onChange={setProdutos}
-          portal={filtroDrawer}
-        />
+        <div className={styles.filtroDivider} />
 
-        <MultiDropdown
-          label="Segmento"
-          options={SEGMENTOS}
-          value={segmentos}
-          onChange={setSegmentos}
-          minWidth={180}
-          portal={filtroDrawer}
-        />
-
-        {parseFloat(raioKm) > 0 ? (
+        {/* Filtros principais — sempre visíveis */}
+        <div className={styles.filtroRow}>
           <MultiDropdown
-            label={`Cidades no raio (${raioKm} km)`}
-            options={cidadesRaio}
-            value={cidadesSel}
-            onChange={setCidadesSel}
-            placeholder="Todas no raio"
-            loading={loadingCidadesRaio}
-            minWidth={220}
+            label="Produto"
+            options={PRODUTOS}
+            value={produtos}
+            onChange={setProdutos}
             portal={filtroDrawer}
           />
-        ) : (
-          <>
-            <MultiDropdown
-              label="UF"
-              options={UFS}
-              value={ufs}
-              onChange={setUfs}
-              minWidth={80}
-              portal={filtroDrawer}
-            />
 
-            {ufs.length > 0 && (
-              <MultiDropdown
-                label="Mesorregião"
-                options={mesorregioes}
-                value={mesorregioesSel}
-                onChange={setMesorregioesSel}
-                placeholder="Todas"
-                loading={loadingMeso}
-                minWidth={200}
-                portal={filtroDrawer}
-              />
-            )}
+          <MultiDropdown
+            label="Segmento"
+            options={SEGMENTOS}
+            value={segmentos}
+            onChange={setSegmentos}
+            minWidth={150}
+            portal={filtroDrawer}
+          />
 
+          {parseFloat(raioKm) > 0 ? (
             <MultiDropdown
-              label="Cidade"
-              options={cidades}
+              label={`Cidades (${raioKm} km)`}
+              options={cidadesRaio}
               value={cidadesSel}
               onChange={setCidadesSel}
-              placeholder={ufs.length === 0 ? 'Selecione uma UF' : mesorregioesSel.length === 0 ? 'Selecione mesorregião' : 'Todas'}
-              disabled={ufs.length === 0 || mesorregioesSel.length === 0}
-              loading={loadingCidades}
-              minWidth={180}
+              placeholder="Todas no raio"
+              loading={loadingCidadesRaio}
+              minWidth={160}
               portal={filtroDrawer}
             />
-          </>
-        )}
+          ) : (
+            <>
+              <MultiDropdown
+                label="UF"
+                options={UFS}
+                value={ufs}
+                onChange={setUfs}
+                minWidth={70}
+                portal={filtroDrawer}
+              />
 
-        <MultiDropdown
-          label="Porte"
-          options={PORTES}
-          value={portes}
-          onChange={setPortes}
-          portal={filtroDrawer}
-        />
+              {ufs.length > 0 && (
+                <MultiDropdown
+                  label="Mesorregião"
+                  options={mesorregioes}
+                  value={mesorregioesSel}
+                  onChange={setMesorregioesSel}
+                  placeholder="Todas"
+                  loading={loadingMeso}
+                  minWidth={150}
+                  portal={filtroDrawer}
+                />
+              )}
 
-        {/* Região */}
-        <div className={styles.filtroGrupo}>
-          <span className={styles.filtroLabel}>Região</span>
-          <select
-            className={styles.filtroSelect}
-            style={{ minWidth: 130 }}
-            value=""
-            onChange={e => {
-              const regiao = e.target.value
-              if (regiao && REGIOES[regiao]) setUfs(REGIOES[regiao])
-            }}
-          >
-            <option value="">Selecionar região...</option>
-            {Object.keys(REGIOES).map(r => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
-        </div>
+              <MultiDropdown
+                label="Cidade"
+                options={cidades}
+                value={cidadesSel}
+                onChange={setCidadesSel}
+                placeholder={ufs.length === 0 ? 'Selecione UF' : mesorregioesSel.length === 0 ? 'Selecione meso' : 'Todas'}
+                disabled={ufs.length === 0 || mesorregioesSel.length === 0}
+                loading={loadingCidades}
+                minWidth={140}
+                portal={filtroDrawer}
+              />
+            </>
+          )}
 
-        {/* Contato + Tipo + Telefone */}
-        <div className={styles.filtroRow3}>
+          <MultiDropdown
+            label="Porte"
+            options={PORTES}
+            value={portes}
+            onChange={setPortes}
+            portal={filtroDrawer}
+          />
+
+          <div className={styles.filtroGrupo}>
+            <span className={styles.filtroLabel}>Ordenar</span>
+            <select
+              className={styles.filtroSelect}
+              value={ordenar}
+              onChange={e => setOrdenar(e.target.value as 'score' | 'nome')}
+            >
+              <option value="score">Score</option>
+              <option value="nome">A–Z</option>
+            </select>
+          </div>
+
+          <div className={styles.filtroSep} />
+
+          <div className={styles.filtroGrupo}>
+            <span className={styles.filtroLabel}>Região</span>
+            <select
+              className={styles.filtroSelect}
+              value=""
+              onChange={e => {
+                const regiao = e.target.value
+                if (regiao && REGIOES[regiao]) setUfs(REGIOES[regiao])
+              }}
+            >
+              <option value="">Sel...</option>
+              {Object.keys(REGIOES).map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </div>
+
           <div className={styles.filtroGrupo}>
             <span className={styles.filtroLabel}>Contato</span>
             <select
@@ -1023,10 +1084,11 @@ setClientesCidade(clientesPorCidade)
               onChange={e => setContatoFiltro(e.target.value as 'todos' | 'sim' | 'nao')}
             >
               <option value="todos">Todos</option>
-              <option value="sim">Contatados</option>
-              <option value="nao">Não contatados</option>
+              <option value="sim">Sim</option>
+              <option value="nao">Não</option>
             </select>
           </div>
+
           <div className={styles.filtroGrupo}>
             <span className={styles.filtroLabel}>Tipo</span>
             <select
@@ -1035,31 +1097,29 @@ setClientesCidade(clientesPorCidade)
               onChange={e => setTipoFiltro(e.target.value as 'todos' | 'clientes' | 'novos')}
             >
               <option value="todos">Todos</option>
-              <option value="clientes">Já clientes</option>
-              <option value="novos">Novos prospects</option>
+              <option value="clientes">Cli.</option>
+              <option value="novos">Novos</option>
             </select>
           </div>
+
           <div className={styles.filtroGrupo}>
-            <span className={styles.filtroLabel}>Telefone</span>
+            <span className={styles.filtroLabel}>Tel.</span>
             <select
               className={styles.filtroSelect}
               value={temTelefone ? 'sim' : 'todos'}
               onChange={e => setTemTelefone(e.target.value === 'sim')}
             >
               <option value="todos">Todos</option>
-              <option value="sim">Com telefone</option>
+              <option value="sim">Sim</option>
             </select>
           </div>
-        </div>
 
-        {/* Raio + Ordenação — row compacta */}
-        <div className={styles.filtroRow2}>
           <div className={styles.filtroGrupo}>
-            <span className={styles.filtroLabel}>Raio (km)</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span className={styles.filtroLabel}>Raio</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <input
                 className={styles.filtroInput}
-                style={{ minWidth: 70 }}
+                style={{ width: 50 }}
                 type="number"
                 min="0"
                 step="50"
@@ -1072,44 +1132,27 @@ setClientesCidade(clientesPorCidade)
                 <button
                   type="button"
                   onClick={() => setRaioKm('')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '1rem', lineHeight: 1 }}
-                  title="Limpar raio"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '0.8rem', lineHeight: 1 }}
                 >×</button>
               )}
             </div>
           </div>
+
           <div className={styles.filtroGrupo}>
-            <span className={styles.filtroLabel}>Ordenar</span>
+            <span className={styles.filtroLabel}>Score</span>
             <select
               className={styles.filtroSelect}
-              value={ordenar}
-              onChange={e => setOrdenar(e.target.value as 'score' | 'nome')}
+              value={scoreMin}
+              onChange={e => setScoreMin(e.target.value)}
             >
-              <option value="score">⭐ Score</option>
-              <option value="nome">A–Z Nome</option>
+              <option value="">—</option>
+              <option value="8">8+</option>
+              <option value="6">6+</option>
+              <option value="4">4+</option>
             </select>
           </div>
         </div>
 
-      </div>
-
-      {/* Ações desktop — abaixo dos filtros */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-        <button
-          className={styles.buscarBtnMobile}
-          onClick={() => buscar(0)}
-          disabled={loading}
-          style={{ flex: '1 1 auto', minWidth: 120 }}
-        >
-          {loading ? '…' : '🔍 Buscar'}
-        </button>
-        <button
-          className={styles.buscarBtnMobile}
-          onClick={() => { setModalCadastro(true); setCnpjInput(''); setDadosCnpjApi(null); setErroCnpj(null) }}
-          style={{ flex: '0 0 auto', background: '#1e40af' }}
-        >
-          + Cadastrar CNPJ
-        </button>
       </div>
 
         </div>{/* drawerBody */}
@@ -1128,58 +1171,175 @@ setClientesCidade(clientesPorCidade)
       )}
 
       {/* ── Stats ── */}
-      {buscado && !loading && (
-        <div className={styles.stats}>
-          <div className={styles.statCard}>
-            <span className={styles.statLabel}>Total encontrado</span>
-            <span className={styles.statVal}>{total.toLocaleString('pt-BR')}</span>
-          </div>
-          {parseFloat(raioKm) > 0 && dadosMapa.length > 0 && (
-            <div className={styles.statCard}>
-              <span className={styles.statLabel}>Cidades no raio</span>
-              <span className={styles.statVal}>{dadosMapa.length.toLocaleString('pt-BR')}</span>
-              <span className={styles.statSub} style={{ color: '#3b82f6' }}>dentro de {raioKm} km</span>
-            </div>
-          )}
-          <div className={styles.statCard}>
-            <span className={styles.statLabel}>Equipamentos Inox</span>
-            <span className={styles.statVal}>{totalInox.toLocaleString('pt-BR')}</span>
-            <span className={styles.statSub}>✓ {totalInoxCont.toLocaleString('pt-BR')} contatados</span>
-          </div>
-          <div className={styles.statCard}>
-            <span className={styles.statLabel}>Fixador Porcelanato</span>
-            <span className={styles.statVal}>{totalFixador.toLocaleString('pt-BR')}</span>
-            <span className={styles.statSub}>✓ {totalFixCont.toLocaleString('pt-BR')} contatados</span>
-          </div>
-          <div className={styles.statCard} style={{ borderColor: clientesCidade.length > 0 ? '#bfdbfe' : undefined }}>
-            <span className={styles.statLabel}>Clientes consolidados</span>
-            <span className={styles.statVal} style={{ color: clientesCidade.length > 0 ? '#1d4ed8' : undefined }}>
-              {clientesCidade.reduce((s, c) => s + c.count, 0).toLocaleString('pt-BR')}
-            </span>
-            <span className={styles.statSub}>
-              {clientesCidade.length > 0
-                ? `em ${clientesCidade.length} ${clientesCidade.length === 1 ? 'cidade' : 'cidades'}`
-                : 'nenhum na região'}
-            </span>
-          </div>
-        </div>
-      )}
+      {buscado && !loading && (() => {
+        const totalClientes = clientesCidade.reduce((s, c) => s + c.count, 0)
+        const totalContatados = totalInoxCont + totalFixCont
+        const pctInox = total > 0 ? (totalInox / total) * 100 : 0
+        const pctContatado = total > 0 ? (totalContatados / total) * 100 : 0
+        const penetracao = total > 0 ? (totalClientes / total) * 100 : 0
+        const scoresMedio = prospects.length > 0
+          ? prospects.reduce((s, p) => s + (p.score ?? 0), 0) / prospects.length
+          : 0
+        const cidadesSemContato = dadosMapa.length > 0
+          ? dadosMapa.filter(d => {
+              const cli = clientesCidade.find(c => c.cidade === d.cidade && c.uf === d.uf)
+              return !cli
+            }).length
+          : 0
 
-      {/* ── Clientes consolidados por cidade ── */}
-      {buscado && !loading && clientesCidade.length > 0 && (
-        <div className={styles.clientesCidadeWrap}>
-          <div className={styles.clientesCidadeTitulo}>🏢 Clientes consolidados nessa região</div>
-          <div className={styles.clientesCidadeCards}>
-            {clientesCidade.map(c => (
-              <div key={`${c.cidade}|${c.uf}`} className={styles.clientesCidadeCard}>
-                <span className={styles.clientesCidadeNome}>{c.cidade}</span>
-                <span className={styles.clientesCidadeUf}>{c.uf}</span>
-                <span className={styles.clientesCidadeCount}>{c.count} {c.count === 1 ? 'cliente' : 'clientes'}</span>
+        return (
+          <>
+            <div className={styles.stats}>
+              {/* Total */}
+              <div className={styles.statCard}>
+                <div className={styles.statIcon} style={{ background: '#f1f5f9', color: '#475569' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                </div>
+                <div className={styles.statBody}>
+                  <span className={styles.statLabel}>Total</span>
+                  <span className={styles.statVal}>{total.toLocaleString('pt-BR')}</span>
+                </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+
+              {/* Composição Inox vs Fixador */}
+              <div className={`${styles.statCard} ${styles.statCardWide}`}>
+                <div className={styles.statBody} style={{ width: '100%' }}>
+                  <span className={styles.statLabel}>Composição por produto</span>
+                  <div style={{ display: 'flex', gap: 14, marginTop: 1 }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 600 }}>
+                      <span style={{ color: '#3b82f6' }}>Inox</span>{' '}
+                      <span style={{ color: '#1e293b' }}>{totalInox.toLocaleString('pt-BR')}</span>
+                      <span style={{ color: '#b0b8c4', fontWeight: 400 }}> · {totalInoxCont} cont.</span>
+                    </span>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 600 }}>
+                      <span style={{ color: '#f59e0b' }}>Fixador</span>{' '}
+                      <span style={{ color: '#1e293b' }}>{totalFixador.toLocaleString('pt-BR')}</span>
+                      <span style={{ color: '#b0b8c4', fontWeight: 400 }}> · {totalFixCont} cont.</span>
+                    </span>
+                  </div>
+                  <div className={styles.barWrap}>
+                    <div className={styles.barFill} style={{ width: `${pctInox}%`, background: '#3b82f6' }} />
+                    <div className={styles.barFill} style={{ width: `${100 - pctInox}%`, background: '#f59e0b' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Taxa de contato */}
+              <div className={styles.statCard}>
+                <div className={styles.statIcon} style={{ background: '#dcfce7', color: '#15803d' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 4.18 2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                </div>
+                <div className={styles.statBody}>
+                  <span className={styles.statLabel}>Contato</span>
+                  <span className={styles.statVal}>{pctContatado.toFixed(1)}%</span>
+                  <span className={styles.statSub}>{totalContatados.toLocaleString('pt-BR')} contatados</span>
+                </div>
+              </div>
+
+              {/* Score médio */}
+              <div className={styles.statCard}>
+                <div className={styles.statIcon} style={{
+                  background: scoresMedio >= 7 ? '#dcfce7' : scoresMedio >= 4 ? '#fef9c3' : '#f1f5f9',
+                  color: scoresMedio >= 7 ? '#15803d' : scoresMedio >= 4 ? '#92400e' : '#64748b',
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01z"/></svg>
+                </div>
+                <div className={styles.statBody}>
+                  <span className={styles.statLabel}>Score</span>
+                  <span className={styles.statVal}>{scoresMedio.toFixed(1)}</span>
+                  <span className={styles.statSub}>média da página</span>
+                </div>
+              </div>
+
+              {/* Clientes consolidados */}
+              <div className={styles.statCard} style={{ borderLeft: '2px solid #3b82f6' }}>
+                <div className={styles.statIcon} style={{ background: '#dbeafe', color: '#1d4ed8' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+                </div>
+                <div className={styles.statBody}>
+                  <span className={styles.statLabel}>Clientes</span>
+                  <span className={styles.statVal} style={{ color: '#1d4ed8' }}>
+                    {totalClientes.toLocaleString('pt-BR')}
+                  </span>
+                  <span className={styles.statSub}>
+                    {clientesCidade.length > 0
+                      ? `${clientesCidade.length} cid. · ${penetracao.toFixed(1)}%`
+                      : 'nenhum na região'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Cidades no raio */}
+              {parseFloat(raioKm) > 0 && dadosMapa.length > 0 && (
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon} style={{ background: '#ede9fe', color: '#7c3aed' }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  </div>
+                  <div className={styles.statBody}>
+                    <span className={styles.statLabel}>No raio</span>
+                    <span className={styles.statVal}>{dadosMapa.length}</span>
+                    <span className={styles.statSub} style={{ color: cidadesSemContato > 0 ? '#7c3aed' : '#16a34a' }}>
+                      {cidadesSemContato > 0 ? `${cidadesSemContato} sem cliente` : 'cobertas'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ── Clientes consolidados por cidade ── */}
+            {clientesCidade.length > 0 && (() => {
+              const sorted = [...clientesCidade].sort((a, b) => b.count - a.count)
+              const top5 = sorted.slice(0, 5)
+              const rest = sorted.slice(5)
+              const maxCount = sorted[0]?.count ?? 1
+
+              function badgeColor(count: number) {
+                const ratio = count / maxCount
+                if (ratio >= 0.6) return { bg: '#1d4ed8', color: '#fff' }
+                if (ratio >= 0.3) return { bg: '#3b82f6', color: '#fff' }
+                return { bg: '#dbeafe', color: '#1d4ed8' }
+              }
+
+              return (
+                <div className={styles.clientesCidadeWrap}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div className={styles.clientesCidadeTitulo}>Clientes consolidados</div>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      {totalClientes} em {clientesCidade.length} cidades
+                    </span>
+                  </div>
+                  <div className={styles.clientesCidadeCards}>
+                    {top5.map(c => {
+                      const bc = badgeColor(c.count)
+                      return (
+                        <div key={`${c.cidade}|${c.uf}`} className={styles.clientesCidadeCard} style={{ borderColor: '#93c5fd' }}>
+                          <span className={styles.clientesCidadeNome}>{c.cidade}</span>
+                          <span className={styles.clientesCidadeUf}>{c.uf}</span>
+                          <span className={styles.clientesCidadeCount} style={{ background: bc.bg, color: bc.color }}>
+                            {c.count}
+                          </span>
+                        </div>
+                      )
+                    })}
+                    {rest.map(c => {
+                      const bc = badgeColor(c.count)
+                      return (
+                        <div key={`${c.cidade}|${c.uf}`} className={styles.clientesCidadeCard}>
+                          <span className={styles.clientesCidadeNome}>{c.cidade}</span>
+                          <span className={styles.clientesCidadeUf}>{c.uf}</span>
+                          <span className={styles.clientesCidadeCount} style={{ background: bc.bg, color: bc.color }}>
+                            {c.count}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
+          </>
+        )
+      })()}
 
       {/* ── Tabela / Mapa ── */}
       {buscado && (
@@ -1202,6 +1362,14 @@ setClientesCidade(clientesPorCidade)
                   className={`${styles.vistaTab} ${vistaAtiva === 'calor' ? styles.vistaTabAtiva : ''}`}
                   onClick={() => { setVistaAtiva('calor'); if (buscado && dadosMapa.length === 0) buscarMapa() }}
                 >🔥 Calor</button>
+                <button
+                  className={`${styles.vistaTab} ${vistaAtiva === 'cobertura' ? styles.vistaTabAtiva : ''}`}
+                  onClick={() => { setVistaAtiva('cobertura'); if (coberturaData.length === 0) buscarCobertura() }}
+                >📊 Cobertura</button>
+                <button
+                  className={`${styles.vistaTab} ${vistaAtiva === 'funil' ? styles.vistaTabAtiva : ''}`}
+                  onClick={() => { setVistaAtiva('funil'); if (!funilData) buscarFunil() }}
+                >🔻 Funil</button>
               </div>
               {vistaAtiva === 'lista' && prospects.length > 0 && (
                 <button className={styles.exportBtn} onClick={exportarCSV}>↓ Exportar CSV</button>
@@ -1217,6 +1385,204 @@ setClientesCidade(clientesPorCidade)
             <div style={{ padding: 16 }}>
               <MapaProspects modo="calor" dados={dadosMapa} loading={loadingMapa} raioKm={parseFloat(raioKm) || null} clientesConsolidados={clientesCidade} />
             </div>
+
+          ) : vistaAtiva === 'cobertura' ? (
+            <div style={{ padding: 16 }}>
+              {coberturaLoading ? (
+                <div className={styles.loading}>Calculando cobertura...</div>
+              ) : coberturaData.length === 0 ? (
+                <div className={styles.vazio}>Nenhum dado de cobertura. Aplique filtros e busque.</div>
+              ) : (() => {
+                const sorted = [...coberturaData].sort((a, b) => {
+                  const col = coberturaOrdem
+                  const va = col === 'virgem' ? a.total - a.contatados : a[col]
+                  const vb = col === 'virgem' ? b.total - b.contatados : b[col]
+                  return coberturaAsc ? va - vb : vb - va
+                })
+                const totMerc = coberturaData.reduce((s, d) => s + d.total, 0)
+                const totCont = coberturaData.reduce((s, d) => s + d.contatados, 0)
+                const totInt = coberturaData.reduce((s, d) => s + d.interessados, 0)
+                const totCli = coberturaData.reduce((s, d) => s + d.clientes, 0)
+                const cobGeral = totMerc > 0 ? (totCont / totMerc) * 100 : 0
+
+                function sortCol(col: typeof coberturaOrdem) {
+                  if (coberturaOrdem === col) setCoberturaAsc(!coberturaAsc)
+                  else { setCoberturaOrdem(col); setCoberturaAsc(false) }
+                }
+                const arrow = (col: typeof coberturaOrdem) => coberturaOrdem === col ? (coberturaAsc ? ' ▲' : ' ▼') : ''
+
+                return (
+                  <>
+                    <div className={styles.stats} style={{ marginBottom: 14 }}>
+                      <div className={styles.statCard}>
+                        <div className={styles.statBody}>
+                          <span className={styles.statLabel}>Mercado</span>
+                          <span className={styles.statVal}>{totMerc.toLocaleString('pt-BR')}</span>
+                        </div>
+                      </div>
+                      <div className={styles.statCard}>
+                        <div className={styles.statBody}>
+                          <span className={styles.statLabel}>Cobertura</span>
+                          <span className={styles.statVal} style={{ color: cobGeral >= 20 ? '#16a34a' : '#d97706' }}>{cobGeral.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                      <div className={styles.statCard}>
+                        <div className={styles.statBody}>
+                          <span className={styles.statLabel}>Interessados</span>
+                          <span className={styles.statVal}>{totInt.toLocaleString('pt-BR')}</span>
+                        </div>
+                      </div>
+                      <div className={styles.statCard}>
+                        <div className={styles.statBody}>
+                          <span className={styles.statLabel}>Clientes</span>
+                          <span className={styles.statVal} style={{ color: '#1d4ed8' }}>{totCli.toLocaleString('pt-BR')}</span>
+                        </div>
+                      </div>
+                      <div className={styles.statCard}>
+                        <div className={styles.statBody}>
+                          <span className={styles.statLabel}>Virgem</span>
+                          <span className={styles.statVal}>{(totMerc - totCont).toLocaleString('pt-BR')}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={styles.tableScroll}>
+                      <table className={styles.table}>
+                        <thead>
+                          <tr>
+                            <th>Mesorregião</th>
+                            <th>UF</th>
+                            <th style={{ cursor: 'pointer' }} onClick={() => sortCol('total')}>Prospects{arrow('total')}</th>
+                            <th style={{ cursor: 'pointer' }} onClick={() => sortCol('clientes')}>Clientes{arrow('clientes')}</th>
+                            <th style={{ cursor: 'pointer' }} onClick={() => sortCol('score_medio')}>Score{arrow('score_medio')}</th>
+                            <th style={{ cursor: 'pointer' }} onClick={() => sortCol('cobertura_pct')}>Cobertura{arrow('cobertura_pct')}</th>
+                            <th>Interessados</th>
+                            <th style={{ cursor: 'pointer' }} onClick={() => sortCol('virgem')}>Virgem{arrow('virgem')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sorted.map((d, i) => {
+                            const virgem = d.total - d.contatados
+                            const barColor = d.cobertura_pct >= 50 ? '#16a34a' : d.cobertura_pct >= 20 ? '#d97706' : '#3b82f6'
+                            return (
+                              <tr key={i}>
+                                <td style={{ fontWeight: 600 }}>{d.mesorregiao}</td>
+                                <td>{d.uf}</td>
+                                <td>{d.total.toLocaleString('pt-BR')}</td>
+                                <td>
+                                  {d.clientes > 0 && (
+                                    <span style={{ background: '#dcfce7', color: '#15803d', padding: '1px 7px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 600 }}>
+                                      {d.clientes}
+                                    </span>
+                                  )}
+                                </td>
+                                <td>{d.score_medio?.toFixed(1) ?? '—'}</td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <div style={{ flex: 1, height: 5, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden', minWidth: 50 }}>
+                                      <div style={{ width: `${Math.min(d.cobertura_pct, 100)}%`, height: '100%', background: barColor, borderRadius: 3 }} />
+                                    </div>
+                                    <span style={{ fontSize: '0.72rem', color: barColor, fontWeight: 600, minWidth: 32 }}>{d.cobertura_pct.toFixed(0)}%</span>
+                                  </div>
+                                </td>
+                                <td>
+                                  {d.interessados > 0 && (
+                                    <span style={{ background: '#fef9c3', color: '#92400e', padding: '1px 7px', borderRadius: 20, fontSize: '0.72rem', fontWeight: 600 }}>
+                                      {d.interessados}
+                                    </span>
+                                  )}
+                                </td>
+                                <td style={{ color: '#64748b' }}>{virgem.toLocaleString('pt-BR')}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+
+          ) : vistaAtiva === 'funil' ? (
+            <div style={{ padding: 16 }}>
+              {funilLoading ? (
+                <div className={styles.loading}>Calculando funil...</div>
+              ) : !funilData ? (
+                <div className={styles.vazio}>Nenhum dado de funil. Aplique filtros e busque.</div>
+              ) : (() => {
+                const f = funilData
+                const stages = [
+                  { label: '🌐 Mercado', value: f.mercado, color: '#3b82f6' },
+                  { label: '📞 Contatados', value: f.contatados, color: '#8b5cf6' },
+                  { label: '🟢 Interessados', value: f.interessados, color: '#16a34a' },
+                  { label: '📄 Orçamentos', value: f.orcamentos, color: '#d97706' },
+                  { label: '🏆 Vendas', value: f.vendas, color: '#dc2626' },
+                ]
+                const maxVal = Math.max(...stages.map(s => s.value), 1)
+                const taxa = (val: number, base: number) => base > 0 ? ((val / base) * 100).toFixed(1) + '%' : '—'
+                const convGeral = f.mercado > 0 ? (f.vendas / f.mercado) * 100 : 0
+
+                return (
+                  <>
+                    <div className={styles.stats} style={{ marginBottom: 14 }}>
+                      <div className={styles.statCard}>
+                        <div className={styles.statBody}>
+                          <span className={styles.statLabel}>Receita fechada</span>
+                          <span className={styles.statVal} style={{ color: '#7c3aed' }}>
+                            {f.receita > 0 ? `R$ ${f.receita.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className={styles.statCard}>
+                        <div className={styles.statBody}>
+                          <span className={styles.statLabel}>Ticket médio</span>
+                          <span className={styles.statVal}>
+                            {f.ticket_medio > 0 ? `R$ ${f.ticket_medio.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}` : '—'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className={styles.statCard}>
+                        <div className={styles.statBody}>
+                          <span className={styles.statLabel}>Conversão geral</span>
+                          <span className={styles.statVal} style={{ color: '#16a34a' }}>{convGeral.toFixed(2)}%</span>
+                          <span className={styles.statSub}>mercado → venda</span>
+                        </div>
+                      </div>
+                      <div className={styles.statCard}>
+                        <div className={styles.statBody}>
+                          <span className={styles.statLabel}>Interessado → Venda</span>
+                          <span className={styles.statVal} style={{ color: '#d97706' }}>{taxa(f.vendas, f.interessados)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className={styles.funilWrap}>
+                      {stages.map((s, i) => (
+                        <div key={s.label}>
+                          <div className={styles.funilStage}>
+                            <span className={styles.funilLabel}>{s.label}</span>
+                            <span className={styles.funilCount}>{s.value.toLocaleString('pt-BR')}</span>
+                            <div className={styles.funilBar}>
+                              <div
+                                className={styles.funilBarFill}
+                                style={{ width: `${(s.value / maxVal) * 100}%`, background: s.color }}
+                              />
+                            </div>
+                          </div>
+                          {i < stages.length - 1 && (
+                            <div className={styles.funilArrow}>
+                              ↓ {taxa(stages[i + 1].value, s.value)}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+
           ) : loading ? (
             <div className={styles.loading}>Buscando prospects...</div>
           ) : erroQuery ? (
@@ -1229,10 +1595,15 @@ setClientesCidade(clientesPorCidade)
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      <th>Empresa</th>
+                      <th style={{ cursor: 'pointer' }} onClick={() => { setOrdenar('nome'); buscar(0) }}>
+                        Empresa {ordenar === 'nome' ? '↑' : ''}
+                      </th>
                       <th>Produto</th>
                       <th>Segmento</th>
                       <th>Cidade/UF</th>
+                      <th style={{ cursor: 'pointer', textAlign: 'center' }} onClick={() => { setOrdenar('score'); buscar(0) }}>
+                        Score {ordenar === 'score' ? '↓' : ''}
+                      </th>
                       <th>Contato</th>
                       <th>Status</th>
                       <th>Ações</th>
@@ -1259,16 +1630,6 @@ setClientesCidade(clientesPorCidade)
                                   cliente
                                 </span>
                               )}
-                              {p.score != null && (
-                                <span title={`Score: ${p.score}/10`} style={{
-                                  fontSize: '0.7rem', fontWeight: 700, padding: '1px 6px',
-                                  borderRadius: 20, flexShrink: 0,
-                                  background: p.score >= 9 ? '#dcfce7' : p.score >= 6 ? '#fef9c3' : '#f1f5f9',
-                                  color: p.score >= 9 ? '#15803d' : p.score >= 6 ? '#92400e' : '#64748b',
-                                }}>
-                                  {p.score}/10
-                                </span>
-                              )}
                             </div>
                             {p.nome_fantasia && p.nome_fantasia !== p.razao_social && (
                               <div className={styles.fantasia}>{p.nome_fantasia}</div>
@@ -1286,6 +1647,18 @@ setClientesCidade(clientesPorCidade)
                           <td>
                             {p.cidade && <div>{p.cidade}</div>}
                             {p.uf && <div className={styles.fantasia}>{p.uf}{p.distancia_km != null ? ` · ${p.distancia_km} km` : ''}</div>}
+                          </td>
+                          <td style={{ textAlign: 'center' }}>
+                            {p.score != null ? (
+                              <span style={{
+                                fontSize: '0.75rem', fontWeight: 700, padding: '2px 10px',
+                                borderRadius: 20, display: 'inline-block',
+                                background: p.score >= 8 ? '#dcfce7' : p.score >= 5 ? '#fef9c3' : '#f1f5f9',
+                                color: p.score >= 8 ? '#15803d' : p.score >= 5 ? '#92400e' : '#64748b',
+                              }}>
+                                {p.score}
+                              </span>
+                            ) : <span style={{ color: '#cbd5e1', fontSize: '0.75rem' }}>—</span>}
                           </td>
                           <td>
                             {p.telefone1 && <div>{p.telefone1.replace(/^(\d{2})(\d{4,5})(\d{4})$/, '($1) $2-$3')}</div>}

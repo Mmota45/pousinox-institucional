@@ -31,8 +31,6 @@ import AdminConteudo from './pages/AdminConteudo'
 import AdminAnalytics from './pages/AdminAnalytics'
 import AdminProspeccao from './pages/AdminProspeccao'
 import AdminEstudoMercado from './pages/AdminEstudoMercado'
-import AdminCobertura from './pages/AdminCobertura'
-import AdminFunil from './pages/AdminFunil'
 import AdminLeads from './pages/AdminLeads'
 import AdminClientes from './pages/AdminClientes'
 import AdminProdutos from './pages/AdminProdutos'
@@ -125,6 +123,7 @@ function App() {
           <Route path="/fixador-porcelanato/orcamento" element={<FixadorOrcamento />} />
           <Route path="/pronta-entrega" element={<Outlet />} />
           <Route path="/outlet" element={<Navigate to="/pronta-entrega" replace />} />
+          <Route path="/produto/:id" element={<Navigate to="/pronta-entrega" replace />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="outlet" element={<AdminOutlet />} />
@@ -139,8 +138,6 @@ function App() {
             <Route path="conteudo" element={<AdminConteudo />} />
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="prospeccao" element={<AdminProspeccao />} />
-            <Route path="cobertura" element={<AdminCobertura />} />
-            <Route path="funil" element={<AdminFunil />} />
             <Route path="estudo-mercado" element={<AdminEstudoMercado />} />
             <Route path="leads" element={<AdminLeads />} />
             <Route path="clientes" element={<AdminClientes />} />

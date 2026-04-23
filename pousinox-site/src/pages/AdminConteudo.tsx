@@ -217,6 +217,9 @@ export default function AdminConteudo() {
   const [kwSelecionadas, setKwSelecionadas] = useState<string[]>([])
   const [gerandoRascunho, setGerandoRascunho] = useState(false)
   const [erroRascunho, setErroRascunho] = useState('')
+  const [pautasSeo, setPautasSeo] = useState<{ termo: string; posicao: number; impressoes: number; cliques: number; volumeMk: number | null; acao: string }[]>([])
+  const [carregandoPautas, setCarregandoPautas] = useState(false)
+  const [pautasAberto, setPautasAberto] = useState(false)
   const [pickerAberto, setPickerAberto] = useState(false)
   const [pickerTarget, setPickerTarget] = useState<'blog' | 'redes'>('blog')
   const [imagemRedes, setImagemRedes] = useState('')
@@ -305,6 +308,56 @@ export default function AdminConteudo() {
         ? prev.filter(k => k !== termo)
         : prev.length < 4 ? [...prev, termo] : prev
     )
+  }
+
+  async function sugerirPautas() {
+    setCarregandoPautas(true)
+    setPautasAberto(true)
+    try {
+      const d30 = new Date(); d30.setDate(d30.getDate() - 30)
+      const start = d30.toISOString().slice(0, 10)
+      const end = new Date().toISOString().slice(0, 10)
+      const res = await fetch(`https://vcektwtpofypsgdgdjlx.supabase.co/functions/v1/ga4-metrics?gsc=1&startDate=${start}&endDate=${end}`)
+      const gsc = await res.json()
+      if (gsc.error) throw new Error(gsc.error)
+
+      // Buscar market_keywords para cruzar volume
+      const { data: mkData } = await supabaseAdmin
+        .from('market_keywords')
+        .select('termo, volume_mensal')
+        .eq('ativo', true)
+
+      const mkMap = new Map<string, number>()
+      ;(mkData ?? []).forEach((k: { termo: string; volume_mensal: number }) => mkMap.set(k.termo.toLowerCase(), k.volume_mensal))
+
+      // Combinar: oportunidades (pos 5-20) + queries com impressões altas mas poucos cliques
+      const allQueries: typeof gsc.queries = [...(gsc.queries ?? []), ...(gsc.oportunidades ?? [])]
+      const seen = new Set<string>()
+      const pautas = allQueries
+        .filter((q: { query: string }) => { if (seen.has(q.query)) return false; seen.add(q.query); return true })
+        .map((q: { query: string; posicao: number; impressoes: number; cliques: number; ctr: number }) => ({
+          termo: q.query,
+          posicao: q.posicao,
+          impressoes: q.impressoes,
+          cliques: q.cliques,
+          volumeMk: mkMap.get(q.query.toLowerCase()) ?? null,
+          acao: q.posicao <= 3 && q.ctr < 0.05
+            ? 'Melhorar title/meta — boa posição mas CTR baixo'
+            : q.posicao <= 10
+            ? 'Expandir conteúdo da página para consolidar posição'
+            : q.impressoes > 5
+            ? 'Criar artigo/landing page dedicada ao tema'
+            : 'Incluir como keyword secundária em conteúdo existente',
+        }))
+        .sort((a: { impressoes: number }, b: { impressoes: number }) => b.impressoes - a.impressoes)
+        .slice(0, 15)
+
+      setPautasSeo(pautas)
+    } catch (e) {
+      console.error(e)
+      setPautasSeo([])
+    }
+    setCarregandoPautas(false)
   }
 
   async function gerarRascunho() {
@@ -814,6 +867,57 @@ export default function AdminConteudo() {
               {templateAplicado && <span style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 600 }}>✓ Estrutura aplicada</span>}
               {kwSelecionadas.length > 0 && <span style={{ fontSize: '0.78rem', color: '#475569' }}>{kwSelecionadas.length} keyword{kwSelecionadas.length > 1 ? 's' : ''} selecionada{kwSelecionadas.length > 1 ? 's' : ''}</span>}
               {erroRascunho && <span style={{ fontSize: '0.78rem', color: '#dc2626' }}>{erroRascunho}</span>}
+            </div>
+
+            {/* Sugerir pautas SEO */}
+            <div style={{ marginTop: '0.75rem', borderTop: '1px dashed #e2e8f0', paddingTop: '0.75rem' }}>
+              <button type="button" onClick={sugerirPautas} disabled={carregandoPautas}
+                style={{ fontSize: '0.78rem', fontWeight: 600, color: '#1e3f6e', background: 'none', border: '1px solid #bfdbfe', borderRadius: '20px', padding: '4px 14px', cursor: carregandoPautas ? 'wait' : 'pointer' }}>
+                {carregandoPautas ? 'Analisando SEO…' : '🔍 Sugerir pautas com dados do Google'}
+              </button>
+              {pautasAberto && pautasSeo.length > 0 && (
+                <div style={{ marginTop: '0.75rem', fontSize: '0.78rem' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <th style={{ textAlign: 'left', padding: '4px 6px', fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Termo</th>
+                        <th style={{ textAlign: 'right', padding: '4px 6px', fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>Impr.</th>
+                        <th style={{ textAlign: 'right', padding: '4px 6px', fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>Pos.</th>
+                        <th style={{ textAlign: 'left', padding: '4px 6px', fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>Ação</th>
+                        <th style={{ padding: '4px 6px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pautasSeo.map((p, i) => (
+                        <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '5px 6px', fontWeight: 500, color: '#334155' }}>
+                            {p.termo}
+                            {p.volumeMk != null && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: '#94a3b8' }}>vol. {p.volumeMk.toLocaleString('pt-BR')}</span>}
+                          </td>
+                          <td style={{ padding: '5px 6px', textAlign: 'right', color: '#64748b' }}>{p.impressoes}</td>
+                          <td style={{ padding: '5px 6px', textAlign: 'right' }}>
+                            <span style={{ padding: '1px 8px', borderRadius: 10, fontSize: '0.72rem', fontWeight: 600,
+                              background: p.posicao <= 3 ? '#dcfce7' : p.posicao <= 10 ? '#fef3c7' : '#fee2e2',
+                              color: p.posicao <= 3 ? '#166534' : p.posicao <= 10 ? '#92400e' : '#dc2626' }}>
+                              {p.posicao.toFixed(1)}
+                            </span>
+                          </td>
+                          <td style={{ padding: '5px 6px', fontSize: '0.72rem', color: '#64748b' }}>{p.acao}</td>
+                          <td style={{ padding: '5px 6px' }}>
+                            <button type="button" onClick={() => { setTema(p.termo); toggleKw(p.termo); setPautasAberto(false) }}
+                              style={{ fontSize: '0.7rem', color: '#1e3f6e', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 4, padding: '2px 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                              Usar tema
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {pautasAberto && !carregandoPautas && pautasSeo.length === 0 && (
+                <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#94a3b8' }}>Nenhuma oportunidade encontrada no período.</p>
+              )}
             </div>
           </div>
 

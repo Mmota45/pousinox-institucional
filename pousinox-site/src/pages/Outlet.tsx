@@ -57,6 +57,7 @@ export default function Outlet() {
   const [resultado, setResultado] = useState<'sucesso' | 'duplicado' | 'erro' | null>(null)
   const [copiado, setCopiado] = useState(false)
   const [categoriaFiltro, setCategoriaFiltro] = useState('Todos')
+  const [busca, setBusca] = useState('')
 
   async function compartilhar(produto: ProdutoPublico) {
     const url = `https://pousinox.com.br/produto/${produto.id}`
@@ -97,9 +98,19 @@ export default function Outlet() {
     catalogo.filter(p => p.categoria).map(p => p.categoria!)
   ))]
 
-  const catalogoFiltrado = catalogo.filter(p =>
-    categoriaFiltro === 'Todos' || p.categoria === categoriaFiltro
-  )
+  const catalogoFiltrado = catalogo.filter(p => {
+    if (categoriaFiltro !== 'Todos' && p.categoria !== categoriaFiltro) return false
+    if (busca.trim()) {
+      const q = busca.toLowerCase()
+      if (
+        !p.titulo.toLowerCase().includes(q) &&
+        !(p.categoria ?? '').toLowerCase().includes(q) &&
+        !(p.marca ?? '').toLowerCase().includes(q) &&
+        !(p.descricao ?? '').toLowerCase().includes(q)
+      ) return false
+    }
+    return true
+  })
 
   // Destaques para o hero — todos os produtos disponíveis marcados como destaque (inclui representação)
   const heroDestaques = [...produtos.filter(p => p.destaque && p.disponivel)].sort(byPrecoDesc)
@@ -188,11 +199,22 @@ export default function Outlet() {
           <div className={`container ${styles.heroFaixaInner}`}>
             <div className={styles.heroLeft}>
               <span className={styles.heroEyebrow}>Pouso Alegre, MG</span>
-              <h1 className={styles.heroTitle}>Equipamentos Inox — Pronta Entrega</h1>
-              <a href="#catalogo" className={styles.heroCta}>
-                Ver todos os produtos
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-              </a>
+              <h1 className={styles.heroTitle}>Produtos inox à pronta entrega para operação profissional</h1>
+              <p className={styles.heroSubtitle}>
+                Equipamentos e acessórios com disponibilidade imediata, aplicação profissional e opção de personalização sob demanda. Solicite um orçamento rápido com a equipe da Pousinox.
+              </p>
+              <div className={styles.heroCtas}>
+                <a href="#catalogo" className={styles.heroCta} onClick={e => { e.preventDefault(); document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' }) }}>
+                  Solicitar orçamento
+                </a>
+                <a href="https://wa.me/553534238994?text=Olá%2C%20gostaria%20de%20solicitar%20um%20orçamento%20de%20produtos%20pronta%20entrega." target="_blank" rel="noopener noreferrer" className={styles.heroCtaWa}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                  Falar no WhatsApp
+                </a>
+                <a href="#catalogo" className={styles.heroCtaScroll} onClick={e => { e.preventDefault(); document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' }) }}>
+                  Ver produtos disponíveis ↓
+                </a>
+              </div>
             </div>
             {heroDestaques[0] && !loading && (
               <div className={styles.heroRightWrapper}>
@@ -219,6 +241,28 @@ export default function Outlet() {
           </div>
         </div>
 
+        {/* Trust strip — rodapé da hero */}
+        <div className={styles.trustStrip}>
+          <div className={styles.trustStripInner}>
+            <span className={styles.trustChip}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              Aço inox profissional
+            </span>
+            <span className={styles.trustChip}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
+              Pronta entrega
+            </span>
+            <span className={styles.trustChip}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+              Atendimento técnico
+            </span>
+            <span className={styles.trustChip}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+              Padrão e sob medida
+            </span>
+          </div>
+        </div>
+
       </section>
 
       {/* Ticker de clientes */}
@@ -241,7 +285,31 @@ export default function Outlet() {
       {/* Catálogo unificado */}
       <section id="catalogo" className={`section ${styles.catalogo}`}>
         <div className="container">
-          <h2 className={styles.catalogoH2}>Catálogo</h2>
+          <div className={styles.catalogoToolbar}>
+            <div className={styles.catalogoTitleRow}>
+              <h2 className={styles.catalogoH2}>Produtos disponíveis</h2>
+              {!loading && (
+                <span className={styles.catalogoCount}>{catalogoFiltrado.length} produto{catalogoFiltrado.length !== 1 ? 's' : ''}</span>
+              )}
+            </div>
+
+            {/* Busca por texto */}
+            <div className={styles.catalogoBusca}>
+              <span className={styles.catalogoBuscaIcon}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </span>
+              <input
+                className={styles.catalogoBuscaInput}
+                type="text"
+                placeholder="Buscar por produto, aplicação ou segmento…"
+                value={busca}
+                onChange={e => setBusca(e.target.value)}
+              />
+              {busca && (
+                <button className={styles.catalogoBuscaClear} onClick={() => setBusca('')} type="button">×</button>
+              )}
+            </div>
+          </div>
 
           {/* Pills de categoria */}
           {!loading && categorias.length > 1 && (
@@ -253,7 +321,7 @@ export default function Outlet() {
                   onClick={() => setCategoriaFiltro(cat)}
                   type="button"
                 >
-                  {cat === 'Todos' ? 'Todos' : cat.replace(/^Equipamentos\s+(de\s+)?/i, '')}
+                  {cat === 'Todos' ? 'Todos os produtos' : cat.replace(/^Equipamentos\s+(de\s+)?/i, '')}
                 </button>
               ))}
             </div>
@@ -276,6 +344,68 @@ export default function Outlet() {
               ))}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* Faixa sob medida */}
+      <section className={styles.sobMedidaFaixa}>
+        <div className="container">
+          <div className={styles.sobMedidaContent}>
+            <div className={styles.sobMedidaText}>
+              <span className={styles.sobMedidaEyebrow}>Projetos sob medida</span>
+              <h3 className={styles.sobMedidaTitulo}>Não encontrou exatamente o que precisa?</h3>
+              <p className={styles.sobMedidaDesc}>Nós também atendemos projetos sob medida. Dimensões, acabamento e configuração adaptados à sua operação.</p>
+            </div>
+            <a
+              href="https://wa.me/553534238994?text=Olá%2C%20gostaria%20de%20solicitar%20um%20projeto%20sob%20medida%20em%20aço%20inox."
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.sobMedidaBtn}
+            >
+              Falar com a equipe →
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Bloco de atendimento consultivo */}
+      <section className={styles.atendimento}>
+        <div className="container">
+          <div className={styles.atendimentoInner}>
+            <div className={styles.atendimentoText}>
+              <span className={styles.atendimentoEyebrow}>Atendimento Pousinox®</span>
+              <h3 className={styles.atendimentoTitulo}>Precisa de orientação técnica ou comercial?</h3>
+              <p className={styles.atendimentoDesc}>Nossa equipe atende projetos de todos os portes — desde peças de estoque até soluções fabricadas sob medida para indústrias, hospitais e redes de alimentação.</p>
+              <div className={styles.atendimentoPilares}>
+                <div className={styles.pilar}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <span>Equipe técnica especializada</span>
+                </div>
+                <div className={styles.pilar}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span>Resposta rápida via WhatsApp</span>
+                </div>
+                <div className={styles.pilar}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+                  <span>Projetos padrão e sob medida</span>
+                </div>
+              </div>
+            </div>
+            <div className={styles.atendimentoCtas}>
+              <a
+                href="https://wa.me/553534238994?text=Olá%2C%20gostaria%20de%20solicitar%20um%20orçamento."
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.atendimentoBtnWa}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                Falar no WhatsApp
+              </a>
+              <a href="/contato" className={styles.atendimentoBtnContato}>
+                Formulário de contato →
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -484,42 +614,65 @@ function ProdutoCard({ produto: p, onInteresse, onCompartilhar }: {
 }) {
   const foto = p.fotos?.[0] ?? PLACEHOLDER
   const isVendido = !p.disponivel
-  const badgeEstoque = isVendido
-    ? { label: 'Sob encomenda', className: styles.badgeSobEncomenda }
+  const specs = normalizeSpecs(p.specs).slice(0, 2)
+
+  const stockBadge = isVendido
+    ? { label: 'Sob encomenda', cls: styles.badgeSobEncomenda }
     : p.quantidade === 1
-      ? { label: 'Última unidade', className: styles.badgeUltima }
-      : { label: 'Em estoque', className: styles.badgeEstoque }
+      ? { label: 'Última unidade', cls: styles.badgeUltima }
+      : { label: 'Pronta entrega', cls: styles.badgeEstoque }
+
+  const ctaLabel = isVendido && p.marca
+    ? 'Consultar disponibilidade'
+    : isVendido
+      ? 'Solicitar encomenda'
+      : p.exibir_preco && p.preco > 0
+        ? 'Tenho interesse'
+        : 'Solicitar orçamento'
 
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card} ${isVendido ? styles.cardVendido : ''}`}>
+
+      {/* Foto */}
       <div className={styles.cardFoto}>
         <img
           src={foto}
           alt={p.titulo}
           onError={e => { (e.target as HTMLImageElement).src = PLACEHOLDER }}
         />
-        <span className={`${styles.badgeEstoqueLabel} ${badgeEstoque.className}`}>
-          {badgeEstoque.label}
+        {/* Badge disponibilidade — topo esquerdo */}
+        <span className={`${styles.badgeEstoqueLabel} ${stockBadge.cls}`}>
+          {stockBadge.label}
         </span>
-      </div>
-      <div className={styles.cardBadgesBar}>
-        {(p.marca || !p.seminovo) && (
-          <span className={styles.badgeMarca} style={getBrandColors(p.marca)}>{p.marca ?? 'Pousinox®'}</span>
+        {/* Badge marca — topo direito (só se tiver marca cadastrada) */}
+        {p.marca && (
+          <span className={styles.cardFotoMarca} style={getBrandColors(p.marca)}>
+            {p.marca}
+          </span>
         )}
-        {p.seminovo && !isVendido && <span className={styles.badgeSeminovo}>Seminovo</span>}
       </div>
+
+      {/* Corpo */}
       <div className={styles.cardBody}>
-        {p.categoria && (
-          <div>
-            <span className={styles.cardCategoria}>{p.categoria.replace(/^Equipamentos\s+(de\s+)?/i, '')}</span>
-          </div>
-        )}
+        {/* Categoria + Seminovo */}
+        <div className={styles.cardMetaRow}>
+          {p.categoria && (
+            <span className={styles.cardCategoria}>
+              {p.categoria.replace(/^Equipamentos\s+(de\s+)?/i, '')}
+            </span>
+          )}
+          {p.seminovo && <span className={styles.badgeSeminovo}>Seminovo</span>}
+        </div>
+
+        {/* Nome */}
         <h3 className={styles.cardTitulo}>{p.titulo}</h3>
-        {p.total_interesses > 0 && !isVendido && (
-          <p className={styles.cardInteresse}>
-            🔥 {p.total_interesses} {p.total_interesses === 1 ? 'pessoa interessada' : 'pessoas interessadas'}
-          </p>
+
+        {/* Benefício / descrição curta */}
+        {p.descricao && (
+          <p className={styles.cardDesc}>{p.descricao}</p>
         )}
+
+        {/* Preço */}
         {p.exibir_preco && p.preco > 0 && (
           <div className={styles.cardPreco}>
             {p.preco_original && p.preco_original > p.preco && (
@@ -532,17 +685,38 @@ function ProdutoCard({ produto: p, onInteresse, onCompartilhar }: {
             </span>
           </div>
         )}
-        <div className={styles.cardFooter}>
-          <button
-            className={`${styles.cardBtn} ${p.exibir_preco && !isVendido ? styles.cardBtnInteresse : ''}`}
-            onClick={onInteresse}
-          >
-            {isVendido && p.marca ? 'Consultar →' : isVendido ? 'Solicitar encomenda →' : p.exibir_preco ? 'Tenho interesse →' : 'Ver preço →'}
-          </button>
-          <button className={styles.cardShareBtn} onClick={onCompartilhar} type="button" title="Compartilhar">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-          </button>
-        </div>
+
+        {/* Specs rápidos */}
+        {specs.length > 0 && (
+          <div className={styles.cardSpecs}>
+            {specs.map(s => (
+              <span key={s.k} className={styles.cardSpec}>
+                <span className={styles.cardSpecKey}>{s.k}</span>
+                <span className={styles.cardSpecVal}>{s.v}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Social proof */}
+        {p.total_interesses > 0 && !isVendido && (
+          <p className={styles.cardInteresse}>
+            🔥 {p.total_interesses} {p.total_interesses === 1 ? 'pessoa interessada' : 'pessoas interessadas'}
+          </p>
+        )}
+      </div>
+
+      {/* Ações */}
+      <div className={styles.cardFooter}>
+        <button className={styles.cardBtnPrimary} onClick={onInteresse}>
+          {ctaLabel}
+        </button>
+        <button className={styles.cardBtnSecondary} onClick={onInteresse}>
+          Ver detalhes
+        </button>
+        <button className={styles.cardShareBtn} onClick={onCompartilhar} type="button" title="Compartilhar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
       </div>
     </div>
   )

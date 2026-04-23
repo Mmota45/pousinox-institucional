@@ -146,6 +146,8 @@ export default function AdminEstudoMercado() {
   const [ufImport, setUfImport] = useState('')
   const [sortExt, setSortExt] = useState<{ col: string; asc: boolean }>({ col: 'volume_mensal', asc: false })
   const [sortScore, setSortScore] = useState<{ col: string; asc: boolean }>({ col: 'score', asc: false })
+  const [importandoGsc, setImportandoGsc] = useState(false)
+  const [gscResult, setGscResult] = useState('')
 
   // UFs distintas nos dados
   const ufsDisponiveis = useMemo(() => {
@@ -408,6 +410,65 @@ export default function AdminEstudoMercado() {
       setEditId(null)
     }
     setShowForm(true)
+  }
+
+  async function importarGsc() {
+    setImportandoGsc(true)
+    setGscResult('')
+    try {
+      const d90 = new Date(); d90.setDate(d90.getDate() - 90)
+      const start = d90.toISOString().slice(0, 10)
+      const end = new Date().toISOString().slice(0, 10)
+      const res = await fetch(`https://vcektwtpofypsgdgdjlx.supabase.co/functions/v1/ga4-metrics?gsc=1&startDate=${start}&endDate=${end}`)
+      const gsc = await res.json()
+      if (gsc.error) throw new Error(gsc.error)
+
+      const queries: { query: string; impressoes: number; cliques: number; posicao: number; ctr: number }[] = gsc.queries ?? []
+      if (queries.length === 0) { setGscResult('Nenhuma query encontrada no período.'); setImportandoGsc(false); return }
+
+      // Buscar termos existentes para evitar duplicatas
+      const { data: existentes } = await supabaseAdmin
+        .from('market_keywords')
+        .select('termo')
+        .eq('camada', 'interna')
+        .eq('fonte', 'gsc')
+
+      const existSet = new Set((existentes ?? []).map((e: { termo: string }) => e.termo.toLowerCase()))
+
+      const novos = queries
+        .filter(q => !existSet.has(q.query.toLowerCase()))
+        .map(q => ({
+          termo: q.query,
+          volume_mensal: q.impressoes,
+          intencao: q.posicao <= 10 ? 'comercial' : 'informacional',
+          fonte: 'gsc',
+          camada: 'interna' as const,
+          trend_score: Math.round((1 / Math.max(q.posicao, 1)) * 100),
+          ativo: true,
+        }))
+
+      // Atualizar existentes com volume atualizado
+      const atualizaveis = queries.filter(q => existSet.has(q.query.toLowerCase()))
+      for (const q of atualizaveis) {
+        await supabaseAdmin
+          .from('market_keywords')
+          .update({ volume_mensal: q.impressoes, trend_score: Math.round((1 / Math.max(q.posicao, 1)) * 100) })
+          .eq('termo', q.query)
+          .eq('camada', 'interna')
+          .eq('fonte', 'gsc')
+      }
+
+      if (novos.length > 0) {
+        const { error } = await supabaseAdmin.from('market_keywords').insert(novos)
+        if (error) throw error
+      }
+
+      setGscResult(`${novos.length} novas keywords importadas, ${atualizaveis.length} atualizadas.`)
+      carregarKeywords()
+    } catch (e) {
+      setGscResult(`Erro: ${e}`)
+    }
+    setImportandoGsc(false)
   }
 
   async function salvarKeyword() {
@@ -799,6 +860,11 @@ export default function AdminEstudoMercado() {
           <div className={s.toolbar}>
             <button className={s.btnPrimario} onClick={() => abrirForm()}>+ Adicionar keyword</button>
             <button className={s.btnSecundario} onClick={() => fileRef.current?.click()}>📥 Importar CSV</button>
+            <button className={s.btnSecundario} onClick={importarGsc} disabled={importandoGsc}
+              style={importandoGsc ? { opacity: 0.6 } : undefined}>
+              {importandoGsc ? '⏳ Importando…' : '🔍 Importar do Google Search Console'}
+            </button>
+            {gscResult && <span style={{ fontSize: '0.78rem', color: gscResult.startsWith('Erro') ? '#dc2626' : '#166534', fontWeight: 500 }}>{gscResult}</span>}
             <input ref={fileRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={importarCSV} />
             <input
               className={s.searchInput}
