@@ -29,7 +29,7 @@ interface OrcData {
     descricao: string; qtd: number; unidade: string; valor_unit: number
     imagem_url: string | null; preco_original: number | null; obs_tecnica: string | null
   }[]
-  desconto: number; tipo_desconto: string; condicoes: string[]; prazo_entrega: string; dados_pagamento: string
+  desconto: number; tipo_desconto: string; condicoes: string[]; prazo_entrega: string; dados_pagamento: string; dados_bancarios_texto: string[]
   observacoes: string; watermark_ativo: boolean; watermark_texto: string; watermark_logo: boolean
   frete: { tipo: string; modalidade: string; valor: number; prazo: string; obs: string }
   instalacao: { inclui: boolean; modalidade: string; texto: string; valor: number }
@@ -309,7 +309,7 @@ export default function PrintOrcamento() {
       })),
       desconto: Number(o.desconto ?? 0), tipo_desconto: o.tipo_desconto ?? '%',
       condicoes: (() => { const r = o.condicao_pagamento ?? ''; try { return r ? JSON.parse(r) : [] } catch { return r ? [r] : [] } })(),
-      prazo_entrega: o.prazo_entrega ?? '', dados_pagamento: o.dados_pagamento ?? '',
+      prazo_entrega: o.prazo_entrega ?? '', dados_pagamento: o.dados_pagamento ?? '', dados_bancarios_texto: [] as string[],
       observacoes: o.observacoes ?? '',
       watermark_ativo: o.watermark_ativo ?? false, watermark_texto: o.watermark_texto ?? 'CONFIDENCIAL', watermark_logo: o.watermark_logo ?? false,
       frete: { tipo: o.frete_tipo ?? '', modalidade: o.frete_modalidade ?? 'cobrar', valor: Number(o.frete_valor ?? 0), prazo: o.frete_prazo ?? '', obs: o.frete_obs ?? '' },
@@ -317,6 +317,27 @@ export default function PrintOrcamento() {
       exibir: { cnpj: false, inscricaoEstadual: false, telefone: true, whatsapp: false, email: false, emailNf: false, contatosAdicionais: false, cargo: false, endereco: false, enderecoEntrega: false, entResponsavel: false, obsTecnicaItens: false, instMontagem: false, anexos: false, detalhesLogistica: false, ...(o.exibir_config ?? {}) },
       anexos: (anexosD ?? []) as { nome: string; url: string }[],
     })
+
+    // Carregar dados bancários selecionados
+    const ids: number[] = Array.isArray(o.dados_bancarios_ids) ? o.dados_bancarios_ids : []
+    if (ids.length > 0) {
+      const { data: bancos } = await supabaseAdmin.from('dados_bancarios').select('*').in('id', ids)
+      if (bancos && bancos.length > 0) {
+        const textos = (bancos as any[]).map(d => {
+          const parts: string[] = []
+          if (d.pix_chave) parts.push(`PIX: ${d.pix_chave}${d.pix_tipo ? ` (${d.pix_tipo})` : ''}`)
+          if (d.banco) {
+            let line = `Banco: ${d.banco}`
+            if (d.agencia) line += ` · Ag: ${d.agencia}`
+            if (d.conta) line += ` · ${d.tipo_conta === 'poupanca' ? 'CP' : 'CC'}: ${d.conta}`
+            parts.push(line)
+          }
+          if (d.titular) parts.push(`Favorecido: ${d.titular}`)
+          return parts.join('\n')
+        })
+        setData(prev => prev ? { ...prev, dados_bancarios_texto: textos } : prev)
+      }
+    }
   }
 
   if (erro) return <div style={S.loading}>{erro}</div>
@@ -634,9 +655,17 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
               <strong>Pagamento:</strong> {d.condicoes.join(' · ')}
             </div>
           )}
+          {d.dados_bancarios_texto.length > 0 && (
+            <div style={{ ...S.condicaoItem, whiteSpace: 'pre-line' }}>
+              <strong>Dados para pagamento:</strong>
+              {d.dados_bancarios_texto.map((t, i) => (
+                <div key={i} style={{ marginTop: i === 0 ? 4 : 8, paddingLeft: 8, borderLeft: '2px solid #e2e8f0' }}>{t}</div>
+              ))}
+            </div>
+          )}
           {d.dados_pagamento && (
             <div style={{ ...S.condicaoItem, whiteSpace: 'pre-line' }}>
-              <strong>Dados para pagamento:</strong> {d.dados_pagamento}
+              {d.dados_bancarios_texto.length === 0 && <strong>Dados para pagamento:</strong>} {d.dados_pagamento}
             </div>
           )}
           {d.prazo_entrega && (
@@ -651,7 +680,6 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
           {temInst && d.instalacao.texto && (
             <div style={S.condicaoItem}><strong>Instalação:</strong> {d.instalacao.texto}</div>
           )}
-          <div style={S.condicaoItem}><strong>Validade:</strong> {d.validadeDias} dias — até {d.dataValidade}</div>
         </div>
       )}
 

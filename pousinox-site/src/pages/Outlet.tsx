@@ -1,8 +1,117 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import SEO from '../components/SEO/SEO'
 import { supabase } from '../lib/supabase'
 import type { ProdutoPublico } from '../lib/supabase'
 import styles from './Outlet.module.css'
+
+interface OpcaoFrete {
+  servico: string
+  codigo: string
+  preco: number
+  prazo: number
+  erro: string | null
+}
+
+interface FreteResult {
+  opcoes: OpcaoFrete[]
+  correios_elegivel: boolean
+}
+
+function FreteCalculator({ produto }: { produto: ProdutoPublico }) {
+  const [cep, setCep] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [resultado, setResultado] = useState<FreteResult | null>(null)
+  const [erro, setErro] = useState<string | null>(null)
+  const [cidadeFrete, setCidadeFrete] = useState('')
+
+  const temDados = produto.peso_kg && produto.peso_kg > 0
+
+  const calcular = useCallback(async (cepLimpo: string) => {
+    if (cepLimpo.length !== 8 || !temDados) return
+    setLoading(true)
+    setErro(null)
+    setResultado(null)
+
+    // Busca cidade
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const data = await res.json()
+      if (!data.erro) setCidadeFrete(`${data.localidade} — ${data.uf}`)
+    } catch { /* ignora */ }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('calcular-frete', {
+        body: {
+          cep_destino: cepLimpo,
+          peso_kg: produto.peso_kg,
+          comprimento_cm: produto.comprimento_cm || 20,
+          largura_cm: produto.largura_cm || 15,
+          altura_cm: produto.altura_cm || 10,
+        },
+      })
+      if (error) throw error
+      setResultado(data as FreteResult)
+    } catch (e) {
+      setErro('Não foi possível calcular o frete. Tente novamente.')
+      console.error(e)
+    }
+    setLoading(false)
+  }, [produto, temDados])
+
+  if (!temDados) return null
+
+  return (
+    <div className={styles.freteBox}>
+      <div className={styles.freteHeader}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <span>Calcular frete</span>
+      </div>
+      <div className={styles.freteInputRow}>
+        <input
+          type="text"
+          placeholder="Digite seu CEP"
+          value={cep}
+          maxLength={9}
+          onChange={e => {
+            const v = e.target.value.replace(/\D/g, '').slice(0, 8)
+            const mask = v.length > 5 ? `${v.slice(0, 5)}-${v.slice(5)}` : v
+            setCep(mask)
+            setCidadeFrete('')
+            setResultado(null)
+            setErro(null)
+            if (v.length === 8) calcular(v)
+          }}
+          className={styles.freteInput}
+        />
+        {loading && <span className={styles.freteSpinner} />}
+      </div>
+
+      {cidadeFrete && <span className={styles.freteCidade}>{cidadeFrete}</span>}
+
+      {erro && <span className={styles.freteErro}>{erro}</span>}
+
+      {resultado && resultado.opcoes.length > 0 && (
+        <div className={styles.freteOpcoes}>
+          {resultado.opcoes.map(op => (
+            <div key={op.codigo} className={styles.freteOpcao}>
+              <div className={styles.freteOpcaoInfo}>
+                <span className={styles.freteServico}>{op.servico}</span>
+                <span className={styles.fretePrazo}>{op.prazo} dia{op.prazo !== 1 ? 's' : ''} útei{op.prazo !== 1 ? 's' : ''}</span>
+              </div>
+              <span className={styles.fretePreco}>
+                R$ {op.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {resultado && resultado.opcoes.length === 0 && (
+        <span className={styles.freteErro}>Nenhuma opção de frete disponível para este CEP.</span>
+      )}
+    </div>
+  )
+}
 import clienteAlvorada from '../assets/cliente-alvorada.png'
 import clienteCimed from '../assets/cliente-cimed.svg'
 import clienteMonreale from '../assets/cliente-monreale.svg'
@@ -499,6 +608,8 @@ export default function Outlet() {
                     </span>
                   </div>
                 )}
+
+                <FreteCalculator produto={selecionado} />
 
                 {selecionado.total_interesses > 0 && (
                   <p className={styles.modalInteresse}>

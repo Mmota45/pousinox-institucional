@@ -1,208 +1,28 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import { supabase, supabaseAdmin } from '../lib/supabase'
 import styles from './AdminOrcamento.module.css'
 import { useAdmin } from '../contexts/AdminContext'
+import ClienteForm from '../components/ClienteForm/ClienteForm'
+import { maskCNPJ, maskCPF, maskPhone, maskCEP } from '../lib/masks'
+import FreteSection from '../components/FreteSection/FreteSection'
+import { useEtiqueta } from '../components/Orcamento/hooks/useEtiqueta'
+import { useLinks } from '../components/Orcamento/hooks/useLinks'
+import HistoricoSection from '../components/Orcamento/sections/HistoricoSection'
+import LinksSection from '../components/Orcamento/sections/LinksSection'
+import ConfigSection from '../components/Orcamento/sections/ConfigSection'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+import type {
+  EmpresaEmissora, Vendedor, OrcamentoResumo, Item, Instalacao, OrcLink,
+  ExibirProposta, DadoBancario, Anexo, HistoricoItem, ProdutoResult,
+  OutletResult, Status, Vista, ClienteInfo, FreteSummary,
+} from '../components/Orcamento/types'
 
-interface EmpresaEmissora {
-  id: number; nome_fantasia: string; razao_social: string | null
-  cnpj: string | null; cep: string | null; numero: string | null; endereco: string | null; telefone: string | null
-  telefone_is_whatsapp: boolean | null
-  email: string | null; site: string | null; logo_url: string | null; ativa: boolean
-}
-
-interface Vendedor {
-  id: number; nome: string; email: string | null; telefone: string | null
-  comissao_pct: number; ativo: boolean
-}
-
-interface OrcamentoResumo {
-  id: number; numero: string; status: Status
-  empresa_nome: string | null; cliente_empresa: string | null; cliente_nome: string | null
-  vendedor_nome: string | null; total: number; criado_em: string
-}
-
-interface Item {
-  produto_id: number | null; descricao: string; qtd: string; unidade: string; valorUnit: string; imagem_url?: string; preco_original?: string; obs_tecnica?: string
-}
-
-interface ClienteInfo {
-  nome: string; empresa: string; cnpj: string; telefone: string; email: string
-  tipo_pessoa: 'pf' | 'pj'
-  perfil_comprador: '' | 'revendedor' | 'aplicador' | 'dono_obra' | 'especificador'
-  whatsapp: string
-  cargo: string
-  cargo_outro: string
-  inscricao_estadual: string
-  // Endereço principal estruturado
-  cep: string; logradouro: string; numero: string; complemento: string; bairro: string; cidade: string; uf: string
-  // Endereço legado (somente leitura para registros antigos)
-  endereco: string
-  // Contatos adicionais
-  email_nf: string
-  contatos: { tipo: 'telefone' | 'whatsapp' | 'email'; valor: string }[]
-  // Endereço de entrega
-  ent_diferente: boolean
-  ent_responsavel: string; ent_telefone: string; ent_whatsapp: string
-  ent_cep: string; ent_logradouro: string; ent_numero: string; ent_complemento: string; ent_bairro: string; ent_cidade: string; ent_uf: string
-}
-
-interface Frete {
-  tipo: '' | 'CIF' | 'FOB' | 'retirada' | 'cliente' | 'a_combinar'
-  modalidade: 'cobrar' | 'bonus'
-  valor: string
-  prazo: string
-  obs: string
-}
-
-interface Instalacao {
-  inclui: boolean
-  modalidade: 'cobrar' | 'bonus'
-  texto: string
-  valor: string
-}
-
-interface OrcLink {
-  id: string; token: string; short_code: string | null; destinatario: string | null
-  criado_em: string; primeiro_acesso: string | null; ultimo_acesso: string | null
-  visualizacoes: number; downloads: number; ativo: boolean
-}
-
-interface ExibirProposta {
-  cnpj: boolean
-  inscricaoEstadual: boolean
-  telefone: boolean
-  whatsapp: boolean
-  email: boolean
-  emailNf: boolean
-  contatosAdicionais: boolean
-  cargo: boolean
-  endereco: boolean
-  enderecoEntrega: boolean
-  entResponsavel: boolean
-  obsTecnicaItens: boolean
-  instMontagem: boolean
-  anexos: boolean
-  detalhesLogistica: boolean
-}
-
-interface Anexo {
-  id?: number; nome: string; url: string; tamanho?: number | null; tipo?: string | null
-}
-
-interface HistoricoItem {
-  id: number; evento: string; descricao: string | null; criado_em: string; usuario: string | null
-}
-
-interface ProdutoResult {
-  id: number; nome_padronizado: string; unidade: string | null; familia: string | null
-}
-
-interface OutletResult {
-  id: number; titulo: string; preco: number; preco_original: number | null; quantidade: number; exibir_preco: boolean; fotos: string[] | null
-}
-
-interface ClienteResult {
-  cnpj: string; nome: string; telefone: string | null; email: string | null
-  fonte: 'cliente' | 'prospect'
-  logradouro?: string | null; numero?: string | null; bairro?: string | null
-  cidade?: string | null; uf?: string | null; cep?: string | null
-}
-
-type Status = 'rascunho' | 'enviado' | 'aprovado' | 'recusado' | 'cancelado'
-type Vista = 'lista' | 'editor' | 'empresas' | 'vendedores'
-
-// ── Constants ─────────────────────────────────────────────────────────────────
-
-const UNIDADES = ['UN', 'CX', 'KG', 'M', 'M²', 'M³', 'L', 'PC', 'JG', 'PAR', 'RL', 'SC', 'H', 'DZ', 'GL']
-
-const FRETE_TIPOS: Record<string, string> = {
-  '': 'Sem frete',
-  'CIF': 'CIF — Por conta do fornecedor',
-  'FOB': 'FOB — Por conta do comprador',
-  'retirada': 'Retirada na fábrica',
-  'cliente': 'Por conta do cliente',
-  'a_combinar': 'A combinar',
-}
-
-const EXIBIR_DEFAULT: ExibirProposta = {
-  cnpj: false, inscricaoEstadual: false, telefone: true, whatsapp: false,
-  email: false, emailNf: false, contatosAdicionais: false,
-  cargo: false, endereco: false, enderecoEntrega: false, entResponsavel: false,
-  obsTecnicaItens: false, instMontagem: false, anexos: false, detalhesLogistica: false,
-}
-
-const COND_PAGAMENTO = [
-  'À vista', 'À vista com desconto', '30 dias', '30/60 dias', '30/60/90 dias',
-  'Cartão de crédito (até 12x)', 'Boleto bancário', 'PIX', 'Depósito/Transferência',
-]
-
-const STATUS_CFG: Record<Status, { label: string; cor: string }> = {
-  rascunho:  { label: 'Rascunho',  cor: '#64748b' },
-  enviado:   { label: 'Enviado',   cor: '#1d4ed8' },
-  aprovado:  { label: 'Aprovado',  cor: '#16a34a' },
-  recusado:  { label: 'Recusado',  cor: '#dc2626' },
-  cancelado: { label: 'Cancelado', cor: '#9ca3af' },
-}
-
-const EVENTO_LABEL: Record<string, string> = {
-  criado: '📝 Criado', editado: '✏️ Editado', status_alterado: '🔄 Status alterado',
-  impresso: '🖨️ Impresso/PDF', enviado: '📤 Marcado enviado',
-  aprovado: '✅ Aprovado', recusado: '❌ Recusado', cancelado: '🚫 Cancelado',
-  anexo_adicionado: '📎 Anexo adicionado', receivel_gerado: '💰 Recebível gerado',
-}
-
-const CARGOS = [
-  'Comprador(a)', 'Diretor(a)', 'Engenheiro(a)', 'Gerente', 'Proprietário(a)',
-  'Responsável Técnico', 'Financeiro', 'Administrativo', 'Arquiteto(a)', 'Outro',
-]
-
-const ITEM_VAZIO: Item = { produto_id: null, descricao: '', qtd: '1', unidade: 'UN', valorUnit: '', obs_tecnica: '' }
-const CLIENTE_VAZIO: ClienteInfo = {
-  nome: '', empresa: '', cnpj: '', telefone: '', email: '', endereco: '',
-  tipo_pessoa: 'pj', perfil_comprador: '', whatsapp: '', cargo: '', cargo_outro: '', inscricao_estadual: '',
-  cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', uf: '',
-  email_nf: '', contatos: [],
-  ent_diferente: false,
-  ent_responsavel: '', ent_telefone: '', ent_whatsapp: '',
-  ent_cep: '', ent_logradouro: '', ent_numero: '', ent_complemento: '', ent_bairro: '', ent_cidade: '', ent_uf: '',
-}
-const FRETE_VAZIO: Frete = { tipo: '', modalidade: 'cobrar', valor: '', prazo: '', obs: '' }
-const INST_VAZIO: Instalacao = { inclui: false, modalidade: 'cobrar', texto: '', valor: '' }
-const OBS_DEFAULT = `• Orçamento válido conforme data de validade indicada.\n• Preços sujeitos a alteração sem aviso prévio.\n• Prazo de entrega a partir da confirmação do pedido e aprovação do pagamento.`
-
-function fmtBRL(v: number) { return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) }
-function hoje() { return new Date().toLocaleDateString('pt-BR') }
-function fmtDataISO(iso: string) { return new Date(iso).toLocaleDateString('pt-BR') }
-function fmtEvento(iso: string) { return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) }
-
-function maskCNPJ(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 14)
-  return d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
-    .replace(/^(\d{2})(\d{3})(\d{3})(\d{4})/, '$1.$2.$3/$4')
-    .replace(/^(\d{2})(\d{3})(\d{3})/, '$1.$2.$3')
-    .replace(/^(\d{2})(\d{3})/, '$1.$2')
-}
-function maskCPF(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 11)
-  return d.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4')
-    .replace(/^(\d{3})(\d{3})(\d{3})/, '$1.$2.$3')
-    .replace(/^(\d{3})(\d{3})/, '$1.$2')
-    .replace(/^(\d{3})/, '$1')
-}
-function maskPhone(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 11)
-  if (d.length <= 10) return d.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3').replace(/\($/, '(').replace(/-$/, '')
-  return d.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3')
-}
-function maskCEP(v: string) {
-  const d = v.replace(/\D/g, '').slice(0, 8)
-  return d.replace(/^(\d{5})(\d{0,3})/, '$1-$2').replace(/-$/, '')
-}
-
+import {
+  UNIDADES, EXIBIR_DEFAULT, COND_PAGAMENTO, STATUS_CFG, EVENTO_LABEL,
+  ITEM_VAZIO, CLIENTE_VAZIO, INST_VAZIO, OBS_DEFAULT,
+  fmtBRL, hoje, fmtDataISO, formatarDadoBancario,
+} from '../components/Orcamento/types'
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AdminOrcamento() {
@@ -234,10 +54,7 @@ export default function AdminOrcamento() {
   const [dataEmissao]               = useState(hoje)
   const [validadeDias, setValidadeDias] = useState('7')
   const [cliente, setCliente]       = useState<ClienteInfo>(CLIENTE_VAZIO)
-  const [buscaCliente, setBuscaCliente] = useState('')
-  const [resultadosCliente, setResultadosCliente] = useState<ClienteResult[]>([])
-  const [loadingCliente, setLoadingCliente] = useState(false)
-  const [showDropCliente, setShowDropCliente] = useState(false)
+  // busca cliente movida para ClienteForm
   const [itens, setItens]           = useState<Item[]>([{ ...ITEM_VAZIO }])
   const [buscaProduto, setBuscaProduto] = useState('')
   const [resultadosProduto, setResultadosProduto] = useState<ProdutoResult[]>([])
@@ -252,6 +69,10 @@ export default function AdminOrcamento() {
   const [condicoes, setCondicoes]   = useState<string[]>([])
   const [prazoEntrega, setPrazoEntrega] = useState('')
   const [dadosPagamento, setDadosPagamento] = useState('')
+  const [dadosBancarios, setDadosBancarios] = useState<DadoBancario[]>([])
+  const [dadosBancariosSel, setDadosBancariosSel] = useState<number[]>([])
+  const [showCadastroBanco, setShowCadastroBanco] = useState(false)
+  const [formBanco, setFormBanco] = useState<Partial<DadoBancario>>({})
   const [observacoes, setObservacoes] = useState(OBS_DEFAULT)
   const [watermarkAtivo, setWatermarkAtivo] = useState(false)
   const [watermarkTexto, setWatermarkTexto] = useState('CONFIDENCIAL')
@@ -261,24 +82,25 @@ export default function AdminOrcamento() {
   const [anexos, setAnexos]         = useState<Anexo[]>([])
   const [uploadandoAnexo, setUploadandoAnexo] = useState(false)
   const [historico, setHistorico]   = useState<HistoricoItem[]>([])
-  const [previewFullscreen, setPreviewFullscreen] = useState(false)
-  const [previewMode, setPreviewMode] = useState<'pdf' | 'mobile'>('pdf')
-  const [verTodoHistorico, setVerTodoHistorico] = useState(false)
+  // Preview removido — PDF acessível via botão na toolbar
   const [empresaSnapshot, setEmpresaSnapshot] = useState<Record<string, unknown> | null>(null)
   const [salvando, setSalvando]     = useState(false)
   const [gerandoRec, setGerandoRec] = useState(false)
   const [msg, setMsg]               = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
-  const [frete, setFrete]           = useState<Frete>(FRETE_VAZIO)
+  const showMsg = useCallback((tipo: 'ok' | 'erro', texto: string) => {
+    setMsg({ tipo, texto }); setTimeout(() => setMsg(null), 3000)
+  }, [])
+  const etiq = useEtiqueta({ editandoId, cliente, itens, totalFn: total, nomeUsuario, showMsg, setHistorico })
+  const { etiquetaPreId, setEtiquetaPreId, gerandoEtiq, baixandoRotulo, baixandoDace, cancelandoEtiq, gerarEtiqueta, baixarRotulo, baixarDace, cancelarEtiqueta } = etiq
+  const freteSummaryRef = useRef<FreteSummary>({ tipo: '', modalidade: 'cobrar', valor: 0, custo: 0, prazo: '', prazo_dias: null, provedor: '', servico: '', opcao_id: null, obs: '', peso_total_kg: 0, volumes_qtd: 0 })
+  const handleFreteChange = useCallback((s: FreteSummary) => { freteSummaryRef.current = s }, [])
   const [instalacao, setInstalacao] = useState<Instalacao>(INST_VAZIO)
   const [obsInternas, setObsInternas] = useState('')
   const [origemLead, setOrigemLead] = useState('')
   const [exibir, setExibir]         = useState<ExibirProposta>(EXIBIR_DEFAULT)
   const [showControles, setShowControles] = useState(false)
-  const [links, setLinks]             = useState<OrcLink[]>([])
-  const [gerandoLink, setGerandoLink] = useState(false)
-  const [novoLinkDest, setNovoLinkDest] = useState('')
-  const [acessosLink, setAcessosLink] = useState<Record<string, any[]>>({})
-  const [expandedLink, setExpandedLink] = useState<string | null>(null)
+  const linksHook = useLinks({ editandoId, nomeUsuario })
+  const { links, setLinks, gerandoLink, novoLinkDest, setNovoLinkDest, acessosLink, expandedLink, carregarLinks, toggleAcessos, gerarLink, desativarLink, linkUrl } = linksHook
   const [watermarkLogo, setWatermarkLogo] = useState(false)
   const [nomeUsuario, setNomeUsuario] = useState('')
   const [isAdminUser, setIsAdminUser] = useState(false)
@@ -304,10 +126,11 @@ export default function AdminOrcamento() {
     return tipoDesc === '%' ? sub * d / 100 : Math.min(d, sub)
   }
   function valorFrete() {
-    const v = parseFloat(frete.valor.replace(',', '.')) || 0
-    return frete.modalidade === 'cobrar' ? v : 0
+    const s = freteSummaryRef.current
+    if (s.modalidade === 'bonus') return 0
+    if (s.tipo === 'FOB') return 0
+    return s.valor
   }
-  function valorFreteBruto() { return parseFloat(frete.valor.replace(',', '.')) || 0 }
   function valorInst() {
     if (!instalacao.inclui) return 0
     const v = parseFloat(instalacao.valor.replace(',', '.')) || 0
@@ -342,9 +165,15 @@ export default function AdminOrcamento() {
     setVendedores((data ?? []) as Vendedor[])
   }, [])
 
+  const carregarDadosBancarios = useCallback(async () => {
+    const { data } = await supabaseAdmin.from('dados_bancarios').select('*').eq('ativo', true).order('ordem')
+    setDadosBancarios((data ?? []) as DadoBancario[])
+  }, [])
+
   useEffect(() => { carregarLista() }, [carregarLista])
   useEffect(() => { carregarEmpresas() }, [carregarEmpresas])
   useEffect(() => { carregarVendedores() }, [carregarVendedores])
+  useEffect(() => { carregarDadosBancarios() }, [carregarDadosBancarios])
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session?.user) return
@@ -375,28 +204,7 @@ export default function AdminOrcamento() {
     setVista('editor')
   }, [])
 
-  useEffect(() => {
-    if (buscaCliente.length < 2) { setResultadosCliente([]); return }
-    const t = setTimeout(async () => {
-      setLoadingCliente(true)
-      const termo = `%${buscaCliente}%`
-      const { data: pros } = await supabaseAdmin
-        .from('prospeccao')
-        .select('cnpj, razao_social, telefone1, email, endereco, bairro, cidade, uf, cep, cliente_ativo')
-        .ilike('razao_social', termo).limit(10)
-      setResultadosCliente(
-        ((pros ?? []) as any[]).map(p => ({
-          cnpj: p.cnpj, nome: p.razao_social ?? '',
-          telefone: p.telefone1 ?? null, email: p.email ?? null,
-          fonte: p.cliente_ativo ? ('cliente' as const) : ('prospect' as const),
-          logradouro: p.endereco ?? null, bairro: p.bairro ?? null,
-          cidade: p.cidade ?? null, uf: p.uf ?? null, cep: p.cep ?? null,
-        }))
-      )
-      setLoadingCliente(false)
-    }, 300)
-    return () => clearTimeout(t)
-  }, [buscaCliente])
+  // useEffect busca cliente movido para ClienteForm
 
   useEffect(() => {
     if (buscaProduto.length < 2) { setResultadosProduto([]); return }
@@ -430,14 +238,14 @@ export default function AdminOrcamento() {
     const { data: numData } = await supabaseAdmin.rpc('next_orcamento_numero')
     const novoNumero = (numData as string) ?? `${new Date().getFullYear()}/001`
     // Reset all state first
-    setEditandoId(null); setNumero(novoNumero); setStatus('rascunho'); setFinLancId(null)
+    setEditandoId(null); setNumero(novoNumero); setStatus('rascunho'); setFinLancId(null); setEtiquetaPreId(null)
     setCliente(CLIENTE_VAZIO); setItens([{ ...ITEM_VAZIO }])
     setDesconto(''); setTipoDesc('%'); setCondicoes([]); setPrazoEntrega(''); setDadosPagamento('')
     setValidadeDias('7'); setObservacoes(OBS_DEFAULT)
     setWatermarkAtivo(false); setWatermarkTexto('CONFIDENCIAL'); setWatermarkLogo(false)
     setImagemUrl(''); setAnexos([]); setHistorico([]); setLinks([])
-    setBuscaCliente(''); setFrete(FRETE_VAZIO); setInstalacao(INST_VAZIO)
-    setObsInternas(''); setOrigemLead(''); setExibir(EXIBIR_DEFAULT)
+    setInstalacao(INST_VAZIO)
+    setObsInternas(''); setOrigemLead(''); setExibir(EXIBIR_DEFAULT); setDadosBancariosSel([])
     // Create in DB immediately
     const emp = empresas.find(e => e.id === empresaId)
     const { data: created, error } = await supabaseAdmin.from('orcamentos').insert({
@@ -469,7 +277,7 @@ export default function AdminOrcamento() {
     ])
     if (!orc) return
     const o = orc as any
-    setEditandoId(id); setNumero(o.numero); setStatus(o.status); setFinLancId(o.fin_lancamento_id ?? null)
+    setEditandoId(id); setNumero(o.numero); setStatus(o.status); setFinLancId(o.fin_lancamento_id ?? null); setEtiquetaPreId(o.etiqueta_pre_id ?? null)
     setEmpresaId(o.empresa_id); setVendedorId(o.vendedor_id ?? null)
     setCliente({
       nome: o.cliente_nome ?? '', empresa: o.cliente_empresa ?? '',
@@ -505,10 +313,11 @@ export default function AdminOrcamento() {
     try { setCondicoes(rawCond ? JSON.parse(rawCond) : []) } catch { setCondicoes(rawCond ? [rawCond] : []) }
     setPrazoEntrega(o.prazo_entrega ?? '')
     setDadosPagamento((o as any).dados_pagamento ?? '')
+    setDadosBancariosSel(Array.isArray(o.dados_bancarios_ids) ? o.dados_bancarios_ids : [])
     setValidadeDias(String(o.validade_dias ?? 7)); setObservacoes(o.observacoes ?? OBS_DEFAULT)
     setWatermarkAtivo(o.watermark_ativo ?? false); setWatermarkTexto(o.watermark_texto ?? 'CONFIDENCIAL')
     setImagemUrl(o.imagem_url ?? '')
-    setFrete({ tipo: o.frete_tipo ?? '', modalidade: o.frete_modalidade ?? 'cobrar', valor: o.frete_valor ? String(o.frete_valor) : '', prazo: o.frete_prazo ?? '', obs: o.frete_obs ?? '' })
+    // Frete carregado pelo FreteSection via orcamentoId
     setInstalacao({ inclui: o.inst_inclui ?? false, modalidade: o.inst_modalidade ?? 'cobrar', texto: o.inst_texto ?? '', valor: o.inst_valor ? String(o.inst_valor) : '' })
     setObsInternas(o.obs_internas ?? '')
     setOrigemLead(o.origem_lead ?? '')
@@ -529,6 +338,21 @@ export default function AdminOrcamento() {
     })
     await carregarLinks(id)
     setVista('editor')
+  }
+
+  async function salvarDadoBancario() {
+    if (!formBanco.apelido?.trim()) { showMsg('erro', 'Apelido obrigatório'); return }
+    const { error } = await supabaseAdmin.from('dados_bancarios').insert({
+      apelido: formBanco.apelido, banco: formBanco.banco || null, agencia: formBanco.agencia || null,
+      conta: formBanco.conta || null, tipo_conta: formBanco.tipo_conta || 'corrente',
+      pix_chave: formBanco.pix_chave || null, pix_tipo: formBanco.pix_tipo || null,
+      titular: formBanco.titular || null, cnpj_titular: formBanco.cnpj_titular || null,
+      observacao: formBanco.observacao || null, ordem: dadosBancarios.length,
+    })
+    if (error) { showMsg('erro', 'Erro: ' + error.message); return }
+    setFormBanco({}); setShowCadastroBanco(false)
+    carregarDadosBancarios()
+    showMsg('ok', 'Conta cadastrada!')
   }
 
   async function salvar(novoStatus?: Status) {
@@ -572,11 +396,19 @@ export default function AdminOrcamento() {
       cliente_ent_bairro: cliente.ent_diferente ? (cliente.ent_bairro || null) : null,
       cliente_ent_cidade: cliente.ent_diferente ? (cliente.ent_cidade || null) : null,
       cliente_ent_uf: cliente.ent_diferente ? (cliente.ent_uf || null) : null,
-      frete_tipo: frete.tipo || null,
-      frete_modalidade: frete.modalidade,
-      frete_valor: parseFloat(frete.valor.replace(',', '.')) || 0,
-      frete_prazo: frete.prazo || null,
-      frete_obs: frete.obs || null,
+      frete_tipo: freteSummaryRef.current.tipo || null,
+      frete_modalidade: freteSummaryRef.current.modalidade,
+      frete_valor: freteSummaryRef.current.valor,
+      frete_custo: freteSummaryRef.current.custo,
+      frete_preco_venda: freteSummaryRef.current.valor,
+      frete_prazo: freteSummaryRef.current.prazo || null,
+      frete_prazo_dias: freteSummaryRef.current.prazo_dias,
+      frete_provedor: freteSummaryRef.current.provedor || null,
+      frete_servico: freteSummaryRef.current.servico || null,
+      frete_opcao_id: freteSummaryRef.current.opcao_id,
+      frete_obs: freteSummaryRef.current.obs || null,
+      peso_total_kg: freteSummaryRef.current.peso_total_kg || null,
+      volumes_qtd: freteSummaryRef.current.volumes_qtd || null,
       inst_inclui: instalacao.inclui,
       inst_modalidade: instalacao.modalidade,
       inst_texto: instalacao.texto || null,
@@ -587,7 +419,7 @@ export default function AdminOrcamento() {
       exibir_config: exibir,
       desconto: parseFloat(desconto.replace(',', '.')) || 0, tipo_desconto: tipoDesc,
       subtotal: subtotal(), total: total(),
-      condicao_pagamento: condicoes.length ? JSON.stringify(condicoes) : null, prazo_entrega: prazoEntrega || null, dados_pagamento: dadosPagamento || null,
+      condicao_pagamento: condicoes.length ? JSON.stringify(condicoes) : null, prazo_entrega: prazoEntrega || null, dados_pagamento: dadosPagamento || null, dados_bancarios_ids: dadosBancariosSel.length ? dadosBancariosSel : null,
       validade_dias: parseInt(validadeDias) || 7, observacoes: observacoes || null,
       watermark_ativo: watermarkAtivo, watermark_texto: watermarkTexto,
       imagem_url: imagemUrl || null,
@@ -680,6 +512,8 @@ export default function AdminOrcamento() {
   }
 
   async function imprimir() {
+    // Salva antes de abrir o PDF para garantir dados atualizados
+    await salvar()
     if (!editandoId) return
     await supabaseAdmin.from('orcamentos_historico').insert({ orcamento_id: editandoId, evento: 'impresso', descricao: null, usuario: nomeUsuario || null })
     const { data: hd } = await supabaseAdmin.from('orcamentos_historico').select('*').eq('orcamento_id', editandoId).order('criado_em', { ascending: false })
@@ -751,70 +585,7 @@ export default function AdminOrcamento() {
     setUploadandoImagem(false)
   }
 
-  async function buscarCEP(cep: string, destino: 'principal' | 'entrega') {
-    const raw = cep.replace(/\D/g, '')
-    if (raw.length !== 8) return
-    try {
-      const res = await fetch(`https://viacep.com.br/ws/${raw}/json/`)
-      const d = await res.json()
-      if (d.erro) return
-      if (destino === 'principal') {
-        setCliente(c => ({ ...c, logradouro: d.logradouro ?? '', bairro: d.bairro ?? '', cidade: d.localidade ?? '', uf: d.uf ?? '' }))
-      } else {
-        setCliente(c => ({ ...c, ent_logradouro: d.logradouro ?? '', ent_bairro: d.bairro ?? '', ent_cidade: d.localidade ?? '', ent_uf: d.uf ?? '' }))
-      }
-    } catch { /* silently ignore */ }
-  }
-
-  async function carregarLinks(orcId: number) {
-    const { data } = await supabaseAdmin.from('orcamento_links').select('id, token, short_code, destinatario, criado_em, primeiro_acesso, ultimo_acesso, visualizacoes, downloads, ativo').eq('orcamento_id', orcId).order('criado_em', { ascending: false })
-    setLinks((data ?? []) as OrcLink[])
-  }
-
-  async function toggleAcessos(linkId: string) {
-    if (expandedLink === linkId) { setExpandedLink(null); return }
-    setExpandedLink(linkId)
-    if (acessosLink[linkId]) return
-    const { data } = await supabaseAdmin
-      .from('orcamento_link_acessos')
-      .select('acessado_em, ip, user_agent')
-      .eq('link_id', linkId)
-      .order('acessado_em', { ascending: false })
-    setAcessosLink(prev => ({ ...prev, [linkId]: data ?? [] }))
-  }
-
-  function gerarShortCode(len = 7) {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-    return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-  }
-
-  async function gerarLink() {
-    if (!editandoId) return
-    setGerandoLink(true)
-    const short_code = gerarShortCode()
-    const { data } = await supabaseAdmin.from('orcamento_links').insert({
-      orcamento_id: editandoId,
-      destinatario: novoLinkDest.trim() || null,
-      short_code,
-    }).select('*').single()
-    if (data) {
-      setLinks(prev => [data as OrcLink, ...prev])
-      setNovoLinkDest('')
-      await supabaseAdmin.from('orcamentos_historico').insert({ orcamento_id: editandoId, evento: 'link_gerado', descricao: novoLinkDest.trim() || 'Link gerado', usuario: nomeUsuario || null })
-    }
-    setGerandoLink(false)
-  }
-
-  async function desativarLink(linkId: string) {
-    await supabaseAdmin.from('orcamento_links').update({ ativo: false }).eq('id', linkId)
-    setLinks(prev => prev.map(l => l.id === linkId ? { ...l, ativo: false } : l))
-  }
-
-  function linkUrl(l: OrcLink) {
-    return l.short_code
-      ? `${window.location.origin}/p/${l.short_code}`
-      : `${window.location.origin}/view/orcamento/${l.token}`
-  }
+  // buscarCEP movido para ClienteForm
 
   async function excluirOrcamento(id: number) {
     const { error } = await supabaseAdmin.from('orcamentos').delete().eq('id', id)
@@ -844,24 +615,7 @@ export default function AdminOrcamento() {
     setFormVendedor({}); setEditVendedorId(null); carregarVendedores()
   }
 
-  function showMsg(tipo: 'ok' | 'erro', texto: string) {
-    setMsg({ tipo, texto }); setTimeout(() => setMsg(null), 3000)
-  }
-  function selecionarCliente(r: ClienteResult) {
-    setBuscaCliente(''); setShowDropCliente(false)
-    setCliente({
-      ...CLIENTE_VAZIO,
-      empresa: r.nome,
-      cnpj: maskCNPJ(r.cnpj),
-      telefone: r.telefone ? maskPhone(r.telefone) : '',
-      email: r.email ?? '',
-      logradouro: r.logradouro ?? '',
-      bairro: r.bairro ?? '',
-      cidade: r.cidade ?? '',
-      uf: r.uf ?? '',
-      cep: r.cep ? maskCEP(r.cep) : '',
-    })
-  }
+  // selecionarCliente movido para ClienteForm
   function adicionarProduto(p: ProdutoResult) {
     setItens(prev => {
       const idx = prev.findIndex(i => i.produto_id === p.id)
@@ -1026,6 +780,12 @@ export default function AdminOrcamento() {
             <div className={styles.editorBarRight}>
               {status === 'aprovado' && !finLancId && <button className={styles.btnReceivel} onClick={gerarReceivel} disabled={gerandoRec}>{gerandoRec ? '...' : '💰 Gerar Recebível'}</button>}
               {status === 'aprovado' && finLancId && <span className={styles.receivelOk}>✓ Recebível #{finLancId}</span>}
+              {status === 'aprovado' && !etiquetaPreId && <button className={styles.btnEnviar} onClick={gerarEtiqueta} disabled={gerandoEtiq}>{gerandoEtiq ? '⏳ Gerando...' : '📦 Etiqueta Correios'}</button>}
+              {etiquetaPreId && <>
+                <button className={styles.btnAprovar} onClick={baixarRotulo} disabled={baixandoRotulo}>{baixandoRotulo ? '⏳ Processando...' : '🏷 Baixar Rótulo'}</button>
+                <button className={styles.btnImprimir} onClick={baixarDace} disabled={baixandoDace}>{baixandoDace ? '⏳ Gerando...' : '📄 DACE'}</button>
+                <button className={styles.btnRecusar} onClick={cancelarEtiqueta} disabled={cancelandoEtiq}>{cancelandoEtiq ? '⏳...' : '✕ Cancelar Envio'}</button>
+              </>}
               {status === 'rascunho' && <button className={styles.btnEnviar} onClick={() => salvar('enviado')} disabled={salvando}>📤 Marcar Enviado</button>}
               {status === 'enviado' && <>
                 <button className={styles.btnAprovar} onClick={() => salvar('aprovado')} disabled={salvando}>✅ Aprovado</button>
@@ -1045,169 +805,8 @@ export default function AdminOrcamento() {
           </div>
 
           <div className={styles.layout}>
-            <div className={styles.formCol}>
 
-              {/* Destinatário */}
-              <div className={styles.section}>
-                <div className={styles.sectionTitle}>Destinatário</div>
-                <div className={styles.buscaWrap}>
-                  <input className={styles.input} placeholder="🔍 Buscar cliente por nome..."
-                    value={buscaCliente}
-                    onChange={e => { setBuscaCliente(e.target.value); setShowDropCliente(true) }}
-                    onFocus={() => setShowDropCliente(true)}
-                    onBlur={() => setTimeout(() => setShowDropCliente(false), 200)}
-                  />
-                  {showDropCliente && buscaCliente.length >= 2 && (
-                    <div className={styles.dropdown}>
-                      {loadingCliente && <div className={styles.dropItem}>Buscando...</div>}
-                      {resultadosCliente.map(r => (
-                        <div key={r.cnpj} className={styles.dropItem} onMouseDown={() => selecionarCliente(r)}>
-                          <strong>{r.nome}</strong>
-                          <span style={{ fontSize: '0.74rem', color: '#64748b' }}> · {r.cnpj} · {r.fonte === 'cliente' ? '🟢 cliente' : '🔵 prospect'}</span>
-                        </div>
-                      ))}
-                      {!loadingCliente && resultadosCliente.length === 0 && (
-                        <div className={styles.dropItem} style={{ color: '#94a3b8' }}>Nenhum resultado — preencha manualmente</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className={styles.row2}>
-                  <div className={styles.fg}>
-                    <label>Tipo</label>
-                    <select className={styles.input} value={cliente.tipo_pessoa} onChange={e => setCliente(c => ({ ...c, tipo_pessoa: e.target.value as 'pf' | 'pj', cnpj: '' }))}>
-                      <option value="pj">Pessoa Jurídica</option>
-                      <option value="pf">Pessoa Física</option>
-                    </select>
-                  </div>
-                  <div className={styles.fg}>
-                    <label>Perfil do comprador</label>
-                    <select className={styles.input} value={cliente.perfil_comprador} onChange={e => setCliente(c => ({ ...c, perfil_comprador: e.target.value as ClienteInfo['perfil_comprador'] }))}>
-                      <option value="">— Não informado —</option>
-                      <option value="revendedor">Revendedor / Distribuidor</option>
-                      <option value="aplicador">Aplicador / Instalador</option>
-                      <option value="dono_obra">Dono de Obra / Uso Próprio</option>
-                      <option value="especificador">Especificador (Arq. / Eng.)</option>
-                    </select>
-                  </div>
-                  <div className={styles.fg}><label>{cliente.tipo_pessoa === 'pf' ? 'Nome completo *' : 'Empresa *'}</label><input className={styles.input} value={cliente.empresa} onChange={e => setCliente(c => ({ ...c, empresa: e.target.value }))} placeholder={cliente.tipo_pessoa === 'pf' ? 'Nome completo' : 'Razão social'} /></div>
-                </div>
-                <div className={styles.row2}>
-                  <div className={styles.fg}><label>A/C. (Responsável)</label><input className={styles.input} value={cliente.nome} onChange={e => setCliente(c => ({ ...c, nome: e.target.value }))} placeholder="Nome do contato" /></div>
-                  <div className={styles.fg}>
-                    <label>Cargo</label>
-                    <select className={styles.input} value={cliente.cargo} onChange={e => setCliente(c => ({ ...c, cargo: e.target.value }))}>
-                      <option value="">— Selecionar —</option>
-                      {CARGOS.map(c => <option key={c}>{c}</option>)}
-                    </select>
-                    {cliente.cargo === 'Outro' && (
-                      <input className={styles.input} style={{ marginTop: 4 }} placeholder="Especificar cargo" value={cliente.cargo_outro} onChange={e => setCliente(c => ({ ...c, cargo_outro: e.target.value }))} />
-                    )}
-                  </div>
-                </div>
-                <div className={styles.row3}>
-                  <div className={styles.fg}>
-                    <label>{cliente.tipo_pessoa === 'pj' ? 'CNPJ' : 'CPF'}</label>
-                    <input className={styles.input} value={cliente.cnpj} onChange={e => setCliente(c => ({ ...c, cnpj: c.tipo_pessoa === 'pj' ? maskCNPJ(e.target.value) : maskCPF(e.target.value) }))} placeholder={cliente.tipo_pessoa === 'pj' ? '00.000.000/0000-00' : '000.000.000-00'} maxLength={cliente.tipo_pessoa === 'pj' ? 18 : 14} />
-                  </div>
-                  <div className={styles.fg}><label>Insc. Estadual</label><input className={styles.input} value={cliente.inscricao_estadual} onChange={e => setCliente(c => ({ ...c, inscricao_estadual: e.target.value }))} /></div>
-                  <div className={styles.fg}><label>Telefone</label><input className={styles.input} value={cliente.telefone} onChange={e => setCliente(c => ({ ...c, telefone: maskPhone(e.target.value) }))} placeholder="(00) 00000-0000" maxLength={15} /></div>
-                </div>
-                <div className={styles.row2}>
-                  <div className={styles.fg}><label>WhatsApp</label><input className={styles.input} value={cliente.whatsapp} onChange={e => setCliente(c => ({ ...c, whatsapp: maskPhone(e.target.value) }))} placeholder="(00) 00000-0000" maxLength={15} /></div>
-                  <div className={styles.fg}><label>E-mail</label><input className={styles.input} value={cliente.email} onChange={e => setCliente(c => ({ ...c, email: e.target.value }))} /></div>
-                </div>
-                <div className={styles.row2}>
-                  <div className={styles.fg}><label>E-mail para NFs / Boletos</label><input className={styles.input} value={cliente.email_nf} onChange={e => setCliente(c => ({ ...c, email_nf: e.target.value }))} placeholder="financeiro@empresa.com.br" /></div>
-                </div>
-
-                {/* Contatos adicionais */}
-                <div style={{ marginTop: 8 }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Contatos adicionais</div>
-                  {cliente.contatos.map((ct, ci) => (
-                    <div key={ci} className={styles.row3} style={{ marginBottom: 4 }}>
-                      <div style={{ width: 130, flexShrink: 0 }}>
-                        <select className={styles.input} value={ct.tipo} onChange={e => setCliente(c => { const cc = [...c.contatos]; cc[ci] = { ...cc[ci], tipo: e.target.value as 'telefone' | 'whatsapp' | 'email' }; return { ...c, contatos: cc } })}>
-                          <option value="telefone">Telefone</option>
-                          <option value="whatsapp">WhatsApp</option>
-                          <option value="email">E-mail</option>
-                        </select>
-                      </div>
-                      <div className={styles.fg}>
-                        <input className={styles.input} value={ct.valor}
-                          onChange={e => setCliente(c => { const cc = [...c.contatos]; cc[ci] = { ...cc[ci], valor: ct.tipo === 'email' ? e.target.value : maskPhone(e.target.value) }; return { ...c, contatos: cc } })}
-                          placeholder={ct.tipo === 'email' ? 'contato@empresa.com' : '(00) 00000-0000'}
-                          maxLength={ct.tipo === 'email' ? 120 : 15} />
-                      </div>
-                      <button className={styles.btnRemoveItem} style={{ marginTop: 0 }} onClick={() => setCliente(c => ({ ...c, contatos: c.contatos.filter((_, j) => j !== ci) }))}>✕</button>
-                    </div>
-                  ))}
-                  <button className={styles.btnSecondary} style={{ marginTop: 2, fontSize: '0.78rem', padding: '4px 10px' }}
-                    onClick={() => setCliente(c => ({ ...c, contatos: [...c.contatos, { tipo: 'whatsapp', valor: '' }] }))}>
-                    + Adicionar contato
-                  </button>
-                </div>
-
-                {/* Endereço principal */}
-                <div style={{ marginTop: 8, marginBottom: 4, fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Endereço principal</div>
-                <div className={styles.row2}>
-                  <div style={{ width: 150, flexShrink: 0 }}>
-                    <label>CEP</label>
-                    <input className={styles.input} value={cliente.cep} maxLength={9}
-                      onChange={e => { const v = maskCEP(e.target.value); setCliente(c => ({ ...c, cep: v })); if (v.replace(/\D/g,'').length === 8) buscarCEP(v, 'principal') }}
-                      placeholder="00000-000" />
-                  </div>
-                  <div className={styles.fg}><label>Logradouro</label><input className={styles.input} value={cliente.logradouro} onChange={e => setCliente(c => ({ ...c, logradouro: e.target.value }))} placeholder="Rua / Av. / Alameda..." /></div>
-                </div>
-                <div className={styles.row3}>
-                  <div style={{ width: 90, flexShrink: 0 }}><label>Número</label><input className={styles.input} value={cliente.numero} onChange={e => setCliente(c => ({ ...c, numero: e.target.value }))} /></div>
-                  <div className={styles.fg}><label>Complemento</label><input className={styles.input} value={cliente.complemento} onChange={e => setCliente(c => ({ ...c, complemento: e.target.value }))} placeholder="Sala, Bloco..." /></div>
-                  <div className={styles.fg}><label>Bairro</label><input className={styles.input} value={cliente.bairro} onChange={e => setCliente(c => ({ ...c, bairro: e.target.value }))} /></div>
-                </div>
-                <div className={styles.row2}>
-                  <div className={styles.fg}><label>Cidade</label><input className={styles.input} value={cliente.cidade} onChange={e => setCliente(c => ({ ...c, cidade: e.target.value }))} /></div>
-                  <div style={{ width: 70, flexShrink: 0 }}><label>UF</label><input className={styles.input} value={cliente.uf} onChange={e => setCliente(c => ({ ...c, uf: e.target.value.toUpperCase().slice(0, 2) }))} maxLength={2} placeholder="MG" /></div>
-                </div>
-                {cliente.endereco && !cliente.logradouro && (
-                  <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 2, padding: '4px 8px', background: '#f8fafc', borderRadius: 4 }}>
-                    ℹ️ Legado: {cliente.endereco}
-                  </div>
-                )}
-
-                {/* Endereço de entrega */}
-                <label className={styles.toggleLabel} style={{ marginTop: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <input type="checkbox" checked={cliente.ent_diferente} onChange={e => setCliente(c => ({ ...c, ent_diferente: e.target.checked }))} />
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#475569' }}>Endereço de entrega diferente do principal</span>
-                </label>
-                {cliente.ent_diferente && (
-                  <div style={{ marginTop: 8, padding: '10px 12px', background: '#eff6ff', borderRadius: 8, border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>LOCAL DE ENTREGA</div>
-                    <div className={styles.row3}>
-                      <div className={styles.fg}><label>Responsável local</label><input className={styles.input} value={cliente.ent_responsavel} onChange={e => setCliente(c => ({ ...c, ent_responsavel: e.target.value }))} placeholder="Nome do responsável" /></div>
-                      <div className={styles.fg}><label>Telefone</label><input className={styles.input} value={cliente.ent_telefone} onChange={e => setCliente(c => ({ ...c, ent_telefone: maskPhone(e.target.value) }))} placeholder="(00) 00000-0000" maxLength={15} /></div>
-                      <div className={styles.fg}><label>WhatsApp</label><input className={styles.input} value={cliente.ent_whatsapp} onChange={e => setCliente(c => ({ ...c, ent_whatsapp: maskPhone(e.target.value) }))} placeholder="(00) 00000-0000" maxLength={15} /></div>
-                    </div>
-                    <div className={styles.row2}>
-                      <div style={{ width: 150, flexShrink: 0 }}>
-                        <label>CEP</label>
-                        <input className={styles.input} value={cliente.ent_cep} maxLength={9}
-                          onChange={e => { const v = maskCEP(e.target.value); setCliente(c => ({ ...c, ent_cep: v })); if (v.replace(/\D/g,'').length === 8) buscarCEP(v, 'entrega') }}
-                          placeholder="00000-000" />
-                      </div>
-                      <div className={styles.fg}><label>Logradouro</label><input className={styles.input} value={cliente.ent_logradouro} onChange={e => setCliente(c => ({ ...c, ent_logradouro: e.target.value }))} /></div>
-                    </div>
-                    <div className={styles.row3}>
-                      <div style={{ width: 90, flexShrink: 0 }}><label>Número</label><input className={styles.input} value={cliente.ent_numero} onChange={e => setCliente(c => ({ ...c, ent_numero: e.target.value }))} /></div>
-                      <div className={styles.fg}><label>Complemento</label><input className={styles.input} value={cliente.ent_complemento} onChange={e => setCliente(c => ({ ...c, ent_complemento: e.target.value }))} /></div>
-                      <div className={styles.fg}><label>Bairro</label><input className={styles.input} value={cliente.ent_bairro} onChange={e => setCliente(c => ({ ...c, ent_bairro: e.target.value }))} /></div>
-                    </div>
-                    <div className={styles.row2}>
-                      <div className={styles.fg}><label>Cidade</label><input className={styles.input} value={cliente.ent_cidade} onChange={e => setCliente(c => ({ ...c, ent_cidade: e.target.value }))} /></div>
-                      <div style={{ width: 70, flexShrink: 0 }}><label>UF</label><input className={styles.input} value={cliente.ent_uf} onChange={e => setCliente(c => ({ ...c, ent_uf: e.target.value.toUpperCase().slice(0, 2) }))} maxLength={2} /></div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <ClienteForm cliente={cliente} setCliente={setCliente} styles={styles} />
 
               {/* Itens */}
               <div className={styles.section}>
@@ -1307,117 +906,16 @@ export default function AdminOrcamento() {
                 </div>
               </div>
 
-              {/* Condições */}
-              <div className={styles.section}>
-                <div className={styles.sectionTitle}>Condições</div>
-                <div className={styles.row2}>
-                  <div className={styles.fg}>
-                    <label>Pagamento <span style={{ fontWeight: 400, color: '#64748b', fontSize: '0.78em' }}>(selecione uma ou mais)</span></label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 4 }}>
-                      {COND_PAGAMENTO.map(c => (
-                        <label key={c} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.85rem', cursor: 'pointer', fontWeight: 400 }}>
-                          <input type="checkbox" checked={condicoes.includes(c)}
-                            onChange={e => setCondicoes(prev => e.target.checked ? [...prev, c] : prev.filter(x => x !== c))} />
-                          {c}
-                        </label>
-                      ))}
-                    </div>
-                    {condicoes.length > 0 && (
-                      <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
-                        O envio será realizado após a confirmação do pagamento.
-                      </div>
-                    )}
-                    {(condicoes.includes('PIX') || condicoes.includes('Depósito/Transferência')) && (
-                      <div style={{ marginTop: 8 }}>
-                        <label>Dados para pagamento (PIX / Transferência)</label>
-                        <textarea className={`${styles.input} ${styles.textarea}`} rows={3}
-                          placeholder={'Ex: PIX: 12.115.379/0001-64 (CNPJ)\nBanco: Bradesco · Ag: 1234 · CC: 56789-0\nFavorecido: Pousinox Ind. Com. LTDA'}
-                          value={dadosPagamento} onChange={e => setDadosPagamento(e.target.value)} />
-                      </div>
-                    )}
-                  </div>
-                  <div className={styles.fg}><label>Prazo de entrega</label><input className={styles.input} placeholder="Ex: 10 dias úteis" value={prazoEntrega} onChange={e => setPrazoEntrega(e.target.value)} /></div>
-                </div>
-                <div className={styles.row2}>
-                  <div className={styles.fg}><label>Validade (dias)</label><input className={styles.input} type="number" min="1" value={validadeDias} onChange={e => setValidadeDias(e.target.value)} /></div>
-                  <div className={styles.fg}><label>Emissão</label><input className={styles.input} value={dataEmissao} readOnly style={{ background: '#f8fafc' }} /></div>
-                </div>
-                <div className={styles.fg}><label>Observações</label><textarea className={`${styles.input} ${styles.textarea}`} rows={4} value={observacoes} onChange={e => setObservacoes(e.target.value)} /></div>
-              </div>
-
-              {/* Opções */}
-              <div className={styles.section}>
-                <div className={styles.sectionTitle}>Opções</div>
-                <div className={styles.watermarkRow}>
-                  <label className={styles.toggleLabel}>
-                    <input type="checkbox" checked={watermarkAtivo} onChange={e => setWatermarkAtivo(e.target.checked)} />
-                    <span>Marca d'água</span>
-                  </label>
-                  {watermarkAtivo && (
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <label className={styles.toggleLabel}>
-                        <input type="checkbox" checked={watermarkLogo} onChange={e => setWatermarkLogo(e.target.checked)} />
-                        <span style={{ fontSize: '0.82rem' }}>Usar logomarca</span>
-                      </label>
-                      {!watermarkLogo && (
-                        <input className={styles.input} style={{ maxWidth: 220 }} placeholder="Ex: CONFIDENCIAL" value={watermarkTexto} onChange={e => setWatermarkTexto(e.target.value)} />
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className={styles.imagemOrcRow}>
-                  <span className={styles.imagemOrcLabel}>Imagem do produto / projeto <span style={{ color: '#94a3b8', fontWeight: 400 }}>(opcional)</span></span>
-                  {imagemUrl ? (
-                    <div className={styles.imagemOrcPreview}>
-                      <img src={imagemUrl} alt="Imagem orçamento" className={styles.imagemOrcThumb} />
-                      <div className={styles.imagemOrcActions}>
-                        <input className={styles.input} placeholder="URL da imagem" value={imagemUrl} onChange={e => setImagemUrl(e.target.value)} style={{ fontSize: '0.75rem' }} />
-                        <button className={styles.btnRemoveItem} onClick={() => setImagemUrl('')} title="Remover imagem">✕</button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={styles.imagemOrcActions}>
-                      <input className={styles.input} placeholder="Cole a URL de uma imagem..." value={imagemUrl} onChange={e => setImagemUrl(e.target.value)} style={{ flex: 1, fontSize: '0.82rem' }} />
-                      <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>ou</span>
-                      <input type="file" ref={imagemRef} accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && uploadImagem(e.target.files[0])} />
-                      <button className={styles.btnAddItem} onClick={() => imagemRef.current?.click()} disabled={uploadandoImagem}>
-                        {uploadandoImagem ? 'Enviando...' : '📷 Upload'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Frete */}
-              <div className={styles.section}>
-                <div className={styles.sectionTitle}>Frete</div>
-                <div className={styles.row2}>
-                  <div className={styles.fg}>
-                    <label>Tipo de frete</label>
-                    <select className={styles.input} value={frete.tipo} onChange={e => setFrete(f => ({ ...f, tipo: e.target.value as Frete['tipo'] }))}>
-                      {Object.entries(FRETE_TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </select>
-                  </div>
-                  <div className={styles.fg}>
-                    <label>Modalidade comercial</label>
-                    <select className={styles.input} value={frete.modalidade} onChange={e => setFrete(f => ({ ...f, modalidade: e.target.value as 'cobrar' | 'bonus' }))}>
-                      <option value="cobrar">Cobrar do cliente (entra no total)</option>
-                      <option value="bonus">Frete bonificado (benefício comercial)</option>
-                    </select>
-                  </div>
-                </div>
-                <div className={styles.row2}>
-                  <div className={styles.fg}>
-                    <label>Valor do frete (R$)</label>
-                    <input className={styles.input} type="number" min="0" step="0.01" placeholder="0,00" value={frete.valor} onChange={e => setFrete(f => ({ ...f, valor: e.target.value }))} />
-                    {frete.modalidade === 'bonus' && valorFreteBruto() > 0 && (
-                      <div style={{ fontSize: '0.72rem', color: '#16a34a', marginTop: 2 }}>✓ Aparece na proposta como benefício — não soma no total</div>
-                    )}
-                  </div>
-                  <div className={styles.fg}><label>Prazo logístico</label><input className={styles.input} placeholder="Ex: 3 dias úteis" value={frete.prazo} onChange={e => setFrete(f => ({ ...f, prazo: e.target.value }))} /></div>
-                </div>
-                <div className={styles.fg}><label>Observação logística</label><input className={styles.input} placeholder="Ex: Entrega apenas no período da tarde" value={frete.obs} onChange={e => setFrete(f => ({ ...f, obs: e.target.value }))} /></div>
-              </div>
+              {/* Frete & Logística */}
+              <FreteSection
+                orcamentoId={editandoId}
+                cepOrigem={empresaSel?.cep || '37550360'}
+                cepDestino={cliente.ent_diferente ? cliente.ent_cep : cliente.cep}
+                valorMercadoria={subtotal()}
+                parentStyles={styles}
+                onFreteChange={handleFreteChange}
+                usuario={nomeUsuario}
+              />
 
               {/* Instalação/Montagem */}
               <div className={styles.section}>
@@ -1451,41 +949,129 @@ export default function AdminOrcamento() {
                 )}
               </div>
 
-              {/* Internos */}
+              {/* Condições Comerciais */}
               <div className={styles.section}>
-                <div className={styles.sectionTitle}>Dados internos <span style={{color:'#94a3b8',fontWeight:400,fontSize:'0.75rem'}}>(não aparecem no PDF)</span></div>
-                <div className={styles.row2}>
-                  <div className={styles.fg}><label>Origem do lead</label><input className={styles.input} placeholder="Ex: Indicação, LinkedIn, Feira..." value={origemLead} onChange={e => setOrigemLead(e.target.value)} /></div>
-                </div>
-                <div className={styles.fg}><label>Observações internas</label><textarea className={`${styles.input} ${styles.textarea}`} rows={3} placeholder="Notas internas, instruções para a equipe..." value={obsInternas} onChange={e => setObsInternas(e.target.value)} /></div>
-              </div>
-
-              {/* Controles da Proposta */}
-              <div className={styles.section}>
-                <div className={styles.sectionTitle} style={{cursor:'pointer',userSelect:'none'}} onClick={() => setShowControles(v=>!v)}>
-                  Controles da Proposta {showControles ? '▲' : '▼'}
-                  <span style={{color:'#94a3b8',fontWeight:400,fontSize:'0.73rem',marginLeft:8}}>campos opcionais visíveis no PDF</span>
-                </div>
-                {showControles && (
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'8px 16px',marginTop:8}}>
-                    {([
-                      ['telefone','Telefone'],['whatsapp','WhatsApp'],['email','E-mail'],
-                      ['emailNf','E-mail NFs/Boletos'],['contatosAdicionais','Contatos adicionais'],
-                      ['cnpj','CNPJ/CPF'],['inscricaoEstadual','Insc. Estadual'],
-                      ['cargo','Cargo do contato'],['endereco','Endereço principal'],
-                      ['enderecoEntrega','Endereço de entrega'],['entResponsavel','Responsável na entrega'],
-                      ['obsTecnicaItens','Obs. técnica dos itens'],
-                      ['instMontagem','Instalação/montagem'],
-                      ['anexos','Anexos'],['detalhesLogistica','Detalhes logísticos'],
-                    ] as [keyof ExibirProposta, string][]).map(([key, label]) => (
-                      <label key={key} className={styles.toggleLabel}>
-                        <input type="checkbox" checked={exibir[key]} onChange={e => setExibir(x=>({...x,[key]:e.target.checked}))} />
-                        <span>{label}</span>
+                <div className={styles.sectionTitle}>Condições Comerciais</div>
+                <div className={styles.fg}>
+                  <label>Pagamento <span style={{ fontWeight: 400, color: '#64748b', fontSize: '0.78em' }}>(selecione uma ou mais)</span></label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 4 }}>
+                    {COND_PAGAMENTO.map(c => (
+                      <label key={c} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.85rem', cursor: 'pointer', fontWeight: 400 }}>
+                        <input type="checkbox" checked={condicoes.includes(c)}
+                          onChange={e => setCondicoes(prev => e.target.checked ? [...prev, c] : prev.filter(x => x !== c))} />
+                        {c}
                       </label>
                     ))}
                   </div>
+                  {condicoes.length > 0 && (
+                    <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
+                      O envio será realizado após a confirmação do pagamento.
+                    </div>
+                  )}
+                </div>
+
+                {/* Dados bancários pré-cadastrados */}
+                {(condicoes.includes('PIX') || condicoes.includes('Depósito/Transferência') || condicoes.includes('Boleto bancário')) && (
+                  <div className={styles.fg}>
+                    <label>Dados bancários para pagamento</label>
+                    {dadosBancarios.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                        {dadosBancarios.map(d => (
+                          <label key={d.id} style={{
+                            display: 'flex', gap: 10, padding: '10px 12px', cursor: 'pointer',
+                            background: dadosBancariosSel.includes(d.id) ? '#f0f7ff' : '#f8fafc',
+                            border: `1.5px solid ${dadosBancariosSel.includes(d.id) ? '#1a5fa8' : '#e2e8f0'}`,
+                            borderRadius: 8, transition: 'border-color 0.15s',
+                          }}>
+                            <input type="checkbox" checked={dadosBancariosSel.includes(d.id)}
+                              onChange={e => setDadosBancariosSel(prev =>
+                                e.target.checked ? [...prev, d.id] : prev.filter(x => x !== d.id)
+                              )}
+                              style={{ marginTop: 2, accentColor: '#1a5fa8' }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>{d.apelido}</div>
+                              <div style={{ fontSize: '0.78rem', color: '#475569', whiteSpace: 'pre-line', marginTop: 2 }}>
+                                {formatarDadoBancario(d)}
+                              </div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: 4 }}>
+                        Nenhuma conta cadastrada.
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+                      <button className={styles.btnAddItem} onClick={() => setShowCadastroBanco(v => !v)}>
+                        {showCadastroBanco ? '▲ Fechar' : '+ Cadastrar nova conta'}
+                      </button>
+                    </div>
+                    {showCadastroBanco && (
+                      <div style={{ marginTop: 8, padding: 14, background: '#fafbfc', border: '1.5px dashed #cbd5e1', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div className={styles.row2}>
+                          <div className={styles.fg}><label>Apelido *</label><input className={styles.input} placeholder="Ex: Bradesco PJ" value={formBanco.apelido ?? ''} onChange={e => setFormBanco(f => ({ ...f, apelido: e.target.value }))} /></div>
+                          <div className={styles.fg}><label>Banco</label><input className={styles.input} placeholder="Ex: Bradesco" value={formBanco.banco ?? ''} onChange={e => setFormBanco(f => ({ ...f, banco: e.target.value }))} /></div>
+                        </div>
+                        <div className={styles.row3}>
+                          <div className={styles.fg}><label>Agência</label><input className={styles.input} placeholder="1234" value={formBanco.agencia ?? ''} onChange={e => setFormBanco(f => ({ ...f, agencia: e.target.value }))} /></div>
+                          <div className={styles.fg}><label>Conta</label><input className={styles.input} placeholder="56789-0" value={formBanco.conta ?? ''} onChange={e => setFormBanco(f => ({ ...f, conta: e.target.value }))} /></div>
+                          <div className={styles.fg}>
+                            <label>Tipo</label>
+                            <select className={styles.input} value={formBanco.tipo_conta ?? 'corrente'} onChange={e => setFormBanco(f => ({ ...f, tipo_conta: e.target.value }))}>
+                              <option value="corrente">Corrente</option>
+                              <option value="poupanca">Poupança</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className={styles.row2}>
+                          <div className={styles.fg}><label>Chave PIX</label><input className={styles.input} placeholder="CNPJ, e-mail, telefone..." value={formBanco.pix_chave ?? ''} onChange={e => setFormBanco(f => ({ ...f, pix_chave: e.target.value }))} /></div>
+                          <div className={styles.fg}>
+                            <label>Tipo da chave</label>
+                            <select className={styles.input} value={formBanco.pix_tipo ?? ''} onChange={e => setFormBanco(f => ({ ...f, pix_tipo: e.target.value }))}>
+                              <option value="">—</option>
+                              <option value="cnpj">CNPJ</option>
+                              <option value="cpf">CPF</option>
+                              <option value="email">E-mail</option>
+                              <option value="telefone">Telefone</option>
+                              <option value="aleatoria">Aleatória</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className={styles.row2}>
+                          <div className={styles.fg}><label>Titular</label><input className={styles.input} placeholder="Pousinox Ind. Com. LTDA" value={formBanco.titular ?? ''} onChange={e => setFormBanco(f => ({ ...f, titular: e.target.value }))} /></div>
+                          <div className={styles.fg}><label>CNPJ do titular</label><input className={styles.input} placeholder="12.115.379/0001-64" value={formBanco.cnpj_titular ?? ''} onChange={e => setFormBanco(f => ({ ...f, cnpj_titular: e.target.value }))} /></div>
+                        </div>
+                        <button className={styles.btnPrimary} style={{ alignSelf: 'flex-start' }} onClick={salvarDadoBancario}>Salvar conta</button>
+                      </div>
+                    )}
+
+                    {/* Dados livres (fallback/complemento) */}
+                    <div style={{ marginTop: 8 }}>
+                      <label style={{ fontSize: '0.78rem', color: '#64748b' }}>Informações adicionais de pagamento (texto livre)</label>
+                      <textarea className={`${styles.input} ${styles.textarea}`} rows={2}
+                        placeholder="Ex: observações sobre pagamento, condições especiais..."
+                        value={dadosPagamento} onChange={e => setDadosPagamento(e.target.value)} />
+                    </div>
+                  </div>
                 )}
+
+                <div className={styles.row2}>
+                  <div className={styles.fg}><label>Prazo de entrega</label><input className={styles.input} placeholder="Ex: 10 dias úteis" value={prazoEntrega} onChange={e => setPrazoEntrega(e.target.value)} /></div>
+                </div>
+                <div className={styles.row2}>
+                  <div className={styles.fg}><label>Validade (dias)</label><input className={styles.input} type="number" min="1" value={validadeDias} onChange={e => setValidadeDias(e.target.value)} /></div>
+                  <div className={styles.fg}><label>Emissão</label><input className={styles.input} value={dataEmissao} readOnly style={{ background: '#f8fafc' }} /></div>
+                </div>
               </div>
+
+              {/* Observações */}
+              <div className={styles.section}>
+                <div className={styles.sectionTitle}>Observações</div>
+                <div className={styles.fg}><textarea className={`${styles.input} ${styles.textarea}`} rows={4} value={observacoes} onChange={e => setObservacoes(e.target.value)} /></div>
+              </div>
+
+              {/* Anexos & Rastreamento */}
 
               {/* Anexos */}
               <div className={styles.section}>
@@ -1509,246 +1095,35 @@ export default function AdminOrcamento() {
 
               {/* Links de rastreamento */}
               {editandoId && (
-                <div className={styles.section}>
-                  <div className={styles.sectionTitle}>Links de Rastreamento</div>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                    <input className={styles.input} style={{ flex: 1 }} placeholder="Destinatário (ex: João — Construtora ABC)" value={novoLinkDest} onChange={e => setNovoLinkDest(e.target.value)} />
-                    <button className={styles.btnAddItem} onClick={gerarLink} disabled={gerandoLink}>{gerandoLink ? '...' : '🔗 Gerar link'}</button>
-                    <button className={styles.btnSecondary} onClick={() => editandoId && carregarLinks(editandoId)} title="Atualizar contadores">↻</button>
-                  </div>
-                  {links.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {links.map(l => (
-                        <div key={l.id} style={{ background: l.ativo ? '#f8fafc' : '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px', fontSize: '0.75rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                            <div>
-                              <span style={{ fontWeight: 600, color: '#1e293b' }}>{l.destinatario || '— Sem destinatário —'}</span>
-                              {!l.ativo && <span style={{ marginLeft: 6, color: '#94a3b8' }}>(inativo)</span>}
-                              <div style={{ color: '#64748b', marginTop: 2 }}>
-                                {l.visualizacoes > 0 ? `👁 ${l.visualizacoes} visualiz. · ` : ''}
-                                {l.downloads > 0 ? `⬇️ ${l.downloads} download(s) · ` : ''}
-                                  {l.primeiro_acesso ? `1º acesso: ${new Date(l.primeiro_acesso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}` : 'Nunca acessado'}
-                                {l.visualizacoes > 0 && (
-                                  <span
-                                    style={{ marginLeft: 8, cursor: 'pointer', color: '#3b82f6', textDecoration: 'underline' }}
-                                    onClick={() => toggleAcessos(l.id)}
-                                  >
-                                    {expandedLink === l.id ? '▾ ocultar detalhes' : '▸ ver por IP'}
-                                  </span>
-                                )}
-                              </div>
-                              {expandedLink === l.id && (
-                                <div style={{ marginTop: 8, fontSize: '0.7rem', borderTop: '1px solid #e2e8f0', paddingTop: 6 }}>
-                                  {!acessosLink[l.id] ? (
-                                    <span style={{ color: '#94a3b8' }}>carregando…</span>
-                                  ) : acessosLink[l.id].length === 0 ? (
-                                    <span style={{ color: '#94a3b8' }}>nenhum acesso registrado</span>
-                                  ) : (
-                                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                      <thead>
-                                        <tr style={{ color: '#64748b' }}>
-                                          <th style={{ textAlign: 'left', paddingBottom: 4, fontWeight: 600 }}>Quando</th>
-                                          <th style={{ textAlign: 'left', paddingBottom: 4, fontWeight: 600 }}>IP</th>
-                                          <th style={{ textAlign: 'left', paddingBottom: 4, fontWeight: 600 }}>Dispositivo</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {acessosLink[l.id].map((a, i) => {
-                                          const ua = a.user_agent ?? ''
-                                          const device = /Mobile|Android|iPhone/i.test(ua) ? '📱 Mobile' : '🖥 Desktop'
-                                          const browser = /Chrome/i.test(ua) ? 'Chrome' : /Firefox/i.test(ua) ? 'Firefox' : /Safari/i.test(ua) ? 'Safari' : 'Outro'
-                                          return (
-                                            <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
-                                              <td style={{ padding: '3px 0', color: '#475569' }}>{new Date(a.acessado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                                              <td style={{ padding: '3px 8px', color: '#475569', fontFamily: 'monospace' }}>{a.ip ?? '—'}</td>
-                                              <td style={{ padding: '3px 0', color: '#475569' }}>{device} · {browser}</td>
-                                            </tr>
-                                          )
-                                        })}
-                                      </tbody>
-                                    </table>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                              {l.ativo && (
-                                <>
-                                  <button className={styles.btnAddItem} style={{ padding: '3px 10px', fontSize: '0.72rem' }}
-                                    onClick={() => { navigator.clipboard.writeText(linkUrl(l)); showMsg('ok', 'Link copiado!') }}>
-                                    📋 Copiar
-                                  </button>
-                                  {(() => {
-                                    const vend = vendedores.find(v => v.id === vendedorId)
-                                    const nomeCompleto = cliente.tipo_pessoa === 'pf' ? (cliente.nome || cliente.empresa) : cliente.empresa
-                                    const primeiroNome = nomeCompleto ? nomeCompleto.split(' ')[0] : ''
-                                    const assinaturaWa = vend?.nome ?? ''
-                                    const assinaturaEmail = [vend?.nome, vend?.telefone].filter(Boolean).join(' · ')
-                                    const corpo = (assinatura: string) => [
-                                      `Olá${primeiroNome ? ', ' + primeiroNome : ''}!`,
-                                      '',
-                                      `Segue o orçamento ${numero} da Pousinox conforme conversamos.`,
-                                      '',
-                                      linkUrl(l),
-                                      '',
-                                      'Qualquer dúvida estou à disposição.',
-                                      assinatura,
-                                    ].join('\n')
-                                    return (
-                                      <>
-                                        <a href={`https://wa.me/?text=${encodeURIComponent(corpo(assinaturaWa))}`} target="_blank" rel="noreferrer"
-                                          className={styles.btnAddItem} style={{ padding: '3px 10px', fontSize: '0.72rem', textDecoration: 'none' }}>
-                                          📲 WhatsApp
-                                        </a>
-                                        <a href={`mailto:${l.destinatario ?? ''}?subject=${encodeURIComponent(`Orçamento ${numero} — Pousinox`)}&body=${encodeURIComponent(corpo(assinaturaEmail))}`}
-                                          className={styles.btnAddItem} style={{ padding: '3px 10px', fontSize: '0.72rem', textDecoration: 'none' }}>
-                                          ✉️ E-mail
-                                        </a>
-                                      </>
-                                    )
-                                  })()}
-                                  <button className={styles.btnRemoveItem} onClick={() => desativarLink(l.id)} title="Desativar link">✕</button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          <div style={{ color: '#94a3b8', marginTop: 3, wordBreak: 'break-all' }}>{linkUrl(l)}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div style={{ fontSize: '0.70rem', color: '#94a3b8', marginTop: 6 }}>
-                    ℹ️ Cada link é único por destinatário. O rastreamento registra acessos via link — PDFs baixados offline não são rastreados.
-                  </div>
-                </div>
+                <LinksSection
+                  editandoId={editandoId} links={links} gerandoLink={gerandoLink}
+                  novoLinkDest={novoLinkDest} setNovoLinkDest={setNovoLinkDest}
+                  acessosLink={acessosLink} expandedLink={expandedLink}
+                  carregarLinks={carregarLinks} toggleAcessos={toggleAcessos}
+                  gerarLink={gerarLink} desativarLink={desativarLink} linkUrl={linkUrl}
+                  showMsg={showMsg} vendedores={vendedores} vendedorId={vendedorId}
+                  cliente={cliente} numero={numero} styles={styles}
+                />
               )}
+
+              {/* Configuração da Proposta */}
+              <ConfigSection
+                showControles={showControles} setShowControles={setShowControles}
+                exibir={exibir} setExibir={setExibir}
+                watermarkAtivo={watermarkAtivo} setWatermarkAtivo={setWatermarkAtivo}
+                watermarkLogo={watermarkLogo} setWatermarkLogo={setWatermarkLogo}
+                watermarkTexto={watermarkTexto} setWatermarkTexto={setWatermarkTexto}
+                imagemUrl={imagemUrl} setImagemUrl={setImagemUrl}
+                imagemRef={imagemRef} uploadandoImagem={uploadandoImagem} uploadImagem={uploadImagem}
+                origemLead={origemLead} setOrigemLead={setOrigemLead}
+                obsInternas={obsInternas} setObsInternas={setObsInternas}
+                styles={styles}
+              />
 
               {/* Rastreabilidade */}
-              {historico.length > 0 && (() => {
-                // Colapsar entradas consecutivas do mesmo evento no mesmo dia
-                const grupos: { evento: string; descricao: string | null; criado_em: string; usuario: string | null; count: number }[] = []
-                for (const h of historico) {
-                  const dia = h.criado_em.slice(0, 10)
-                  const last = grupos[grupos.length - 1]
-                  if (last && last.evento === h.evento && last.criado_em.slice(0, 10) === dia) {
-                    last.count++
-                  } else {
-                    grupos.push({ evento: h.evento, descricao: h.descricao, criado_em: h.criado_em, usuario: h.usuario, count: 1 })
-                  }
-                }
-                const visiveis = verTodoHistorico ? grupos : grupos.slice(0, 5)
-                return (
-                  <div className={styles.section}>
-                    <div className={styles.sectionTitle}>Rastreabilidade</div>
-                    <div className={styles.historicoList}>
-                      {visiveis.map((g, i) => (
-                        <div key={i} className={styles.historicoItem}>
-                          <span className={styles.historicoEvento}>
-                            {EVENTO_LABEL[g.evento] ?? g.evento}
-                            {g.count > 1 && <span style={{ marginLeft: 6, fontSize: '0.72rem', background: '#e2e8f0', color: '#64748b', borderRadius: 10, padding: '1px 7px', fontWeight: 600 }}>×{g.count}</span>}
-                          </span>
-                          {g.descricao && <span className={styles.historicoDesc}>{g.descricao}</span>}
-                          <span className={styles.historicoData}>{fmtEvento(g.criado_em)}{g.usuario ? ` · ${g.usuario}` : ''}</span>
-                        </div>
-                      ))}
-                    </div>
-                    {grupos.length > 5 && (
-                      <button type="button" onClick={() => setVerTodoHistorico(v => !v)}
-                        style={{ marginTop: 8, fontSize: '0.78rem', color: '#1a5fa8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
-                        {verTodoHistorico ? '▲ Ver menos' : `▼ Ver histórico completo (${grupos.length} entradas)`}
-                      </button>
-                    )}
-                  </div>
-                )
-              })()}
-            </div>
-
-            {/* Preview */}
-            <div className={styles.previewCol}>
-              <div className={styles.previewLabel}>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button
-                    onClick={() => setPreviewMode('pdf')}
-                    style={{ fontSize: '0.75rem', fontWeight: 600, padding: '3px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', background: previewMode === 'pdf' ? '#1a2f4e' : 'transparent', color: previewMode === 'pdf' ? '#fff' : '#94a3b8' }}
-                  >⬛ PDF</button>
-                  <button
-                    onClick={() => setPreviewMode('mobile')}
-                    style={{ fontSize: '0.75rem', fontWeight: 600, padding: '3px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', background: previewMode === 'mobile' ? '#1a2f4e' : 'transparent', color: previewMode === 'mobile' ? '#fff' : '#94a3b8' }}
-                  >📱 Mobile</button>
-                </div>
-                <button className={styles.btnFullscreen} onClick={() => setPreviewFullscreen(true)}>
-                  ⛶ Ampliar
-                </button>
-              </div>
-              {previewMode === 'mobile' ? (
-                (() => {
-                  const linkAtivo = links.find(l => l.ativo)
-                  if (!linkAtivo) return (
-                    <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem' }}>
-                      Gere um link público para ver a pré-visualização mobile.
-                    </div>
-                  )
-                  return (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}>
-                      <div style={{ width: 390, borderRadius: 16, overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 24px rgba(0,0,0,0.12)' }}>
-                        <iframe
-                          src={linkUrl(linkAtivo)}
-                          style={{ width: '100%', height: 720, border: 'none', display: 'block' }}
-                          title="Pré-visualização mobile"
-                        />
-                      </div>
-                    </div>
-                  )
-                })()
-              ) : (
-                editandoId
-                  ? <iframe
-                      key={editandoId}
-                      src={`/print/orcamento/${editandoId}?preview=1`}
-                      style={{ width: '100%', height: 900, border: 'none', display: 'block', borderRadius: 8 }}
-                      title="Pré-visualização PDF"
-                    />
-                  : <div style={{ padding: '48px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-                      Salve o orçamento para ver o preview do PDF.
-                    </div>
-              )}
-
-              {anexos.length > 0 && (
-                <div className={styles.previewAnexos}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b' }}>ANEXOS ({anexos.length})</span>
-                  {anexos.map(a => <a key={a.id ?? a.nome} href={a.url} target="_blank" rel="noreferrer" className={styles.anexoLink}>📎 {a.nome}</a>)}
-                </div>
-              )}
-            </div>
+              <HistoricoSection historico={historico} styles={styles} />
           </div>
         </>
-      )}
-
-      {/* Fullscreen portal — renderiza fora da hierarquia DOM para position:fixed funcionar */}
-      {previewFullscreen && createPortal(
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#1e293b', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '10px 20px', background: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-            <span style={{ color: '#94a3b8', fontSize: '0.8rem', fontWeight: 600 }}>Pré-visualização · PDF — Orçamento Nº {numero}</span>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {editandoId && <button onClick={() => window.open(`/print/orcamento/${editandoId}`, '_blank')} style={{ background: '#1a2f4e', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>⬇️ Baixar PDF</button>}
-              <button onClick={() => setPreviewFullscreen(false)} style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 16px', cursor: 'pointer', fontWeight: 700, fontSize: '0.9rem' }}>✕ Fechar</button>
-            </div>
-          </div>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            {editandoId
-              ? <iframe
-                  key={editandoId}
-                  src={`/print/orcamento/${editandoId}?preview=1`}
-                  style={{ width: '100%', height: '100%', border: 'none', display: 'block' }}
-                  title="Pré-visualização PDF fullscreen"
-                />
-              : <div style={{ padding: '48px 16px', textAlign: 'center', color: '#94a3b8', fontSize: '0.85rem' }}>
-                  Salve o orçamento para ver o preview do PDF.
-                </div>
-            }
-          </div>
-        </div>,
-        document.body
       )}
 
       {/* ═══ EMPRESAS ═══ */}

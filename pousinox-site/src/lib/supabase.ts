@@ -31,8 +31,11 @@ export interface ProdutoPublico {
   seminovo: boolean
   preco: number
   preco_original: number | null
-  desconto_percentual: number | null
   desconto_max: number | null
   total_interesses: number
   exibir_preco: boolean
+  peso_kg: number | null
+  comprimento_cm: number | null
+  largura_cm: number | null
+  altura_cm: number | null
 }

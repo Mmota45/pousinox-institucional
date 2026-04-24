@@ -1504,6 +1504,132 @@
   color: var(--color-primary, #1e3a5f);
 }
 
+/* ════════════════════════════════════════════
+   CALCULADORA DE FRETE
+   ════════════════════════════════════════════ */
+.freteBox {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.freteHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.freteHeader svg {
+  color: #1a5fa8;
+  flex-shrink: 0;
+}
+
+.freteInputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.freteInput {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.freteInput:focus {
+  outline: none;
+  border-color: #1a5fa8;
+  box-shadow: 0 0 0 3px rgba(26, 95, 168, 0.08);
+}
+
+.freteInput::placeholder {
+  color: #b0bec5;
+}
+
+.freteSpinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #1a5fa8;
+  border-radius: 50%;
+  animation: freteSpin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes freteSpin {
+  to { transform: rotate(360deg); }
+}
+
+.freteCidade {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.freteErro {
+  font-size: 0.78rem;
+  color: #dc2626;
+}
+
+.freteOpcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.freteOpcao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  transition: border-color 0.15s;
+}
+
+.freteOpcao:hover {
+  border-color: #1a5fa8;
+}
+
+.freteOpcaoInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.freteServico {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+
+.fretePrazo {
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+
+.fretePreco {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #16a34a;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Form no modal */
 .modalForm {
   border-top: 1px solid var(--color-border);
