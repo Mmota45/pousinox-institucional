@@ -1,0 +1,115 @@
+.wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 60px; display: flex; flex-direction: column; gap: 24px; }
+
+.titulo { font-size: 1.4rem; font-weight: 700; color: var(--color-text); margin: 0; }
+.subtitulo { font-size: 0.88rem; color: var(--color-text-light); margin: 2px 0 0; }
+
+/* Steps indicator */
+.steps { display: flex; gap: 4px; }
+.step { flex: 1; height: 4px; border-radius: 2px; background: #e2e8f0; transition: background 0.3s; }
+.stepAtivo { background: var(--color-primary); }
+.stepCompleto { background: #22c55e; }
+
+.stepLabels { display: flex; justify-content: space-between; }
+.stepLabel { font-size: 0.72rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; transition: color 0.2s; }
+.stepLabelAtivo { color: var(--color-primary); }
+
+/* Card */
+.card { background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+.cardTitle { font-size: 1rem; font-weight: 700; color: var(--color-text); margin: 0; }
+
+/* Form */
+.formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.formGrid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.formFull { grid-column: 1 / -1; }
+.formGroup { display: flex; flex-direction: column; gap: 5px; }
+.formLabel { font-size: 0.78rem; font-weight: 600; color: var(--color-text-light); text-transform: uppercase; letter-spacing: 0.04em; }
+.formInput, .formSelect {
+  padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 8px;
+  font-size: 0.92rem; color: var(--color-text); background: #f8fafc;
+  width: 100%; box-sizing: border-box; font-family: inherit; transition: border-color 0.15s, background 0.15s;
+}
+.formInput:focus, .formSelect:focus { outline: none; border-color: var(--color-primary); background: #fff; }
+.formTextarea { composes: formInput; resize: vertical; min-height: 60px; }
+
+/* Buttons */
+.actions { display: flex; gap: 10px; justify-content: space-between; padding-top: 8px; }
+.btnPrimary {
+  display: inline-flex; align-items: center; gap: 6px; padding: 12px 24px;
+  background: var(--color-primary); color: #fff; border: none; border-radius: 8px;
+  font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
+}
+.btnPrimary:hover { background: var(--color-primary-dark, #1a56db); }
+.btnPrimary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btnSecondary {
+  display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px;
+  background: #fff; color: var(--color-text); border: 1px solid var(--color-border); border-radius: 8px;
+  font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: background 0.15s;
+}
+.btnSecondary:hover { background: #f1f5f9; }
+
+.btnConfirmar {
+  width: 100%; padding: 14px; background: #16a34a; color: #fff; border: none; border-radius: 10px;
+  font-size: 1rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
+}
+.btnConfirmar:hover { background: #15803d; }
+.btnConfirmar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Frete options */
+.freteOpcoes { display: flex; flex-direction: column; gap: 8px; }
+.freteOpcao {
+  display: flex; align-items: center; justify-content: space-between; background: #fff;
+  border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 16px; cursor: pointer; transition: all 0.15s;
+}
+.freteOpcao:hover { border-color: #1a5fa8; }
+.freteOpcaoSel { border-color: #1a3a5c; background: #f0f5ff; box-shadow: 0 0 0 2px rgba(26,63,92,0.15); }
+.freteServico { font-weight: 600; font-size: 0.9rem; color: var(--color-text); }
+.fretePrazo { font-size: 0.78rem; color: var(--color-text-light); }
+.fretePreco { font-weight: 700; font-size: 0.95rem; color: #1a3a5c; white-space: nowrap; }
+.freteLoading { text-align: center; padding: 16px; color: var(--color-text-light); font-size: 0.88rem; }
+
+/* Resumo */
+.resumo { display: flex; flex-direction: column; gap: 8px; }
+.resumoLinha { display: flex; justify-content: space-between; font-size: 0.9rem; color: #334155; padding: 4px 0; }
+.resumoTotal { border-top: 2px solid #1a3a5c; padding-top: 8px; margin-top: 4px; font-weight: 700; font-size: 1.05rem; color: #1a3a5c; }
+
+/* Pix box */
+.pixBox {
+  background: #f0fdf4; border: 2px solid #86efac; border-radius: 12px;
+  padding: 20px; display: flex; flex-direction: column; gap: 12px; text-align: center;
+}
+.pixTitulo { font-weight: 700; font-size: 1rem; color: #166534; margin: 0; }
+.pixChave {
+  background: #fff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;
+  font-family: monospace; font-size: 0.95rem; color: #166534; word-break: break-all;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.pixCopiar {
+  background: #166534; color: #fff; border: none; border-radius: 6px;
+  padding: 6px 14px; font-size: 0.8rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.pixCopiar:hover { background: #14532d; }
+.pixQr { display: flex; flex-direction: column; align-items: center; padding: 8px 0; }
+.pixQr img { border-radius: 12px; border: 4px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.pixInfo { font-size: 0.82rem; color: #166534; line-height: 1.5; }
+.pixInfo strong { display: block; }
+
+/* Produto mini */
+.produtoMini { display: flex; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+.produtoMiniImg { width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; }
+.produtoMiniInfo { flex: 1; }
+.produtoMiniTitulo { font-weight: 600; font-size: 0.9rem; color: var(--color-text); }
+.produtoMiniPreco { font-size: 0.82rem; color: var(--color-text-light); }
+
+/* Erro / Msg */
+.erro { background: #fee2e2; color: #991b1b; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; }
+.sucesso { background: #dcfce7; color: #166534; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; }
+
+/* Voltar */
+.voltar { display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-light); text-decoration: none; font-size: 0.85rem; font-weight: 500; }
+.voltar:hover { color: var(--color-text); }
+
+@media (max-width: 600px) {
+  .formGrid, .formGrid3 { grid-template-columns: 1fr; }
+  .wrap { padding: 16px 12px 40px; }
+}

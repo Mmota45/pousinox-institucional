@@ -24,6 +24,12 @@ import AdminVendas from './pages/AdminVendas'
 import AdminRelatorios from './pages/AdminRelatorios'
 import AdminAnaliseNF from './pages/AdminAnaliseNF'
 import AdminOrcamento from './pages/AdminOrcamento'
+import AdminFrete from './pages/AdminFrete'
+import AdminPedidosOutlet from './pages/AdminPedidosOutlet'
+import Checkout from './pages/Checkout'
+import { CartProvider } from './contexts/CartContext'
+import CartDrawer from './components/CartDrawer/CartDrawer'
+import PedidoStatus from './pages/PedidoStatus'
 import AdminCartoes from './pages/AdminCartoes'
 import ViewCartao from './pages/ViewCartao'
 import AdminUsuarios from './pages/AdminUsuarios'
@@ -103,8 +109,9 @@ function App() {
   }, [location.pathname])
 
   return (
-    <>
+    <CartProvider>
       {!isAdmin && !isFullscreen && <Header />}
+      {!isAdmin && !isFullscreen && <CartDrawer />}
       <main>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -122,6 +129,8 @@ function App() {
           <Route path="/fixador-porcelanato/normas" element={<FixadorNormas />} />
           <Route path="/fixador-porcelanato/orcamento" element={<FixadorOrcamento />} />
           <Route path="/pronta-entrega" element={<Outlet />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/pedido/:codigo" element={<PedidoStatus />} />
           <Route path="/outlet" element={<Navigate to="/pronta-entrega" replace />} />
           <Route path="/produto/:id" element={<Navigate to="/pronta-entrega" replace />} />
           <Route path="/admin" element={<AdminLayout />}>
@@ -134,6 +143,8 @@ function App() {
             <Route path="analise-nf" element={<AdminAnaliseNF />} />
             <Route path="cartoes" element={<AdminCartoes />} />
             <Route path="orcamento" element={<AdminOrcamento />} />
+            <Route path="frete" element={<AdminFrete />} />
+            <Route path="pedidos-outlet" element={<AdminPedidosOutlet />} />
             <Route path="usuarios" element={<AdminUsuarios />} />
             <Route path="conteudo" element={<AdminConteudo />} />
             <Route path="analytics" element={<AdminAnalytics />} />
@@ -179,7 +190,7 @@ function App() {
           </svg>
         </a>
       )}
-    </>
+    </CartProvider>
   )
 }
 

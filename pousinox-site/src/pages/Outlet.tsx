@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import SEO from '../components/SEO/SEO'
 import { supabase } from '../lib/supabase'
 import type { ProdutoPublico } from '../lib/supabase'
+import { useCart } from '../contexts/CartContext'
 import styles from './Outlet.module.css'
 
 interface OpcaoFrete {
@@ -9,6 +11,7 @@ interface OpcaoFrete {
   codigo: string
   preco: number
   prazo: number
+  prazo_texto?: string
   erro: string | null
 }
 
@@ -18,19 +21,25 @@ interface FreteResult {
 }
 
 function FreteCalculator({ produto }: { produto: ProdutoPublico }) {
+  const navigate = useNavigate()
+  const { addItem } = useCart()
+  const [addedToCart, setAddedToCart] = useState(false)
   const [cep, setCep] = useState('')
+  const [qtd, setQtd] = useState(1)
   const [loading, setLoading] = useState(false)
   const [resultado, setResultado] = useState<FreteResult | null>(null)
+  const [freteSel, setFreteSel] = useState(0) // índice da opção selecionada
   const [erro, setErro] = useState<string | null>(null)
   const [cidadeFrete, setCidadeFrete] = useState('')
 
   const temDados = produto.peso_kg && produto.peso_kg > 0
 
-  const calcular = useCallback(async (cepLimpo: string) => {
+  const calcular = useCallback(async (cepLimpo: string, quantidade: number) => {
     if (cepLimpo.length !== 8 || !temDados) return
     setLoading(true)
     setErro(null)
     setResultado(null)
+    setFreteSel(0)
 
     // Busca cidade
     try {
@@ -40,13 +49,16 @@ function FreteCalculator({ produto }: { produto: ProdutoPublico }) {
     } catch { /* ignora */ }
 
     try {
+      const pesoTotal = (produto.peso_kg ?? 0) * quantidade
+      const altUnit = produto.altura_cm || 10
+      const altTotal = Math.min(altUnit * quantidade, 100) // empilha até limite Correios
       const { data, error } = await supabase.functions.invoke('calcular-frete', {
         body: {
           cep_destino: cepLimpo,
-          peso_kg: produto.peso_kg,
+          peso_kg: pesoTotal,
           comprimento_cm: produto.comprimento_cm || 20,
           largura_cm: produto.largura_cm || 15,
-          altura_cm: produto.altura_cm || 10,
+          altura_cm: altTotal,
         },
       })
       if (error) throw error
@@ -68,6 +80,21 @@ function FreteCalculator({ produto }: { produto: ProdutoPublico }) {
       </div>
       <div className={styles.freteInputRow}>
         <input
+          type="number"
+          min={1}
+          max={99}
+          value={qtd}
+          onChange={e => {
+            const n = Math.max(1, Math.min(99, parseInt(e.target.value) || 1))
+            setQtd(n)
+            const raw = cep.replace(/\D/g, '')
+            if (raw.length === 8) calcular(raw, n)
+          }}
+          className={styles.freteInput}
+          style={{ width: 52, textAlign: 'center', flexShrink: 0 }}
+          title="Quantidade"
+        />
+        <input
           type="text"
           placeholder="Digite seu CEP"
           value={cep}
@@ -79,7 +106,7 @@ function FreteCalculator({ produto }: { produto: ProdutoPublico }) {
             setCidadeFrete('')
             setResultado(null)
             setErro(null)
-            if (v.length === 8) calcular(v)
+            if (v.length === 8) calcular(v, qtd)
           }}
           className={styles.freteInput}
         />
@@ -92,14 +119,15 @@ function FreteCalculator({ produto }: { produto: ProdutoPublico }) {
 
       {resultado && resultado.opcoes.length > 0 && (
         <div className={styles.freteOpcoes}>
-          {resultado.opcoes.map(op => (
-            <div key={op.codigo} className={styles.freteOpcao}>
+          {resultado.opcoes.map((op, i) => (
+            <div key={op.codigo} className={`${styles.freteOpcao} ${i === freteSel ? styles.freteOpcaoSel : ''}`}
+              onClick={() => setFreteSel(i)} style={{ cursor: 'pointer' }}>
               <div className={styles.freteOpcaoInfo}>
                 <span className={styles.freteServico}>{op.servico}</span>
-                <span className={styles.fretePrazo}>{op.prazo} dia{op.prazo !== 1 ? 's' : ''} útei{op.prazo !== 1 ? 's' : ''}</span>
+                <span className={styles.fretePrazo}>{op.prazo_texto ?? `${op.prazo} ${op.prazo !== 1 ? 'dias úteis' : 'dia útil'}`}</span>
               </div>
               <span className={styles.fretePreco}>
-                R$ {op.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {op.preco === 0 ? 'Grátis' : `R$ ${op.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
               </span>
             </div>
           ))}
@@ -108,6 +136,70 @@ function FreteCalculator({ produto }: { produto: ProdutoPublico }) {
 
       {resultado && resultado.opcoes.length === 0 && (
         <span className={styles.freteErro}>Nenhuma opção de frete disponível para este CEP.</span>
+      )}
+
+      {/* Resumo: subtotal + frete + total */}
+      {produto.exibir_preco && produto.preco > 0 && resultado && resultado.opcoes.length > 0 && (() => {
+        const sel = resultado.opcoes[freteSel] ?? resultado.opcoes[0]
+        const subtotal = produto.preco * qtd
+        const total = subtotal + sel.preco
+        return (
+          <div className={styles.freteResumo}>
+            <div className={styles.freteResumoLine}>
+              <span>Produtos ({qtd}×)</span>
+              <span>R$ {subtotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className={styles.freteResumoLine}>
+              <span>Frete ({sel.servico})</span>
+              <span>{sel.preco === 0 ? 'Grátis' : `R$ ${sel.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}</span>
+            </div>
+            <div className={`${styles.freteResumoLine} ${styles.freteTotal}`}>
+              <span>Total</span>
+              <span>R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Botões Comprar / Carrinho */}
+      {produto.exibir_preco && produto.preco > 0 && produto.disponivel && (
+        <div className={styles.botoesCompra}>
+          <button className={styles.btnCarrinho}
+            onClick={() => {
+              addItem({
+                produtoId: Number(produto.id),
+                titulo: produto.titulo,
+                preco: produto.preco,
+                quantidade: qtd,
+                imagem: produto.fotos?.[0] ?? '',
+                peso_kg: produto.peso_kg || 0,
+                altura_cm: produto.altura_cm || 0,
+                comprimento_cm: produto.comprimento_cm || 0,
+                largura_cm: produto.largura_cm || 0,
+              })
+              setAddedToCart(true)
+              setTimeout(() => setAddedToCart(false), 2000)
+            }}>
+            {addedToCart ? '✓ Adicionado!' : 'Adicionar ao carrinho'}
+          </button>
+          <button className={styles.btnComprar}
+            onClick={() => {
+              addItem({
+                produtoId: Number(produto.id),
+                titulo: produto.titulo,
+                preco: produto.preco,
+                quantidade: qtd,
+                imagem: produto.fotos?.[0] ?? '',
+                peso_kg: produto.peso_kg || 0,
+                altura_cm: produto.altura_cm || 0,
+                comprimento_cm: produto.comprimento_cm || 0,
+                largura_cm: produto.largura_cm || 0,
+              })
+              navigate('/checkout')
+            }}>
+            Comprar agora
+          </button>
+        </div>
       )}
     </div>
   )
@@ -522,11 +614,13 @@ export default function Outlet() {
       {selecionado && (
         <div className={styles.modalBackdrop} onClick={fecharModal}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <button className={styles.modalClose} onClick={fecharModal} aria-label="Fechar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
+            <div className={styles.modalTopActions}>
+              <button className={styles.modalActionBtn} onClick={fecharModal} aria-label="Fechar">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
 
             <div className={styles.modalBody}>
               {/* Coluna esquerda — imagem + specs */}
@@ -585,9 +679,9 @@ export default function Outlet() {
                   )}
                   <button className={styles.shareBtn} onClick={() => compartilhar(selecionado)} title={copiado ? 'Copiado!' : 'Compartilhar'} type="button">
                     {copiado ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg> Copiado</>
                     ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                      <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Compartilhar</>
                     )}
                   </button>
                 </div>
@@ -635,29 +729,6 @@ export default function Outlet() {
                           <input id="nome" type="text" placeholder="Seu nome" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} required />
                           <input id="whatsapp" type="tel" placeholder="(35) 99999-9999" value={form.whatsapp} onChange={e => setForm(f => ({ ...f, whatsapp: e.target.value }))} required />
                         </div>
-                        <div className={styles.formRow}>
-                          <input
-                            id="cep"
-                            type="text"
-                            placeholder="CEP (opcional)"
-                            value={form.cep}
-                            maxLength={9}
-                            onChange={e => {
-                              const v = e.target.value.replace(/\D/g, '').slice(0, 8)
-                              const mask = v.length > 5 ? `${v.slice(0,5)}-${v.slice(5)}` : v
-                              setForm(f => ({ ...f, cep: mask, cidade: '', uf: '' }))
-                              if (v.length === 8) buscarCep(v)
-                            }}
-                          />
-                          <input
-                            id="cidade"
-                            type="text"
-                            placeholder={buscandoCep ? 'Buscando...' : 'Cidade/UF (auto)'}
-                            value={form.cidade ? `${form.cidade}${form.uf ? ` — ${form.uf}` : ''}` : ''}
-                            readOnly
-                            style={{ background: '#f8fafc', color: '#64748b' }}
-                          />
-                        </div>
                         {resultado === 'duplicado' && <p className={styles.erroMsg}>Você já demonstrou interesse neste produto. Verifique seu WhatsApp!</p>}
                         {resultado === 'erro' && <p className={styles.erroMsg}>Erro ao registrar. Tente novamente.</p>}
                         <button type="submit" className={styles.submitBtn} disabled={enviando}>
@@ -681,7 +752,6 @@ export default function Outlet() {
                         referrerPolicy="no-referrer-when-downgrade"
                         title="Localização Pousinox"
                       />
-                      <a href="https://maps.app.goo.gl/bNAwCL7Jz4n3pJZx8" target="_blank" rel="noopener noreferrer" className={styles.mapsLink}>Ver no Google Maps ↗</a>
                     </div>
                   </div>
                   <div className={styles.modalInfoItem}>
@@ -737,9 +807,7 @@ function ProdutoCard({ produto: p, onInteresse, onCompartilhar }: {
     ? 'Consultar disponibilidade'
     : isVendido
       ? 'Solicitar encomenda'
-      : p.exibir_preco && p.preco > 0
-        ? 'Tenho interesse'
-        : 'Solicitar orçamento'
+      : 'Tenho interesse'
 
   return (
     <div className={`${styles.card} ${isVendido ? styles.cardVendido : ''}`}>
@@ -779,35 +847,7 @@ function ProdutoCard({ produto: p, onInteresse, onCompartilhar }: {
         <h3 className={styles.cardTitulo}>{p.titulo}</h3>
 
         {/* Benefício / descrição curta */}
-        {p.descricao && (
-          <p className={styles.cardDesc}>{p.descricao}</p>
-        )}
 
-        {/* Preço */}
-        {p.exibir_preco && p.preco > 0 && (
-          <div className={styles.cardPreco}>
-            {p.preco_original && p.preco_original > p.preco && (
-              <span className={styles.cardPrecoOriginal}>
-                R$ {p.preco_original.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </span>
-            )}
-            <span className={styles.cardPrecoValor}>
-              R$ {p.preco.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-        )}
-
-        {/* Specs rápidos */}
-        {specs.length > 0 && (
-          <div className={styles.cardSpecs}>
-            {specs.map(s => (
-              <span key={s.k} className={styles.cardSpec}>
-                <span className={styles.cardSpecKey}>{s.k}</span>
-                <span className={styles.cardSpecVal}>{s.v}</span>
-              </span>
-            ))}
-          </div>
-        )}
 
         {/* Social proof */}
         {p.total_interesses > 0 && !isVendido && (
@@ -817,18 +857,14 @@ function ProdutoCard({ produto: p, onInteresse, onCompartilhar }: {
         )}
       </div>
 
-      {/* Ações */}
-      <div className={styles.cardFooter}>
-        <button className={styles.cardBtnPrimary} onClick={onInteresse}>
-          {ctaLabel}
-        </button>
-        <button className={styles.cardBtnSecondary} onClick={onInteresse}>
-          Ver detalhes
-        </button>
-        <button className={styles.cardShareBtn} onClick={onCompartilhar} type="button" title="Compartilhar">
+      {/* Rodapé: Ver preço + compartilhar */}
+      <div className={styles.cardVerPrecoRow}>
+        <span className={styles.cardVerPreco} onClick={e => { e.stopPropagation(); onInteresse() }}>Ver preço →</span>
+        <button className={styles.cardShareBtn} onClick={e => { e.stopPropagation(); onCompartilhar() }} type="button" title="Compartilhar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>
       </div>
+
     </div>
   )
 }

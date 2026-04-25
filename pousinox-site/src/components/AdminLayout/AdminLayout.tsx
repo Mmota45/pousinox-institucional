@@ -45,9 +45,11 @@ const ROTA_PERMISSAO: Record<string, string> = {
   'docs-emitidos':       'docs-emitidos',
   'configuracao-financeiro': 'configuracao-financeiro',
   cartoes: 'cartoes',
+  frete: 'frete',
+  'pedidos-outlet': 'pedidos-outlet',
 }
 
-const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao', 'clientes', 'produtos', 'projetos', 'fornecedores', 'financeiro', 'campanhas', 'conciliacao', 'pipeline', 'producao', 'qualidade', 'manutencao', 'solicitacoes-compra', 'cotacoes-compra', 'pedidos-compra', 'recebimentos-compra', 'estoque-mp', 'estoque-pa', 'inventario', 'docs-recebidos', 'docs-emitidos', 'bens-frota', 'estudo-mercado', 'configuracao-financeiro', 'cartoes']
+const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao', 'clientes', 'produtos', 'projetos', 'fornecedores', 'financeiro', 'campanhas', 'conciliacao', 'pipeline', 'producao', 'qualidade', 'manutencao', 'solicitacoes-compra', 'cotacoes-compra', 'pedidos-compra', 'recebimentos-compra', 'estoque-mp', 'estoque-pa', 'inventario', 'docs-recebidos', 'docs-emitidos', 'bens-frota', 'estudo-mercado', 'configuracao-financeiro', 'cartoes', 'frete', 'pedidos-outlet']
 
 interface NavItem {
   to: string
@@ -139,6 +141,28 @@ const NAV_ITEMS: NavItem[] = [
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+      </svg>
+    ),
+  },
+  {
+    to: '/admin/frete',
+    label: 'Frete',
+    permissao: 'frete',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+        <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+      </svg>
+    ),
+  },
+  {
+    to: '/admin/pedidos-outlet',
+    label: 'Pedidos Outlet',
+    permissao: 'pedidos-outlet',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
+        <line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
       </svg>
     ),
   },
@@ -537,6 +561,7 @@ export default function AdminLayout() {
   const [setupSalvando, setSetupSalvando] = useState(false)
 
   const [notificacoes, setNotificacoes] = useState<{ id: number; texto: string }[]>([])
+  const [pedidosPendentes, setPedidosPendentes] = useState(0)
   const audioCtxRef = useRef<AudioContext | null>(null)
 
   const navigate = useNavigate()
@@ -598,6 +623,78 @@ export default function AdminLayout() {
 
   // Fecha drawer ao navegar
   useEffect(() => { setDrawerOpen(false) }, [location.pathname])
+
+  // Som de notificação (Web Audio API)
+  // Som de caixa registradora (ka-ching!)
+  const playNotifSound = useCallback(() => {
+    try {
+      const ctx = new AudioContext()
+      const t = ctx.currentTime
+
+      // 1) "Ka" — ruído metálico curto (tecla batendo)
+      const bufSize = ctx.sampleRate * 0.08
+      const noiseBuf = ctx.createBuffer(1, bufSize, ctx.sampleRate)
+      const noiseData = noiseBuf.getChannelData(0)
+      for (let i = 0; i < bufSize; i++) noiseData[i] = (Math.random() * 2 - 1) * 0.4
+      const noise = ctx.createBufferSource()
+      noise.buffer = noiseBuf
+      const noiseGain = ctx.createGain()
+      noiseGain.gain.setValueAtTime(0.5, t)
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08)
+      const hp = ctx.createBiquadFilter()
+      hp.type = 'highpass'
+      hp.frequency.value = 4000
+      noise.connect(hp).connect(noiseGain).connect(ctx.destination)
+      noise.start(t)
+      noise.stop(t + 0.08)
+
+      // 2) "Ching" — sino metálico agudo
+      const freqs = [1200, 1800, 2400]
+      freqs.forEach(f => {
+        const osc = ctx.createOscillator()
+        const g = ctx.createGain()
+        osc.type = 'sine'
+        osc.frequency.value = f
+        g.gain.setValueAtTime(0.15, t + 0.06)
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.6)
+        osc.connect(g).connect(ctx.destination)
+        osc.start(t + 0.06)
+        osc.stop(t + 0.6)
+      })
+
+      // 3) Gaveta abrindo — tom grave curto
+      const drawer = ctx.createOscillator()
+      const dg = ctx.createGain()
+      drawer.type = 'square'
+      drawer.frequency.setValueAtTime(150, t + 0.1)
+      drawer.frequency.exponentialRampToValueAtTime(80, t + 0.25)
+      dg.gain.setValueAtTime(0.12, t + 0.1)
+      dg.gain.exponentialRampToValueAtTime(0.001, t + 0.25)
+      drawer.connect(dg).connect(ctx.destination)
+      drawer.start(t + 0.1)
+      drawer.stop(t + 0.25)
+    } catch { /* silencioso se audio bloqueado */ }
+  }, [])
+
+  // Contar pedidos outlet pendentes (polling a cada 30s)
+  const pedidosPendentesRef = useRef(-1)
+  useEffect(() => {
+    const fetchPendentes = async () => {
+      const { count } = await supabaseAdmin
+        .from('pedidos_outlet')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'aguardando_pagamento')
+      const novo = count ?? 0
+      if (novo > pedidosPendentesRef.current && pedidosPendentesRef.current >= 0 && novo > 0) {
+        playNotifSound()
+      }
+      pedidosPendentesRef.current = novo
+      setPedidosPendentes(novo)
+    }
+    fetchPendentes()
+    const interval = setInterval(fetchPendentes, 30000)
+    return () => clearInterval(interval)
+  }, [playNotifSound])
 
   useEffect(() => {
     let isMounted = true
@@ -899,6 +996,10 @@ export default function AdminLayout() {
   }
 
   const navVisivel = NAV_ITEMS.filter(item => !item.permissao || perfil.permissoes.includes(item.permissao))
+    .map(item => item.to === '/admin/pedidos-outlet' && pedidosPendentes > 0
+      ? { ...item, badge: String(pedidosPendentes) }
+      : item
+    )
 
   // Rastreia qual seção cada item pertence
   let secaoAtual = ''
