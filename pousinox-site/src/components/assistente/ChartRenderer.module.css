@@ -1,0 +1,21 @@
+/* ChartRenderer — gráficos gerados por IA */
+
+.wrap {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 8px 0;
+}
+
+.title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 10px;
+}
+
+.chartBox {
+  height: 260px;
+  width: 100%;
+}

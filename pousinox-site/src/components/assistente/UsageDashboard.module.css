@@ -1,0 +1,119 @@
+/* UsageDashboard — painel de custos IA */
+
+.panel {
+  padding: 8px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.periodRow {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+}
+
+.periodBtn {
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.56rem;
+  color: #6b7280;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.08s;
+}
+
+.periodBtn:hover { background: #f3f4f6; }
+.periodActive { background: #111827; color: #fff; border-color: #111827; }
+.periodActive:hover { background: #1f2937; }
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+}
+
+.summaryCard {
+  background: #f9fafb;
+  border: 1px solid #ebedf0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.summaryLabel {
+  font-size: 0.5rem;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summaryVal {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #111;
+  font-variant-numeric: tabular-nums;
+}
+
+.summarySub {
+  font-size: 0.48rem;
+  color: #9ca3af;
+}
+
+.chartWrap {
+  height: 120px;
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 0.52rem;
+  font-weight: 600;
+  color: #a0a6b1;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin: 4px 0 2px;
+}
+
+.moduleList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.moduleRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.6rem;
+}
+
+.moduleDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.moduleName {
+  flex: 1;
+  color: #4b5563;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moduleVal {
+  font-weight: 600;
+  color: #111;
+  font-variant-numeric: tabular-nums;
+}
+
+.emptyMsg {
+  font-size: 0.6rem;
+  color: #9ca3af;
+  text-align: center;
+  padding: 12px 0;
+}

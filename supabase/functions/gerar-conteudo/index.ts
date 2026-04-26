@@ -3,6 +3,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+import { logUsage } from '../_shared/logUsage.ts'
+
 const GEMINI_KEY = Deno.env.get('GEMINI_KEY') ?? ''
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`
 
@@ -168,6 +170,8 @@ ${camposRede.join(',\n')}
   }
 
   const genData = await genRes.json()
+  const um = genData.usageMetadata
+  if (um) logUsage('gerar-conteudo', 'gemini-2.5-flash', um.promptTokenCount ?? 0, um.candidatesTokenCount ?? 0)
   const texto = genData.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}'
 
   let parsed: unknown

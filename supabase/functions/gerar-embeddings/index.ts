@@ -5,6 +5,8 @@
 // POST /functions/v1/gerar-embeddings
 // Body (opcional): { projeto_id: number }  — se omitido, processa todos os pendentes
 
+import { logUsage } from '../_shared/logUsage.ts'
+
 const GEMINI_KEY    = Deno.env.get('GEMINI_KEY')            ?? ''
 const SUPABASE_URL  = Deno.env.get('SUPABASE_URL')          ?? ''
 const SERVICE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -47,6 +49,9 @@ async function gerarEmbedding(texto: string): Promise<number[]> {
     throw new Error(`Gemini error ${res.status}: ${err}`)
   }
   const json = await res.json()
+  // Estima tokens (~4 chars/token) — Gemini embedding não retorna usage
+  const estTokens = Math.ceil(texto.length / 4)
+  logUsage('gerar-embeddings', 'gemini-embedding-001', estTokens, 0)
   return json.embedding.values as number[]
 }
 

@@ -1,0 +1,95 @@
+/* KnowledgeBase — gestão de documentos RAG */
+
+.panel {
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.uploadBtn {
+  background: #eff6ff;
+  border: 1px dashed #93c5fd;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 0.6rem;
+  color: #2563eb;
+  cursor: pointer;
+  text-align: center;
+  font-family: inherit;
+  transition: background 0.08s;
+}
+
+.uploadBtn:hover { background: #dbeafe; }
+.uploadBtn:disabled { opacity: 0.4; cursor: wait; }
+
+.docList {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.docItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: #f9fafb;
+  border: 1px solid #ebedf0;
+  border-radius: 5px;
+  font-size: 0.58rem;
+}
+
+.docIcon { flex-shrink: 0; }
+
+.docInfo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #374151;
+}
+
+.docChunks {
+  font-size: 0.5rem;
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.docDel {
+  background: none;
+  border: none;
+  color: #d1d5db;
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 1px 3px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.docDel:hover { color: #dc2626; }
+
+.ragToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.58rem;
+  color: #6b7280;
+  padding: 2px 0;
+}
+
+.ragToggle input { accent-color: #2563eb; }
+
+.emptyDocs {
+  font-size: 0.56rem;
+  color: #9ca3af;
+  text-align: center;
+  padding: 6px 0;
+}
+
+.progress {
+  font-size: 0.54rem;
+  color: #2563eb;
+  text-align: center;
+}

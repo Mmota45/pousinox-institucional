@@ -276,6 +276,7 @@ serve(async (req) => {
     }
     const { data: inputData } = inputResult
 
+    const { logUsage } = await import('../_shared/logUsage.ts')
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY não configurada')
 
@@ -301,6 +302,8 @@ serve(async (req) => {
     }
 
     const iaData = await iaRes.json()
+    const u = iaData?.usage
+    if (u) logUsage('gerar-artigo', 'claude-haiku-4-5-20251001', u.input_tokens ?? 0, u.output_tokens ?? 0)
     const rawText: string = iaData?.content?.[0]?.text ?? ''
 
     if (!rawText) throw new Error('IA retornou resposta vazia.')

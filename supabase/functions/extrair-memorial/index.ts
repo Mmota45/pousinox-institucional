@@ -5,6 +5,8 @@
 // POST /functions/v1/extrair-memorial
 // Body: { texto: string, catalogo: AtributoCatalogo[] }
 
+import { logUsage } from '../_shared/logUsage.ts'
+
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
 const CLAUDE_MODEL  = 'claude-haiku-4-5-20251001'
 
@@ -158,6 +160,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const data = await res.json()
+    const u = data.usage
+    if (u) logUsage('extrair-memorial', CLAUDE_MODEL, u.input_tokens ?? 0, u.output_tokens ?? 0)
     const conteudo = data.content?.[0]?.text ?? '[]'
 
     let parsed: { campos_basicos?: CamposBasicos; atributos?: AtributoExtraido[]; componentes?: ComponenteExtraido[] } = {}

@@ -1,0 +1,93 @@
+/* FileUpload — botão 📎 e preview */
+
+.attachBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #9ca3af;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.08s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.attachBtn:hover { color: #4b5563; }
+.attachBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.hiddenInput { display: none; }
+
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  max-width: 1120px;
+  margin: 0 auto 6px;
+}
+
+.previewThumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.previewIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  background: #eff6ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.previewInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.previewName {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #111;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewSize {
+  font-size: 0.54rem;
+  color: #9ca3af;
+}
+
+.previewDel {
+  background: none;
+  border: none;
+  color: #d1d5db;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.previewDel:hover { color: #dc2626; }
+
+.uploading {
+  font-size: 0.64rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}

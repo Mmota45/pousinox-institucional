@@ -1,5 +1,6 @@
 import { OrcamentoSchema, OrcamentoExtraido } from './schema.ts'
 import { buildPrompt } from './prompt.ts'
+import { logUsage } from '../_shared/logUsage.ts'
 
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
 const MODEL = 'claude-haiku-4-5-20251001'
@@ -149,6 +150,8 @@ export async function normalizeBudget(rawText: string): Promise<ExtractResult> {
   }
 
   const response = await res.json()
+  const u = response.usage
+  if (u) logUsage('extrair-orcamento', MODEL, u.input_tokens ?? 0, u.output_tokens ?? 0)
 
   // Extrai o input do tool_use
   const toolUse = response.content?.find((b: { type: string }) => b.type === 'tool_use')

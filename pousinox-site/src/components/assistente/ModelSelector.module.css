@@ -1,0 +1,59 @@
+/* ModelSelector — pill selector de modelo IA */
+
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.pill {
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 3px 10px;
+  font-size: 0.6rem;
+  font-family: inherit;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.1s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pill:hover { background: #f3f4f6; color: #111; }
+
+.active {
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
+
+.active:hover { background: #1f2937; }
+
+.cost {
+  font-size: 0.48rem;
+  color: #9ca3af;
+  opacity: 0.8;
+}
+
+.active .cost { color: rgba(255,255,255,0.6); }
+
+/* Badge no bubble */
+.badge {
+  display: inline-block;
+  font-size: 0.46rem;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: #f3f4f6;
+  color: #9ca3af;
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+
+.badgeHaiku  { background: #ecfdf5; color: #059669; }
+.badgeSonnet { background: #eff6ff; color: #2563eb; }
+.badgeGemini { background: #fef3c7; color: #d97706; }
