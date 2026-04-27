@@ -167,9 +167,6 @@ export default function AdminDashboard() {
   const { ocultarValores } = useAdmin()
   const fmt = (v: number) => ocultarValores ? '••••' : 'R$ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 
-  if (loading) return <div className={styles.loading}>Carregando dashboard...</div>
-  if (!data) return null
-
   const gerarResumo = useCallback(async () => {
     if (!data) return 'Sem dados'
     const prompt = `Dados do ERP Pousinox (mês atual):
@@ -187,6 +184,9 @@ Gere um resumo executivo de 5-8 linhas com: situação geral, alertas importante
     const r = await aiChat({ prompt, system: 'Você é o analista de negócios da Pousinox. Responda direto, sem saudações. Use dados concretos. Português brasileiro.', model: 'groq' })
     return r.error ? `Erro: ${r.error}` : r.content
   }, [data])
+
+  if (loading) return <div className={styles.loading}>Carregando dashboard...</div>
+  if (!data) return null
 
   return (
     <div className={styles.wrap}>
