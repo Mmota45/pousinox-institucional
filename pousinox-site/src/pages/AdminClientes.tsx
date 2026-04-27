@@ -1,6 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminClientes.module.css'
+import AiActionButton from '../components/assistente/AiActionButton'
+import { aiChat } from '../lib/aiHelper'
 
 // ── Utilitários de parsing ────────────────────────────────────────────────────
 
@@ -104,6 +106,51 @@ export default function AdminClientes() {
   const [buscado, setBuscado]     = useState(false)
   const [sortCol, setSortCol]     = useState<keyof Cliente>('total_gasto')
   const [sortDir, setSortDir]     = useState<'asc' | 'desc'>('desc')
+
+  // Enriquecimento CNPJ
+  const [enriquecendo, setEnriquecendo] = useState(false)
+  const [enriqProgresso, setEnriqProgresso] = useState('')
+
+  async function enriquecerClientes() {
+    setEnriquecendo(true)
+    setEnriqProgresso('Buscando clientes sem cidade...')
+    const { data: semCidade } = await supabaseAdmin
+      .from('clientes')
+      .select('id, cnpj')
+      .is('cidade', null)
+      .not('cnpj', 'is', null)
+      .limit(500)
+    if (!semCidade?.length) {
+      setEnriqProgresso('✅ Todos os clientes já têm cidade preenchida!')
+      setEnriquecendo(false)
+      return
+    }
+    let ok = 0, erros = 0
+    for (let i = 0; i < semCidade.length; i++) {
+      const c = semCidade[i]
+      setEnriqProgresso(`Consultando ${i + 1}/${semCidade.length}... (${ok} atualizados, ${erros} erros)`)
+      try {
+        const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${c.cnpj}`)
+        if (!res.ok) { erros++; continue }
+        const d = await res.json()
+        const updates: Record<string, string | null> = {}
+        if (d.municipio) updates.cidade = d.municipio
+        if (d.uf) updates.uf = d.uf
+        if (d.descricao_situacao_cadastral) updates.segmento = d.cnae_fiscal_descricao || null
+        if (d.porte) updates.porte = d.porte
+        if (d.nome_fantasia) updates.nome_fantasia = d.nome_fantasia
+        if (Object.keys(updates).length) {
+          await supabaseAdmin.from('clientes').update(updates).eq('id', c.id)
+          ok++
+        }
+      } catch { erros++ }
+      // Rate limit: 3 req/s
+      if (i < semCidade.length - 1) await new Promise(r => setTimeout(r, 350))
+    }
+    setEnriqProgresso(`✅ Concluído: ${ok} atualizados, ${erros} erros de ${semCidade.length} consultados`)
+    setEnriquecendo(false)
+    if (ok > 0) buscarClientes()
+  }
 
   // NFs Recebidas
   const [arquivoRecCab,   setArquivoRecCab]   = useState<File | null>(null)
@@ -594,6 +641,56 @@ export default function AdminClientes() {
     return v.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
   }
 
+  // ── IA: Análise de carteira RFM ──────────────────────────────────────────
+  const analisarCarteira = useCallback(async () => {
+    if (!clientesRFM.length) return 'Sem dados RFM. Recalcule primeiro.'
+    const segmentos: Record<string, number> = {}
+    let totalGasto = 0
+    clientesRFM.forEach(c => {
+      segmentos[c.rfm_segmento || 'sem_segmento'] = (segmentos[c.rfm_segmento || 'sem_segmento'] || 0) + 1
+      totalGasto += c.total_gasto || 0
+    })
+    const resumoSeg = Object.entries(segmentos).map(([s, n]) => `${s}: ${n} clientes`).join(', ')
+    const r = await aiChat({
+      prompt: `Carteira de ${clientesRFM.length} clientes da Pousinox (fixadores de porcelanato inox):\nSegmentos RFM: ${resumoSeg}\nTotal gasto: R$ ${totalGasto.toFixed(2)}\nTop 5 clientes: ${clientesRFM.slice(0, 5).map(c => `${c.razao_social} (score ${c.rfm_score}, R$ ${(c.total_gasto || 0).toFixed(2)})`).join('; ')}\n\nAnalise: concentração de receita, saúde da carteira, risco de churn por segmento. Sugira 3-5 ações concretas (retenção VIPs, reativação inativos, desenvolvimento de novos).`,
+      system: 'Analista de CRM B2B da Pousinox. Responda direto com dados e ações priorizadas. Português brasileiro.',
+      model: 'groq',
+    })
+    return r.error ? `Erro: ${r.error}` : r.content
+  }, [clientesRFM])
+
+  // ── IA: Identificar produtos padrão ──────────────────────────────────────
+  const identificarProdutosPadrao = useCallback(async () => {
+    const { data: itens } = await supabaseAdmin
+      .from('nf_itens')
+      .select('descricao, quantidade, valor_unitario')
+      .order('descricao')
+      .limit(500)
+    if (!itens?.length) return 'Sem itens de NF para analisar.'
+    // Agrupar por descrição similar
+    const grupos: Record<string, { qtd: number; valor: number; ocorrencias: number }> = {}
+    itens.forEach(i => {
+      const desc = (i.descricao || '').toUpperCase().trim()
+      if (!desc) return
+      if (!grupos[desc]) grupos[desc] = { qtd: 0, valor: 0, ocorrencias: 0 }
+      grupos[desc].qtd += Number(i.quantidade) || 0
+      grupos[desc].valor += Number(i.valor_unitario) || 0
+      grupos[desc].ocorrencias++
+    })
+    // Top 30 mais vendidos
+    const top = Object.entries(grupos)
+      .sort((a, b) => b[1].ocorrencias - a[1].ocorrencias)
+      .slice(0, 30)
+      .map(([desc, d]) => `${desc}: ${d.ocorrencias}x vendido, qtd total ${d.qtd}, preço médio R$ ${(d.valor / d.ocorrencias).toFixed(2)}`)
+      .join('\n')
+    const r = await aiChat({
+      prompt: `Itens mais vendidos nas NFs da Pousinox (fixadores de porcelanato inox):\n\n${top}\n\nAnalise e identifique:\n1. Quais itens têm potencial para virar PRODUTO PADRÃO de catálogo (vendidos para múltiplos clientes, demanda recorrente)\n2. Agrupe descrições similares que são o mesmo produto\n3. Sugira nome padronizado, preço sugerido e prioridade de cadastro\n4. Indique quais já parecem ter SKU definido vs quais são sob medida`,
+      system: 'Analista de produto da Pousinox. Identifique padrões de venda para padronização do catálogo. Português brasileiro.',
+      model: 'groq',
+    })
+    return r.error ? `Erro: ${r.error}` : r.content
+  }, [])
+
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
@@ -716,7 +813,15 @@ export default function AdminClientes() {
             <button className={styles.buscarBtn} onClick={buscarClientes} disabled={loadingCli}>
               {loadingCli ? 'Buscando...' : 'Buscar'}
             </button>
+            <button className={styles.buscarBtn} onClick={enriquecerClientes} disabled={enriquecendo} style={{ marginLeft: 8, background: '#059669' }}>
+              {enriquecendo ? '⏳ Enriquecendo...' : '🔄 Enriquecer cadastros'}
+            </button>
           </div>
+          {enriqProgresso && (
+            <div style={{ padding: '8px 12px', fontSize: '0.8rem', color: enriqProgresso.startsWith('✅') ? '#059669' : '#64748b', background: '#f0fdf4', borderRadius: 6, marginTop: 8 }}>
+              {enriqProgresso}
+            </div>
+          )}
 
           {loadingCli && <div className={styles.loading}>Carregando clientes...</div>}
 
@@ -726,7 +831,10 @@ export default function AdminClientes() {
 
           {!loadingCli && clientes.length > 0 && (
             <div className={styles.tableWrap}>
-              <div className={styles.tableInfo}>{clientes.length} clientes</div>
+              <div className={styles.tableInfo} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>{clientes.length} clientes</span>
+                <AiActionButton label="Produtos padrão" icon="🏷️" modelName="Groq" action={identificarProdutosPadrao} />
+              </div>
               <div className={styles.tableScroll}>
                 <table className={styles.table}>
                   <thead>
@@ -803,9 +911,12 @@ export default function AdminClientes() {
                     <span className={styles.rfmTimestamp}>Atualizando…</span>
                   )}
                 </div>
-                <button className={styles.recalcularBtn} onClick={() => recalcularRFM()} disabled={recalculando}>
-                  {recalculando ? 'Recalculando...' : '↻ Recalcular RFM'}
-                </button>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <AiActionButton label="Análise de carteira" icon="📊" modelName="Groq" action={analisarCarteira} />
+                  <button className={styles.recalcularBtn} onClick={() => recalcularRFM()} disabled={recalculando}>
+                    {recalculando ? 'Recalculando...' : '↻ Recalcular RFM'}
+                  </button>
+                </div>
               </div>
             )
           })()}
