@@ -666,7 +666,7 @@ export default function AdminFiscalDocBase({ tipo, titulo, subtitulo }: Props) {
             onClick={() => { setCsvPreview([]); setCsvRows([]); setCsvMsg(null); setVista('importar') }}>
             📥 Importar CSV
           </button>
-          <AiActionButton label="OCR NF por foto" icon="📸" acceptImage small
+          <AiActionButton label="OCR NF por foto" icon="📸" modelName="Gemini" acceptImage small
             actionWithFile={async (file) => {
               const base64 = await fileToBase64(file)
               const r = await aiVision({ imageBase64: base64, mimeType: file.type, filename: file.name })

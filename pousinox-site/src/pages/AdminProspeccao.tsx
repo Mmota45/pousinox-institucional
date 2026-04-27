@@ -2268,7 +2268,7 @@ setClientesCidade(clientesPorCidade)
 
               {/* Botão fixo no rodapé */}
               <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <AiActionButton label="Sugerir abordagem" icon="💬" action={async () => {
+                <AiActionButton label="Sugerir abordagem" icon="💬" modelName="Groq" action={async () => {
                   const r = await aiChat({
                     prompt: `Prospect: ${p.nome}\nCNPJ: ${p.cnpj || 'N/I'}\nSegmento: ${p.segmento || 'N/I'}\nPorte: ${p.porte || 'N/I'}\nCidade/UF: ${p.cidade || ''}/${p.uf || ''}\nScore: ${p.score ?? 'N/I'}\nCliente ativo: ${p.cliente_ativo ? 'Sim' : 'Não'}\n\nSugira uma abordagem comercial personalizada para contato via WhatsApp e email. A Pousinox fabrica fixadores de porcelanato em aço inox. Inclua: gancho de abertura, proposta de valor relevante para o segmento, e call-to-action.`,
                     system: 'Vendedor consultivo B2B da Pousinox. Crie mensagens naturais e profissionais. Português brasileiro.',

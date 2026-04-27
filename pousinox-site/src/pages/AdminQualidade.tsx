@@ -575,7 +575,7 @@ export default function AdminQualidade() {
                   <button className={styles.btnAbrirNC} onClick={() => setNcFormAberto(true)}>
                     + Abrir não conformidade
                   </button>
-                  <AiActionButton label="Analisar defeito" icon="📸" acceptImage
+                  <AiActionButton label="Analisar defeito" icon="📸" modelName="Gemini" acceptImage
                     actionWithFile={async (file) => {
                       const base64 = await fileToBase64(file)
                       const r = await aiVision({ imageBase64: base64, mimeType: file.type, filename: file.name })

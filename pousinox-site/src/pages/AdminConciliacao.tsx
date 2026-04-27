@@ -404,7 +404,7 @@ export default function AdminConciliacao() {
       )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-        <AiActionButton label="Conciliação IA" icon="🤖" action={async () => {
+        <AiActionButton label="Conciliação IA" icon="🤖" modelName="Groq" action={async () => {
           const { data: pendentes } = await supabaseAdmin.from('fin_movimentacoes').select('descricao,valor,data,categoria').is('conciliado', null).order('data', { ascending: false }).limit(30)
           const { data: lancs } = await supabaseAdmin.from('fin_lancamentos').select('descricao,valor,tipo,status').eq('status', 'pendente').order('data_vencimento', { ascending: false }).limit(30)
           if (!pendentes?.length && !lancs?.length) return 'Sem dados pendentes para conciliar.'

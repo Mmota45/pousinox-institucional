@@ -592,7 +592,7 @@ Gere: 1) Diagnóstico de performance (2-3 linhas) 2) 3 pontos fortes 3) 3 proble
           </button>
         ))}
         </div>
-        <AiActionButton label="Análise IA" icon="📊" action={gerarAnalise} />
+        <AiActionButton label="Análise IA" icon="📊" action={gerarAnalise} modelName="Groq" />
       </div>
 
       {/* ══════════════ ESTRATÉGIA ══════════════ */}

@@ -294,7 +294,7 @@ export default function AdminEstoqueBase({ tipo, titulo, subtitulo }: Props) {
           <p className={styles.pageSubtitle}>{subtitulo}</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <AiActionButton label="Previsão reposição" icon="📊" action={async () => {
+          <AiActionButton label="Previsão reposição" icon="📊" modelName="Groq" action={async () => {
             const { data: itensData } = await supabaseAdmin.from('estoque_itens').select('nome,saldo_atual,estoque_minimo,custo_medio,unidade').eq('tipo', tipo).eq('ativo', true).order('saldo_atual', { ascending: true }).limit(30)
             if (!itensData?.length) return 'Sem itens no estoque.'
             const lista = itensData.map(i => `${i.nome}: saldo=${i.saldo_atual} ${i.unidade}, mín=${i.estoque_minimo}, custo=R$${i.custo_medio || 0}`).join('\n')

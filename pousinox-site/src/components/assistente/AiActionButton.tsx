@@ -13,12 +13,14 @@ interface Props {
   acceptImage?: boolean
   /** Quando acceptImage=true, recebe o file e retorna resultado */
   actionWithFile?: (file: File) => Promise<string>
+  /** Nome do modelo exibido como badge (ex: 'Groq', 'Gemini') */
+  modelName?: string
   small?: boolean
   disabled?: boolean
 }
 
 export default function AiActionButton({
-  label, icon = '🤖', action, onResult, acceptImage, actionWithFile, small, disabled,
+  label, icon = '🤖', action, onResult, acceptImage, actionWithFile, modelName, small, disabled,
 }: Props) {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
@@ -63,6 +65,7 @@ export default function AiActionButton({
         title={label}
       >
         {loading ? '⏳' : icon} {!small && label}
+        {modelName && <span className={s.modelTag}>{modelName}</span>}
       </button>
 
       {acceptImage && (
@@ -79,7 +82,7 @@ export default function AiActionButton({
         <div className={s.overlay} onClick={() => { setResult(null); setError(null) }}>
           <div className={s.modal} onClick={e => e.stopPropagation()}>
             <div className={s.modalHeader}>
-              <span>{icon} {label}</span>
+              <span>{icon} {label} {modelName && <span className={s.modelTag}>{modelName}</span>}</span>
               <button className={s.close} onClick={() => { setResult(null); setError(null) }}>×</button>
             </div>
             <div className={s.modalBody}>

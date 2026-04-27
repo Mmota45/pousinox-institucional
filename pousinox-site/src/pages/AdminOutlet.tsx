@@ -333,7 +333,7 @@ export default function AdminOutlet() {
           </span>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <AiActionButton label="Descrever por foto" icon="📸" acceptImage
+          <AiActionButton label="Descrever por foto" icon="📸" modelName="Gemini" acceptImage
             actionWithFile={async (file) => {
               const base64 = await fileToBase64(file)
               const r = await aiVision({ imageBase64: base64, mimeType: file.type, filename: file.name })

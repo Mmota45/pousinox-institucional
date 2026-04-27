@@ -81,3 +81,13 @@
   color: #dc2626;
   font-size: 0.78rem;
 }
+
+.modelTag {
+  font-size: 0.5rem;
+  background: rgba(255,255,255,0.2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  opacity: 0.8;
+}

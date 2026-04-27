@@ -1251,7 +1251,7 @@ export default function AdminProjetos() {
           >
             {fasePDF === 'extraindo' ? '⏳ Extraindo PDF…' : fasePDF === 'analisando' ? '🤖 Analisando…' : '📄 Criar do PDF'}
           </button>
-          <AiActionButton label="Analisar edital" icon="📋" acceptImage small
+          <AiActionButton label="Analisar edital" icon="📋" modelName="Gemini" acceptImage small
             actionWithFile={async (file) => {
               const base64 = await fileToBase64(file)
               const r = await aiVision({ imageBase64: base64, mimeType: file.type, filename: file.name })

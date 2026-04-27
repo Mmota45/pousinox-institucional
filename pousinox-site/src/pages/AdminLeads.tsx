@@ -109,7 +109,7 @@ export default function AdminLeads() {
             <button className={styles.exportBtn} onClick={exportarCSV}>↓ Exportar CSV</button>
           )}
           {leads.length > 0 && (
-            <AiActionButton label="Analisar Leads" icon="🤖" action={async () => {
+            <AiActionButton label="Analisar Leads" icon="🤖" modelName="Groq" action={async () => {
               const resumo = leads.slice(0, 30).map(l => `${l.cliente_nome || 'Anônimo'} | ${l.produto_titulo || 'N/I'} | ${l.cidade || 'N/I'} | ${l.status || 'novo'}`).join('\n')
               const r = await aiChat({
                 prompt: `Leads recentes da Pousinox (fixadores de porcelanato inox):\nNome | Produto | Cidade | Status\n${resumo}\n\nAnalise os leads: identifique padrões (produtos mais buscados, cidades com mais demanda, leads quentes vs frios), sugira priorização e ações de follow-up.`,

@@ -193,7 +193,7 @@ Gere um resumo executivo de 5-8 linhas com: situação geral, alertas importante
       <MetaSemanal />
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '0 0 10px' }}>
-        <AiActionButton label="Resumo Executivo IA" icon="📊" action={gerarResumo} />
+        <AiActionButton label="Resumo Executivo IA" icon="📊" action={gerarResumo} modelName="Groq" />
       </div>
 
       {/* ── Financeiro ── */}
