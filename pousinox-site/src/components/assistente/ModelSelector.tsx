@@ -1,21 +1,20 @@
 import s from './ModelSelector.module.css'
 
-export type ModelKey = 'haiku' | 'sonnet' | 'gemini' | 'groq' | 'cerebras' | 'mistral'
+export type ModelKey = 'auto' | 'gemini' | 'mistral' | 'cerebras'
 
 interface ModelOption {
   key: ModelKey
   label: string
   icon: string
   cost: string
+  best: string
 }
 
 const OPTIONS: ModelOption[] = [
-  { key: 'haiku',    label: 'Rápido',   icon: '⚡', cost: '$0.80/M' },
-  { key: 'sonnet',   label: 'Profundo', icon: '🧠', cost: '$3/M' },
-  { key: 'gemini',   label: 'Gemini',   icon: '💎', cost: 'grátis' },
-  { key: 'groq',     label: 'Groq',     icon: '🚀', cost: 'grátis' },
-  { key: 'cerebras', label: 'Cerebras', icon: '⚙️', cost: 'grátis' },
-  { key: 'mistral',  label: 'Mistral',  icon: '🌀', cost: 'grátis' },
+  { key: 'auto',     label: 'Auto',     icon: '🤖', cost: 'grátis',  best: 'Escolhe a melhor IA para cada pergunta' },
+  { key: 'gemini',   label: 'Gemini',   icon: '💎', cost: 'grátis',  best: 'Textos longos, resumos, conteúdo criativo' },
+  { key: 'mistral',  label: 'Mistral',  icon: '🌀', cost: 'grátis',  best: 'Dados, tabelas, cálculos, análises' },
+  { key: 'cerebras', label: 'Cerebras', icon: '⚡', cost: 'grátis',  best: 'Qwen 235B — rápido e poderoso' },
 ]
 
 interface Props {
@@ -31,10 +30,11 @@ export default function ModelSelector({ value, onChange }: Props) {
           key={o.key}
           className={`${s.pill} ${value === o.key ? s.active : ''}`}
           onClick={() => onChange(o.key)}
-          title={`${o.label} — ${o.cost}`}
+          title={`${o.label} (${o.cost}) — Melhor para: ${o.best}`}
         >
           {o.icon} {o.label}
           <span className={s.cost}>{o.cost}</span>
+          {value === o.key && <span className={s.best}>{o.best}</span>}
         </button>
       ))}
     </div>
@@ -44,15 +44,11 @@ export default function ModelSelector({ value, onChange }: Props) {
 export function ModelBadge({ model }: { model?: string }) {
   if (!model) return null
   const BADGE_MAP: Record<string, { match: string; label: string; cls: string }> = {
-    haiku:    { match: 'haiku',    label: 'Haiku',    cls: s.badgeHaiku },
-    sonnet:   { match: 'sonnet',   label: 'Sonnet',   cls: s.badgeSonnet },
     gemini:   { match: 'gemini',   label: 'Gemini',   cls: s.badgeGemini },
-    groq:     { match: 'llama-3.3-70b-versatile', label: 'Groq', cls: s.badgeGroq },
-    cerebras: { match: 'llama-3.3-70b', label: 'Cerebras', cls: s.badgeCerebras },
     mistral:  { match: 'mistral',  label: 'Mistral',  cls: s.badgeMistral },
+    cerebras: { match: 'qwen',     label: 'Cerebras', cls: s.badgeCerebras },
   }
-  // Match longest first to avoid cerebras matching groq's llama
-  const entry = Object.values(BADGE_MAP).sort((a, b) => b.match.length - a.match.length).find(b => model.includes(b.match))
+  const entry = Object.values(BADGE_MAP).find(b => model.includes(b.match))
   if (!entry) return null
   const { label, cls } = entry
   return <span className={`${s.badge} ${cls}`}>{label}</span>

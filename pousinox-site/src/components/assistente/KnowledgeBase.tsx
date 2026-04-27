@@ -5,66 +5,110 @@ import s from './KnowledgeBase.module.css'
 interface DocGroup {
   source_file: string
   chunks: number
+  resumo?: string
 }
 
 interface Props {
   ragEnabled: boolean
   onRagToggle: (v: boolean) => void
+  onAskQuestion?: (q: string) => void
 }
 
-export default function KnowledgeBase({ ragEnabled, onRagToggle }: Props) {
+export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }: Props) {
   const [docs, setDocs] = useState<DocGroup[]>([])
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState('')
+  const [docsOpen, setDocsOpen] = useState(false)
+  const [expandedDoc, setExpandedDoc] = useState<string | null>(null)
+  const [perguntas, setPerguntas] = useState<string[]>([])
+  const [selected, setSelected] = useState<Set<string>>(new Set())
   const inputRef = useRef<HTMLInputElement>(null)
 
   const fetchDocs = useCallback(async () => {
     const { data } = await supabaseAdmin
       .from('knowledge_chunks')
-      .select('source_file')
+      .select('source_file, chunk_index, content, metadata')
       .order('created_at', { ascending: false })
     if (!data) return
-    const groups: Record<string, number> = {}
-    data.forEach((r: { source_file: string }) => { groups[r.source_file] = (groups[r.source_file] || 0) + 1 })
-    setDocs(Object.entries(groups).map(([source_file, chunks]) => ({ source_file, chunks })))
+    const groups: Record<string, { chunks: number; resumo?: string }> = {}
+    data.forEach((r: { source_file: string; chunk_index: number; content: string; metadata: Record<string, unknown> }) => {
+      if (!groups[r.source_file]) groups[r.source_file] = { chunks: 0 }
+      if (r.chunk_index === -1 && r.metadata?.tipo === 'contexto_ia') {
+        // Extrair resumo do chunk de contexto (remover prefixo [CONTEXTO...])
+        groups[r.source_file].resumo = r.content.replace(/^\[CONTEXTO DO DOCUMENTO:.*?\]\n?/, '')
+      } else {
+        groups[r.source_file].chunks++
+      }
+    })
+    setDocs(Object.entries(groups).map(([source_file, g]) => ({ source_file, ...g })))
   }, [])
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
 
+  const toggleSelect = (file: string) => setSelected(prev => {
+    const next = new Set(prev)
+    next.has(file) ? next.delete(file) : next.add(file)
+    return next
+  })
+  const toggleAll = () => setSelected(prev => prev.size === docs.length ? new Set() : new Set(docs.map(d => d.source_file)))
+
+  const handleDeleteSelected = useCallback(async () => {
+    if (!selected.size) return
+    if (!confirm(`Excluir ${selected.size} documento(s) da base de conhecimento?`)) return
+    for (const file of selected) {
+      await supabaseAdmin.from('knowledge_chunks').delete().eq('source_file', file)
+    }
+    setSelected(new Set())
+    fetchDocs()
+  }, [selected, fetchDocs])
+
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const fileList = e.target.files
+    if (!fileList?.length) return
+    const files = Array.from(fileList)
     e.target.value = ''
 
     setUploading(true)
-    setProgress('Lendo arquivo...')
-    try {
-      const buffer = await file.arrayBuffer()
-      const bytes = new Uint8Array(buffer)
-      let binary = ''
-      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-      const base64 = btoa(binary)
+    const total = files.length
+    let ok = 0, erros = 0
+    const todasPerguntas: string[] = []
 
-      setProgress('Indexando...')
-      const { data, error } = await supabaseAdmin.functions.invoke('indexar-documento', {
-        body: { file_base64: base64, mime_type: file.type, filename: file.name },
-      })
+    for (let f = 0; f < total; f++) {
+      const file = files[f]
+      setProgress(`Analisando ${f + 1}/${total}: ${file.name}...`)
+      try {
+        const buffer = await file.arrayBuffer()
+        const bytes = new Uint8Array(buffer)
+        let binary = ''
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+        const base64 = btoa(binary)
 
-      if (error) throw new Error(typeof error === 'object' ? JSON.stringify(error) : String(error))
-      const parsed = typeof data === 'string' ? JSON.parse(data) : data
+        const { data, error } = await supabaseAdmin.functions.invoke('indexar-documento', {
+          body: { file_base64: base64, mime_type: file.type, filename: file.name },
+        })
 
-      if (parsed.success) {
-        setProgress(`✅ ${parsed.chunks} chunks indexados`)
-        fetchDocs()
-        setTimeout(() => setProgress(''), 3000)
-      } else {
-        setProgress(`❌ ${parsed.error}`)
+        console.log(`[KB] ${file.name} →`, { data, error })
+        if (error) throw new Error(typeof error === 'object' ? JSON.stringify(error) : String(error))
+        const parsed = typeof data === 'string' ? JSON.parse(data) : data
+        console.log(`[KB] parsed:`, parsed)
+
+        if (parsed.success) {
+          ok++
+          if (parsed.perguntas_sugeridas?.length) todasPerguntas.push(...parsed.perguntas_sugeridas)
+        } else {
+          erros++
+        }
+      } catch (err) {
+        console.error(`[KB] erro upload ${file.name}:`, err)
+        erros++
       }
-    } catch (err) {
-      setProgress(`❌ ${err instanceof Error ? err.message : 'Erro'}`)
-    } finally {
-      setUploading(false)
     }
+
+    if (todasPerguntas.length) setPerguntas(todasPerguntas.slice(0, 5))
+    fetchDocs()
+    setProgress(`✅ ${ok} documento${ok !== 1 ? 's' : ''} indexado${ok !== 1 ? 's' : ''}${erros ? ` · ❌ ${erros} erro${erros !== 1 ? 's' : ''}` : ''}`)
+    setTimeout(() => setProgress(''), 5000)
+    setUploading(false)
   }, [fetchDocs])
 
   const handleDelete = useCallback(async (sourceFile: string) => {
@@ -77,13 +121,14 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle }: Props) {
     <div className={s.panel}>
       <div className={s.ragToggle}>
         <input type="checkbox" checked={ragEnabled} onChange={e => onRagToggle(e.target.checked)} />
-        <span>RAG ativo (busca em documentos)</span>
+        <span>Consultar base de conhecimento</span>
       </div>
 
       <input
         ref={inputRef}
         type="file"
         accept=".pdf,.csv,.txt,.md,.doc,.docx"
+        multiple
         style={{ display: 'none' }}
         onChange={handleUpload}
       />
@@ -92,21 +137,67 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle }: Props) {
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
       >
-        {uploading ? '⏳ Indexando...' : '📚 Adicionar documento'}
+        {uploading ? '⏳ Analisando...' : '📚 Adicionar documento'}
       </button>
 
-      {progress && <div className={s.progress}>{progress}</div>}
+      {progress && (
+        <div className={`${s.progress} ${progress.startsWith('✅') ? s.progressOk : progress.startsWith('❌') ? s.progressErr : s.progressLoading}`}>
+          {progress}
+        </div>
+      )}
+
+      {/* Perguntas sugeridas após upload */}
+      {perguntas.length > 0 && (
+        <div className={s.sugestoes}>
+          <div className={s.sugestoesTitle}>💡 Perguntas sugeridas</div>
+          {perguntas.map((p, i) => (
+            <button key={i} className={s.sugestaoBtn} onClick={() => { onAskQuestion?.(p); setPerguntas([]) }}>
+              {p}
+            </button>
+          ))}
+          <button className={s.sugestaoFechar} onClick={() => setPerguntas([])}>✕ Fechar</button>
+        </div>
+      )}
 
       {docs.length > 0 ? (
-        <div className={s.docList}>
-          {docs.map(d => (
-            <div key={d.source_file} className={s.docItem}>
-              <span className={s.docIcon}>📄</span>
-              <span className={s.docInfo} title={d.source_file}>{d.source_file}</span>
-              <span className={s.docChunks}>{d.chunks}ch</span>
-              <button className={s.docDel} onClick={() => handleDelete(d.source_file)} title="Excluir">×</button>
+        <div>
+          <button className={s.docsToggle} onClick={() => setDocsOpen(v => !v)}>
+            {docsOpen ? '▾' : '▸'} {docs.length} documento{docs.length !== 1 ? 's' : ''} indexado{docs.length !== 1 ? 's' : ''}
+          </button>
+          {docsOpen && (
+            <div className={s.docList}>
+              <label className={s.docSelectAll}>
+                <input type="checkbox" checked={selected.size === docs.length && docs.length > 0} onChange={toggleAll} />
+                Selecionar todos
+                {selected.size > 0 && (
+                  <button className={s.docDelSelected} onClick={handleDeleteSelected}>
+                    🗑 Excluir {selected.size}
+                  </button>
+                )}
+              </label>
+              {docs.map(d => (
+                <div key={d.source_file}>
+                  <div className={s.docItem}>
+                    <input type="checkbox" checked={selected.has(d.source_file)} onChange={() => toggleSelect(d.source_file)} style={{ flexShrink: 0 }} />
+                    <span
+                      className={s.docInfo}
+                      title={d.source_file}
+                      onClick={() => d.resumo && setExpandedDoc(expandedDoc === d.source_file ? null : d.source_file)}
+                      style={d.resumo ? { cursor: 'pointer' } : undefined}
+                    >
+                      {d.source_file}
+                    </span>
+                    <span className={s.docChunks}>{d.chunks}ch</span>
+                    {d.resumo && <span className={s.docAiBadge} title="Contexto IA gerado">🧠</span>}
+                    <button className={s.docDel} onClick={() => handleDelete(d.source_file)} title="Excluir">×</button>
+                  </div>
+                  {expandedDoc === d.source_file && d.resumo && (
+                    <div className={s.docResumo}>{d.resumo}</div>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       ) : (
         <div className={s.emptyDocs}>Nenhum documento indexado</div>

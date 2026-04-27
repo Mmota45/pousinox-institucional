@@ -9,7 +9,8 @@ import type { ToolCall, ActionResult } from '../components/assistente/actions/ex
 import ChartRenderer, { type ChartConfig } from '../components/assistente/ChartRenderer'
 import s from './AdminAssistente.module.css'
 
-interface Msg { role: 'user' | 'assistant'; content: string; model?: string }
+interface RAGSource { file: string; excerpt: string; similarity: number; chunks: number }
+interface Msg { role: 'user' | 'assistant'; content: string; model?: string; rag_sources?: RAGSource[] }
 
 /* ════════════════════════════════════════════════════════════
    Icons (inline SVG — no deps)
@@ -28,11 +29,12 @@ const ico = {
    Markdown → Structured Blocks parser
    ════════════════════════════════════════════════════════════ */
 interface Block {
-  type: 'title' | 'table' | 'bullets' | 'text' | 'chart'
+  type: 'title' | 'table' | 'bullets' | 'text' | 'chart' | 'highlights'
   content: string
   rows?: string[][]
   align?: string[]
   chart?: ChartConfig
+  items?: string[]
 }
 
 function parseBlocks(text: string): Block[] {
@@ -50,11 +52,12 @@ function parseBlocks(text: string): Block[] {
   const lines = processedText.split('\n')
   const blocks: Block[] = []
   let tRows: string[][] = [], tAlign: string[] = []
-  let bLines: string[] = [], tLines: string[] = []
+  let bLines: string[] = [], tLines: string[] = [], hLines: string[] = []
 
   const flushB = () => { if (bLines.length) { blocks.push({ type: 'bullets', content: bLines.join('\n') }); bLines = [] } }
   const flushT = () => { if (tLines.length) { blocks.push({ type: 'text', content: tLines.join('\n') }); tLines = [] } }
   const flushTbl = () => { if (tRows.length) { blocks.push({ type: 'table', content: '', rows: tRows, align: tAlign }); tRows = []; tAlign = [] } }
+  const flushH = () => { if (hLines.length) { blocks.push({ type: 'highlights', content: '', items: [...hLines] }); hLines = [] } }
 
   for (const line of lines) {
     const t = line.trim()
@@ -74,10 +77,12 @@ function parseBlocks(text: string): Block[] {
     if (t.startsWith('#')) { flushB(); flushT(); blocks.push({ type: 'title', content: t.replace(/^#+\s*/, '') }); continue }
     if (t.startsWith('- ') || t.startsWith('* ')) { flushT(); bLines.push(t.slice(2)); continue }
     const nm = t.match(/^\d+\.\s(.+)/); if (nm) { flushT(); bLines.push(nm[1]); continue }
+    if (t.startsWith('>')) { flushB(); flushT(); flushTbl(); hLines.push(t.replace(/^>\s*/, '')); continue }
+    if (hLines.length) flushH()
     if (!t) { flushB(); flushT(); continue }
     flushB(); tLines.push(t)
   }
-  flushB(); flushT(); flushTbl()
+  flushB(); flushT(); flushTbl(); flushH()
   return blocks
 }
 
@@ -122,6 +127,49 @@ function extractKPIs(rows: string[][], hdr: string[]) {
   return kpis
 }
 
+/* ── Auto-generate highlights from table data ── */
+function autoHighlights(rows: string[][], rawHdr: string[]): string[] {
+  const hl: string[] = []
+  if (rows.length < 2) return hl
+  const hdr = rawHdr.map(h => h.replace(/\*\*/g, '').trim())
+  const mc = hdr.findIndex(h => /fatura|valor|total|receita|gasto/i.test(h))
+  const nc = hdr.findIndex(h => /client|empresa|nome|razao|social/i.test(h))
+  const cc = hdr.findIndex(h => /cidade|local|uf/i.test(h))
+  const sc = hdr.findIndex(h => /segm|categ|tipo/i.test(h))
+
+  if (mc >= 0) {
+    const parse = (v: string) => parseFloat((v || '').replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.')) || 0
+    const vals = rows.map(r => parse(r[mc]))
+    const total = vals.reduce((a, b) => a + b, 0)
+    const maxIdx = vals.indexOf(Math.max(...vals))
+    if (nc >= 0 && total > 0) {
+      const pct = Math.round((vals[maxIdx] / total) * 100)
+      hl.push(`🏆 **${rows[maxIdx][nc]}** é o maior cliente, com ${pct}% do faturamento total`)
+    }
+    // Concentração top 3
+    if (rows.length >= 3 && total > 0) {
+      const top3 = vals.slice(0, 3).reduce((a, b) => a + b, 0)
+      hl.push(`📊 Top 3 concentram ${Math.round((top3 / total) * 100)}% do faturamento total`)
+    }
+  }
+
+  if (cc >= 0) {
+    const cidades: Record<string, number> = {}
+    rows.forEach(r => { const c = r[cc]?.trim(); if (c && c !== '-') cidades[c] = (cidades[c] || 0) + 1 })
+    const topCidade = Object.entries(cidades).sort((a, b) => b[1] - a[1])[0]
+    if (topCidade && topCidade[1] > 1) hl.push(`📍 **${topCidade[0]}** concentra ${topCidade[1]} dos ${rows.length} maiores clientes`)
+  }
+
+  if (sc >= 0) {
+    const segs: Record<string, number> = {}
+    rows.forEach(r => { const v = r[sc]?.trim(); if (v && v !== '-') segs[v] = (segs[v] || 0) + 1 })
+    const topSeg = Object.entries(segs).sort((a, b) => b[1] - a[1])[0]
+    if (topSeg && topSeg[1] > 1) hl.push(`💡 Segmento **${topSeg[0]}** aparece ${topSeg[1]} vezes no top ${rows.length}`)
+  }
+
+  return hl.slice(0, 4)
+}
+
 /* ── Detect column semantic type for alignment ── */
 function colClass(hdr: string, idx: number, totalCols: number): string {
   const h = hdr.toLowerCase()
@@ -156,16 +204,27 @@ function RenderResponse({ text, onFollowUp }: { text: string; onFollowUp?: (q: s
   const hasTitle = blocks.some(b => b.type === 'title')
   const hasChart = blocks.some(b => b.type === 'chart')
 
-  if ((!hasTable && !hasChart) || !hasTitle) return <PlainResponse blocks={blocks} />
+  if ((!hasTable && !hasChart) || !hasTitle) return <PlainResponse blocks={blocks} onFollowUp={onFollowUp} />
 
   const titleBlock = blocks.find(b => b.type === 'title')!
   const tableBlock = blocks.find(b => b.type === 'table')!
-  const hdr = tableBlock.rows?.[0] || []
+  const hdr = (tableBlock.rows?.[0] || []).map(h => h.replace(/\*\*/g, '').trim())
   const rows = tableBlock.rows?.slice(1) || []
   const kpis = extractKPIs(rows, hdr)
   const bullets = blocks.filter(b => b.type === 'bullets')
   const texts = blocks.filter(b => b.type === 'text')
   const subTitles = blocks.filter(b => b.type === 'title').slice(1)
+
+  // % column
+  const moneyCol = hdr.findIndex(h => /fatura|valor|total|receita|gasto/i.test(h))
+  const parseVal = (v: string) => parseFloat((v || '').replace(/R\$\s*/g, '').replace(/\./g, '').replace(',', '.')) || 0
+  const moneyVals = moneyCol >= 0 ? rows.map(r => parseVal(r[moneyCol])) : []
+  const moneyTotal = moneyVals.reduce((a, b) => a + b, 0)
+  const showPct = moneyCol >= 0 && moneyTotal > 0
+
+  // Auto highlights
+  const hasModelHighlights = blocks.some(b => b.type === 'highlights')
+  const generatedHighlights = hasModelHighlights ? [] : autoHighlights(rows, hdr)
 
   return (
     <div className={s.reportCard}>
@@ -189,10 +248,12 @@ function RenderResponse({ text, onFollowUp }: { text: string; onFollowUp?: (q: s
           <table className={s.table}>
             <colgroup>
               {hdr.map((h, i) => <col key={i} className={colClass(h, i, hdr.length)} />)}
+              {showPct && <col />}
             </colgroup>
             <thead>
               <tr>
                 {hdr.map((h, i) => <th key={i} className={cellAlign(h)}>{h}</th>)}
+                {showPct && <th className={s.right}>%</th>}
               </tr>
             </thead>
             <tbody>
@@ -203,6 +264,7 @@ function RenderResponse({ text, onFollowUp }: { text: string; onFollowUp?: (q: s
                       {fmt(cell)}
                     </td>
                   ))}
+                  {showPct && <td className={`${s.right} ${s.mono}`}>{(moneyVals[ri] / moneyTotal * 100).toFixed(2)}%</td>}
                 </tr>
               ))}
             </tbody>
@@ -242,12 +304,43 @@ function RenderResponse({ text, onFollowUp }: { text: string; onFollowUp?: (q: s
           ))}
         </div>
       )}
+
+      {generatedHighlights.length > 0 && (
+        <div className={s.hlCards}>
+          {generatedHighlights.map((item, j) => (
+            <div key={j} className={`${s.hlCard} ${s.hlCardClickable}`}
+              onClick={() => onFollowUp?.(`Aprofunde: ${item.replace(/\*\*/g, '').replace(/^[^\w\s]*\s*/, '')}`)}
+              role="button" title="Clique para aprofundar">
+              {fmt(item)}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PlainAutoHighlights({ blocks, onFollowUp }: { blocks: Block[]; onFollowUp?: (q: string) => void }) {
+  if (blocks.some(b => b.type === 'highlights')) return null
+  const tb = blocks.find(b => b.type === 'table' && b.rows && b.rows.length > 2)
+  if (!tb) return null
+  const ah = autoHighlights(tb.rows!.slice(1), tb.rows![0])
+  if (!ah.length) return null
+  return (
+    <div className={s.hlCards}>
+      {ah.map((item, j) => (
+        <div key={j} className={`${s.hlCard} ${s.hlCardClickable}`}
+          onClick={() => onFollowUp?.(`Aprofunde: ${item.replace(/\*\*/g, '').replace(/^[^\w\s]*\s*/, '')}`)}
+          role="button" title="Clique para aprofundar">
+          {fmt(item)}
+        </div>
+      ))}
     </div>
   )
 }
 
 /* ── Plain fallback ── */
-function PlainResponse({ blocks }: { blocks: Block[] }) {
+function PlainResponse({ blocks, onFollowUp }: { blocks: Block[]; onFollowUp?: (q: string) => void }) {
   return (
     <div className={s.plain}>
       {blocks.map((b, i) => {
@@ -262,6 +355,25 @@ function PlainResponse({ blocks }: { blocks: Block[] }) {
           </div>
         )
         if (b.type === 'chart' && b.chart) return <ChartRenderer key={i} config={b.chart} />
+        if (b.type === 'highlights' && b.items?.length) return (
+          <div key={i} className={s.hlCards}>
+            {b.items.map((item, j) => {
+              const warn = /⚠|urgente|atenção|crítico|alerta/i.test(item)
+              const plainItem = item.replace(/\*\*/g, '').replace(/^[^\w\s]*\s*/, '')
+              return (
+                <div
+                  key={j}
+                  className={`${s.hlCard} ${s.hlCardClickable} ${warn ? s.hlCardWarn : ''}`}
+                  onClick={() => onFollowUp?.(`Aprofunde: ${plainItem}`)}
+                  role="button"
+                  title="Clique para aprofundar"
+                >
+                  {fmt(item)}
+                </div>
+              )
+            })}
+          </div>
+        )
         if (b.type === 'table') {
           const hdr = b.rows?.[0] || [], body = b.rows?.slice(1) || []
           return (
@@ -275,6 +387,8 @@ function PlainResponse({ blocks }: { blocks: Block[] }) {
         }
         return <p key={i}>{fmt(b.content)}</p>
       })}
+
+      {<PlainAutoHighlights blocks={blocks} onFollowUp={onFollowUp} />}
     </div>
   )
 }
@@ -314,6 +428,7 @@ Seu papel:
 - Responder em português brasileiro, de forma concisa e direta
 - Quando os dados forem fornecidos em contexto, analisar e responder com base neles
 - Se não tiver dados suficientes, dizer claramente o que falta
+- NUNCA invente, fabrique ou simule dados. Se os dados do sistema não contêm a informação, diga "Não encontrei dados para..." em vez de criar exemplos fictícios. Dados inventados são PROIBIDOS. Só use números e nomes que estejam explicitamente nos dados fornecidos entre "--- DADOS DO SISTEMA ---"
 
 REGRAS DE FORMATAÇÃO (obrigatório):
 - Use markdown padrão: # para títulos, **negrito**, - para bullets
@@ -321,7 +436,13 @@ REGRAS DE FORMATAÇÃO (obrigatório):
 - Nunca use tabs para alinhar colunas — sempre pipes |
 - Valores monetários: R$ 1.234,56
 - Formato direto, profissional, sem rodeios
-- GRÁFICOS: quando o usuário pedir gráfico/chart ou quando dados numéricos se beneficiariam de visualização, inclua um bloco \`\`\`chart com JSON: {"type":"bar|line|pie|area","title":"Título","data":[{"name":"A","value":10}],"xKey":"name","yKeys":["value"],"colors":["#2563eb"]}. O bloco será renderizado como gráfico interativo.`
+- GRÁFICOS: quando o usuário pedir gráfico/chart ou quando dados numéricos se beneficiariam de visualização, inclua um bloco \`\`\`chart com JSON: {"type":"bar|line|pie|area","title":"Título","data":[{"name":"A","value":10}],"xKey":"name","yKeys":["value"],"colors":["#2563eb"]}. O bloco será renderizado como gráfico interativo.
+- DESTAQUES: ao final de TODA resposta (curta ou longa, com ou sem tabela), inclua 2-4 destaques usando blockquote. Cada destaque em uma linha separada, começando com > e um emoji relevante. Exemplos:
+  > 📌 Faturamento cresceu 15% vs mês anterior
+  > ⚠️ 3 itens abaixo do estoque mínimo
+  > 💡 Segmento construção civil concentra 40% da receita
+  > 🏆 Cliente XYZ é o maior comprador do trimestre
+  Os destaques devem ser insights acionáveis, dados-chave ou alertas relevantes da resposta.`
 
 /* ════════════════════════════════════════════════════════════
    Data fetching — context from Supabase
@@ -345,12 +466,21 @@ async function buscarContexto(prompt: string): Promise<string> {
   if (lower.match(/pipeline|deal|comercial|funil|negoci/)) queries.push(q('pipeline_deals', 'PIPELINE DEALS'))
   if (lower.match(/produ[cç]|ordem|op-/i)) queries.push(q('ordens_producao', 'ORDENS DE PRODUÇÃO'))
   if (lower.match(/estoqu|saldo|m[ií]nimo|mp|pa|invent/)) queries.push(q('estoque_itens', 'ESTOQUE', { limit: 50 }))
-  if (lower.match(/client|rfm|faturamento|top.*client/)) queries.push(q('clientes', 'CLIENTES', { limit: 20 }))
+  if (lower.match(/client|rfm|faturamento|top.*client/)) {
+    queries.push(q('clientes', 'CLIENTES (total_gasto=faturamento acumulado total)', { limit: 30, filter: (qr) => qr.order('total_gasto', { ascending: false }) }))
+    // Buscar NFs apenas para perguntas sobre período específico (não para ranking geral)
+    if (lower.match(/2026|2025|2024|mês|mes|este ano|último|periodo|período|trimestre|janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro/)) {
+      queries.push(q('nf_cabecalho', 'NOTAS FISCAIS INDIVIDUAIS (use para filtrar por período, agrupe por destinatario)', { limit: 50, filter: (qr) => qr.select('destinatario,emissao,total,cnpj').order('emissao', { ascending: false }) }))
+    }
+  }
   if (lower.match(/or[cç]amento|proposta|enviado/)) queries.push(q('orcamentos', 'ORÇAMENTOS'))
   if (lower.match(/qualidade|nc|n[aã]o.conform|inspe[cç]/)) { queries.push(q('nao_conformidades', 'NÃO-CONFORMIDADES', { limit: 20 })); queries.push(q('inspecoes', 'INSPEÇÕES', { limit: 20 })) }
   if (lower.match(/manuten|om-|corretiva|preventiva/)) queries.push(q('ordens_manutencao', 'ORDENS DE MANUTENÇÃO', { limit: 20 }))
   if (lower.match(/compra|fornecedor|pedido.*compra|solicita/)) queries.push(q('pedidos_compra', 'PEDIDOS DE COMPRA', { limit: 20 }))
-  if (lower.match(/venda|nf.*venda|faturamento/)) queries.push(q('vendas', 'VENDAS'))
+  if (lower.match(/venda|nf.*venda/)) {
+    queries.push(q('vendas', 'VENDAS'))
+    queries.push(q('nf_cabecalho', 'NOTAS FISCAIS EMITIDAS', { limit: 50, filter: (qr) => qr.select('destinatario,emissao,total,cnpj').order('emissao', { ascending: false }) }))
+  }
 
   // Prospecção
   if (lower.match(/prospec|prospect|cnpj|empresa.*busca|lead.*frio|base.*empresa|score|ativo.*prospect/))
@@ -372,8 +502,8 @@ async function buscarContexto(prompt: string): Promise<string> {
 
   console.log(`[Assistente] Contexto: ${partes.length} blocos carregados`, partes.map(p => p.split('\n')[0]))
   return partes.length
-    ? `\n\n--- DADOS DO SISTEMA (use estes dados para responder) ---\n${partes.join('\n\n')}\n--- FIM DOS DADOS ---`
-    : '\n\n[NOTA: Nenhum dado do sistema foi encontrado para esta pergunta. Responda com base no que sabe sobre o ERP.]'
+    ? `\n\n--- DADOS DO SISTEMA (use SOMENTE estes dados para responder) ---\nIMPORTANTE: Use APENAS os nomes, valores e informações abaixo. NÃO invente nenhum dado que não esteja listado aqui.\n\n${partes.join('\n\n')}\n--- FIM DOS DADOS ---`
+    : '\n\n[NOTA: Nenhum dado do sistema foi encontrado para esta pergunta. Diga claramente que não há dados disponíveis. NÃO invente exemplos ou dados fictícios.]'
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -398,15 +528,35 @@ function saveThreads(threads: Thread[]) {
 }
 
 
+function RAGSources({ sources }: { sources: RAGSource[] }) {
+  const [open, setOpen] = useState<string | null>(null)
+  return (
+    <div className={s.ragSources}>
+      <div className={s.ragSourcesTitle}>📎 Fontes ({sources.length} documentos)</div>
+      {sources.map(src => (
+        <div key={src.file}>
+          <button className={s.ragSourceBtn} onClick={() => setOpen(open === src.file ? null : src.file)}>
+            📄 {src.file.replace(/\.[^.]+$/, '').slice(0, 50)}
+            <span className={s.ragChunkCount}>{src.chunks} trecho{src.chunks > 1 ? 's' : ''}</span>
+          </button>
+          {open === src.file && (
+            <div className={s.ragSourceExcerpt}>{src.excerpt}</div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function AdminAssistente() {
   const [msgs, setMsgs] = useState<Msg[]>(loadMsgs)
   const [threads, setThreads] = useState<Thread[]>(loadThreads)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [showUsage, setShowUsage] = useState(false)
-  const [modelo, setModelo] = useState<ModelKey>('haiku')
+  const [modelo, setModelo] = useState<ModelKey>(() => (localStorage.getItem('assistente_modelo') as ModelKey) || 'auto')
   const [pendingTools, setPendingTools] = useState<{ tools: ToolCall[]; historico: { role: string; content: string }[] } | null>(null)
-  const [ragEnabled, setRagEnabled] = useState(false)
+  const [ragEnabled, setRagEnabled] = useState(() => localStorage.getItem('assistente_rag') === '1')
   const [showKb, setShowKb] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -449,10 +599,19 @@ export default function AdminAssistente() {
     setMsgs(prev => [...prev, userMsg])
     setLoading(true)
     try {
-      const contexto = await buscarContexto(msg)
-      const historico = [...msgs, userMsg].slice(-10).map(m => ({ role: m.role, content: m.content }))
-      if (contexto) historico[historico.length - 1] = { ...historico[historico.length - 1], content: historico[historico.length - 1].content + contexto }
-      const { data, error } = await supabaseAdmin.functions.invoke('assistente-chat', { body: { messages: historico, system: SYSTEM_PROMPT, model: modelo, rag: ragEnabled } })
+      // Quando RAG ativo: não buscar contexto ERP e enviar só a última mensagem (sem histórico contaminante)
+      let historico: { role: string; content: string }[]
+      if (ragEnabled) {
+        historico = [{ role: 'user', content: msg + '\n\n**SAÍDA OBRIGATÓRIA**: Ao final, 2-4 linhas de destaque começando com > e emoji (ex: > 📌 Insight). NUNCA omita.' }]
+      } else {
+        const contexto = await buscarContexto(msg)
+        historico = [...msgs, userMsg].slice(-10).map(m => ({ role: m.role, content: m.content }))
+        const outputHint = '\n\n**SAÍDA OBRIGATÓRIA**: 1) Tabela ordenada DESC pelo valor principal. 2) Ao final, 2-4 linhas de destaque começando com > e emoji (ex: > 📌 Insight). NUNCA omita os destaques.'
+        if (contexto) historico[historico.length - 1] = { ...historico[historico.length - 1], content: historico[historico.length - 1].content + outputHint + contexto }
+        else historico[historico.length - 1] = { ...historico[historico.length - 1], content: historico[historico.length - 1].content + outputHint }
+      }
+      console.log('[Assistente] ragEnabled:', ragEnabled, 'modelo:', modelo, 'msgs:', historico.length)
+      const { data, error } = await supabaseAdmin.functions.invoke('assistente-chat', { body: { messages: historico, system: ragEnabled ? '' : SYSTEM_PROMPT, model: modelo, rag: ragEnabled } })
       if (error) throw new Error(typeof error === 'object' ? JSON.stringify(error) : String(error))
       const parsed = typeof data === 'string' ? JSON.parse(data) : data
       // Se tem tool_calls, mostrar modal de confirmação
@@ -462,7 +621,8 @@ export default function AdminAssistente() {
         setLoading(false)
         return
       }
-      setMsgs(prev => [...prev, { role: 'assistant', content: parsed?.content || parsed?.message || parsed?.error || 'Sem resposta.', model: parsed?.model }])
+      const ragInfo = parsed?.rag_used ? '\n\n📚 _Resposta baseada na base de conhecimento_' : ''
+      setMsgs(prev => [...prev, { role: 'assistant', content: (parsed?.content || parsed?.message || parsed?.error || 'Sem resposta.') + ragInfo, model: parsed?.model, rag_sources: parsed?.rag_sources }])
     } catch (err: unknown) {
       setMsgs(prev => [...prev, { role: 'assistant', content: `Erro: ${err instanceof Error ? err.message : 'desconhecido'}` }])
     } finally {
@@ -563,7 +723,7 @@ export default function AdminAssistente() {
             📚 Base Conhecimento {showKb ? '▾' : '▸'}
           </button>
         </div>
-        {showKb && <KnowledgeBase ragEnabled={ragEnabled} onRagToggle={setRagEnabled} />}
+        {showKb && <KnowledgeBase ragEnabled={ragEnabled} onRagToggle={v => { setRagEnabled(v); localStorage.setItem('assistente_rag', v ? '1' : '0') }} onAskQuestion={q => { setInput(q); setTimeout(() => inputRef.current?.focus(), 50) }} />}
 
         <div className={s.sideSpacer} />
       </div>
@@ -591,6 +751,7 @@ export default function AdminAssistente() {
                   <div className={s.avatar}>{ico.bot}</div>
                   <div className={s.botContent}>
                     <RenderResponse text={m.content} onFollowUp={enviar} />
+                    {m.rag_sources?.length ? <RAGSources sources={m.rag_sources} /> : null}
                     <ModelBadge model={m.model} />
                   </div>
                 </div>
@@ -612,7 +773,7 @@ export default function AdminAssistente() {
         {/* Composer — fixed bottom, outside scroll */}
         <div className={s.composer}>
           <div className={s.composerModel}>
-            <ModelSelector value={modelo} onChange={setModelo} />
+            <ModelSelector value={modelo} onChange={m => { setModelo(m); localStorage.setItem('assistente_modelo', m) }} />
           </div>
           <div className={s.composerInner}>
             <FileUpload disabled={loading} onResult={handleFileResult} />
@@ -629,7 +790,10 @@ export default function AdminAssistente() {
               {loading ? '…' : '↑'}
             </button>
           </div>
-          <div className={s.composerHint}>Dados buscados automaticamente com base na sua pergunta</div>
+          <div className={s.composerHint}>
+            {ragEnabled && <span className={s.ragBadge}>📚 Base de conhecimento ativa</span>}
+            Dados buscados automaticamente com base na sua pergunta
+          </div>
         </div>
       </div>
 

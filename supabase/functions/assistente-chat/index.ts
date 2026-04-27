@@ -26,6 +26,7 @@ interface ModelCfg {
   maxTokens: number
   baseUrl?: string
   keyEnv?: string
+  maxInput?: number
 }
 
 const MODELS: Record<string, ModelCfg> = {
@@ -33,8 +34,8 @@ const MODELS: Record<string, ModelCfg> = {
   sonnet:   { id: 'claude-sonnet-4-6-20250514', provider: 'anthropic',     maxTokens: 4096 },
   gemini:   { id: 'gemini-2.5-flash',           provider: 'gemini',        maxTokens: 4096 },
   groq:     { id: 'llama-3.3-70b-versatile',    provider: 'openai_compat', maxTokens: 4096, baseUrl: 'https://api.groq.com/openai/v1', keyEnv: 'GROQ_API_KEY' },
-  cerebras: { id: 'llama-3.3-70b',              provider: 'openai_compat', maxTokens: 4096, baseUrl: 'https://api.cerebras.ai/v1',     keyEnv: 'CEREBRAS_API_KEY' },
-  mistral:  { id: 'mistral-small-latest',       provider: 'openai_compat', maxTokens: 4096, baseUrl: 'https://api.mistral.ai/v1',      keyEnv: 'MISTRAL_API_KEY' },
+  cerebras: { id: 'qwen-3-235b-a22b-instruct-2507', provider: 'openai_compat', maxTokens: 8192, baseUrl: 'https://api.cerebras.ai/v1', keyEnv: 'CEREBRAS_API_KEY', maxInput: 8192 },
+  mistral:  { id: 'mistral-small-latest',       provider: 'openai_compat', maxTokens: 8192, baseUrl: 'https://api.mistral.ai/v1',      keyEnv: 'MISTRAL_API_KEY' },
 }
 
 // ── Tool definitions para ações no ERP ──────────────────────────────────────
@@ -267,21 +268,26 @@ async function callOpenAICompat(
 }
 
 // ── RAG: busca semântica em knowledge_chunks ────────────────────────────────
-async function searchRAG(query: string): Promise<string> {
-  if (!GEMINI_KEY || !SUPABASE_URL || !SERVICE_KEY) return ''
+interface RAGSource { file: string; excerpt: string; similarity: number; chunks: number }
+
+interface RAGResult {
+  context: string
+  sources: RAGSource[]
+}
+
+async function searchRAG(query: string): Promise<RAGResult | null> {
+  if (!GEMINI_KEY || !SUPABASE_URL || !SERVICE_KEY) return null
   try {
-    // Gerar embedding da pergunta
     const embRes = await fetch(`${EMBED_URL}?key=${GEMINI_KEY}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: { parts: [{ text: query }] } }),
+      body: JSON.stringify({ content: { parts: [{ text: query }] }, outputDimensionality: 768 }),
     })
-    if (!embRes.ok) return ''
+    if (!embRes.ok) return null
     const embData = await embRes.json()
     const embedding = embData.embedding?.values as number[]
-    if (!embedding?.length) return ''
+    if (!embedding?.length) return null
 
-    // Buscar chunks similares via RPC
     const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/search_knowledge`, {
       method: 'POST',
       headers: {
@@ -291,20 +297,46 @@ async function searchRAG(query: string): Promise<string> {
       },
       body: JSON.stringify({
         query_embedding: '[' + embedding.join(',') + ']',
-        match_threshold: 0.65,
-        match_count: 5,
+        match_threshold: 0.3,
+        match_count: 10,
       }),
     })
-    if (!rpcRes.ok) return ''
+    if (!rpcRes.ok) return null
     const chunks = await rpcRes.json() as { content: string; source_file: string; similarity: number }[]
-    if (!chunks?.length) return ''
+    if (!chunks?.length) { console.log('[RAG] nenhum chunk encontrado'); return null }
+    console.log(`[RAG] ${chunks.length} chunks encontrados, sim: ${chunks.map(c => c.similarity.toFixed(2)).join(', ')}`)
 
-    return '\n\n--- DOCUMENTOS RELEVANTES (base de conhecimento) ---\n' +
-      chunks.map((c, i) => `[${i + 1}] (${c.source_file}, sim=${c.similarity.toFixed(2)})\n${c.content}`).join('\n\n') +
+    // Agrupar por arquivo — contexto e fontes usam nome do documento, não índices numéricos
+    const fileMap = new Map<string, { contents: string[]; excerpt: string; similarity: number }>()
+    for (const c of chunks) {
+      const cleanContent = c.content.replace(/^\[CONTEXTO DO DOCUMENTO:.*?\]\n?/, '')
+      const existing = fileMap.get(c.source_file)
+      if (existing) {
+        existing.contents.push(cleanContent)
+        if (cleanContent.length > existing.excerpt.length) existing.excerpt = cleanContent.slice(0, 400)
+      } else {
+        fileMap.set(c.source_file, { contents: [cleanContent], excerpt: cleanContent.slice(0, 400), similarity: c.similarity })
+      }
+    }
+
+    // Contexto agrupado por documento (não por chunk individual)
+    const context = '\n\n--- DOCUMENTOS RELEVANTES (base de conhecimento) ---\n' +
+      Array.from(fileMap.entries()).map(([file, info]) =>
+        `📄 Documento: "${file}"\n${info.contents.join('\n\n')}`
+      ).join('\n\n---\n\n') +
       '\n--- FIM DOCUMENTOS ---'
+
+    const sources: RAGSource[] = Array.from(fileMap.entries()).map(([file, info]) => ({
+      file,
+      excerpt: info.excerpt,
+      similarity: info.similarity,
+      chunks: info.contents.length,
+    }))
+
+    return { context, sources }
   } catch (err) {
     console.warn('[RAG] erro:', err)
-    return ''
+    return null
   }
 }
 
@@ -314,20 +346,60 @@ Deno.serve(async (req) => {
 
   try {
     const { messages, system, model: modelKey, rag } = await req.json()
+    console.log('[INIT] model:', modelKey, 'rag:', rag, 'msgs:', messages?.length)
 
     if (!messages?.length) return jsonRes({ error: 'messages é obrigatório' }, 400)
 
-    const cfg = MODELS[modelKey] ?? MODELS.haiku
-    let sysPrompt = system || 'Você é um assistente empresarial. Responda em português brasileiro.'
+    // Roteamento automático: analisa a pergunta e escolhe o melhor modelo
+    let resolvedKey = modelKey
+    if (modelKey === 'auto') {
+      const lastMsg = [...messages].reverse().find((m: { role: string; content: string }) => m.role === 'user')?.content?.toLowerCase() ?? ''
+      if (/dados|tabela|cliente|faturamento|financ|estoque|valor|%|percent|ranking|top\s?\d|quanto|nf|nota fiscal|produção|venda|compra|dre|saldo|receita|despesa/.test(lastMsg)) {
+        resolvedKey = 'mistral'
+      } else {
+        resolvedKey = 'gemini'
+      }
+      console.log('[AUTO] roteado para:', resolvedKey)
+    }
+    const cfg = MODELS[resolvedKey] ?? MODELS.gemini
+    const DESTAQUE_HINT = '\n\nOBRIGATÓRIO: Ao final de TODA resposta, inclua 2-4 destaques usando blockquote (linhas começando com > e emoji). Ex:\n> 📌 Insight importante\n> ⚠️ Alerta relevante'
+    let sysPrompt = (system || 'Você é um assistente empresarial. Responda em português brasileiro.') + DESTAQUE_HINT
 
     // RAG: buscar documentos relevantes e injetar no system prompt
+    let ragUsed = false
+    let ragSources: RAGSource[] = []
     if (rag) {
+      console.log('[RAG] rag=true, buscando...')
       const lastUserMsg = [...messages].reverse().find((m: { role: string }) => m.role === 'user')
       const query = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : ''
+      console.log('[RAG] query:', query?.slice(0, 100))
       if (query) {
-        const ragContext = await searchRAG(query)
-        if (ragContext) sysPrompt += ragContext
+        const ragResult = await searchRAG(query)
+        console.log('[RAG] contexto encontrado:', ragResult ? ragResult.context.length + ' chars' : 'nenhum')
+        if (ragResult) {
+          sysPrompt = `Você é o assistente da Pousinox, indústria que fabrica FIXADORES DE PORCELANATO em aço inoxidável 304 e 430 (espessura 0.8mm), localizada em Pouso Alegre/MG.
+
+CONTEXTO IMPORTANTE: A Pousinox fabrica fixadores de porcelanato usando chapas de aço inox 304 e 430. Quando os documentos mencionam "chapa inox 304", "chapa inox 430", "ensaios mecânicos" ou relatórios do "SENAI/LAMAT", eles se referem a ensaios realizados no PRODUTO FINAL da Pousinox (fixadores de porcelanato). As chapas são o material dos fixadores.
+
+REGRA ABSOLUTA: Sua resposta DEVE ser baseada nos documentos fornecidos na mensagem do usuário (entre "--- DOCUMENTOS RELEVANTES ---" e "--- FIM DOCUMENTOS ---"). NÃO diga que não tem informação se os documentos contêm a resposta. NÃO mencione "ERP", "módulos" ou "dados do sistema". Ao citar um documento, use o nome do arquivo entre aspas (ex: "nome-do-arquivo.pdf").
+
+NUNCA invente, fabrique ou simule dados. Só cite informações que estejam explicitamente nos documentos fornecidos. Se não encontrar a resposta nos documentos, diga claramente.
+
+Responda em português brasileiro, de forma concisa e profissional.`
+          let lastUserContent = [...messages].reverse().find((m: { role: string; content: string }) => m.role === 'user')?.content ?? ''
+          lastUserContent = lastUserContent.replace(/\n*\[NOTA:.*$/s, '').trim()
+          const ragMessage = ragResult.context + '\n\nCom base nos documentos acima, responda a seguinte pergunta:\n\n' + lastUserContent
+          ragUsed = true
+          ragSources = ragResult.sources
+          console.log('[RAG] pergunta limpa:', lastUserContent.slice(0, 100))
+          console.log('[RAG] msg total:', ragMessage.length, 'chars')
+          // Substituir messages por nova array com apenas a mensagem RAG
+          while (messages.length > 0) messages.pop()
+          messages.push({ role: 'user', content: ragMessage })
+        }
       }
+    } else {
+      console.log('[RAG] rag=false, pulando')
     }
 
     if (cfg.provider === 'anthropic' && !ANTHROPIC_KEY) return jsonRes({ error: 'ANTHROPIC_API_KEY não configurada' }, 500)
@@ -336,6 +408,19 @@ Deno.serve(async (req) => {
 
     let result: { content: string; usage: { input_tokens: number; output_tokens: number }; tool_calls?: { id: string; name: string; input: unknown }[]; stop_reason?: string }
 
+    // Truncar mensagens para modelos com limite de input
+    if (cfg.maxInput) {
+      const maxChars = cfg.maxInput * 3 // ~3 chars por token
+      for (let i = 0; i < messages.length; i++) {
+        const m = messages[i] as { role: string; content: string }
+        if (typeof m.content === 'string' && m.content.length > maxChars) {
+          m.content = m.content.slice(0, maxChars) + '\n\n[... contexto truncado por limite do modelo]'
+          console.log(`[TRUNCATE] msg ${i} truncada para ${maxChars} chars`)
+        }
+      }
+    }
+
+    console.log('[CALL] provider:', cfg.provider, 'msgs:', messages.length, 'sysPrompt (100):', sysPrompt.slice(0, 100))
     if (cfg.provider === 'gemini') {
       const r = await callGemini(cfg.id, messages as { role: string; content: string }[], sysPrompt)
       result = { ...r, tool_calls: undefined }
@@ -354,6 +439,8 @@ Deno.serve(async (req) => {
       model: cfg.id,
       tool_calls: result.tool_calls,
       stop_reason: result.stop_reason,
+      rag_used: ragUsed,
+      rag_sources: ragSources.length > 0 ? ragSources : undefined,
     })
 
   } catch (err) {
