@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import styles from './AdminAnalytics.module.css'
+import AiActionButton from '../components/assistente/AiActionButton'
+import { aiChat } from '../lib/aiHelper'
 
 const EDGE_URL = 'https://vcektwtpofypsgdgdjlx.supabase.co/functions/v1/ga4-metrics'
 
@@ -553,11 +555,32 @@ export default function AdminAnalytics() {
     return acoes.sort((a, b) => b.prioridade - a.prioridade)
   }
 
+  const gerarAnalise = useCallback(async () => {
+    if (!ga4) return 'Sem dados GA4 carregados.'
+    const topPages = ga4.topPaginas?.slice(0, 10).map(p => `${p.titulo}: ${p.visualizacoes} views`).join('\n') || 'N/D'
+    const canais = ga4.canais?.map(c => `${c.canal}: ${c.sessoes} sessões`).join(', ') || 'N/D'
+    const cidades = ga4.cidades?.slice(0, 5).map(c => `${c.cidade}/${c.estado}: ${c.usuarios}`).join(', ') || 'N/D'
+    const gscInfo = gsc ? `\nSEO (GSC): ${gsc.queries?.length || 0} queries, top: ${gsc.queries?.slice(0, 5).map(q => `"${q.query}" (${q.cliques} clicks)`).join(', ') || 'N/D'}` : ''
+    const d = ga4.ultimos30dias
+    const prompt = `Dados do Google Analytics do site pousinox.com.br (${startDate} a ${endDate}):
+- Sessões: ${d.sessoes} | Usuários: ${d.usuarios} | Pageviews: ${ga4.pageviews || 'N/D'}
+- Taxa rejeição: ${(d.taxaRejeicao * 100).toFixed(1)}%
+- Duração média: ${d.duracaoMedia.toFixed(0)}s
+- Canais: ${canais}
+- Top cidades: ${cidades}
+- Top páginas:\n${topPages}${gscInfo}
+
+Gere: 1) Diagnóstico de performance (2-3 linhas) 2) 3 pontos fortes 3) 3 problemas/oportunidades 4) 5 ações concretas priorizadas para melhorar tráfego e conversões`
+    const r = await aiChat({ prompt, system: 'Especialista em analytics e SEO para indústria B2B. Site de fabricante de fixadores de porcelanato inox. Responda direto, acionável. Português brasileiro.', model: 'groq' })
+    return r.error ? `Erro: ${r.error}` : r.content
+  }, [ga4, gsc, startDate, endDate])
+
   return (
     <div className={styles.wrap}>
 
       {/* ── Abas ── */}
-      <div className={styles.tabBar}>
+      <div className={styles.tabBar} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 0 }}>
         {TABS.map(t => (
           <button
             key={t}
@@ -568,6 +591,8 @@ export default function AdminAnalytics() {
             {t}
           </button>
         ))}
+        </div>
+        <AiActionButton label="Análise IA" icon="📊" action={gerarAnalise} />
       </div>
 
       {/* ══════════════ ESTRATÉGIA ══════════════ */}
