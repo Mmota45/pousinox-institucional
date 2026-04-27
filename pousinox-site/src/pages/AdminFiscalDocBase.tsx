@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, supabaseAdmin } from '../lib/supabase'
 import styles from './AdminCompras.module.css'
+import AiActionButton from '../components/assistente/AiActionButton'
+import { aiVision, fileToBase64 } from '../lib/aiHelper'
 
 // ── Types ─────────────────────────────────────────────────────────
 export type DocTipo = 'recebido' | 'emitido'
@@ -664,6 +666,14 @@ export default function AdminFiscalDocBase({ tipo, titulo, subtitulo }: Props) {
             onClick={() => { setCsvPreview([]); setCsvRows([]); setCsvMsg(null); setVista('importar') }}>
             📥 Importar CSV
           </button>
+          <AiActionButton label="OCR NF por foto" icon="📸" acceptImage small
+            actionWithFile={async (file) => {
+              const base64 = await fileToBase64(file)
+              const r = await aiVision({ imageBase64: base64, mimeType: file.type, filename: file.name })
+              if (r.error) return `Erro: ${r.error}`
+              return `Dados extraídos da NF:\n\n${r.content}\n\nUse esses dados para preencher o formulário manualmente.`
+            }}
+            action={async () => ''} />
           <button className={styles.btnPrimary} onClick={() => abrirForm()}>+ Novo Documento</button>
         </div>
       </div>

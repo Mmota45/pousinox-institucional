@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminQualidade.module.css'
+import AiActionButton from '../components/assistente/AiActionButton'
+import { aiVision, fileToBase64 } from '../lib/aiHelper'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -569,9 +571,18 @@ export default function AdminQualidade() {
 
               {/* Formulário inline de NC */}
               {!ncFormAberto ? (
-                <button className={styles.btnAbrirNC} onClick={() => setNcFormAberto(true)}>
-                  + Abrir não conformidade
-                </button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button className={styles.btnAbrirNC} onClick={() => setNcFormAberto(true)}>
+                    + Abrir não conformidade
+                  </button>
+                  <AiActionButton label="Analisar defeito" icon="📸" acceptImage
+                    actionWithFile={async (file) => {
+                      const base64 = await fileToBase64(file)
+                      const r = await aiVision({ imageBase64: base64, mimeType: file.type, filename: file.name })
+                      return r.error ? `Erro: ${r.error}` : r.content
+                    }}
+                    action={async () => ''} small />
+                </div>
               ) : (
                 <div className={styles.ncFormBox}>
                   <div className={styles.ncFormTitulo}>Nova Não Conformidade</div>

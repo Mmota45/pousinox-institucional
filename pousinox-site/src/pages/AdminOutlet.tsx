@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminOutlet.module.css'
+import AiActionButton from '../components/assistente/AiActionButton'
+import { aiVision, fileToBase64 } from '../lib/aiHelper'
 
 const BUCKET = 'outlet-fotos'
 const SUPABASE_URL = 'https://vcektwtpofypsgdgdjlx.supabase.co'
@@ -330,9 +332,19 @@ export default function AdminOutlet() {
             {produtos.length} produto{produtos.length !== 1 ? 's' : ''}
           </span>
         </div>
-        <button className={styles.btnPrimary} onClick={formAberto ? fecharForm : abrirNovo}>
-          {formAberto ? '✕ Fechar' : '＋ Novo produto'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <AiActionButton label="Descrever por foto" icon="📸" acceptImage
+            actionWithFile={async (file) => {
+              const base64 = await fileToBase64(file)
+              const r = await aiVision({ imageBase64: base64, mimeType: file.type, filename: file.name })
+              if (r.error) return `Erro: ${r.error}`
+              return `Sugestão de cadastro baseada na foto:\n\n${r.content}\n\nCopie os campos relevantes para o formulário.`
+            }}
+            action={async () => ''} />
+          <button className={styles.btnPrimary} onClick={formAberto ? fecharForm : abrirNovo}>
+            {formAberto ? '✕ Fechar' : '＋ Novo produto'}
+          </button>
+        </div>
       </div>
 
       {/* Formulário colapsável */}

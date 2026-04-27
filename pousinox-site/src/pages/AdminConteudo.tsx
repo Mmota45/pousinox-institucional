@@ -2,6 +2,7 @@ import { useState } from 'react'
 import styles from './AdminConteudo.module.css'
 import { supabaseAdmin } from '../lib/supabase'
 import ArticlePreview from '../components/ArticlePreview/ArticlePreview'
+import AgentConteudo from '../components/assistente/AgentConteudo'
 
 const EDGE_URL = 'https://vcektwtpofypsgdgdjlx.supabase.co/functions/v1/gerar-conteudo'
 const ARTIGO_URL = 'https://vcektwtpofypsgdgdjlx.supabase.co/functions/v1/gerar-artigo'
@@ -184,6 +185,7 @@ const REDES_GUIA: Record<string, { exemplo: string; regras: { titulo: string; de
 
 export default function AdminConteudo() {
   const [secao, setSecao] = useState<'blog' | 'linkedin' | 'instagram' | 'facebook' | 'whatsapp' | 'email' | 'youtube'>('blog')
+  const [agentConteudo, setAgentConteudo] = useState(false)
   const [tema, setTema] = useState('')
   const [tom, setTom] = useState('informativo')
   const [textoRede, setTextoRede] = useState('')
@@ -711,7 +713,11 @@ export default function AdminConteudo() {
 
   return (
     <div className={styles.wrap}>
-      <h1 className={styles.titulo}>Conteúdo</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <h1 className={styles.titulo} style={{ margin: 0 }}>Conteúdo</h1>
+        <button style={{ padding: '6px 14px', background: 'linear-gradient(135deg,#1e1b4b,#312e81)', color: '#fff', border: 'none', borderRadius: 6, fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'inherit' }}
+          onClick={() => setAgentConteudo(true)}>✍️ Gerador IA</button>
+      </div>
 
       {/* Seletor de canal */}
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
@@ -1445,6 +1451,7 @@ export default function AdminConteudo() {
           </div>
         </div>
       )}
+      <AgentConteudo aberto={agentConteudo} onClose={() => setAgentConteudo(false)} />
     </div>
   )
 }

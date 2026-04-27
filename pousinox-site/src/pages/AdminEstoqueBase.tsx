@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminEstoqueIndustrial.module.css'
+import AiActionButton from '../components/assistente/AiActionButton'
+import { aiChat } from '../lib/aiHelper'
 
 // ── Types ─────────────────────────────────────────────────────────
 type Vista = 'lista' | 'form' | 'detalhe'
@@ -291,7 +293,20 @@ export default function AdminEstoqueBase({ tipo, titulo, subtitulo }: Props) {
           <h1 className={styles.pageTitle}>{titulo}</h1>
           <p className={styles.pageSubtitle}>{subtitulo}</p>
         </div>
-        <button className={styles.btnPrimary} onClick={() => abrirForm()}>+ Novo Item</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <AiActionButton label="Previsão reposição" icon="📊" action={async () => {
+            const { data: itensData } = await supabaseAdmin.from('estoque_itens').select('nome,saldo_atual,estoque_minimo,custo_medio,unidade').eq('tipo', tipo).eq('ativo', true).order('saldo_atual', { ascending: true }).limit(30)
+            if (!itensData?.length) return 'Sem itens no estoque.'
+            const lista = itensData.map(i => `${i.nome}: saldo=${i.saldo_atual} ${i.unidade}, mín=${i.estoque_minimo}, custo=R$${i.custo_medio || 0}`).join('\n')
+            const r = await aiChat({
+              prompt: `Estoque ${tipo === 'mp' ? 'Matéria-Prima' : 'Produto Acabado'} da Pousinox:\n${lista}\n\nAnalise: itens críticos (abaixo do mínimo), previsão de necessidade de reposição, sugestão de compra priorizada com estimativa de valor.`,
+              system: 'Analista de supply chain. Responda direto com tabela de prioridades e valores estimados. Português brasileiro.',
+              model: 'groq',
+            })
+            return r.error ? `Erro: ${r.error}` : r.content
+          }} />
+          <button className={styles.btnPrimary} onClick={() => abrirForm()}>+ Novo Item</button>
+        </div>
       </div>
 
       {/* Summary */}

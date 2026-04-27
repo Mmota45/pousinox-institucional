@@ -9,16 +9,32 @@ import { logUsage } from '../_shared/logUsage.ts'
 
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
 const GEMINI_KEY    = Deno.env.get('GEMINI_KEY') ?? ''
+const GROQ_KEY      = Deno.env.get('GROQ_API_KEY') ?? ''
+const CEREBRAS_KEY  = Deno.env.get('CEREBRAS_API_KEY') ?? ''
+const MISTRAL_KEY   = Deno.env.get('MISTRAL_API_KEY') ?? ''
 const SUPABASE_URL  = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
 const EMBED_MODEL = 'gemini-embedding-001'
 const EMBED_URL   = `https://generativelanguage.googleapis.com/v1beta/models/${EMBED_MODEL}:embedContent`
 
-const MODELS: Record<string, { id: string; provider: 'anthropic' | 'gemini'; maxTokens: number }> = {
-  haiku:  { id: 'claude-haiku-4-5-20251001',  provider: 'anthropic', maxTokens: 4096 },
-  sonnet: { id: 'claude-sonnet-4-6-20250514', provider: 'anthropic', maxTokens: 4096 },
-  gemini: { id: 'gemini-2.5-flash',           provider: 'gemini',    maxTokens: 4096 },
+type Provider = 'anthropic' | 'gemini' | 'openai_compat'
+
+interface ModelCfg {
+  id: string
+  provider: Provider
+  maxTokens: number
+  baseUrl?: string
+  keyEnv?: string
+}
+
+const MODELS: Record<string, ModelCfg> = {
+  haiku:    { id: 'claude-haiku-4-5-20251001',  provider: 'anthropic',     maxTokens: 4096 },
+  sonnet:   { id: 'claude-sonnet-4-6-20250514', provider: 'anthropic',     maxTokens: 4096 },
+  gemini:   { id: 'gemini-2.5-flash',           provider: 'gemini',        maxTokens: 4096 },
+  groq:     { id: 'llama-3.3-70b-versatile',    provider: 'openai_compat', maxTokens: 4096, baseUrl: 'https://api.groq.com/openai/v1', keyEnv: 'GROQ_API_KEY' },
+  cerebras: { id: 'llama-3.3-70b',              provider: 'openai_compat', maxTokens: 4096, baseUrl: 'https://api.cerebras.ai/v1',     keyEnv: 'CEREBRAS_API_KEY' },
+  mistral:  { id: 'mistral-small-latest',       provider: 'openai_compat', maxTokens: 4096, baseUrl: 'https://api.mistral.ai/v1',      keyEnv: 'MISTRAL_API_KEY' },
 }
 
 // ── Tool definitions para ações no ERP ──────────────────────────────────────
@@ -210,6 +226,46 @@ async function callGemini(
   }
 }
 
+// ── OpenAI-compatible (Groq, Cerebras, Mistral) ────────────────────────────
+async function callOpenAICompat(
+  cfg: ModelCfg,
+  messages: { role: string; content: string }[],
+  system: string,
+) {
+  const apiKey = cfg.keyEnv ? (Deno.env.get(cfg.keyEnv) ?? '') : ''
+  if (!apiKey) throw new Error(`${cfg.keyEnv} não configurada`)
+
+  const body = {
+    model: cfg.id,
+    max_tokens: cfg.maxTokens,
+    messages: [{ role: 'system', content: system }, ...messages],
+  }
+
+  const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`${cfg.id} API ${res.status}: ${err}`)
+  }
+
+  const data = await res.json()
+  const choice = data.choices?.[0]
+  return {
+    content: choice?.message?.content ?? '',
+    usage: {
+      input_tokens: data.usage?.prompt_tokens ?? 0,
+      output_tokens: data.usage?.completion_tokens ?? 0,
+    },
+  }
+}
+
 // ── RAG: busca semântica em knowledge_chunks ────────────────────────────────
 async function searchRAG(query: string): Promise<string> {
   if (!GEMINI_KEY || !SUPABASE_URL || !SERVICE_KEY) return ''
@@ -276,11 +332,15 @@ Deno.serve(async (req) => {
 
     if (cfg.provider === 'anthropic' && !ANTHROPIC_KEY) return jsonRes({ error: 'ANTHROPIC_API_KEY não configurada' }, 500)
     if (cfg.provider === 'gemini' && !GEMINI_KEY) return jsonRes({ error: 'GEMINI_KEY não configurada' }, 500)
+    if (cfg.provider === 'openai_compat' && cfg.keyEnv && !Deno.env.get(cfg.keyEnv)) return jsonRes({ error: `${cfg.keyEnv} não configurada` }, 500)
 
     let result: { content: string; usage: { input_tokens: number; output_tokens: number }; tool_calls?: { id: string; name: string; input: unknown }[]; stop_reason?: string }
 
     if (cfg.provider === 'gemini') {
       const r = await callGemini(cfg.id, messages as { role: string; content: string }[], sysPrompt)
+      result = { ...r, tool_calls: undefined }
+    } else if (cfg.provider === 'openai_compat') {
+      const r = await callOpenAICompat(cfg, messages as { role: string; content: string }[], sysPrompt)
       result = { ...r, tool_calls: undefined }
     } else {
       result = await callAnthropic(cfg.id, messages, sysPrompt, cfg.maxTokens)

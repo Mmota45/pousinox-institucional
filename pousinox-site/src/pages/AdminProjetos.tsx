@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminProjetos.module.css'
 import UploadMemorial from '../components/UploadMemorial/UploadMemorial'
+import AiActionButton from '../components/assistente/AiActionButton'
+import { aiVision, fileToBase64 } from '../lib/aiHelper'
 import * as pdfjsLib from 'pdfjs-dist'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -1249,6 +1251,14 @@ export default function AdminProjetos() {
           >
             {fasePDF === 'extraindo' ? '⏳ Extraindo PDF…' : fasePDF === 'analisando' ? '🤖 Analisando…' : '📄 Criar do PDF'}
           </button>
+          <AiActionButton label="Analisar edital" icon="📋" acceptImage small
+            actionWithFile={async (file) => {
+              const base64 = await fileToBase64(file)
+              const r = await aiVision({ imageBase64: base64, mimeType: file.type, filename: file.name })
+              if (r.error) return `Erro: ${r.error}`
+              return `Análise do documento:\n\n${r.content}`
+            }}
+            action={async () => ''} />
           <button className={styles.btnPrimary} onClick={abrirFormNovo}>+ Novo Projeto</button>
         </div>
       </div>

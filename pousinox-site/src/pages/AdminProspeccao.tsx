@@ -4,6 +4,9 @@ import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminProspeccao.module.css'
 import MapaProspects, { type CidadeMapa } from './MapaProspects'
 import HistoricoModal from '../components/HistoricoModal/HistoricoModal'
+import AiActionButton from '../components/assistente/AiActionButton'
+import { aiChat } from '../lib/aiHelper'
+import AgentProspector from '../components/assistente/AgentProspector'
 
 // ── Badge de status com popup ─────────────────────────────────────────────────
 
@@ -324,6 +327,7 @@ export default function AdminProspeccao() {
   const [totalFixador, setTotalFixador]   = useState(0)
   const [totalFixCont, setTotalFixCont]   = useState(0)
   const [pagina, setPagina]         = useState(0)
+  const [agentProspector, setAgentProspector] = useState(false)
   const [loading, setLoading]       = useState(false)
   const [buscado, setBuscado]       = useState(false)
   const [erroQuery, setErroQuery]   = useState<string | null>(null)
@@ -922,6 +926,8 @@ setClientesCidade(clientesPorCidade)
         <button className={styles.buscarBtnMobile} onClick={() => buscar(0)} disabled={loading}>
           {loading ? '...' : 'Buscar'}
         </button>
+        <button style={{ padding: '6px 10px', background: 'linear-gradient(135deg,#1e1b4b,#312e81)', color: '#fff', border: 'none', borderRadius: 6, fontSize: '0.65rem', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
+          onClick={() => setAgentProspector(true)}>🎯 Prospector IA</button>
         <button
           className={styles.novoProspectBtn}
           onClick={() => { setModalCadastro(true); setCnpjInput(''); setDadosCnpjApi(null); setErroCnpj(null) }}
@@ -2261,7 +2267,15 @@ setClientesCidade(clientesPorCidade)
               </div>}
 
               {/* Botão fixo no rodapé */}
-              <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid #e2e8f0' }}>
+              <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <AiActionButton label="Sugerir abordagem" icon="💬" action={async () => {
+                  const r = await aiChat({
+                    prompt: `Prospect: ${p.nome}\nCNPJ: ${p.cnpj || 'N/I'}\nSegmento: ${p.segmento || 'N/I'}\nPorte: ${p.porte || 'N/I'}\nCidade/UF: ${p.cidade || ''}/${p.uf || ''}\nScore: ${p.score ?? 'N/I'}\nCliente ativo: ${p.cliente_ativo ? 'Sim' : 'Não'}\n\nSugira uma abordagem comercial personalizada para contato via WhatsApp e email. A Pousinox fabrica fixadores de porcelanato em aço inox. Inclua: gancho de abertura, proposta de valor relevante para o segmento, e call-to-action.`,
+                    system: 'Vendedor consultivo B2B da Pousinox. Crie mensagens naturais e profissionais. Português brasileiro.',
+                    model: 'groq',
+                  })
+                  return r.error ? `Erro: ${r.error}` : r.content
+                }} />
                 <button onClick={() => criarDealDireto(p)}
                   style={{ width: '100%', padding: '12px', background: 'var(--color-primary, #2563eb)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}>
                   ➡ Criar deal no Pipeline
@@ -2280,6 +2294,7 @@ setClientesCidade(clientesPorCidade)
           onInteracaoSalva={() => buscar(pagina)}
         />
       )}
+      <AgentProspector aberto={agentProspector} onClose={() => setAgentProspector(false)} />
     </div>
   )
 }

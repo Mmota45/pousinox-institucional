@@ -10,6 +10,9 @@ const COST_MAP: Record<string, { input: number; output: number }> = {
   'claude-sonnet-4-6-20250514': { input: 3.00 / 1_000_000, output: 15.00 / 1_000_000 },
   'gemini-2.5-flash':           { input: 0, output: 0 },  // free tier
   'gemini-embedding-001':       { input: 0, output: 0 },
+  'llama-3.3-70b-versatile':   { input: 0, output: 0 },  // Groq free
+  'llama-3.3-70b':             { input: 0, output: 0 },  // Cerebras free
+  'mistral-small-latest':      { input: 0, output: 0 },  // Mistral free tier
 }
 
 export async function logUsage(

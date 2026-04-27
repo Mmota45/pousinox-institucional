@@ -1,18 +1,21 @@
 import s from './ModelSelector.module.css'
 
-export type ModelKey = 'haiku' | 'sonnet' | 'gemini'
+export type ModelKey = 'haiku' | 'sonnet' | 'gemini' | 'groq' | 'cerebras' | 'mistral'
 
 interface ModelOption {
   key: ModelKey
   label: string
   icon: string
-  cost: string  // custo resumido
+  cost: string
 }
 
 const OPTIONS: ModelOption[] = [
-  { key: 'haiku',  label: 'Rápido',   icon: '⚡', cost: '$0.80/M' },
-  { key: 'sonnet', label: 'Profundo', icon: '🧠', cost: '$3/M' },
-  { key: 'gemini', label: 'Gemini',   icon: '💎', cost: 'grátis' },
+  { key: 'haiku',    label: 'Rápido',   icon: '⚡', cost: '$0.80/M' },
+  { key: 'sonnet',   label: 'Profundo', icon: '🧠', cost: '$3/M' },
+  { key: 'gemini',   label: 'Gemini',   icon: '💎', cost: 'grátis' },
+  { key: 'groq',     label: 'Groq',     icon: '🚀', cost: 'grátis' },
+  { key: 'cerebras', label: 'Cerebras', icon: '⚙️', cost: 'grátis' },
+  { key: 'mistral',  label: 'Mistral',  icon: '🌀', cost: 'grátis' },
 ]
 
 interface Props {
@@ -40,9 +43,17 @@ export default function ModelSelector({ value, onChange }: Props) {
 
 export function ModelBadge({ model }: { model?: string }) {
   if (!model) return null
-  const key = model.includes('haiku') ? 'haiku' : model.includes('sonnet') ? 'sonnet' : model.includes('gemini') ? 'gemini' : null
-  if (!key) return null
-  const label = key === 'haiku' ? 'Haiku' : key === 'sonnet' ? 'Sonnet' : 'Gemini'
-  const cls = key === 'haiku' ? s.badgeHaiku : key === 'sonnet' ? s.badgeSonnet : s.badgeGemini
+  const BADGE_MAP: Record<string, { match: string; label: string; cls: string }> = {
+    haiku:    { match: 'haiku',    label: 'Haiku',    cls: s.badgeHaiku },
+    sonnet:   { match: 'sonnet',   label: 'Sonnet',   cls: s.badgeSonnet },
+    gemini:   { match: 'gemini',   label: 'Gemini',   cls: s.badgeGemini },
+    groq:     { match: 'llama-3.3-70b-versatile', label: 'Groq', cls: s.badgeGroq },
+    cerebras: { match: 'llama-3.3-70b', label: 'Cerebras', cls: s.badgeCerebras },
+    mistral:  { match: 'mistral',  label: 'Mistral',  cls: s.badgeMistral },
+  }
+  // Match longest first to avoid cerebras matching groq's llama
+  const entry = Object.values(BADGE_MAP).sort((a, b) => b.match.length - a.match.length).find(b => model.includes(b.match))
+  if (!entry) return null
+  const { label, cls } = entry
   return <span className={`${s.badge} ${cls}`}>{label}</span>
 }

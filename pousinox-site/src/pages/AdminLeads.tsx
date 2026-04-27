@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminLeads.module.css'
+import AiActionButton from '../components/assistente/AiActionButton'
+import { aiChat } from '../lib/aiHelper'
 
 interface Lead {
   id: number
@@ -102,9 +104,22 @@ export default function AdminLeads() {
           <h2 className={styles.titulo}>Leads — Outlet</h2>
           <p className={styles.subtitulo}>Interesses recebidos pelo site (pronta entrega / sob encomenda)</p>
         </div>
-        {leads.length > 0 && (
-          <button className={styles.exportBtn} onClick={exportarCSV}>↓ Exportar CSV</button>
-        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {leads.length > 0 && (
+            <button className={styles.exportBtn} onClick={exportarCSV}>↓ Exportar CSV</button>
+          )}
+          {leads.length > 0 && (
+            <AiActionButton label="Analisar Leads" icon="🤖" action={async () => {
+              const resumo = leads.slice(0, 30).map(l => `${l.cliente_nome || 'Anônimo'} | ${l.produto_titulo || 'N/I'} | ${l.cidade || 'N/I'} | ${l.status || 'novo'}`).join('\n')
+              const r = await aiChat({
+                prompt: `Leads recentes da Pousinox (fixadores de porcelanato inox):\nNome | Produto | Cidade | Status\n${resumo}\n\nAnalise os leads: identifique padrões (produtos mais buscados, cidades com mais demanda, leads quentes vs frios), sugira priorização e ações de follow-up.`,
+                system: 'Analista comercial da Pousinox. Responda direto com insights acionáveis. Português brasileiro.',
+                model: 'groq',
+              })
+              return r.error ? `Erro: ${r.error}` : r.content
+            }} />
+          )}
+        </div>
       </div>
 
       {/* ── Filtros ── */}

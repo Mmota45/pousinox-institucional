@@ -54,6 +54,9 @@
   letter-spacing: 0.3px;
 }
 
-.badgeHaiku  { background: #ecfdf5; color: #059669; }
-.badgeSonnet { background: #eff6ff; color: #2563eb; }
-.badgeGemini { background: #fef3c7; color: #d97706; }
+.badgeHaiku    { background: #ecfdf5; color: #059669; }
+.badgeSonnet   { background: #eff6ff; color: #2563eb; }
+.badgeGemini   { background: #fef3c7; color: #d97706; }
+.badgeGroq     { background: #fef2f2; color: #dc2626; }
+.badgeCerebras { background: #f5f3ff; color: #7c3aed; }
+.badgeMistral  { background: #fff7ed; color: #ea580c; }

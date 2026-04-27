@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminConciliacao.module.css'
+import AiActionButton from '../components/assistente/AiActionButton'
+import { aiChat } from '../lib/aiHelper'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -400,6 +402,22 @@ export default function AdminConciliacao() {
           {msg.texto}
         </div>
       )}
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <AiActionButton label="Conciliação IA" icon="🤖" action={async () => {
+          const { data: pendentes } = await supabaseAdmin.from('fin_movimentacoes').select('descricao,valor,data,categoria').is('conciliado', null).order('data', { ascending: false }).limit(30)
+          const { data: lancs } = await supabaseAdmin.from('fin_lancamentos').select('descricao,valor,tipo,status').eq('status', 'pendente').order('data_vencimento', { ascending: false }).limit(30)
+          if (!pendentes?.length && !lancs?.length) return 'Sem dados pendentes para conciliar.'
+          const movs = (pendentes || []).map(m => `MOV: ${m.descricao} | R$ ${m.valor} | ${m.data}`).join('\n')
+          const lcs = (lancs || []).map(l => `LANC: ${l.descricao} | R$ ${l.valor} | ${l.tipo} | ${l.status}`).join('\n')
+          const r = await aiChat({
+            prompt: `Movimentações bancárias não conciliadas:\n${movs}\n\nLançamentos financeiros pendentes:\n${lcs}\n\nSugira matches entre movimentações e lançamentos (por valor, descrição similar, data próxima). Liste os pares prováveis e transações sem match.`,
+            system: 'Analista financeiro. Sugira conciliações com grau de confiança. Português brasileiro.',
+            model: 'groq',
+          })
+          return r.error ? `Erro: ${r.error}` : r.content
+        }} />
+      </div>
 
       {/* Abas */}
       <div className={styles.abas}>
