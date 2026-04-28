@@ -2,15 +2,18 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase, supabaseAdmin } from '../lib/supabase'
 import styles from './AdminOrcamento.module.css'
+import CollapsibleSection from '../components/CollapsibleSection/CollapsibleSection'
 import { useAdmin } from '../contexts/AdminContext'
 import ClienteForm from '../components/ClienteForm/ClienteForm'
-import { maskCNPJ, maskCPF, maskPhone, maskCEP } from '../lib/masks'
+import { maskCNPJ, maskCPF } from '../lib/masks'
 import FreteSection from '../components/FreteSection/FreteSection'
+// useCanva removido — abre template direto até Autofill API ser aprovado
 import { useEtiqueta } from '../components/Orcamento/hooks/useEtiqueta'
 import { useLinks } from '../components/Orcamento/hooks/useLinks'
 import HistoricoSection from '../components/Orcamento/sections/HistoricoSection'
 import LinksSection from '../components/Orcamento/sections/LinksSection'
-import ConfigSection from '../components/Orcamento/sections/ConfigSection'
+import ResumoSidebar from '../components/Orcamento/sections/ResumoSidebar'
+import ConfigDrawer from '../components/Orcamento/ConfigDrawer'
 
 import type {
   EmpresaEmissora, Vendedor, OrcamentoResumo, Item, Instalacao, OrcLink,
@@ -38,15 +41,13 @@ export default function AdminOrcamento() {
   const [lista, setLista]           = useState<OrcamentoResumo[]>([])
   const [loadingLista, setLoadingLista] = useState(false)
   const [filtroStatus, setFiltroStatus] = useState<Status | 'todos'>('todos')
+  const [ordenCol, setOrdenCol] = useState<string>('criado_em')
+  const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('desc')
   const [empresas, setEmpresas]     = useState<EmpresaEmissora[]>([])
   const [empresaId, setEmpresaId]   = useState<number | null>(null)
-  const [formEmpresa, setFormEmpresa] = useState<Partial<EmpresaEmissora>>({})
-  const [editEmpresaId, setEditEmpresaId] = useState<number | null>(null)
   const [uploadandoLogo, setUploadandoLogo] = useState(false)
   const [vendedores, setVendedores] = useState<Vendedor[]>([])
   const [vendedorId, setVendedorId] = useState<number | null>(null)
-  const [formVendedor, setFormVendedor] = useState<Partial<Vendedor>>({})
-  const [editVendedorId, setEditVendedorId] = useState<number | null>(null)
   const [editandoId, setEditandoId] = useState<number | null>(null)
   const [numero, setNumero]         = useState('')
   const [status, setStatus]         = useState<Status>('rascunho')
@@ -71,8 +72,6 @@ export default function AdminOrcamento() {
   const [dadosPagamento, setDadosPagamento] = useState('')
   const [dadosBancarios, setDadosBancarios] = useState<DadoBancario[]>([])
   const [dadosBancariosSel, setDadosBancariosSel] = useState<number[]>([])
-  const [showCadastroBanco, setShowCadastroBanco] = useState(false)
-  const [formBanco, setFormBanco] = useState<Partial<DadoBancario>>({})
   const [observacoes, setObservacoes] = useState(OBS_DEFAULT)
   const [watermarkAtivo, setWatermarkAtivo] = useState(false)
   const [watermarkTexto, setWatermarkTexto] = useState('CONFIDENCIAL')
@@ -86,6 +85,8 @@ export default function AdminOrcamento() {
   const [empresaSnapshot, setEmpresaSnapshot] = useState<Record<string, unknown> | null>(null)
   const [salvando, setSalvando]     = useState(false)
   const [gerandoRec, setGerandoRec] = useState(false)
+  const [gerandoCanva, setGerandoCanva] = useState(false)
+  const [nomeUsuario, setNomeUsuario] = useState('')
   const [msg, setMsg]               = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const showMsg = useCallback((tipo: 'ok' | 'erro', texto: string) => {
     setMsg({ tipo, texto }); setTimeout(() => setMsg(null), 3000)
@@ -102,9 +103,9 @@ export default function AdminOrcamento() {
   const linksHook = useLinks({ editandoId, nomeUsuario })
   const { links, setLinks, gerandoLink, novoLinkDest, setNovoLinkDest, acessosLink, expandedLink, carregarLinks, toggleAcessos, gerarLink, desativarLink, linkUrl } = linksHook
   const [watermarkLogo, setWatermarkLogo] = useState(false)
-  const [nomeUsuario, setNomeUsuario] = useState('')
   const [isAdminUser, setIsAdminUser] = useState(false)
   const [confirmExcluir, setConfirmExcluir] = useState(false)
+  const [drawerOpen, setDrawerOpen] = useState(false)
   const anexoRef  = useRef<HTMLInputElement>(null)
 
   const empresaSel  = empresas.find(e => e.id === empresaId) ?? null
@@ -144,30 +145,47 @@ export default function AdminOrcamento() {
 
   const carregarLista = useCallback(async () => {
     setLoadingLista(true)
-    const base = supabaseAdmin
-      .from('orcamentos')
-      .select('id, numero, status, empresa_nome, cliente_empresa, cliente_nome, vendedor_nome, total, criado_em')
-      .order('criado_em', { ascending: false })
-    const { data } = await (filtroStatus !== 'todos' ? base.eq('status', filtroStatus) : base)
-    setLista((data ?? []) as OrcamentoResumo[])
-    setLoadingLista(false)
-  }, [filtroStatus])
+    try {
+      const base = supabaseAdmin
+        .from('orcamentos')
+        .select('id, numero, status, empresa_nome, cliente_empresa, cliente_nome, vendedor_nome, total, criado_em')
+        .order('criado_em', { ascending: false })
+        .limit(200)
+      const { data, error } = await (filtroStatus !== 'todos' ? base.eq('status', filtroStatus) : base)
+      if (error) throw error
+      setLista((data ?? []) as OrcamentoResumo[])
+    } catch (err) {
+      console.error('Erro ao carregar lista:', err)
+      showMsg('erro', 'Erro ao carregar orçamentos.')
+    } finally {
+      setLoadingLista(false)
+    }
+  }, [filtroStatus, showMsg])
 
   const carregarEmpresas = useCallback(async () => {
-    const { data } = await supabaseAdmin.from('empresas_emissoras').select('*').eq('ativa', true).order('nome_fantasia')
-    const list = (data ?? []) as EmpresaEmissora[]
-    setEmpresas(list)
-    if (!empresaId && list.length > 0) setEmpresaId(list[0].id)
+    try {
+      const { data, error } = await supabaseAdmin.from('empresas_emissoras').select('*').eq('ativa', true).order('nome_fantasia')
+      if (error) throw error
+      const list = (data ?? []) as EmpresaEmissora[]
+      setEmpresas(list)
+      if (!empresaId && list.length > 0) setEmpresaId(list[0].id)
+    } catch (err) { console.error('Erro ao carregar empresas:', err) }
   }, [])
 
   const carregarVendedores = useCallback(async () => {
-    const { data } = await supabaseAdmin.from('vendedores').select('*').eq('ativo', true).order('nome')
-    setVendedores((data ?? []) as Vendedor[])
+    try {
+      const { data, error } = await supabaseAdmin.from('vendedores').select('*').eq('ativo', true).order('nome')
+      if (error) throw error
+      setVendedores((data ?? []) as Vendedor[])
+    } catch (err) { console.error('Erro ao carregar vendedores:', err) }
   }, [])
 
   const carregarDadosBancarios = useCallback(async () => {
-    const { data } = await supabaseAdmin.from('dados_bancarios').select('*').eq('ativo', true).order('ordem')
-    setDadosBancarios((data ?? []) as DadoBancario[])
+    try {
+      const { data, error } = await supabaseAdmin.from('dados_bancarios').select('*').eq('ativo', true).order('ordem')
+      if (error) throw error
+      setDadosBancarios((data ?? []) as DadoBancario[])
+    } catch (err) { console.error('Erro ao carregar dados bancários:', err) }
   }, [])
 
   useEffect(() => { carregarLista() }, [carregarLista])
@@ -179,8 +197,9 @@ export default function AdminOrcamento() {
       if (!session?.user) return
       supabaseAdmin.from('admin_perfis').select('nome, permissoes').eq('user_id', session.user.id).single().then(({ data }) => {
         if (data) {
-          setNomeUsuario((data as any).nome || session.user.email || '')
-          setIsAdminUser(((data as any).permissoes ?? []).includes('usuarios'))
+          const d = data as Record<string, unknown>
+          setNomeUsuario((d.nome as string) || session.user.email || '')
+          setIsAdminUser(((d.permissoes as string[]) ?? []).includes('usuarios'))
         }
       })
     })
@@ -235,54 +254,61 @@ export default function AdminOrcamento() {
   // ── Actions ────────────────────────────────────────────────────────────────
 
   async function abrirNovo() {
-    const { data: numData } = await supabaseAdmin.rpc('next_orcamento_numero')
-    const novoNumero = (numData as string) ?? `${new Date().getFullYear()}/001`
-    // Reset all state first
-    setEditandoId(null); setNumero(novoNumero); setStatus('rascunho'); setFinLancId(null); setEtiquetaPreId(null)
-    setCliente(CLIENTE_VAZIO); setItens([{ ...ITEM_VAZIO }])
-    setDesconto(''); setTipoDesc('%'); setCondicoes([]); setPrazoEntrega(''); setDadosPagamento('')
-    setValidadeDias('7'); setObservacoes(OBS_DEFAULT)
-    setWatermarkAtivo(false); setWatermarkTexto('CONFIDENCIAL'); setWatermarkLogo(false)
-    setImagemUrl(''); setAnexos([]); setHistorico([]); setLinks([])
-    setInstalacao(INST_VAZIO)
-    setObsInternas(''); setOrigemLead(''); setExibir(EXIBIR_DEFAULT); setDadosBancariosSel([])
-    // Create in DB immediately
-    const emp = empresas.find(e => e.id === empresaId)
-    const { data: created, error } = await supabaseAdmin.from('orcamentos').insert({
-      numero: novoNumero, status: 'rascunho',
-      empresa_id: empresaId ?? null,
-      empresa_nome: emp?.nome_fantasia ?? null, empresa_razao_social: emp?.razao_social ?? null,
-      empresa_cnpj: emp?.cnpj ?? null, empresa_numero: emp?.numero ?? null, empresa_endereco: emp?.endereco ?? null,
-      empresa_telefone: emp?.telefone ?? null, empresa_email: emp?.email ?? null,
-      empresa_site: emp?.site ?? null, empresa_logo_url: emp?.logo_url ?? null, empresa_telefone_is_whatsapp: emp?.telefone_is_whatsapp ?? null,
-      desconto: 0, tipo_desconto: '%', subtotal: 0, total: 0, validade_dias: 7,
-      observacoes: OBS_DEFAULT, watermark_ativo: false, watermark_texto: 'CONFIDENCIAL', watermark_logo: false,
-    }).select('id').single()
-    if (!error && created) {
-      const newId = (created as any).id
-      setEditandoId(newId)
-      await supabaseAdmin.from('orcamentos_historico').insert({ orcamento_id: newId, evento: 'criado', descricao: null, usuario: nomeUsuario || null })
-      setHistorico([{ id: 0, evento: 'criado', descricao: null, usuario: nomeUsuario || null, criado_em: new Date().toISOString() }])
+    try {
+      const { data: numData } = await supabaseAdmin.rpc('next_orcamento_numero')
+      const novoNumero = (numData as string) ?? `${new Date().getFullYear()}/001`
+      setEditandoId(null); setNumero(novoNumero); setStatus('rascunho'); setFinLancId(null); setEtiquetaPreId(null)
+      setCliente(CLIENTE_VAZIO); setItens([{ ...ITEM_VAZIO }])
+      setDesconto(''); setTipoDesc('%'); setCondicoes([]); setPrazoEntrega(''); setDadosPagamento('')
+      setValidadeDias('7'); setObservacoes(OBS_DEFAULT)
+      setWatermarkAtivo(false); setWatermarkTexto('CONFIDENCIAL'); setWatermarkLogo(false)
+      setImagemUrl(''); setAnexos([]); setHistorico([]); setLinks([])
+      setInstalacao(INST_VAZIO)
+      setObsInternas(''); setOrigemLead(''); setExibir(EXIBIR_DEFAULT); setDadosBancariosSel([])
+      const emp = empresas.find(e => e.id === empresaId)
+      const { data: created, error } = await supabaseAdmin.from('orcamentos').insert({
+        numero: novoNumero, status: 'rascunho',
+        empresa_id: empresaId ?? null,
+        empresa_nome: emp?.nome_fantasia ?? null, empresa_razao_social: emp?.razao_social ?? null,
+        empresa_cnpj: emp?.cnpj ?? null, empresa_numero: emp?.numero ?? null, empresa_endereco: emp?.endereco ?? null,
+        empresa_telefone: emp?.telefone ?? null, empresa_email: emp?.email ?? null,
+        empresa_site: emp?.site ?? null, empresa_logo_url: emp?.logo_url ?? null, empresa_telefone_is_whatsapp: emp?.telefone_is_whatsapp ?? null,
+        desconto: 0, tipo_desconto: '%', subtotal: 0, total: 0, validade_dias: 7,
+        observacoes: OBS_DEFAULT, watermark_ativo: false, watermark_texto: 'CONFIDENCIAL', watermark_logo: false,
+      }).select('id').single()
+      if (error) throw error
+      if (created) {
+        const newId = (created as Record<string, unknown>).id as number
+        setEditandoId(newId)
+        await supabaseAdmin.from('orcamentos_historico').insert({ orcamento_id: newId, evento: 'criado', descricao: null, usuario: nomeUsuario || null })
+        setHistorico([{ id: 0, evento: 'criado', descricao: null, usuario: nomeUsuario || null, criado_em: new Date().toISOString() }])
+      }
+      setVista('editor')
+      carregarLista()
+    } catch (err) {
+      console.error('Erro ao criar orçamento:', err)
+      showMsg('erro', 'Erro ao criar orçamento.')
     }
-    setVista('editor')
-    carregarLista()
   }
 
-  async function carregarOrcamento(id: number) {
-    const [{ data: orc }, { data: itensD }, { data: anexosD }, { data: histD }] = await Promise.all([
+  async function carregarOrcamento(id: number, destino: Vista = 'editor') {
+    try {
+    const [{ data: orc, error: errOrc }, { data: itensD }, { data: anexosD }, { data: histD }] = await Promise.all([
       supabaseAdmin.from('orcamentos').select('*').eq('id', id).single(),
       supabaseAdmin.from('itens_orcamento').select('*').eq('orcamento_id', id).order('ordem'),
       supabaseAdmin.from('orcamentos_anexos').select('*').eq('orcamento_id', id).order('criado_em'),
       supabaseAdmin.from('orcamentos_historico').select('*').eq('orcamento_id', id).order('criado_em', { ascending: false }),
     ])
+    if (errOrc) throw errOrc
     if (!orc) return
-    const o = orc as any
+    const o = orc as Record<string, unknown>
     setEditandoId(id); setNumero(o.numero); setStatus(o.status); setFinLancId(o.fin_lancamento_id ?? null); setEtiquetaPreId(o.etiqueta_pre_id ?? null)
     setEmpresaId(o.empresa_id); setVendedorId(o.vendedor_id ?? null)
     setCliente({
       nome: o.cliente_nome ?? '', empresa: o.cliente_empresa ?? '',
+      nome_fantasia: o.cliente_nome_fantasia ?? '',
       cnpj: (o.cliente_tipo_pessoa === 'pf' ? maskCPF : maskCNPJ)(o.cliente_cnpj ?? ''),
-      telefone: o.cliente_telefone ?? '',
+      telefone: o.cliente_telefone ?? '', telefone_is_whatsapp: o.cliente_telefone_is_whatsapp ?? false,
       email: o.cliente_email ?? '', endereco: o.cliente_endereco ?? '',
       tipo_pessoa: o.cliente_tipo_pessoa ?? 'pj',
       perfil_comprador: o.perfil_comprador ?? '',
@@ -292,7 +318,15 @@ export default function AdminOrcamento() {
       numero: o.cliente_numero ?? '', complemento: o.cliente_complemento ?? '',
       bairro: o.cliente_bairro ?? '', cidade: o.cliente_cidade ?? '', uf: o.cliente_uf ?? '',
       email_nf: o.cliente_email_nf ?? '',
-      contatos: (() => { try { return Array.isArray(o.cliente_contatos) ? o.cliente_contatos : [] } catch { return [] } })(),
+      contatos: (() => {
+        try {
+          const cts = Array.isArray(o.cliente_contatos) ? o.cliente_contatos : []
+          // Migra email_nf legado para contatos se não existir
+          if (o.cliente_email_nf && !cts.some((c: Record<string, unknown>) => c.tipo === 'email_nf'))
+            cts.push({ tipo: 'email_nf', valor: o.cliente_email_nf })
+          return cts
+        } catch { return [] }
+      })(),
       ent_diferente: !!(o.cliente_ent_logradouro || o.cliente_ent_cep || o.cliente_ent_responsavel),
       ent_responsavel: o.cliente_ent_responsavel ?? '', ent_telefone: o.cliente_ent_telefone ?? '', ent_whatsapp: o.cliente_ent_whatsapp ?? '',
       ent_cep: o.cliente_ent_cep ?? '', ent_logradouro: o.cliente_ent_logradouro ?? '',
@@ -300,7 +334,7 @@ export default function AdminOrcamento() {
       ent_bairro: o.cliente_ent_bairro ?? '', ent_cidade: o.cliente_ent_cidade ?? '', ent_uf: o.cliente_ent_uf ?? '',
     })
     setItens((itensD ?? []).length > 0
-      ? (itensD as any[]).map(i => ({
+      ? (itensD as Record<string, unknown>[]).map(i => ({
           produto_id: i.produto_id, descricao: i.descricao, qtd: String(i.qtd),
           unidade: i.unidade, valorUnit: String(i.valor_unit),
           imagem_url: i.imagem_url ?? undefined,
@@ -312,7 +346,7 @@ export default function AdminOrcamento() {
     const rawCond = o.condicao_pagamento ?? ''
     try { setCondicoes(rawCond ? JSON.parse(rawCond) : []) } catch { setCondicoes(rawCond ? [rawCond] : []) }
     setPrazoEntrega(o.prazo_entrega ?? '')
-    setDadosPagamento((o as any).dados_pagamento ?? '')
+    setDadosPagamento((o.dados_pagamento as string) ?? '')
     setDadosBancariosSel(Array.isArray(o.dados_bancarios_ids) ? o.dados_bancarios_ids : [])
     setValidadeDias(String(o.validade_dias ?? 7)); setObservacoes(o.observacoes ?? OBS_DEFAULT)
     setWatermarkAtivo(o.watermark_ativo ?? false); setWatermarkTexto(o.watermark_texto ?? 'CONFIDENCIAL')
@@ -337,26 +371,16 @@ export default function AdminOrcamento() {
       telefone_is_whatsapp: o.empresa_telefone_is_whatsapp ?? null,
     })
     await carregarLinks(id)
-    setVista('editor')
-  }
-
-  async function salvarDadoBancario() {
-    if (!formBanco.apelido?.trim()) { showMsg('erro', 'Apelido obrigatório'); return }
-    const { error } = await supabaseAdmin.from('dados_bancarios').insert({
-      apelido: formBanco.apelido, banco: formBanco.banco || null, agencia: formBanco.agencia || null,
-      conta: formBanco.conta || null, tipo_conta: formBanco.tipo_conta || 'corrente',
-      pix_chave: formBanco.pix_chave || null, pix_tipo: formBanco.pix_tipo || null,
-      titular: formBanco.titular || null, cnpj_titular: formBanco.cnpj_titular || null,
-      observacao: formBanco.observacao || null, ordem: dadosBancarios.length,
-    })
-    if (error) { showMsg('erro', 'Erro: ' + error.message); return }
-    setFormBanco({}); setShowCadastroBanco(false)
-    carregarDadosBancarios()
-    showMsg('ok', 'Conta cadastrada!')
+    setVista(destino)
+    } catch (err) {
+      console.error('Erro ao carregar orçamento:', err)
+      showMsg('erro', 'Erro ao carregar orçamento.')
+    }
   }
 
   async function salvar(novoStatus?: Status) {
     setSalvando(true)
+    try {
     const statusFinal = novoStatus ?? status
     const emp = empresas.find(e => e.id === empresaId)
     const vend = vendedores.find(v => v.id === vendedorId)
@@ -369,7 +393,9 @@ export default function AdminOrcamento() {
       empresa_site: emp?.site ?? null, empresa_logo_url: emp?.logo_url ?? null, empresa_telefone_is_whatsapp: emp?.telefone_is_whatsapp ?? null,
       vendedor_id: vendedorId ?? null, vendedor_nome: vend?.nome ?? null, vendedor_telefone: vend?.telefone ?? null,
       cliente_nome: cliente.nome || null, cliente_empresa: cliente.empresa || null,
+      cliente_nome_fantasia: cliente.nome_fantasia || null,
       cliente_cnpj: cliente.cnpj || null, cliente_telefone: cliente.telefone || null,
+      cliente_telefone_is_whatsapp: cliente.telefone_is_whatsapp || false,
       cliente_email: cliente.email || null, cliente_endereco: cliente.endereco || null,
       cliente_tipo_pessoa: cliente.tipo_pessoa,
       perfil_comprador: cliente.perfil_comprador || null,
@@ -384,7 +410,7 @@ export default function AdminOrcamento() {
       cliente_cidade: cliente.cidade || null,
       cliente_uf: cliente.uf || null,
       cliente_endereco_ent: cliente.ent_diferente ? [cliente.ent_logradouro, cliente.ent_numero, cliente.ent_complemento, cliente.ent_bairro, cliente.ent_cidade].filter(Boolean).join(', ') : null,
-      cliente_email_nf: cliente.email_nf || null,
+      cliente_email_nf: cliente.contatos.find(c => c.tipo === 'email_nf')?.valor || cliente.email_nf || null,
       cliente_contatos: cliente.contatos.length > 0 ? cliente.contatos : null,
       cliente_ent_responsavel: cliente.ent_diferente ? (cliente.ent_responsavel || null) : null,
       cliente_ent_telefone: cliente.ent_diferente ? (cliente.ent_telefone || null) : null,
@@ -427,13 +453,13 @@ export default function AdminOrcamento() {
     let orcId = editandoId
     if (editandoId) {
       const { error: errUpd } = await supabaseAdmin.from('orcamentos').update(payload).eq('id', editandoId)
-      if (errUpd) { showMsg('erro', 'Erro ao atualizar orçamento: ' + errUpd.message); setSalvando(false); return }
+      if (errUpd) { showMsg('erro', 'Erro ao atualizar orçamento: ' + errUpd.message); return }
       const { error: errDel } = await supabaseAdmin.from('itens_orcamento').delete().eq('orcamento_id', editandoId)
-      if (errDel) { showMsg('erro', 'Erro ao limpar itens: ' + errDel.message); setSalvando(false); return }
+      if (errDel) { showMsg('erro', 'Erro ao limpar itens: ' + errDel.message); return }
     } else {
       const { data, error: errIns } = await supabaseAdmin.from('orcamentos').insert(payload).select('id').single()
-      if (errIns) { showMsg('erro', 'Erro ao criar orçamento: ' + errIns.message); setSalvando(false); return }
-      orcId = (data as any)?.id ?? null
+      if (errIns) { showMsg('erro', 'Erro ao criar orçamento: ' + errIns.message); return }
+      orcId = (data as Record<string, unknown>)?.id as number | null
       setEditandoId(orcId)
     }
     if (orcId) {
@@ -449,7 +475,7 @@ export default function AdminOrcamento() {
       }))
       if (itensPayload.length) {
         const { error: errItens } = await supabaseAdmin.from('itens_orcamento').insert(itensPayload)
-        if (errItens) { showMsg('erro', 'Erro ao salvar itens: ' + errItens.message); setSalvando(false); return }
+        if (errItens) { showMsg('erro', 'Erro ao salvar itens: ' + errItens.message); return }
       }
       const evento = !editandoId ? 'criado' : novoStatus ? 'status_alterado' : 'editado'
       const descEvento = novoStatus ? `Status → ${STATUS_CFG[novoStatus].label}` : null
@@ -464,11 +490,15 @@ export default function AdminOrcamento() {
       telefone: empresaSel.telefone, email: empresaSel.email, site: empresaSel.site,
       logo_url: empresaSel.logo_url, telefone_is_whatsapp: empresaSel.telefone_is_whatsapp,
     } : null)
-    setSalvando(false)
     showMsg('ok', editandoId ? 'Salvo.' : 'Orçamento criado.')
     carregarLista()
-    // Integração automática: Pipeline + Clientes
     if (orcId != null) integrarPosSalvar(orcId)
+    } catch (err) {
+      console.error('Erro ao salvar:', err)
+      showMsg('erro', 'Erro ao salvar orçamento.')
+    } finally {
+      setSalvando(false)
+    }
   }
 
   async function integrarPosSalvar(orcId: number) {
@@ -482,22 +512,25 @@ export default function AdminOrcamento() {
         .eq('cnpj', cnpjLimpo)
     }
 
-    // 1. Pipeline — cria deal em "proposta" se não existir para este orçamento
+    // 1. Pipeline — cria/atualiza deal sincronizado com orçamento
+    const estagioMap: Record<string, string> = {
+      rascunho: 'proposta', enviado: 'negociacao',
+      aprovado: 'ganho', recusado: 'perdido', cancelado: 'perdido',
+    }
+    const estagioAlvo = estagioMap[status] || 'proposta'
+    const titulo = cliente.empresa || cliente.nome || 'Proposta'
     if (cnpjLimpo || cliente.empresa) {
       const { data: existente } = await supabaseAdmin
         .from('pipeline_deals').select('id').eq('orcamento_id', orcId).maybeSingle()
       if (!existente) {
         await supabaseAdmin.from('pipeline_deals').insert({
-          titulo: cliente.empresa || cliente.nome || 'Proposta',
-          empresa_cnpj: cnpjLimpo || null,
-          estagio: 'proposta',
-          valor_estimado: valorTotal || null,
+          titulo, empresa_cnpj: cnpjLimpo || null,
+          estagio: estagioAlvo, valor_estimado: valorTotal || null,
           orcamento_id: orcId,
         })
       } else {
-        // Atualiza valor se orçamento foi editado
         await supabaseAdmin.from('pipeline_deals')
-          .update({ valor_estimado: valorTotal || null })
+          .update({ titulo, valor_estimado: valorTotal || null, estagio: estagioAlvo })
           .eq('orcamento_id', orcId)
       }
     }
@@ -521,27 +554,98 @@ export default function AdminOrcamento() {
     window.open(`/print/orcamento/${editandoId}`, '_blank')
   }
 
+  async function gerarCanva() {
+    setGerandoCanva(true)
+    try {
+      await salvar()
+      const empresaSel = empresas.find(e => e.id === empresaId)
+      const nomeCliente = cliente.empresa || cliente.nome || 'Cliente'
+      const titulo = `Orçamento ${numero || 'Novo'} — ${nomeCliente}`
+
+      // Copia dados do orçamento para clipboard para colar no Canva
+      const itensTexto = itens
+        .filter(i => i.descricao)
+        .map((i, idx) => {
+          const q = parseFloat(i.qtd.replace(',', '.')) || 0
+          const v = parseFloat(i.valorUnit.replace(',', '.')) || 0
+          return `${idx + 1}. ${i.descricao} — ${i.qtd} ${i.unidade} × ${fmtBRL(v)} = ${fmtBRL(q * v)}`
+        })
+        .join('\n')
+
+      const dadosBanc = dadosBancariosSel
+        .map(id => dadosBancarios.find(d => d.id === id))
+        .filter(Boolean)
+        .map(d => formatarDadoBancario(d!))
+        .join('\n\n')
+
+      const textoCompleto = [
+        `ORÇAMENTO ${numero || 'Novo'}`,
+        `Data: ${fmtDataISO(dataEmissao)} | Validade: ${validadeDias} dias`,
+        '',
+        `EMPRESA: ${empresaSel?.nome_fantasia ?? ''}`,
+        `CNPJ: ${empresaSel?.cnpj ?? ''} | Tel: ${empresaSel?.telefone ?? ''} | Email: ${empresaSel?.email ?? ''}`,
+        '',
+        `CLIENTE: ${nomeCliente}`,
+        `Doc: ${cliente.cnpj || cliente.cpf || ''}`,
+        `Tel: ${cliente.telefone} | Email: ${cliente.email}`,
+        `End: ${[cliente.endereco, cliente.bairro, cliente.cidade, cliente.uf, cliente.cep].filter(Boolean).join(', ')}`,
+        '',
+        'ITENS:',
+        itensTexto || '(nenhum item)',
+        '',
+        `Subtotal: ${fmtBRL(subtotal())}`,
+        valorDesc() > 0 ? `Desconto: -${fmtBRL(valorDesc())}` : '',
+        `TOTAL: ${fmtBRL(total())}`,
+        '',
+        condicoes.length ? `Condições: ${condicoes.join(' | ')}` : '',
+        prazoEntrega ? `Prazo de entrega: ${prazoEntrega}` : '',
+        '',
+        observacoes ? `Observações: ${observacoes}` : '',
+        dadosBanc ? `\nDADOS BANCÁRIOS:\n${dadosBanc}` : '',
+      ].filter(Boolean).join('\n')
+
+      // Copiar dados para clipboard
+      await navigator.clipboard.writeText(textoCompleto)
+
+      // Abrir template do orçamento no Canva + dados no clipboard
+      const TEMPLATE_EDIT_URL = 'https://www.canva.com/design/DAHIExyT0R8/edit'
+      showMsg('ok', 'Template aberto — dados copiados (Ctrl+V para colar)')
+      window.open(TEMPLATE_EDIT_URL, '_blank')
+    } catch (e) {
+      showMsg('erro', `Erro Canva: ${(e as Error).message}`)
+    } finally {
+      setGerandoCanva(false)
+    }
+  }
+
   async function gerarReceivel() {
     if (!editandoId) return
     setGerandoRec(true)
-    const hoje = new Date().toISOString().slice(0, 10)
-    const { data: lanc } = await supabaseAdmin.from('fin_lancamentos').insert({
-      descricao: `Orçamento ${numero} — ${cliente.empresa || cliente.nome || 'Cliente'}`,
-      tipo: 'receita', valor: total(), status: 'pendente',
-      data_competencia: hoje,
-      data_vencimento: new Date(Date.now() + (parseInt(validadeDias) || 7) * 864e5).toISOString().slice(0, 10),
-      origem: 'manual',
-    }).select('id').single()
-    if (lanc) {
-      const lid = (lanc as any).id
-      await supabaseAdmin.from('orcamentos').update({ fin_lancamento_id: lid }).eq('id', editandoId)
-      await supabaseAdmin.from('orcamentos_historico').insert({ orcamento_id: editandoId, evento: 'receivel_gerado', descricao: `Lançamento #${lid}`, usuario: nomeUsuario || null })
-      setFinLancId(lid)
-      const { data: hd } = await supabaseAdmin.from('orcamentos_historico').select('*').eq('orcamento_id', editandoId).order('criado_em', { ascending: false })
-      setHistorico((hd ?? []) as HistoricoItem[])
-      showMsg('ok', 'Recebível criado no Financeiro.')
+    try {
+      const hoje = new Date().toISOString().slice(0, 10)
+      const { data: lanc, error } = await supabaseAdmin.from('fin_lancamentos').insert({
+        descricao: `Orçamento ${numero} — ${cliente.empresa || cliente.nome || 'Cliente'}`,
+        tipo: 'receita', valor: total(), status: 'pendente',
+        data_competencia: hoje,
+        data_vencimento: new Date(Date.now() + (parseInt(validadeDias) || 7) * 864e5).toISOString().slice(0, 10),
+        origem: 'manual',
+      }).select('id').single()
+      if (error) throw error
+      if (lanc) {
+        const lid = (lanc as Record<string, unknown>).id as number
+        await supabaseAdmin.from('orcamentos').update({ fin_lancamento_id: lid }).eq('id', editandoId)
+        await supabaseAdmin.from('orcamentos_historico').insert({ orcamento_id: editandoId, evento: 'receivel_gerado', descricao: `Lançamento #${lid}`, usuario: nomeUsuario || null })
+        setFinLancId(lid)
+        const { data: hd } = await supabaseAdmin.from('orcamentos_historico').select('*').eq('orcamento_id', editandoId).order('criado_em', { ascending: false })
+        setHistorico((hd ?? []) as HistoricoItem[])
+        showMsg('ok', 'Recebível criado no Financeiro.')
+      }
+    } catch (err) {
+      console.error('Erro ao gerar recebível:', err)
+      showMsg('erro', 'Erro ao gerar recebível.')
+    } finally {
+      setGerandoRec(false)
     }
-    setGerandoRec(false)
   }
 
   async function uploadLogo(file: File, empId: number, input: HTMLInputElement) {
@@ -562,57 +666,73 @@ export default function AdminOrcamento() {
 
   async function uploadAnexo(file: File) {
     if (!editandoId) { showMsg('erro', 'Salve o orçamento antes de anexar.'); return }
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) { showMsg('erro', 'Arquivo muito grande (máx. 10 MB).'); return }
     setUploadandoAnexo(true)
-    const path = `orc-${editandoId}/${Date.now()}-${file.name}`
-    const { data: up } = await supabaseAdmin.storage.from('orcamentos-anexos').upload(path, file)
-    if (up) {
-      const { data: url } = supabaseAdmin.storage.from('orcamentos-anexos').getPublicUrl(path)
-      const { data: anx } = await supabaseAdmin.from('orcamentos_anexos').insert({ orcamento_id: editandoId, nome: file.name, url: url.publicUrl, tamanho: file.size, tipo: file.type }).select().single()
-      if (anx) setAnexos(prev => [...prev, anx as Anexo])
-      await supabaseAdmin.from('orcamentos_historico').insert({ orcamento_id: editandoId, evento: 'anexo_adicionado', descricao: file.name, usuario: nomeUsuario || null })
+    try {
+      const path = `orc-${editandoId}/${Date.now()}-${file.name}`
+      const { data: up, error } = await supabaseAdmin.storage.from('orcamentos-anexos').upload(path, file)
+      if (error) throw error
+      if (up) {
+        const { data: url } = supabaseAdmin.storage.from('orcamentos-anexos').getPublicUrl(path)
+        const { data: anx } = await supabaseAdmin.from('orcamentos_anexos').insert({ orcamento_id: editandoId, nome: file.name, url: url.publicUrl, tamanho: file.size, tipo: file.type }).select().single()
+        if (anx) setAnexos(prev => [...prev, anx as Anexo])
+        await supabaseAdmin.from('orcamentos_historico').insert({ orcamento_id: editandoId, evento: 'anexo_adicionado', descricao: file.name, usuario: nomeUsuario || null })
+      }
+    } catch (err) {
+      console.error('Erro no upload:', err)
+      showMsg('erro', 'Erro ao enviar anexo.')
+    } finally {
+      setUploadandoAnexo(false)
     }
-    setUploadandoAnexo(false)
   }
 
   async function uploadImagem(file: File) {
+    const maxSize = 5 * 1024 * 1024
+    if (file.size > maxSize) { showMsg('erro', 'Imagem muito grande (máx. 5 MB).'); return }
     setUploadandoImagem(true)
-    const path = `img-${editandoId ?? 'novo'}-${Date.now()}.${file.name.split('.').pop()}`
-    const { data: up } = await supabaseAdmin.storage.from('orcamentos-anexos').upload(path, file, { upsert: true })
-    if (up) {
-      const { data: url } = supabaseAdmin.storage.from('orcamentos-anexos').getPublicUrl(path)
-      setImagemUrl(url.publicUrl)
+    try {
+      const path = `img-${editandoId ?? 'novo'}-${Date.now()}.${file.name.split('.').pop()}`
+      const { data: up, error } = await supabaseAdmin.storage.from('orcamentos-anexos').upload(path, file, { upsert: true })
+      if (error) throw error
+      if (up) {
+        const { data: url } = supabaseAdmin.storage.from('orcamentos-anexos').getPublicUrl(path)
+        setImagemUrl(url.publicUrl)
+      }
+    } catch (err) {
+      console.error('Erro no upload imagem:', err)
+      showMsg('erro', 'Erro ao enviar imagem.')
+    } finally {
+      setUploadandoImagem(false)
     }
-    setUploadandoImagem(false)
   }
 
   // buscarCEP movido para ClienteForm
 
   async function excluirOrcamento(id: number) {
-    const { error } = await supabaseAdmin.from('orcamentos').delete().eq('id', id)
-    if (error) { showMsg('erro', 'Erro ao excluir: ' + error.message); return }
-    showMsg('ok', 'Orçamento excluído.')
-    setConfirmExcluir(false)
-    if (vista === 'editor') setVista('lista')
-    carregarLista()
+    try {
+      await supabaseAdmin.from('pipeline_deals').delete().eq('orcamento_id', id)
+      const { error } = await supabaseAdmin.from('orcamentos').delete().eq('id', id)
+      if (error) throw error
+      showMsg('ok', 'Orçamento excluído.')
+      setConfirmExcluir(false)
+      if (vista === 'editor') setVista('lista')
+      carregarLista()
+    } catch (err) {
+      console.error('Erro ao excluir:', err)
+      showMsg('erro', 'Erro ao excluir orçamento.')
+    }
   }
 
   async function removerAnexo(id: number) {
-    await supabaseAdmin.from('orcamentos_anexos').delete().eq('id', id)
-    setAnexos(prev => prev.filter(a => a.id !== id))
-  }
-
-  async function salvarEmpresa() {
-    if (!formEmpresa.nome_fantasia?.trim()) return
-    if (editEmpresaId) { await supabaseAdmin.from('empresas_emissoras').update(formEmpresa).eq('id', editEmpresaId) }
-    else { await supabaseAdmin.from('empresas_emissoras').insert({ ...formEmpresa, ativa: true }) }
-    setFormEmpresa({}); setEditEmpresaId(null); carregarEmpresas()
-  }
-
-  async function salvarVendedor() {
-    if (!formVendedor.nome?.trim()) return
-    if (editVendedorId) { const { id: _id, ...payload } = formVendedor as Vendedor; await supabaseAdmin.from('vendedores').update(payload).eq('id', editVendedorId) }
-    else { await supabaseAdmin.from('vendedores').insert({ ...formVendedor, ativo: true }) }
-    setFormVendedor({}); setEditVendedorId(null); carregarVendedores()
+    try {
+      const { error } = await supabaseAdmin.from('orcamentos_anexos').delete().eq('id', id)
+      if (error) throw error
+      setAnexos(prev => prev.filter(a => a.id !== id))
+    } catch (err) {
+      console.error('Erro ao remover anexo:', err)
+      showMsg('erro', 'Erro ao remover anexo.')
+    }
   }
 
   // selecionarCliente movido para ClienteForm
@@ -664,15 +784,21 @@ export default function AdminOrcamento() {
       )}
 
       <div className={styles.navHeader}>
-      <div className={styles.navTabs}>
-        <button className={`${styles.navTab} ${vista === 'lista' ? styles.navTabAtivo : ''}`} onClick={() => setVista('lista')}>📋 Orçamentos</button>
-        {vista === 'editor' && (
-          <button className={`${styles.navTab} ${styles.navTabAtivo}`}>✏️ {editandoId ? numero : 'Novo'}</button>
-        )}
-        <button className={`${styles.navTab} ${vista === 'empresas' ? styles.navTabAtivo : ''}`} onClick={() => setVista('empresas')}>🏢 Empresas</button>
-        <button className={`${styles.navTab} ${vista === 'vendedores' ? styles.navTabAtivo : ''}`} onClick={() => setVista('vendedores')}>👤 Consultores</button>
-      </div>
-        <button className={styles.btnNovo} onClick={abrirNovo}>+ Novo Orçamento</button>
+        <nav className={styles.breadcrumb}>
+          <button className={styles.breadcrumbLink} onClick={() => setVista('lista')}>Orçamentos</button>
+          {vista === 'detalhe' && <>
+            <span className={styles.breadcrumbSep}>/</span>
+            <span className={styles.breadcrumbCurrent}>Detalhe</span>
+          </>}
+          {vista === 'editor' && <>
+            <span className={styles.breadcrumbSep}>/</span>
+            <span className={styles.breadcrumbCurrent}>{editandoId ? 'Editando' : 'Novo'}</span>
+          </>}
+        </nav>
+        <div className={styles.navActions}>
+          <button className={styles.navLink} onClick={() => setDrawerOpen(true)}>⚙️ Config</button>
+          <button className={styles.btnNovo} onClick={abrirNovo}>+ Novo Orçamento</button>
+        </div>
       </div>
 
       {/* ═══ LISTA ═══ */}
@@ -684,6 +810,15 @@ export default function AdminOrcamento() {
                 {s === 'todos' ? 'Todos' : STATUS_CFG[s as Status].label}
               </button>
             ))}
+            {lista.length > 0 && (
+              <button className={styles.filtroBtn} onClick={() => {
+                const rows = [['Número','Empresa','Cliente','Vendedor','Total','Status','Data']]
+                lista.forEach(o => rows.push([o.numero, o.empresa_nome ?? '', o.cliente_empresa || o.cliente_nome || '', o.vendedor_nome ?? '', String(o.total), STATUS_CFG[o.status as Status]?.label ?? o.status, fmtDataISO(o.criado_em)]))
+                const csv = rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(';')).join('\n')
+                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `orcamentos-${filtroStatus}.csv`; a.click()
+              }}>📥 CSV</button>
+            )}
           </div>
           {loadingLista ? (
             <div className={styles.loading}>Carregando...</div>
@@ -698,7 +833,7 @@ export default function AdminOrcamento() {
                 {lista.map(o => {
                   const cfg = STATUS_CFG[o.status as Status]
                   return (
-                    <div key={o.id} className={styles.listaCard}>
+                    <div key={o.id} className={styles.listaCard} onClick={() => carregarOrcamento(o.id, 'detalhe')} style={{ cursor: 'pointer' }}>
                       <div className={styles.listaCardTopo}>
                         <div>
                           <div className={styles.listaCardNum}>{o.numero}</div>
@@ -710,10 +845,10 @@ export default function AdminOrcamento() {
                       <div className={styles.listaCardMeta}>
                         <span className={styles.listaCardTotal}>{ocultarValores ? '••••' : fmtBRL(Number(o.total))}</span>
                         <span className={styles.listaCardData}>{fmtDataISO(o.criado_em)}</span>
-                        <div className={styles.listaCardAcoes}>
-                          <button className={styles.btnAcao} onClick={() => carregarOrcamento(o.id)}>✏️ Editar</button>
+                        <div className={styles.listaCardAcoes} onClick={e => e.stopPropagation()}>
+                          <button className={styles.btnMini} onClick={() => carregarOrcamento(o.id)} title="Editar">✏️</button>
                           {isAdminUser && (
-                            <button className={styles.btnAcao} style={{ color: '#dc2626', borderColor: '#fecaca' }}
+                            <button className={`${styles.btnMini} ${styles.btnMiniDanger}`} title="Excluir"
                               onClick={() => { if (window.confirm(`Excluir orçamento ${o.numero}?`)) excluirOrcamento(o.id) }}>🗑</button>
                           )}
                         </div>
@@ -724,25 +859,45 @@ export default function AdminOrcamento() {
               </div>
               {/* Tabela — tablet/desktop */}
               <table className={styles.listaTable}>
-                <thead><tr><th>Número</th><th>Empresa</th><th>Cliente</th><th>Vendedor</th><th>Total</th><th>Status</th><th>Data</th><th></th></tr></thead>
+                <thead><tr>
+                  {[
+                    { key: 'numero', label: 'Número' }, { key: 'empresa_nome', label: 'Empresa' },
+                    { key: 'cliente_empresa', label: 'Cliente' }, { key: 'vendedor_nome', label: 'Vendedor' },
+                    { key: 'total', label: 'Total' }, { key: 'status', label: 'Status' },
+                    { key: 'criado_em', label: 'Data' },
+                  ].map(col => (
+                    <th key={col.key} onClick={() => { setOrdenDir(ordenCol === col.key && ordenDir === 'asc' ? 'desc' : 'asc'); setOrdenCol(col.key) }}
+                      style={{ cursor: 'pointer', userSelect: 'none' }}>
+                      {col.label} {ordenCol === col.key ? (ordenDir === 'asc' ? '▲' : '▼') : ''}
+                    </th>
+                  ))}
+                  <th></th>
+                </tr></thead>
                 <tbody>
-                  {lista.map(o => (
-                    <tr key={o.id}>
-                      <td><strong>{o.numero}</strong></td>
+                  {[...lista].sort((a, b) => {
+                    const ak = (a as Record<string, unknown>)[ordenCol], bk = (b as Record<string, unknown>)[ordenCol]
+                    const av = typeof ak === 'number' ? ak : String(ak ?? '').toLowerCase()
+                    const bv = typeof bk === 'number' ? bk : String(bk ?? '').toLowerCase()
+                    if (av < bv) return ordenDir === 'asc' ? -1 : 1
+                    if (av > bv) return ordenDir === 'asc' ? 1 : -1
+                    return 0
+                  }).map(o => (
+                    <tr key={o.id} onClick={() => carregarOrcamento(o.id, 'detalhe')}>
+                      <td><strong style={{ color: '#1a5fa8' }}>{o.numero}</strong></td>
                       <td>{o.empresa_nome ?? '—'}</td>
-                      <td>{o.cliente_empresa || o.cliente_nome || '—'}</td>
+                      <td className={styles.tdCliente} title={o.cliente_empresa || o.cliente_nome || ''}>{o.cliente_empresa || o.cliente_nome || '—'}</td>
                       <td>{o.vendedor_nome ?? '—'}</td>
-                      <td>{ocultarValores ? '••••' : fmtBRL(Number(o.total))}</td>
+                      <td style={{ fontWeight: 600 }}>{ocultarValores ? '••••' : fmtBRL(Number(o.total))}</td>
                       <td><span className={styles.statusBadge} style={{ background: STATUS_CFG[o.status as Status]?.cor + '22', color: STATUS_CFG[o.status as Status]?.cor }}>{STATUS_CFG[o.status as Status]?.label}</span></td>
-                      <td>{fmtDataISO(o.criado_em)}</td>
-                      <td style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                        <button className={styles.btnAcao} onClick={() => carregarOrcamento(o.id)}>✏️ Editar</button>
-                        {isAdminUser && (
-                          <button className={styles.btnAcao} style={{ color: '#dc2626', borderColor: '#fecaca' }}
-                            onClick={() => { if (window.confirm(`Excluir orçamento ${o.numero}? Esta ação não pode ser desfeita.`)) excluirOrcamento(o.id) }}>
-                            🗑
-                          </button>
-                        )}
+                      <td style={{ color: '#64748b', fontSize: '0.78rem' }}>{fmtDataISO(o.criado_em)}</td>
+                      <td className={styles.tdAcoes} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                          <button className={styles.btnMini} onClick={() => carregarOrcamento(o.id)} title="Editar">✏️</button>
+                          {isAdminUser && (
+                            <button className={`${styles.btnMini} ${styles.btnMiniDanger}`} title="Excluir"
+                              onClick={() => { if (window.confirm(`Excluir orçamento ${o.numero}? Esta ação não pode ser desfeita.`)) excluirOrcamento(o.id) }}>🗑</button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -752,6 +907,162 @@ export default function AdminOrcamento() {
           )}
         </div>
       )}
+
+      {/* ═══ DETALHE (read-only) ═══ */}
+      {vista === 'detalhe' && editandoId && (() => {
+        const cfg = STATUS_CFG[status]
+        const vend = vendedores.find(v => v.id === vendedorId)
+        const freteS = freteSummaryRef.current
+        return (
+          <div className={styles.detalheWrap}>
+            {/* Header */}
+            <div className={styles.detalheHeader}>
+              <div className={styles.detalheHeaderLeft}>
+                <span className={styles.detalheNumero}>{numero}</span>
+                <span className={styles.statusBadge} style={{ background: cfg?.cor + '22', color: cfg?.cor }}>{cfg?.label}</span>
+              </div>
+              <div className={styles.detalheActions}>
+                <button className={styles.btnPrimary} onClick={() => setVista('editor')}>✏️ Editar</button>
+                <button className={styles.btnImprimir} onClick={imprimir}>🖨 PDF</button>
+              </div>
+            </div>
+
+            <div className={styles.detalheGrid}>
+              {/* Empresa emissora */}
+              <div className={styles.detalheCard}>
+                <div className={styles.detalheCardTitle}>Empresa Emissora</div>
+                <div className={styles.detalheCampo}><strong>Empresa:</strong> <span>{empresaSel?.nome_fantasia ?? '—'}</span></div>
+                {empresaSel?.razao_social && <div className={styles.detalheCampo}><strong>Razão social:</strong> <span>{empresaSel.razao_social}</span></div>}
+                {empresaSel?.cnpj && <div className={styles.detalheCampo}><strong>CNPJ:</strong> <span>{empresaSel.cnpj}</span></div>}
+                {empresaSel?.telefone && <div className={styles.detalheCampo}><strong>Telefone:</strong> <span>{empresaSel.telefone}</span></div>}
+                {empresaSel?.email && <div className={styles.detalheCampo}><strong>E-mail:</strong> <span>{empresaSel.email}</span></div>}
+                {vend && <div className={styles.detalheCampo}><strong>Vendedor:</strong> <span>{vend.nome}</span></div>}
+              </div>
+
+              {/* Cliente */}
+              <div className={styles.detalheCard}>
+                <div className={styles.detalheCardTitle}>Cliente</div>
+                {cliente.empresa && <div className={styles.detalheCampo}><strong>Empresa:</strong> <span>{cliente.empresa}</span></div>}
+                {cliente.nome_fantasia && <div className={styles.detalheCampo}><strong>Nome fantasia:</strong> <span>{cliente.nome_fantasia}</span></div>}
+                {cliente.nome && <div className={styles.detalheCampo}><strong>Contato:</strong> <span>{cliente.nome}</span></div>}
+                {cliente.cargo && <div className={styles.detalheCampo}><strong>Cargo:</strong> <span>{cliente.cargo}</span></div>}
+                {cliente.cnpj && <div className={styles.detalheCampo}><strong>{cliente.tipo_pessoa === 'pf' ? 'CPF' : 'CNPJ'}:</strong> <span>{cliente.cnpj}</span></div>}
+                {cliente.telefone && <div className={styles.detalheCampo}><strong>Telefone:</strong> <span>{cliente.telefone}</span></div>}
+                {cliente.email && <div className={styles.detalheCampo}><strong>E-mail:</strong> <span>{cliente.email}</span></div>}
+                {cliente.cep && <div className={styles.detalheCampo}><strong>Endereço:</strong> <span>{[cliente.logradouro, cliente.numero, cliente.complemento, cliente.bairro, cliente.cidade, cliente.uf].filter(Boolean).join(', ')} — CEP {cliente.cep}</span></div>}
+                {cliente.perfil_comprador && <div className={styles.detalheCampo}><strong>Perfil:</strong> <span>{cliente.perfil_comprador}</span></div>}
+              </div>
+
+              {/* Itens */}
+              <div className={`${styles.detalheCard} ${styles.detalheCardFull}`}>
+                <div className={styles.detalheCardTitle}>Itens</div>
+                <table className={styles.detalheItensTable}>
+                  <thead><tr><th>#</th><th>Descrição</th><th>Qtd</th><th>Un</th><th>Vl. Unit.</th><th>Total</th></tr></thead>
+                  <tbody>
+                    {itens.filter(i => i.descricao.trim()).map((item, idx) => {
+                      const q = parseFloat(item.qtd.replace(',', '.')) || 0
+                      const v = parseFloat(item.valorUnit.replace(',', '.')) || 0
+                      return (
+                        <tr key={idx}>
+                          <td>{idx + 1}</td>
+                          <td>{item.descricao}{item.obs_tecnica ? <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{item.obs_tecnica}</div> : null}</td>
+                          <td>{item.qtd}</td>
+                          <td>{item.unidade}</td>
+                          <td>{fmt(v)}</td>
+                          <td>{fmt(q * v)}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+                <div className={styles.detalheTotais}>
+                  <div className={styles.detalheTotaisRow}><span>Subtotal</span><span>{fmt(subtotal())}</span></div>
+                  {valorDesc() > 0 && <div className={styles.detalheTotaisRow}><span>Desconto ({tipoDesc === '%' ? `${desconto}%` : 'R$'})</span><span>−{fmt(valorDesc())}</span></div>}
+                  {valorFrete() > 0 && <div className={styles.detalheTotaisRow}><span>Frete</span><span>{fmt(valorFrete())}</span></div>}
+                  {valorInst() > 0 && <div className={styles.detalheTotaisRow}><span>Instalação</span><span>{fmt(valorInst())}</span></div>}
+                  <div className={`${styles.detalheTotaisRow} ${styles.detalheTotaisTotal}`}><span>Total</span><span>{fmt(total())}</span></div>
+                </div>
+              </div>
+
+              {/* Frete & Logística */}
+              {freteS.tipo && (
+                <div className={styles.detalheCard}>
+                  <div className={styles.detalheCardTitle}>Frete & Logística</div>
+                  <div className={styles.detalheCampo}><strong>Tipo:</strong> <span>{freteS.tipo}</span></div>
+                  <div className={styles.detalheCampo}><strong>Modalidade:</strong> <span>{freteS.modalidade === 'cobrar' ? 'Cobrar do cliente' : 'Bonificado'}</span></div>
+                  {freteS.provedor && <div className={styles.detalheCampo}><strong>Provedor:</strong> <span>{freteS.provedor} {freteS.servico ? `— ${freteS.servico}` : ''}</span></div>}
+                  {freteS.valor > 0 && <div className={styles.detalheCampo}><strong>Valor:</strong> <span>{fmtBRL(freteS.valor)}</span></div>}
+                  {freteS.prazo && <div className={styles.detalheCampo}><strong>Prazo:</strong> <span>{freteS.prazo}</span></div>}
+                  {freteS.peso_total_kg > 0 && <div className={styles.detalheCampo}><strong>Peso:</strong> <span>{freteS.peso_total_kg} kg</span></div>}
+                </div>
+              )}
+
+              {/* Condições */}
+              <div className={styles.detalheCard}>
+                <div className={styles.detalheCardTitle}>Condições Comerciais</div>
+                {condicoes.length > 0 && <div className={styles.detalheCampo}><strong>Pagamento:</strong> <span>{condicoes.join(', ')}</span></div>}
+                {dadosBancariosSel.length > 0 && <div className={styles.detalheCampo}><strong>Dados bancários:</strong> <span>{dadosBancarios.filter(d => dadosBancariosSel.includes(d.id)).map(d => d.apelido).join(', ')}</span></div>}
+                {prazoEntrega && <div className={styles.detalheCampo}><strong>Prazo entrega:</strong> <span>{prazoEntrega}</span></div>}
+                <div className={styles.detalheCampo}><strong>Validade:</strong> <span>{validadeDias} dias</span></div>
+                <div className={styles.detalheCampo}><strong>Emissão:</strong> <span>{dataEmissao}</span></div>
+              </div>
+
+              {/* Instalação */}
+              {instalacao.inclui && (
+                <div className={styles.detalheCard}>
+                  <div className={styles.detalheCardTitle}>Instalação / Montagem</div>
+                  <div className={styles.detalheCampo}><strong>Modalidade:</strong> <span>{instalacao.modalidade === 'cobrar' ? 'Cobrar do cliente' : 'Bonificada'}</span></div>
+                  {instalacao.valor && <div className={styles.detalheCampo}><strong>Valor:</strong> <span>{fmtBRL(parseFloat(instalacao.valor.replace(',', '.')) || 0)}</span></div>}
+                  {instalacao.texto && <div className={styles.detalheCampo}><strong>Descrição:</strong> <span>{instalacao.texto}</span></div>}
+                </div>
+              )}
+
+              {/* Observações */}
+              {observacoes && observacoes !== OBS_DEFAULT && (
+                <div className={`${styles.detalheCard} ${styles.detalheCardFull}`}>
+                  <div className={styles.detalheCardTitle}>Observações</div>
+                  <div style={{ fontSize: '0.84rem', color: '#374151', whiteSpace: 'pre-line' }}>{observacoes}</div>
+                </div>
+              )}
+
+              {/* Anexos */}
+              {anexos.length > 0 && (
+                <div className={styles.detalheCard}>
+                  <div className={styles.detalheCardTitle}>Anexos ({anexos.length})</div>
+                  {anexos.map(a => (
+                    <div key={a.id ?? a.nome} className={styles.detalheCampo}>
+                      <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>📎 {a.nome}</a>
+                      {a.tamanho && <span style={{ color: '#94a3b8', fontSize: '0.76rem', marginLeft: 6 }}>{(a.tamanho / 1024).toFixed(0)} KB</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Recebível */}
+              {finLancId && (
+                <div className={styles.detalheCard}>
+                  <div className={styles.detalheCardTitle}>Financeiro</div>
+                  <div className={styles.detalheCampo} style={{ color: '#16a34a', fontWeight: 600 }}>✓ Recebível #{finLancId} vinculado</div>
+                </div>
+              )}
+
+              {/* Histórico */}
+              {historico.length > 0 && (
+                <div className={`${styles.detalheCard} ${styles.detalheCardFull}`}>
+                  <div className={styles.detalheCardTitle}>Histórico</div>
+                  {historico.slice(0, 10).map((h, i) => (
+                    <div key={i} className={styles.detalheCampo} style={{ display: 'flex', gap: 8 }}>
+                      <span style={{ color: '#94a3b8', fontSize: '0.76rem', minWidth: 100 }}>{fmtDataISO(h.criado_em)}</span>
+                      <span>{EVENTO_LABEL[h.evento] ?? h.evento}{h.descricao ? ` — ${h.descricao}` : ''}</span>
+                      {h.usuario && <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>por {h.usuario}</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ═══ EDITOR ═══ */}
       {vista === 'editor' && (
@@ -764,53 +1075,33 @@ export default function AdminOrcamento() {
               </button>
             </div>
           )}
-          <div className={styles.editorBar}>
-            <div className={styles.editorBarLeft}>
-              <span className={styles.editorNumero}>{numero}</span>
-              <span className={styles.statusBadge} style={{ background: STATUS_CFG[status].cor + '22', color: STATUS_CFG[status].cor }}>{STATUS_CFG[status].label}</span>
-              <select className={styles.empresaSelect} value={empresaId ?? ''} onChange={e => setEmpresaId(Number(e.target.value))}>
-                <option value="">— Empresa emissora —</option>
-                {empresas.map(e => <option key={e.id} value={e.id}>{e.nome_fantasia}</option>)}
-              </select>
-              <select className={styles.vendedorSelect} value={vendedorId ?? ''} onChange={e => setVendedorId(e.target.value ? Number(e.target.value) : null)}>
-                <option value="">— Vendedor —</option>
-                {vendedores.map(v => <option key={v.id} value={v.id}>{v.nome}</option>)}
-              </select>
-            </div>
-            <div className={styles.editorBarRight}>
-              {status === 'aprovado' && !finLancId && <button className={styles.btnReceivel} onClick={gerarReceivel} disabled={gerandoRec}>{gerandoRec ? '...' : '💰 Gerar Recebível'}</button>}
-              {status === 'aprovado' && finLancId && <span className={styles.receivelOk}>✓ Recebível #{finLancId}</span>}
-              {status === 'aprovado' && !etiquetaPreId && <button className={styles.btnEnviar} onClick={gerarEtiqueta} disabled={gerandoEtiq}>{gerandoEtiq ? '⏳ Gerando...' : '📦 Etiqueta Correios'}</button>}
-              {etiquetaPreId && <>
-                <button className={styles.btnAprovar} onClick={baixarRotulo} disabled={baixandoRotulo}>{baixandoRotulo ? '⏳ Processando...' : '🏷 Baixar Rótulo'}</button>
-                <button className={styles.btnImprimir} onClick={baixarDace} disabled={baixandoDace}>{baixandoDace ? '⏳ Gerando...' : '📄 DACE'}</button>
-                <button className={styles.btnRecusar} onClick={cancelarEtiqueta} disabled={cancelandoEtiq}>{cancelandoEtiq ? '⏳...' : '✕ Cancelar Envio'}</button>
-              </>}
-              {status === 'rascunho' && <button className={styles.btnEnviar} onClick={() => salvar('enviado')} disabled={salvando}>📤 Marcar Enviado</button>}
-              {status === 'enviado' && <>
-                <button className={styles.btnAprovar} onClick={() => salvar('aprovado')} disabled={salvando}>✅ Aprovado</button>
-                <button className={styles.btnRecusar} onClick={() => salvar('recusado')} disabled={salvando}>❌ Recusado</button>
-              </>}
-              <button className={styles.btnImprimir} onClick={imprimir}>🖨️ PDF</button>
-              <button className={styles.btnPrimary} onClick={() => salvar()} disabled={salvando}>{salvando ? 'Salvando...' : '💾 Salvar'}</button>
-              {isAdminUser && editandoId && (
-                confirmExcluir
-                  ? <><span style={{ fontSize: '0.8rem', color: '#dc2626' }}>Confirmar exclusão?</span>
-                      <button style={{ background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontWeight: 700 }} onClick={() => excluirOrcamento(editandoId)}>Sim, excluir</button>
-                      <button style={{ background: '#e2e8f0', color: '#475569', border: 'none', borderRadius: 6, padding: '6px 12px', cursor: 'pointer' }} onClick={() => setConfirmExcluir(false)}>Cancelar</button>
-                    </>
-                  : <button style={{ background: 'transparent', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: '0.82rem' }} onClick={() => setConfirmExcluir(true)}>🗑 Excluir</button>
-              )}
-            </div>
-          </div>
 
           <div className={styles.layout}>
+            <div className={styles.layoutMain}>
+              {/* Empresa & Vendedor */}
+              <CollapsibleSection title="📋 Emissão" defaultOpen>
+                <div className={styles.row2}>
+                  <div className={styles.fg}>
+                    <label>Empresa emissora</label>
+                    <select className={styles.input} value={empresaId ?? ''} onChange={e => setEmpresaId(Number(e.target.value))}>
+                      <option value="">— Selecione —</option>
+                      {empresas.map(e => <option key={e.id} value={e.id}>{e.nome_fantasia}</option>)}
+                    </select>
+                  </div>
+                  <div className={styles.fg}>
+                    <label>Vendedor / Consultor</label>
+                    <select className={styles.input} value={vendedorId ?? ''} onChange={e => setVendedorId(e.target.value ? Number(e.target.value) : null)}>
+                      <option value="">— Selecione —</option>
+                      {vendedores.map(v => <option key={v.id} value={v.id}>{v.nome}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </CollapsibleSection>
 
               <ClienteForm cliente={cliente} setCliente={setCliente} styles={styles} />
 
               {/* Itens */}
-              <div className={styles.section}>
-                <div className={styles.sectionTitle}>Itens</div>
+              <CollapsibleSection title="📦 Itens" defaultOpen>
                 <div className={styles.itensHeader}>
                   <span className={styles.itemDesc}>Descrição</span>
                   <span className={styles.itemQtd}>Qtd</span>
@@ -904,7 +1195,7 @@ export default function AdminOrcamento() {
                   )}
                   <div className={`${styles.totaisRow} ${styles.totaisTotal}`}><span>Total</span><span>{fmt(total())}</span></div>
                 </div>
-              </div>
+              </CollapsibleSection>
 
               {/* Frete & Logística */}
               <FreteSection
@@ -918,8 +1209,7 @@ export default function AdminOrcamento() {
               />
 
               {/* Instalação/Montagem */}
-              <div className={styles.section}>
-                <div className={styles.sectionTitle}>Instalação / Montagem</div>
+              <CollapsibleSection title="🔧 Instalação / Montagem">
                 <div className={styles.watermarkRow}>
                   <label className={styles.toggleLabel}>
                     <input type="checkbox" checked={instalacao.inclui} onChange={e => setInstalacao(i => ({ ...i, inclui: e.target.checked }))} />
@@ -947,11 +1237,10 @@ export default function AdminOrcamento() {
                     <div className={styles.fg}><label>Descrição</label><input className={styles.input} placeholder="Ex: Instalação e comissionamento incluso" value={instalacao.texto} onChange={e => setInstalacao(i => ({ ...i, texto: e.target.value }))} /></div>
                   </>
                 )}
-              </div>
+              </CollapsibleSection>
 
               {/* Condições Comerciais */}
-              <div className={styles.section}>
-                <div className={styles.sectionTitle}>Condições Comerciais</div>
+              <CollapsibleSection title="💰 Condições Comerciais">
                 <div className={styles.fg}>
                   <label>Pagamento <span style={{ fontWeight: 400, color: '#64748b', fontSize: '0.78em' }}>(selecione uma ou mais)</span></label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 4 }}>
@@ -1002,49 +1291,9 @@ export default function AdminOrcamento() {
                         Nenhuma conta cadastrada.
                       </div>
                     )}
-                    <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
-                      <button className={styles.btnAddItem} onClick={() => setShowCadastroBanco(v => !v)}>
-                        {showCadastroBanco ? '▲ Fechar' : '+ Cadastrar nova conta'}
-                      </button>
-                    </div>
-                    {showCadastroBanco && (
-                      <div style={{ marginTop: 8, padding: 14, background: '#fafbfc', border: '1.5px dashed #cbd5e1', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        <div className={styles.row2}>
-                          <div className={styles.fg}><label>Apelido *</label><input className={styles.input} placeholder="Ex: Bradesco PJ" value={formBanco.apelido ?? ''} onChange={e => setFormBanco(f => ({ ...f, apelido: e.target.value }))} /></div>
-                          <div className={styles.fg}><label>Banco</label><input className={styles.input} placeholder="Ex: Bradesco" value={formBanco.banco ?? ''} onChange={e => setFormBanco(f => ({ ...f, banco: e.target.value }))} /></div>
-                        </div>
-                        <div className={styles.row3}>
-                          <div className={styles.fg}><label>Agência</label><input className={styles.input} placeholder="1234" value={formBanco.agencia ?? ''} onChange={e => setFormBanco(f => ({ ...f, agencia: e.target.value }))} /></div>
-                          <div className={styles.fg}><label>Conta</label><input className={styles.input} placeholder="56789-0" value={formBanco.conta ?? ''} onChange={e => setFormBanco(f => ({ ...f, conta: e.target.value }))} /></div>
-                          <div className={styles.fg}>
-                            <label>Tipo</label>
-                            <select className={styles.input} value={formBanco.tipo_conta ?? 'corrente'} onChange={e => setFormBanco(f => ({ ...f, tipo_conta: e.target.value }))}>
-                              <option value="corrente">Corrente</option>
-                              <option value="poupanca">Poupança</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div className={styles.row2}>
-                          <div className={styles.fg}><label>Chave PIX</label><input className={styles.input} placeholder="CNPJ, e-mail, telefone..." value={formBanco.pix_chave ?? ''} onChange={e => setFormBanco(f => ({ ...f, pix_chave: e.target.value }))} /></div>
-                          <div className={styles.fg}>
-                            <label>Tipo da chave</label>
-                            <select className={styles.input} value={formBanco.pix_tipo ?? ''} onChange={e => setFormBanco(f => ({ ...f, pix_tipo: e.target.value }))}>
-                              <option value="">—</option>
-                              <option value="cnpj">CNPJ</option>
-                              <option value="cpf">CPF</option>
-                              <option value="email">E-mail</option>
-                              <option value="telefone">Telefone</option>
-                              <option value="aleatoria">Aleatória</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div className={styles.row2}>
-                          <div className={styles.fg}><label>Titular</label><input className={styles.input} placeholder="Pousinox Ind. Com. LTDA" value={formBanco.titular ?? ''} onChange={e => setFormBanco(f => ({ ...f, titular: e.target.value }))} /></div>
-                          <div className={styles.fg}><label>CNPJ do titular</label><input className={styles.input} placeholder="12.115.379/0001-64" value={formBanco.cnpj_titular ?? ''} onChange={e => setFormBanco(f => ({ ...f, cnpj_titular: e.target.value }))} /></div>
-                        </div>
-                        <button className={styles.btnPrimary} style={{ alignSelf: 'flex-start' }} onClick={salvarDadoBancario}>Salvar conta</button>
-                      </div>
-                    )}
+                    <button className={styles.btnAddItem} style={{ marginTop: 6, fontSize: '0.75rem' }} onClick={() => setDrawerOpen(true)}>
+                      + Gerenciar contas (⚙️ Config)
+                    </button>
 
                     {/* Dados livres (fallback/complemento) */}
                     <div style={{ marginTop: 8 }}>
@@ -1063,19 +1312,17 @@ export default function AdminOrcamento() {
                   <div className={styles.fg}><label>Validade (dias)</label><input className={styles.input} type="number" min="1" value={validadeDias} onChange={e => setValidadeDias(e.target.value)} /></div>
                   <div className={styles.fg}><label>Emissão</label><input className={styles.input} value={dataEmissao} readOnly style={{ background: '#f8fafc' }} /></div>
                 </div>
-              </div>
+              </CollapsibleSection>
 
               {/* Observações */}
-              <div className={styles.section}>
-                <div className={styles.sectionTitle}>Observações</div>
+              <CollapsibleSection title="📝 Observações">
                 <div className={styles.fg}><textarea className={`${styles.input} ${styles.textarea}`} rows={4} value={observacoes} onChange={e => setObservacoes(e.target.value)} /></div>
-              </div>
+              </CollapsibleSection>
 
               {/* Anexos & Rastreamento */}
 
               {/* Anexos */}
-              <div className={styles.section}>
-                <div className={styles.sectionTitle}>Anexos</div>
+              <CollapsibleSection title="📎 Anexos" count={anexos.length}>
                 {anexos.length > 0 && (
                   <div className={styles.anexosList}>
                     {anexos.map(a => (
@@ -1091,7 +1338,7 @@ export default function AdminOrcamento() {
                 <button className={styles.btnAddItem} onClick={() => anexoRef.current?.click()} disabled={uploadandoAnexo}>
                   {uploadandoAnexo ? 'Enviando...' : '📎 Anexar arquivo'}
                 </button>
-              </div>
+              </CollapsibleSection>
 
               {/* Links de rastreamento */}
               {editandoId && (
@@ -1106,187 +1353,50 @@ export default function AdminOrcamento() {
                 />
               )}
 
-              {/* Configuração da Proposta */}
-              <ConfigSection
-                showControles={showControles} setShowControles={setShowControles}
-                exibir={exibir} setExibir={setExibir}
-                watermarkAtivo={watermarkAtivo} setWatermarkAtivo={setWatermarkAtivo}
-                watermarkLogo={watermarkLogo} setWatermarkLogo={setWatermarkLogo}
-                watermarkTexto={watermarkTexto} setWatermarkTexto={setWatermarkTexto}
-                imagemUrl={imagemUrl} setImagemUrl={setImagemUrl}
-                imagemRef={imagemRef} uploadandoImagem={uploadandoImagem} uploadImagem={uploadImagem}
-                origemLead={origemLead} setOrigemLead={setOrigemLead}
-                obsInternas={obsInternas} setObsInternas={setObsInternas}
-                styles={styles}
-              />
-
               {/* Rastreabilidade */}
               <HistoricoSection historico={historico} styles={styles} />
+            </div>
+
+            <ResumoSidebar
+              numero={numero} status={status}
+              empresaNome={empresaSel?.nome_fantasia ?? null}
+              clienteNome={cliente.empresa || cliente.nome}
+              subtotal={subtotal()} valorDesc={valorDesc()} tipoDesc={tipoDesc}
+              frete={freteSummaryRef.current} instalacao={instalacao}
+              total={total()} ocultarValores={ocultarValores}
+              salvando={salvando} onSalvar={(s) => salvar(s)} onImprimir={imprimir}
+              onCanva={gerarCanva} gerandoCanva={gerandoCanva}
+              finLancId={finLancId} gerandoRec={gerandoRec} onGerarReceivel={gerarReceivel}
+              etiquetaPreId={etiquetaPreId} gerandoEtiq={gerandoEtiq}
+              baixandoRotulo={baixandoRotulo} baixandoDace={baixandoDace} cancelandoEtiq={cancelandoEtiq}
+              onGerarEtiqueta={gerarEtiqueta} onBaixarRotulo={baixarRotulo}
+              onBaixarDace={baixarDace} onCancelarEtiqueta={cancelarEtiqueta}
+              editandoId={editandoId} isAdminUser={isAdminUser}
+              confirmExcluir={confirmExcluir} setConfirmExcluir={setConfirmExcluir}
+              onExcluir={excluirOrcamento}
+              styles={styles}
+            />
           </div>
         </>
       )}
 
-      {/* ═══ EMPRESAS ═══ */}
-      {vista === 'empresas' && (
-        <div className={styles.empresasWrap}>
-          <div className={styles.section}>
-            <div className={styles.sectionTitle}>{editEmpresaId ? 'Editar Empresa' : 'Nova Empresa Emissora'}</div>
-            <div className={styles.row2}>
-              <div className={styles.fg}><label>Nome fantasia *</label><input className={styles.input} value={formEmpresa.nome_fantasia ?? ''} onChange={e => setFormEmpresa(f => ({ ...f, nome_fantasia: e.target.value }))} /></div>
-              <div className={styles.fg}><label>Razão social</label><input className={styles.input} value={formEmpresa.razao_social ?? ''} onChange={e => setFormEmpresa(f => ({ ...f, razao_social: e.target.value }))} /></div>
-            </div>
-            <div className={styles.row3}>
-              <div className={styles.fg}><label>CNPJ</label><input className={styles.input} value={formEmpresa.cnpj ?? ''} onChange={e => setFormEmpresa(f => ({ ...f, cnpj: e.target.value }))} /></div>
-              <div className={styles.fg}>
-                <label>Telefone</label>
-                <input className={styles.input} value={formEmpresa.telefone ?? ''} onChange={e => setFormEmpresa(f => ({ ...f, telefone: e.target.value }))} />
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontSize: '0.78rem', color: '#64748b', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={!!formEmpresa.telefone_is_whatsapp}
-                    onChange={e => setFormEmpresa(f => ({ ...f, telefone_is_whatsapp: e.target.checked }))} />
-                  Este número também é WhatsApp
-                </label>
-              </div>
-              <div className={styles.fg}><label>E-mail</label><input className={styles.input} value={formEmpresa.email ?? ''} onChange={e => setFormEmpresa(f => ({ ...f, email: e.target.value }))} /></div>
-            </div>
-            <div className={styles.row2}>
-              <div className={styles.fg}>
-                <label>CEP</label>
-                <input className={styles.input} placeholder="00000-000"
-                  value={formEmpresa.cep ?? ''}
-                  onChange={e => setFormEmpresa(f => ({ ...f, cep: maskCEP(e.target.value) }))}
-                  onBlur={async e => {
-                    const cep = e.target.value.replace(/\D/g, '')
-                    if (cep.length !== 8) return
-                    const r = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
-                    const d = await r.json()
-                    if (d.erro) return
-                    setFormEmpresa(f => ({
-                      ...f,
-                      endereco: `${d.logradouro}${f.numero ? ', nº ' + f.numero : ''} - ${d.bairro} - ${d.localidade}/${d.uf}`,
-                    }))
-                  }}
-                />
-              </div>
-              <div className={styles.fg}>
-                <label>Número</label>
-                <input className={styles.input} placeholder="1020"
-                  value={formEmpresa.numero ?? ''}
-                  onChange={e => setFormEmpresa(f => ({ ...f, numero: e.target.value }))} />
-              </div>
-            </div>
-            <div className={styles.fg}>
-              <label>Endereço completo</label>
-              <input className={styles.input} placeholder="Preenchido pelo CEP — edite se necessário"
-                value={formEmpresa.endereco ?? ''} onChange={e => setFormEmpresa(f => ({ ...f, endereco: e.target.value }))} />
-            </div>
-            <div className={styles.fg}>
-              <label>Site</label>
-              <input className={styles.input} placeholder="pousinox.com.br"
-                value={formEmpresa.site ?? ''} onChange={e => setFormEmpresa(f => ({ ...f, site: e.target.value }))} />
-            </div>
-            <div className={styles.formActionsEmpresa}>
-              <button className={styles.btnPrimary} onClick={salvarEmpresa}>{editEmpresaId ? 'Atualizar empresa' : 'Criar empresa'}</button>
-              {editEmpresaId && <button className={styles.btnSecondary} onClick={() => { setFormEmpresa({}); setEditEmpresaId(null) }}>Cancelar</button>}
-            </div>
-          </div>
-          {/* Cards — mobile */}
-          <div className={styles.listaCards}>
-            {empresas.map(e => (
-              <div key={e.id} className={styles.listaCard}>
-                <div className={styles.listaCardTopo}>
-                  <div>
-                    <div className={styles.listaCardEmpresa}>{e.nome_fantasia}</div>
-                    {e.razao_social && e.razao_social !== e.nome_fantasia && <div className={styles.listaCardCliente}>{e.razao_social}</div>}
-                    <div className={styles.listaCardCliente}>{e.cnpj || ''}</div>
-                  </div>
-                  {e.logo_url && <img src={e.logo_url} alt="logo" style={{ height: 40, objectFit: 'contain' }} />}
-                </div>
-                <div className={styles.listaCardMeta}>
-                  <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
-                    {e.telefone && <div>{e.telefone}</div>}
-                    {e.email && <div>{e.email}</div>}
-                  </div>
-                  <div className={styles.listaCardAcoes}>
-                    <input type="file" accept="image/*" id={`logo-${e.id}`} style={{ display: 'none' }} onChange={ev => ev.target.files?.[0] && uploadLogo(ev.target.files[0], e.id, ev.target)} />
-                    <label htmlFor={`logo-${e.id}`} className={styles.btnAcao} style={{ cursor: 'pointer' }}>⬆ Logo</label>
-                    <button className={styles.btnAcao} onClick={() => { setEditEmpresaId(e.id); setFormEmpresa({ ...e }) }}>✏️ Editar</button>
-                    <button className={styles.btnAcao} style={{ color: '#dc2626', borderColor: '#fecaca' }} onClick={async () => {
-                      if (!window.confirm(`Excluir "${e.nome_fantasia}"?`)) return
-                      await supabaseAdmin.from('empresas_emissoras').update({ ativa: false }).eq('id', e.id)
-                      carregarEmpresas()
-                    }}>🗑</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Tabela — tablet/desktop */}
-          <table className={styles.listaTable}>
-            <thead><tr><th>Nome</th><th>CNPJ</th><th>Contato</th><th>Logo</th><th></th></tr></thead>
-            <tbody>
-              {empresas.map(e => (
-                <tr key={e.id}>
-                  <td><strong>{e.nome_fantasia}</strong>{e.razao_social && e.razao_social !== e.nome_fantasia && <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{e.razao_social}</div>}</td>
-                  <td>{e.cnpj || '—'}</td>
-                  <td><div>{e.telefone}</div><div style={{ fontSize: '0.74rem', color: '#64748b' }}>{e.email}</div></td>
-                  <td>
-                    {e.logo_url ? <img src={e.logo_url} alt="logo" style={{ height: 32, objectFit: 'contain' }} /> : <span style={{ color: '#94a3b8', fontSize: '0.74rem' }}>Sem logo</span>}
-                    <input type="file" accept="image/*" id={`logo-tbl-${e.id}`} style={{ display: 'none' }} onChange={ev => ev.target.files?.[0] && uploadLogo(ev.target.files[0], e.id, ev.target)} />
-                    <label htmlFor={`logo-tbl-${e.id}`} style={{ marginLeft: 8, fontSize: '0.75rem', cursor: 'pointer', color: '#1a5fa8', fontWeight: 600 }}>
-                      {uploadandoLogo ? '...' : '⬆ Upload logo'}
-                    </label>
-                  </td>
-                  <td style={{ display: 'flex', gap: 6 }}>
-                    <button className={styles.btnAcao} title="Editar" onClick={() => { setEditEmpresaId(e.id); setFormEmpresa({ ...e }) }}>✏️</button>
-                    <button className={styles.btnAcao} title="Excluir" style={{ color: '#dc2626' }} onClick={async () => {
-                      if (!window.confirm(`Excluir a empresa "${e.nome_fantasia}"?`)) return
-                      await supabaseAdmin.from('empresas_emissoras').update({ ativa: false }).eq('id', e.id)
-                      carregarEmpresas()
-                    }}>🗑</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* ═══ VENDEDORES ═══ */}
-      {vista === 'vendedores' && (
-        <div className={styles.empresasWrap}>
-          <div className={styles.section}>
-            <div className={styles.sectionTitle}>{editVendedorId ? 'Editar Vendedor' : 'Novo Vendedor'}</div>
-            <div className={styles.row3}>
-              <div className={styles.fg}><label>Nome *</label><input className={styles.input} value={formVendedor.nome ?? ''} onChange={e => setFormVendedor(f => ({ ...f, nome: e.target.value }))} /></div>
-              <div className={styles.fg}><label>E-mail</label><input className={styles.input} value={formVendedor.email ?? ''} onChange={e => setFormVendedor(f => ({ ...f, email: e.target.value }))} /></div>
-              <div className={styles.fg}><label>Telefone</label><input className={styles.input} value={formVendedor.telefone ?? ''} onChange={e => setFormVendedor(f => ({ ...f, telefone: e.target.value }))} /></div>
-            </div>
-            <div className={styles.fg} style={{ maxWidth: 200 }}>
-              <label>Comissão padrão (%)</label>
-              <input className={styles.input} type="number" min="0" step="0.01" value={formVendedor.comissao_pct ?? ''} onChange={e => setFormVendedor(f => ({ ...f, comissao_pct: parseFloat(e.target.value) || 0 }))} />
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button className={styles.btnPrimary} onClick={salvarVendedor}>{editVendedorId ? 'Atualizar' : 'Cadastrar consultor'}</button>
-              {editVendedorId && <button className={styles.btnSecondary} onClick={() => { setFormVendedor({}); setEditVendedorId(null) }}>Cancelar</button>}
-            </div>
-          </div>
-          <table className={styles.listaTable}>
-            <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Comissão</th><th></th></tr></thead>
-            <tbody>
-              {vendedores.map(v => (
-                <tr key={v.id}>
-                  <td><strong>{v.nome}</strong></td>
-                  <td>{v.email || '—'}</td>
-                  <td>{v.telefone || '—'}</td>
-                  <td>{v.comissao_pct > 0 ? `${v.comissao_pct}%` : '—'}</td>
-                  <td><button className={styles.btnAcao} onClick={() => { setEditVendedorId(v.id); setFormVendedor({ ...v }) }}>✏️</button></td>
-                </tr>
-              ))}
-              {vendedores.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', color: '#94a3b8', padding: 16 }}>Nenhum consultor cadastrado.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <ConfigDrawer
+        open={drawerOpen} onClose={() => setDrawerOpen(false)}
+        empresas={empresas} carregarEmpresas={carregarEmpresas}
+        uploadandoLogo={uploadandoLogo} uploadLogo={uploadLogo} showMsg={showMsg}
+        vendedores={vendedores} carregarVendedores={carregarVendedores}
+        dadosBancarios={dadosBancarios} carregarDadosBancarios={carregarDadosBancarios}
+        showControles={showControles} setShowControles={setShowControles}
+        exibir={exibir} setExibir={setExibir}
+        watermarkAtivo={watermarkAtivo} setWatermarkAtivo={setWatermarkAtivo}
+        watermarkLogo={watermarkLogo} setWatermarkLogo={setWatermarkLogo}
+        watermarkTexto={watermarkTexto} setWatermarkTexto={setWatermarkTexto}
+        imagemUrl={imagemUrl} setImagemUrl={setImagemUrl}
+        imagemRef={imagemRef} uploadandoImagem={uploadandoImagem} uploadImagem={uploadImagem}
+        origemLead={origemLead} setOrigemLead={setOrigemLead}
+        obsInternas={obsInternas} setObsInternas={setObsInternas}
+        styles={styles}
+      />
     </div>
   )
 }

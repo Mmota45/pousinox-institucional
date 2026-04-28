@@ -89,94 +89,154 @@ const FRETE_TIPOS: Record<string, string> = {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
+// Cores do tema
+const C = {
+  navy: '#0b1a2e',
+  navyLight: '#162d4a',
+  accent: '#2563eb',
+  accentSoft: '#dbeafe',
+  gold: '#b8860b',
+  text: '#1a1a2e',
+  textMuted: '#5a6578',
+  textLight: '#8896a6',
+  border: '#dfe4ea',
+  borderLight: '#eef1f5',
+  bg: '#ffffff',
+  bgSoft: '#f7f8fa',
+  bgCard: '#fafbfc',
+}
+
 const S = {
   page: {
     fontFamily: "'Inter', 'Helvetica Neue', Arial, sans-serif",
-    fontSize: '0.80rem', color: '#1e293b', background: '#fff',
+    fontSize: '0.82rem', color: C.text, background: C.bg,
     maxWidth: 860, margin: '0 auto', padding: '0',
   } as React.CSSProperties,
-  pageBody: { padding: '16px 28px 24px' } as React.CSSProperties,
-  loading: { padding: 48, textAlign: 'center' as const, color: '#64748b' },
+  pageBody: { padding: '16px 32px 24px' } as React.CSSProperties,
+  loading: { padding: 48, textAlign: 'center' as const, color: C.textMuted },
 
   // Header
-  headerTopBar: { display: 'none' } as React.CSSProperties,
-  headerBand: {
-    background: '#ffffff',
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    padding: '14px 24px', gap: 24, borderBottom: '1px solid #e2e8f0',
+  headerTopBar: {
+    height: 4, background: `linear-gradient(90deg, ${C.navy} 0%, ${C.accent} 60%, ${C.gold} 100%)`,
   } as React.CSSProperties,
-  headerLeft: { display: 'flex', gap: 14, alignItems: 'center', flex: 1, minWidth: 0 } as React.CSSProperties,
+  headerBand: {
+    background: C.bg,
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    padding: '14px 32px', borderBottom: `2.5px solid ${C.navy}`,
+  } as React.CSSProperties,
   logoWrap: {
-    height: 120, maxWidth: 280, flexShrink: 0,
+    height: 80, maxWidth: 240, flexShrink: 0,
     display: 'flex', alignItems: 'center',
     overflow: 'hidden' as const,
   } as React.CSSProperties,
-  logo: { height: 120, maxWidth: 280, width: 'auto', objectFit: 'contain' as const },
-  logoPlaceholder: { width: 40, height: 40, borderRadius: 6, background: '#1a2f4e', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 800, flexShrink: 0 } as React.CSSProperties,
-  empresaInfo: { display: 'flex', flexDirection: 'column' as const, gap: 1, lineHeight: 1.4, minWidth: 0, overflow: 'hidden' },
-  empresaNome: { display: 'block', fontSize: '0.95rem', fontWeight: 700, color: '#1a2f4e', letterSpacing: '0', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' },
-  empresaSub: { display: 'block', fontSize: '0.75rem', color: '#334155', fontWeight: 500, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' },
-  empresaDetail: { display: 'block', fontSize: '0.65rem', color: '#64748b', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' },
-
-  headerDivider: { width: 1, background: '#e2e8f0', alignSelf: 'stretch', flexShrink: 0 } as React.CSSProperties,
+  logo: { height: 80, maxWidth: 240, width: 'auto', objectFit: 'contain' as const },
+  logoPlaceholder: { width: 52, height: 52, borderRadius: 10, background: C.navy, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 800, flexShrink: 0, letterSpacing: '-0.02em' } as React.CSSProperties,
+  empresaInfo: {} as React.CSSProperties,
+  empresaNome: {} as React.CSSProperties,
+  empresaSub: {} as React.CSSProperties,
+  empresaDetail: { display: 'block', fontSize: '0.72rem', color: C.textMuted, lineHeight: 1.6 },
+  hdrLabel: { color: C.textLight, fontWeight: 600, fontSize: '0.60rem', letterSpacing: '0.06em', textTransform: 'uppercase' as const },
 
   headerRight: {
     textAlign: 'right' as const, display: 'flex', flexDirection: 'column' as const,
-    justifyContent: 'center', gap: 2, flexShrink: 0, minWidth: 170,
+    alignItems: 'flex-end', gap: 2,
   } as React.CSSProperties,
-  orcTitulo: { fontSize: '0.46rem', fontWeight: 600, color: '#94a3b8', letterSpacing: '0.25em', textTransform: 'uppercase' as const },
-  orcNum: { fontSize: '1.45rem', fontWeight: 900, color: '#1a2f4e', letterSpacing: '-0.02em', lineHeight: 1.0 },
+  orcTitulo: { fontSize: '0.56rem', fontWeight: 700, color: C.textLight, letterSpacing: '0.28em', textTransform: 'uppercase' as const },
+  orcNum: { fontSize: '1.65rem', fontWeight: 900, color: C.navy, letterSpacing: '-0.02em', lineHeight: 1.1 },
   orcBadge: {} as React.CSSProperties,
-  orcData: { fontSize: '0.65rem', color: '#64748b' },
+  orcData: { fontSize: '0.64rem', color: C.textMuted },
 
-  accentLine: { height: 2, background: '#152d4a', margin: '0 0 14px' } as React.CSSProperties,
+  // Section
+  sectionLabel: {
+    fontSize: '0.58rem', fontWeight: 700, color: C.accent, letterSpacing: '0.16em',
+    textTransform: 'uppercase' as const, marginBottom: 8,
+  } as React.CSSProperties,
+  sectionDot: { width: 6, height: 6, borderRadius: '50%', background: C.accent, flexShrink: 0 } as React.CSSProperties,
 
-  // Cliente
-  clienteBox: { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px', marginBottom: 10 } as React.CSSProperties,
-  clienteTitle: { fontSize: '0.60rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: 5 },
-  clienteGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 24px', fontSize: '0.77rem', color: '#334155' } as React.CSSProperties,
-  endEntrega: { background: '#eff6ff', border: '1px solid #bfdbfe', borderLeft: '3px solid #3b82f6', borderRadius: 6, padding: '7px 12px', marginBottom: 10 } as React.CSSProperties,
+  // Cards
+  card: {
+    background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8,
+    padding: '10px 14px',
+  } as React.CSSProperties,
+  cardTitle: {
+    fontSize: '0.56rem', fontWeight: 700, color: C.accent, letterSpacing: '0.14em',
+    textTransform: 'uppercase' as const, marginBottom: 6, paddingBottom: 4,
+    borderBottom: `1.5px solid ${C.borderLight}`,
+  } as React.CSSProperties,
+  cardName: { fontSize: '0.84rem', fontWeight: 700, color: C.navy, lineHeight: 1.3, marginBottom: 2 } as React.CSSProperties,
+
+  // Field
+  fieldLabel: { fontSize: '0.56rem', color: C.textLight, fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 0 } as React.CSSProperties,
+  fieldValue: { fontSize: '0.74rem', color: C.text, fontWeight: 500, lineHeight: 1.35 } as React.CSSProperties,
+  fieldMono: { fontSize: '0.74rem', color: C.text, fontWeight: 500, fontFamily: "'JetBrains Mono', 'Fira Code', monospace", letterSpacing: '0.04em' } as React.CSSProperties,
+
+  // Info strip (dados adicionais / entrega)
+  infoStrip: {
+    background: C.bgSoft, borderLeft: `3px solid ${C.accent}`, borderRadius: '0 8px 8px 0',
+    padding: '8px 14px',
+  } as React.CSSProperties,
+  infoStripTitle: {
+    fontSize: '0.54rem', fontWeight: 700, color: C.accent, letterSpacing: '0.12em',
+    textTransform: 'uppercase' as const, marginBottom: 4,
+  } as React.CSSProperties,
+
+  // Entrega
+  entregaStrip: {
+    background: '#f0f5ff', borderLeft: `3px solid ${C.navy}`, borderRadius: '0 8px 8px 0',
+    padding: '8px 14px', marginBottom: 10,
+  } as React.CSSProperties,
+
+  // Divider
+  divider: { height: 1, background: C.borderLight, margin: '16px 0' } as React.CSSProperties,
 
   // Table
   table: { width: '100%', borderCollapse: 'collapse' as const, marginBottom: 0, fontSize: '0.78rem' },
-  th: { background: '#1a2f4e', color: '#fff', padding: '7px 10px', textAlign: 'left' as const, fontWeight: 600, fontSize: '0.70rem', letterSpacing: '0.04em' },
-  thRight: { background: '#1a2f4e', color: '#fff', padding: '7px 10px', textAlign: 'right' as const, fontWeight: 600, fontSize: '0.70rem', letterSpacing: '0.04em' },
-  thCenter: { background: '#1a2f4e', color: '#fff', padding: '7px 10px', textAlign: 'center' as const, fontWeight: 600, fontSize: '0.70rem', letterSpacing: '0.04em' },
-  td: { padding: '7px 10px', borderBottom: '1px solid #f1f5f9', verticalAlign: 'top' as const },
-  tdCenter: { padding: '7px 10px', borderBottom: '1px solid #f1f5f9', textAlign: 'center' as const, verticalAlign: 'top' as const },
-  tdRight: { padding: '7px 10px', borderBottom: '1px solid #f1f5f9', textAlign: 'right' as const, verticalAlign: 'top' as const },
-  trEven: { background: '#f8fafc' },
+  th: { background: C.navy, color: '#fff', padding: '9px 12px', textAlign: 'left' as const, fontWeight: 600, fontSize: '0.68rem', letterSpacing: '0.06em', textTransform: 'uppercase' as const },
+  thRight: { background: C.navy, color: '#fff', padding: '9px 12px', textAlign: 'right' as const, fontWeight: 600, fontSize: '0.68rem', letterSpacing: '0.06em', textTransform: 'uppercase' as const },
+  thCenter: { background: C.navy, color: '#fff', padding: '9px 12px', textAlign: 'center' as const, fontWeight: 600, fontSize: '0.68rem', letterSpacing: '0.06em', textTransform: 'uppercase' as const },
+  td: { padding: '10px 12px', borderBottom: `1px solid ${C.borderLight}`, verticalAlign: 'top' as const, color: C.text },
+  tdCenter: { padding: '10px 12px', borderBottom: `1px solid ${C.borderLight}`, textAlign: 'center' as const, verticalAlign: 'top' as const, color: C.text },
+  tdRight: { padding: '10px 12px', borderBottom: `1px solid ${C.borderLight}`, textAlign: 'right' as const, verticalAlign: 'top' as const, color: C.text, fontVariantNumeric: 'tabular-nums' },
+  trEven: { background: C.bgSoft },
 
   // Totais
-  totaisWrap: { display: 'flex', justifyContent: 'flex-end', margin: '0 0 10px' } as React.CSSProperties,
-  totaisBox: { minWidth: 260, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 16px', display: 'flex', flexDirection: 'column' as const, gap: 5 },
-  totaisRow: { display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#475569' } as React.CSSProperties,
-  totaisTotal: { borderTop: '2px solid #1a2f4e', paddingTop: 6, marginTop: 2, fontWeight: 700, fontSize: '0.95rem', color: '#1a2f4e' } as React.CSSProperties,
-  economia: { fontSize: '0.70rem', color: '#152d4a', background: '#f0f4f8', border: '1px solid #c8d8e8', borderLeft: '3px solid #152d4a', borderRadius: 4, padding: '5px 10px', marginTop: 6, display: 'flex', justifyContent: 'space-between' as const },
+  totaisWrap: { display: 'flex', justifyContent: 'flex-end', margin: '6px 0 16px' } as React.CSSProperties,
+  totaisBox: { minWidth: 300, background: C.bgCard, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: '14px 20px', display: 'flex', flexDirection: 'column' as const, gap: 6 },
+  totaisRow: { display: 'flex', justifyContent: 'space-between', fontSize: '0.80rem', color: C.textMuted, fontVariantNumeric: 'tabular-nums' as const } as React.CSSProperties,
+  totaisTotal: { borderTop: `3px solid ${C.navy}`, paddingTop: 10, marginTop: 6, fontWeight: 900, fontSize: '1.10rem', color: C.navy } as React.CSSProperties,
+  economia: { fontSize: '0.72rem', color: C.navy, background: C.accentSoft, border: `1px solid #93c5fd`, borderRadius: 6, padding: '7px 12px', marginTop: 8, display: 'flex', justifyContent: 'space-between' as const, fontWeight: 600 },
 
   // Condições
-  condicoes: { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px', marginBottom: 10, display: 'flex', flexWrap: 'wrap' as const, gap: '5px 24px' },
-  condicaoItem: { fontSize: '0.73rem', color: '#334155' },
+  condicoes: { background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 18px', marginBottom: 12, display: 'flex', flexDirection: 'column' as const, gap: 8 },
+  condicaoItem: { fontSize: '0.76rem', color: C.text, lineHeight: 1.6 },
 
   // Obs
-  obsBox: { border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px', marginBottom: 10, background: '#fff' } as React.CSSProperties,
-  obsTitle: { fontSize: '0.60rem', fontWeight: 700, color: '#94a3b8', letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: 6 },
+  obsBox: { border: `1px solid ${C.border}`, borderRadius: 10, padding: '14px 18px', marginBottom: 12, background: C.bg } as React.CSSProperties,
+  obsTitle: { fontSize: '0.58rem', fontWeight: 700, color: C.accent, letterSpacing: '0.12em', textTransform: 'uppercase' as const, marginBottom: 8 },
+
+  // Kept for compatibility
+  clienteBox: {} as React.CSSProperties,
+  clienteTitle: { fontSize: '0.58rem', fontWeight: 700, color: C.accent, letterSpacing: '0.12em', textTransform: 'uppercase' as const, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 } as React.CSSProperties,
+  clienteGrid: {} as React.CSSProperties,
+  endEntrega: {} as React.CSSProperties,
+  vendedorBar: {} as React.CSSProperties,
+  sectionTitle: {} as React.CSSProperties,
 
   // Assinatura
-  assinaturaWrap: { display: 'flex', gap: 40, marginTop: 24, marginBottom: 12 } as React.CSSProperties,
-  assinaturaBox: { flex: 1, display: 'flex', flexDirection: 'column' as const, alignItems: 'center' },
-  assinaturaLinha: { width: '100%', height: 1, background: '#cbd5e1', marginBottom: 6 },
-  assinaturaLabel: { fontSize: '0.70rem', color: '#64748b' },
+  assinaturaWrap: { display: 'flex', gap: 56, marginTop: 32, marginBottom: 16 } as React.CSSProperties,
+  assinaturaBox: { flex: 1, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 0 },
+  assinaturaLinha: { width: '100%', height: 1, background: C.navy, marginBottom: 10, opacity: 0.3 },
+  assinaturaLabel: { fontSize: '0.72rem', color: C.textMuted, fontWeight: 600 },
 
   // Footer
-  footer: { borderTop: '1px solid #e2e8f0', paddingTop: 8, textAlign: 'center' as const, fontSize: '0.68rem', color: '#94a3b8' },
+  footer: { borderTop: `1.5px solid ${C.borderLight}`, paddingTop: 12, textAlign: 'center' as const, fontSize: '0.66rem', color: C.textLight, letterSpacing: '0.02em' },
 
   // Watermark
   watermark: {
     position: 'fixed' as const, top: 0, left: 0, width: '100%', height: '100%',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     pointerEvents: 'none' as const, zIndex: 9999,
-    fontSize: '5rem', fontWeight: 900, color: 'rgba(200,0,0,0.07)',
+    fontSize: '5rem', fontWeight: 900, color: 'rgba(200,0,0,0.06)',
     transform: 'rotate(-35deg)', letterSpacing: '0.1em',
     userSelect: 'none' as const,
   },
@@ -276,6 +336,7 @@ export default function PrintOrcamento() {
       vendedor: o.vendedor_nome ? { nome: o.vendedor_nome, telefone: o.vendedor_telefone ? maskPhone(o.vendedor_telefone) : null } : null,
       cliente: {
         nome: o.cliente_nome ?? '', empresa: o.cliente_empresa ?? '',
+        nome_fantasia: o.cliente_nome_fantasia ?? '',
         cnpj: o.cliente_cnpj ?? '', telefone: o.cliente_telefone ?? '',
         email: o.cliente_email ?? '', endereco: o.cliente_endereco ?? '',
         tipo_pessoa: o.cliente_tipo_pessoa ?? 'pj',
@@ -399,6 +460,7 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
           .hdr-divider { display: none !important; }
           .emp-detail { white-space: normal !important; overflow: visible !important; text-overflow: unset !important; }
           /* Destinatário */
+          .emp-cli-grid { grid-template-columns: 1fr !important; }
           .cli-grid { grid-template-columns: 1fr !important; gap: 4px 0 !important; }
           .cnpj-val { word-break: break-all; }
           /* Tabela — scroll horizontal */
@@ -442,107 +504,173 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
         </button>
       </div>
 
+      {/* Barra colorida no topo */}
+      <div style={S.headerTopBar} />
+
       {/* Header */}
       <div style={S.headerBand} className="hdr-band">
-        <div style={S.headerLeft} className="hdr-left">
-          {emp?.logo_url
-            ? <div style={S.logoWrap}><img src={emp.logo_url} alt="Logo" style={S.logo} /></div>
-            : <div style={S.logoPlaceholder}>{(emp?.nome_fantasia ?? 'PX').slice(0,2).toUpperCase()}</div>
-          }
-          <div style={S.empresaInfo}>
-            {emp?.logo_url
-              ? emp?.razao_social && <strong style={S.empresaNome}>{emp.razao_social}</strong>
-              : <strong style={S.empresaNome}>{emp?.nome_fantasia ?? '—'}</strong>
-            }
-            {emp?.cnpj && <span style={S.empresaDetail} className="emp-detail">CNPJ {emp.cnpj}</span>}
-            {emp?.endereco && <span style={S.empresaDetail} className="emp-detail">{(() => {
-              if (!emp.numero) return emp.endereco
-              if (emp.endereco.includes(emp.numero)) return emp.endereco
-              const sep = emp.endereco.includes(' - ') ? ' - ' : ' — '
-              const idx = emp.endereco.indexOf(sep)
-              if (idx < 0) return `${emp.endereco}, nº ${emp.numero}`
-              return `${emp.endereco.slice(0, idx)}, nº ${emp.numero}${emp.endereco.slice(idx)}`
-            })()}</span>}
-            {(emp?.telefone || emp?.email || emp?.site) && (
-              <span style={{ ...S.empresaDetail, display: 'flex', flexWrap: 'wrap' as const, gap: '0 10px' }} className="emp-detail">
-                {emp.telefone && (emp.telefone_is_whatsapp
-                  ? <WaLink phone={emp.telefone} style={{ color: '#64748b' }} />
-                  : <TelLink phone={emp.telefone} style={{ color: '#64748b' }} />)}
-                {emp.email && <a href={`mailto:${emp.email}`} style={{ color: '#64748b', textDecoration: 'none' }}>{emp.email}</a>}
-                {emp.site && <a href={emp.site.startsWith('http') ? emp.site : `https://${emp.site}`} target="_blank" rel="noreferrer" style={{ color: '#64748b', textDecoration: 'none' }}>{emp.site}</a>}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div style={S.headerDivider} className="hdr-divider" />
-
-        <div style={S.headerRight} className="hdr-right">
+        {emp?.logo_url
+          ? <div style={S.logoWrap}><img src={emp.logo_url} alt="Logo" style={S.logo} /></div>
+          : <div style={S.logoPlaceholder}>{(emp?.nome_fantasia ?? 'PX').slice(0,2).toUpperCase()}</div>
+        }
+        <div style={S.headerRight}>
           <div style={S.orcTitulo}>PROPOSTA COMERCIAL</div>
           <div style={S.orcNum}>Nº {d.numero}</div>
-          <div style={{ height: 1, background: '#e2e8f0', margin: '5px 0' }} />
-          <div style={S.orcData}>Emissão {d.dataEmissao} · Validade {d.dataValidade}</div>
+          <div style={{ display: 'flex', gap: 16, marginTop: 2 }}>
+            <div style={{ fontSize: '0.62rem', color: C.textMuted }}><span style={{ ...S.hdrLabel, marginRight: 3 }}>EMISSÃO</span> {d.dataEmissao}</div>
+            <div style={{ fontSize: '0.62rem', color: C.textMuted }}><span style={{ ...S.hdrLabel, marginRight: 3 }}>VALIDADE</span> {d.dataValidade}</div>
+          </div>
         </div>
       </div>
-
-      <div style={S.accentLine} />
 
       <div style={S.pageBody}>
 
-      {/* Destinatário */}
-      <div style={S.clienteBox}>
-        <div style={S.clienteTitle}>DESTINATÁRIO</div>
-        <div style={S.clienteGrid} className="cli-grid">
-          {(() => {
-            const isPF = d.cliente.tipo_pessoa === 'pf'
-            const nomeExibido = isPF ? (d.cliente.nome || d.cliente.empresa) : d.cliente.empresa
-            return nomeExibido ? <div><strong>{nomeExibido}</strong></div> : null
-          })()}
-          {d.exibir.cnpj && d.cliente.cnpj && <div>{d.cliente.tipo_pessoa === 'pj' ? 'CNPJ' : 'CPF'}: <span className="cnpj-val">{d.cliente.cnpj}</span></div>}
-          {d.exibir.inscricaoEstadual && d.cliente.inscricao_estadual && <div>IE: {d.cliente.inscricao_estadual}</div>}
-          {d.exibir.telefone && d.cliente.telefone && <div><TelLink phone={d.cliente.telefone} /></div>}
-          {d.exibir.whatsapp && d.cliente.whatsapp && <div><WaLink phone={d.cliente.whatsapp} /></div>}
-          {d.exibir.email && d.cliente.email && <div>E-mail: {d.cliente.email}</div>}
-          {d.exibir.emailNf && d.cliente.email_nf && <div>E-mail NFs/Boletos: {d.cliente.email_nf}</div>}
-          {d.exibir.contatosAdicionais && d.cliente.contatos.map((ct, i) => (
-            <div key={i}>{ct.tipo === 'telefone' ? 'Tel.' : ct.tipo === 'whatsapp' ? 'WhatsApp' : 'E-mail'}: {ct.valor}</div>
-          ))}
-          {d.cliente.nome && d.cliente.tipo_pessoa !== 'pf' && (
-            <div>A/C.: {d.exibir.cargo && d.cliente.cargo ? `${d.cliente.nome} — ${d.cliente.cargo}` : d.cliente.nome}</div>
-          )}
-          {d.exibir.endereco && (d.cliente.logradouro || d.cliente.endereco) && (
-            <div style={{ gridColumn: '1 / -1' }}>
-              {d.cliente.logradouro
-                ? [d.cliente.logradouro, d.cliente.numero, d.cliente.complemento].filter(Boolean).join(', ') + (d.cliente.bairro ? ` — ${d.cliente.bairro}` : '') + (d.cliente.cidade ? ` · ${d.cliente.cidade}` : '') + (d.cliente.uf ? `/${d.cliente.uf}` : '') + (d.cliente.cep ? ` · CEP ${d.cliente.cep}` : '')
-                : d.cliente.endereco + (d.cliente.cidade ? ` — ${d.cliente.cidade}` : '') + (d.cliente.uf ? `/${d.cliente.uf}` : '')
-              }
-            </div>
-          )}
-        </div>
-      </div>
+      {/* ══ QUALIFICAÇÃO — Empresa + Cliente ══ */}
+      {(() => {
+        const isPF = d.cliente.tipo_pessoa === 'pf'
+        const nomeExibido = isPF ? (d.cliente.nome || d.cliente.empresa) : d.cliente.empresa
+        const FL = S.fieldLabel, FV = S.fieldValue, FM = S.fieldMono
 
-      {/* Endereço entrega */}
-      {temEndEnt && (
-        <div style={S.endEntrega}>
-          <div style={S.clienteTitle}>LOCAL DE ENTREGA</div>
-          {d.exibir.entResponsavel && d.cliente.ent_responsavel && (
-            <div style={{ fontSize: '0.78rem', color: '#334155', marginTop: 4 }}>
-              <strong>Resp.:</strong> {d.cliente.ent_responsavel}
-              {d.cliente.ent_telefone ? ` · Tel. ${d.cliente.ent_telefone}` : ''}
-              {d.cliente.ent_whatsapp ? ` · WhatsApp ${d.cliente.ent_whatsapp}` : ''}
+        const temInfoEmpresa = !!(emp?.endereco || emp?.telefone || emp?.email || emp?.site || d.vendedor)
+        const temInfoCliente = !!(
+          (d.exibir.endereco && (d.cliente.logradouro || d.cliente.endereco))
+          || (d.cliente.nome && !isPF)
+          || (d.exibir.telefone && d.cliente.telefone)
+          || (d.exibir.whatsapp && d.cliente.whatsapp)
+          || (d.exibir.email && d.cliente.email)
+          || (d.exibir.emailNf && d.cliente.email_nf)
+          || (d.exibir.contatosAdicionais && d.cliente.contatos.length > 0)
+        )
+
+        return <>
+          {/* Blocos unificados — Empresa + Cliente */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 10 }} className="emp-cli-grid">
+            {/* ── Empresa ── */}
+            <div style={S.card}>
+              <div style={S.cardTitle}>Empresa Emissora</div>
+              <div style={S.cardName}>{emp?.razao_social || emp?.nome_fantasia || '—'}</div>
+              {emp?.razao_social && emp?.nome_fantasia && emp.nome_fantasia !== emp.razao_social && (
+                <div style={{ marginBottom: 2 }}><div style={FL}>Nome Fantasia</div><div style={FV}>{emp.nome_fantasia}</div></div>
+              )}
+              {emp?.cnpj && (
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, marginBottom: 2 }}>
+                  <div><div style={FL}>CNPJ</div><div style={FM}>{emp.cnpj}</div></div>
+                </div>
+              )}
+              {/* Endereço com campos separados (igual cliente) */}
+              {emp?.logradouro ? (
+                <>
+                  <div style={{ marginBottom: 2 }}><div style={FL}>Endereço</div><div style={FV}>
+                    {[emp.logradouro, emp.numero ? `nº ${emp.numero}` : '', emp.complemento].filter(Boolean).join(', ')}
+                    {emp.bairro ? ` — ${emp.bairro}` : ''}
+                  </div></div>
+                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, marginBottom: 2 }}>
+                    {emp.cidade && <div><div style={FL}>Cidade</div><div style={FV}>{emp.cidade}</div></div>}
+                    {emp.uf && <div><div style={FL}>UF</div><div style={FV}>{emp.uf}</div></div>}
+                    {emp.cep && <div><div style={FL}>CEP</div><div style={FM}>{emp.cep}</div></div>}
+                  </div>
+                </>
+              ) : emp?.endereco ? (
+                <div style={{ marginBottom: 2 }}><div style={FL}>Endereço</div><div style={FV}>
+                  {(() => {
+                    if (!emp.numero) return emp.endereco
+                    if (emp.endereco.includes(emp.numero)) return emp.endereco
+                    const sep = emp.endereco.includes(' - ') ? ' - ' : ' — '
+                    const idx = emp.endereco.indexOf(sep)
+                    if (idx < 0) return `${emp.endereco}, nº ${emp.numero}`
+                    return `${emp.endereco.slice(0, idx)}, nº ${emp.numero}${emp.endereco.slice(idx)}`
+                  })()}
+                </div></div>
+              ) : null}
+              {(emp?.telefone || emp?.email) && (
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, marginBottom: 2 }}>
+                  {emp?.telefone && <div><div style={FL}>{emp.telefone_is_whatsapp ? 'WhatsApp' : 'Telefone'}</div><div style={FV}>{emp.telefone_is_whatsapp ? <WaLink phone={emp.telefone} style={FV} /> : <TelLink phone={emp.telefone} style={FV} />}</div></div>}
+                  {emp?.email && <div><div style={FL}>E-mail</div><div style={FV}><a href={`mailto:${emp.email}`} style={{ ...FV, textDecoration: 'none' }}>{emp.email}</a></div></div>}
+                </div>
+              )}
+              {(emp?.site || d.vendedor) && (
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const }}>
+                  {emp?.site && <div><div style={FL}>Site</div><div style={FV}><a href={emp.site.startsWith('http') ? emp.site : `https://${emp.site}`} target="_blank" rel="noreferrer" style={{ ...FV, textDecoration: 'none' }}>{emp.site}</a></div></div>}
+                  {d.vendedor && <div><div style={FL}>Consultor</div><div style={FV}>{d.vendedor.nome}{d.vendedor.telefone && <> · <WaLink phone={d.vendedor.telefone} style={FV} /></>}</div></div>}
+                </div>
+              )}
+            </div>
+
+            {/* ── Cliente ── */}
+            <div style={S.card}>
+              <div style={S.cardTitle}>Cliente</div>
+              {nomeExibido && <div style={S.cardName}>{nomeExibido}</div>}
+              {d.cliente.nome_fantasia && d.cliente.nome_fantasia !== d.cliente.empresa && (
+                <div style={{ marginBottom: 2 }}><div style={FL}>Nome Fantasia</div><div style={FV}>{d.cliente.nome_fantasia}</div></div>
+              )}
+              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, marginBottom: 2 }}>
+                {d.exibir.cnpj && d.cliente.cnpj && <div><div style={FL}>{isPF ? 'CPF' : 'CNPJ'}</div><div style={FM}>{d.cliente.cnpj}</div></div>}
+                {d.exibir.inscricaoEstadual && d.cliente.inscricao_estadual && <div><div style={FL}>Insc. Estadual</div><div style={FM}>{d.cliente.inscricao_estadual}</div></div>}
+              </div>
+              {d.exibir.endereco && d.cliente.logradouro && (
+                <>
+                  <div style={{ marginBottom: 2 }}><div style={FL}>Endereço</div><div style={FV}>
+                    {[d.cliente.logradouro, d.cliente.numero ? `nº ${d.cliente.numero}` : '', d.cliente.complemento].filter(Boolean).join(', ')}
+                    {d.cliente.bairro ? ` — ${d.cliente.bairro}` : ''}
+                  </div></div>
+                  <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, marginBottom: 2 }}>
+                    <div><div style={FL}>Cidade</div><div style={FV}>{d.cliente.cidade || '—'}</div></div>
+                    <div><div style={FL}>UF</div><div style={FV}>{d.cliente.uf || '—'}</div></div>
+                    {d.cliente.cep && <div><div style={FL}>CEP</div><div style={FM}>{d.cliente.cep}</div></div>}
+                  </div>
+                </>
+              )}
+              {d.exibir.endereco && !d.cliente.logradouro && d.cliente.endereco && (
+                <div style={{ marginBottom: 2 }}><div style={FL}>Endereço</div><div style={FV}>{d.cliente.endereco}{d.cliente.cidade ? ` — ${d.cliente.cidade}` : ''}{d.cliente.uf ? `/${d.cliente.uf}` : ''}</div></div>
+              )}
+              {d.cliente.nome && !isPF && (
+                <div style={{ marginBottom: 2 }}><div style={FL}>Contato</div><div style={FV}>{d.exibir.cargo && d.cliente.cargo ? `${d.cliente.nome} — ${d.cliente.cargo}` : d.cliente.nome}</div></div>
+              )}
+              {(d.exibir.telefone || d.exibir.whatsapp || d.exibir.email) && (
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const, marginBottom: 2 }}>
+                  {d.exibir.telefone && d.cliente.telefone && <div><div style={FL}>Telefone</div><div style={FV}><TelLink phone={d.cliente.telefone} style={FV} /></div></div>}
+                  {d.exibir.whatsapp && d.cliente.whatsapp && <div><div style={FL}>WhatsApp</div><div style={FV}><WaLink phone={d.cliente.whatsapp} style={FV} /></div></div>}
+                  {d.exibir.email && d.cliente.email && <div><div style={FL}>E-mail</div><div style={FV}><a href={`mailto:${d.cliente.email}`} style={{ ...FV, textDecoration: 'none' }}>{d.cliente.email}</a></div></div>}
+                </div>
+              )}
+              {d.exibir.emailNf && d.cliente.email_nf && <div style={{ marginBottom: 2 }}><div style={FL}>E-mail NFs/Boletos</div><div style={FV}>{d.cliente.email_nf}</div></div>}
+              {d.exibir.contatosAdicionais && d.cliente.contatos.length > 0 && (
+                <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' as const }}>
+                  {d.cliente.contatos.map((ct, i) => (
+                    <div key={i}>
+                      <div style={FL}>{{ telefone: 'Telefone', whatsapp: 'WhatsApp', email: 'E-mail', email_nf: 'E-mail NFs', email_financeiro: 'E-mail Financeiro', email_compras: 'E-mail Compras', email_engenharia: 'E-mail Engenharia' }[ct.tipo] || 'Contato'}</div>
+                      <div style={FV}>{ct.valor}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Local de Entrega */}
+          {temEndEnt && (
+            <div style={S.entregaStrip}>
+              <div style={{ ...S.infoStripTitle, color: C.navy }}>Local de Entrega</div>
+              {d.exibir.entResponsavel && d.cliente.ent_responsavel && (
+                <div style={{ ...FV, marginBottom: 4 }}>
+                  <strong>Resp.:</strong> {d.cliente.ent_responsavel}
+                  {d.cliente.ent_telefone ? ` · Tel. ${d.cliente.ent_telefone}` : ''}
+                  {d.cliente.ent_whatsapp ? ` · WhatsApp ${d.cliente.ent_whatsapp}` : ''}
+                </div>
+              )}
+              {(d.cliente.ent_logradouro || d.cliente.ent_complemento || d.cliente.ent_bairro || d.cliente.ent_cidade) && (
+                <div style={FV}>
+                  {[d.cliente.ent_logradouro, d.cliente.ent_numero, d.cliente.ent_complemento].filter(Boolean).join(', ')}
+                  {d.cliente.ent_bairro ? ` — ${d.cliente.ent_bairro}` : ''}
+                  {d.cliente.ent_cidade ? ` · ${d.cliente.ent_cidade}` : ''}
+                  {d.cliente.ent_uf ? `/${d.cliente.ent_uf}` : ''}
+                  {d.cliente.ent_cep ? ` · CEP ${d.cliente.ent_cep}` : ''}
+                </div>
+              )}
             </div>
           )}
-          {(d.cliente.ent_logradouro || d.cliente.ent_complemento || d.cliente.ent_bairro || d.cliente.ent_cidade) && (
-            <div style={{ fontSize: '0.78rem', color: '#334155', marginTop: 4 }}>
-              {[d.cliente.ent_logradouro, d.cliente.ent_numero, d.cliente.ent_complemento].filter(Boolean).join(', ')}
-              {d.cliente.ent_bairro ? ` — ${d.cliente.ent_bairro}` : ''}
-              {d.cliente.ent_cidade ? ` · ${d.cliente.ent_cidade}` : ''}
-              {d.cliente.ent_uf ? `/${d.cliente.ent_uf}` : ''}
-              {d.cliente.ent_cep ? ` · CEP ${d.cliente.ent_cep}` : ''}
-            </div>
-          )}
-        </div>
-      )}
+        </>
+      })()}
 
       {/* Itens */}
       <div className="table-scroll">
@@ -589,13 +717,18 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
             </tr>
           ))}
           {d.itens.filter(i => i.descricao.trim()).length === 0 && (
-            <tr><td colSpan={hasImages ? 7 : 6} style={{ ...S.td, textAlign: 'center', color: '#94a3b8', padding: 16 }}>Sem itens</td></tr>
+            <tr><td colSpan={hasImages ? 7 : 6} style={{ ...S.td, textAlign: 'center', padding: '20px 16px', border: 'none' }}>
+              <div style={{ color: '#94a3b8', fontSize: '0.75rem', fontStyle: 'italic', lineHeight: 1.6 }}>
+                Os itens desta proposta serão detalhados após alinhamento técnico.
+              </div>
+            </td></tr>
           )}
         </tbody>
       </table>
       </div>
 
-      {/* Totais */}
+      {/* Totais — oculta quando sem itens */}
+      {d.itens.filter(i => i.descricao.trim()).length > 0 && (
       <div style={S.totaisWrap} className="totais-wrap">
         <div style={S.totaisBox} className="totais-box">
           <div style={S.totaisRow}><span>Subtotal</span><span>{fmtBRL(subtotal)}</span></div>
@@ -646,10 +779,12 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
           })()}
         </div>
       </div>
+      )}
 
       {/* Condições */}
       {(d.condicoes.length > 0 || d.prazo_entrega || d.validadeDias || (temFrete && d.exibir.detalhesLogistica) || (temInst && d.instalacao.texto)) && (
         <div style={S.condicoes}>
+          <div style={{ ...S.clienteTitle, marginBottom: 4 }}><div style={S.sectionDot} />CONDIÇÕES COMERCIAIS</div>
           {d.condicoes.length > 0 && (
             <div style={S.condicaoItem}>
               <strong>Pagamento:</strong> {d.condicoes.join(' · ')}
@@ -686,7 +821,7 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
       {/* Observações */}
       {d.observacoes && (
         <div style={S.obsBox}>
-          <div style={S.obsTitle}>OBSERVAÇÕES</div>
+          <div style={S.obsTitle}><div style={S.sectionDot} />OBSERVAÇÕES</div>
           <div style={{ whiteSpace: 'pre-line', fontSize: '0.72rem', color: '#475569', lineHeight: 1.6 }}>{d.observacoes}</div>
         </div>
       )}
@@ -694,7 +829,7 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
       {/* Anexos */}
       {d.exibir.anexos && d.anexos.length > 0 && (
         <div style={S.obsBox}>
-          <div style={S.obsTitle}>ANEXOS</div>
+          <div style={S.obsTitle}><div style={S.sectionDot} />ANEXOS</div>
           {d.anexos.map((a, i) => <div key={i} style={{ fontSize: '0.72rem', color: '#1d4ed8' }}>📎 {a.nome} — {a.url}</div>)}
         </div>
       )}
@@ -721,10 +856,8 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
 
       <div style={{ ...S.footer, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, flexWrap: 'wrap' as const }}>
         {emp?.email && <a href={`mailto:${emp.email}`} style={{ color: 'inherit', textDecoration: 'none' }}>{emp.email}</a>}
-        {emp?.email && (emp?.site || emp?.telefone) && <span>·</span>}
+        {emp?.email && emp?.site && <span>·</span>}
         {emp?.site && <a href={emp.site.startsWith('http') ? emp.site : `https://${emp.site}`} target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>{emp.site}</a>}
-        {emp?.site && emp?.telefone && <span>·</span>}
-        {emp?.telefone && <WaLink phone={emp.telefone} style={{ color: '#94a3b8', fontSize: '0.68rem' }} />}
       </div>
 
       </div>{/* /pageBody */}

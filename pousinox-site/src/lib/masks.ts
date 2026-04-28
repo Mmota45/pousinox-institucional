@@ -20,6 +20,11 @@ export function maskPhone(v: string) {
   return d.replace(/^(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3')
 }
 
+export function maskIE(v: string) {
+  const d = v.replace(/\D/g, '').slice(0, 14)
+  return d.replace(/(\d{3})(?=\d)/g, '$1.').replace(/\.$/, '')
+}
+
 export function maskCEP(v: string) {
   const d = v.replace(/\D/g, '').slice(0, 8)
   return d.replace(/^(\d{5})(\d{0,3})/, '$1-$2').replace(/-$/, '')

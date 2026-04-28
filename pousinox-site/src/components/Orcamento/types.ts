@@ -4,13 +4,15 @@ import type { FreteSummary } from '../../types/frete'
 // ── Enums ────────────────────────────────────────────────────────────────────
 
 export type Status = 'rascunho' | 'enviado' | 'aprovado' | 'recusado' | 'cancelado'
-export type Vista = 'lista' | 'editor' | 'empresas' | 'vendedores'
+export type Vista = 'lista' | 'detalhe' | 'editor'
 
 // ── Entities ─────────────────────────────────────────────────────────────────
 
 export interface EmpresaEmissora {
   id: number; nome_fantasia: string; razao_social: string | null
   cnpj: string | null; cep: string | null; numero: string | null; endereco: string | null
+  logradouro: string | null; complemento: string | null; bairro: string | null
+  cidade: string | null; uf: string | null
   telefone: string | null; telefone_is_whatsapp: boolean | null
   email: string | null; site: string | null; logo_url: string | null; ativa: boolean
 }
@@ -121,7 +123,8 @@ export const EVENTO_LABEL: Record<string, string> = {
 export const ITEM_VAZIO: Item = { produto_id: null, descricao: '', qtd: '1', unidade: 'UN', valorUnit: '', obs_tecnica: '' }
 
 export const CLIENTE_VAZIO: ClienteInfo = {
-  nome: '', empresa: '', cnpj: '', telefone: '', email: '', endereco: '',
+  nome: '', empresa: '', nome_fantasia: '', cnpj: '', telefone: '', telefone_is_whatsapp: false,
+  email: '', endereco: '',
   tipo_pessoa: 'pj', perfil_comprador: '', whatsapp: '', cargo: '', cargo_outro: '',
   inscricao_estadual: '', cep: '', logradouro: '', numero: '', complemento: '',
   bairro: '', cidade: '', uf: '', email_nf: '', contatos: [],

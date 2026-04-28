@@ -15,13 +15,17 @@ import FixadorEnsaios from './pages/FixadorEnsaios'
 import FixadorNormas from './pages/FixadorNormas'
 import FixadorOrcamento from './pages/FixadorOrcamento'
 import Outlet from './pages/Outlet'
+import ProdutoDetalhe from './pages/ProdutoDetalhe'
 import Obrigado from './pages/Obrigado'
 import AdminLayout from './components/AdminLayout/AdminLayout'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminOutlet from './pages/AdminOutlet'
 import AdminEstoque from './pages/AdminEstoque'
 import AdminVendas from './pages/AdminVendas'
+import AdminCentralVendas from './pages/AdminCentralVendas'
 import AdminRelatorios from './pages/AdminRelatorios'
+import AdminDashboardBI from './pages/AdminDashboardBI'
+import AdminCanvaCallback from './pages/AdminCanvaCallback'
 import AdminAnaliseNF from './pages/AdminAnaliseNF'
 import AdminOrcamento from './pages/AdminOrcamento'
 import AdminFrete from './pages/AdminFrete'
@@ -60,6 +64,11 @@ import AdminPedidosCompra from './pages/AdminPedidosCompra'
 import AdminRecebimentosCompra from './pages/AdminRecebimentosCompra'
 import AdminBensFrota from './pages/AdminBensFrota'
 import AdminConfiguracaoFinanceiro from './pages/AdminConfiguracaoFinanceiro'
+import AdminFeatureFlags from './pages/AdminFeatureFlags'
+import AdminAssistente from './pages/AdminAssistente'
+import AdminSite from './pages/AdminSite'
+import Privacidade from './pages/Privacidade'
+import LgpdBanner from './components/LgpdBanner/LgpdBanner'
 import PrintOrcamento from './pages/PrintOrcamento'
 import ViewOrcamento from './pages/ViewOrcamento'
 import RedirectShortLink from './pages/RedirectShortLink'
@@ -132,13 +141,15 @@ function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/pedido/:codigo" element={<PedidoStatus />} />
           <Route path="/outlet" element={<Navigate to="/pronta-entrega" replace />} />
-          <Route path="/produto/:id" element={<Navigate to="/pronta-entrega" replace />} />
+          <Route path="/produto/:id" element={<ProdutoDetalhe />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="outlet" element={<AdminOutlet />} />
             <Route path="estoque" element={<AdminEstoque />} />
             <Route path="vendas" element={<AdminVendas />} />
+            <Route path="central-vendas" element={<AdminCentralVendas />} />
             <Route path="relatorios" element={<AdminRelatorios />} />
+            <Route path="dashboard-bi" element={<AdminDashboardBI />} />
             <Route path="configuracao-financeiro" element={<AdminConfiguracaoFinanceiro />} />
             <Route path="analise-nf" element={<AdminAnaliseNF />} />
             <Route path="cartoes" element={<AdminCartoes />} />
@@ -172,11 +183,16 @@ function App() {
             <Route path="inventario"           element={<AdminInventario />} />
             <Route path="docs-recebidos"       element={<AdminDocsRecebidos />} />
             <Route path="docs-emitidos"        element={<AdminDocsEmitidos />} />
+            <Route path="feature-flags"       element={<AdminFeatureFlags />} />
+            <Route path="assistente"          element={<AdminAssistente />} />
+            <Route path="site"               element={<AdminSite />} />
+            <Route path="canva-callback"    element={<AdminCanvaCallback />} />
           </Route>
           <Route path="/print/orcamento/:id" element={<PrintOrcamento />} />
           <Route path="/c/:slug" element={<ViewCartao />} />
           <Route path="/view/orcamento/:token" element={<ViewOrcamento />} />
           <Route path="/p/:code" element={<RedirectShortLink />} />
+          <Route path="/privacidade" element={<Privacidade />} />
           <Route path="/obrigado" element={<Obrigado />} />
         </Routes>
       </main>
@@ -190,6 +206,8 @@ function App() {
           </svg>
         </a>
       )}
+
+      {!isAdmin && !isFullscreen && <LgpdBanner />}
     </CartProvider>
   )
 }

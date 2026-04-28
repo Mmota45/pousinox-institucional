@@ -70,6 +70,7 @@ Rotas `/admin/*` com layout próprio (`AdminLayout`). Todos os módulos usam `su
 | `/admin/cobertura` | `AdminCobertura` | Comercial | ✅ cobertura por mesorregião |
 | `/admin/funil` | `AdminFunil` | Comercial | ✅ funil macro de prospecção |
 | `/admin/pipeline` | `AdminPipeline` | Comercial | ✅ deals, estágios, recebível |
+| `/admin/central-vendas` | `AdminCentralVendas` | Comercial | ✅ scoring on-the-fly, hot list, follow-ups, materiais, dashboard |
 | `/admin/orcamento` | `AdminOrcamento` | Comercial | ✅ |
 | `/admin/vendas` | `AdminVendas` | Comercial | ✅ |
 | `/admin/clientes` | `AdminClientes` | Comercial | ✅ importação NFSTok + RFM |
@@ -306,6 +307,40 @@ Botão 🔍 (azul) na coluna Ações abre drawer lateral com:
 - Vínculo com prospect via CNPJ normalizado
 - Tabela: `pipeline_deals` — `prospect_id FK → prospeccao`, `cliente_id FK → clientes`, `fin_lancamento_id FK → fin_lancamentos`
 - Migration: `supabase/migrations/20260414_pipeline_deals.sql`
+
+---
+
+## Módulo AdminCentralVendas (src/pages/AdminCentralVendas.tsx)
+
+Central de vendas inteligente — hub comercial que prioriza prospects, gerencia follow-ups e materiais.
+
+### Abas
+- **Hot List** — top 50 prospects com scoring on-the-fly via RPC `fn_top_prospects(n, filtro_uf)`. Multi-select UF/Segmento/Demanda (Alta≥7, Média 3–7, Baixa<3). Round-robin intercala UFs sem filtro.
+- **Follow-ups** — kanban 3 colunas: Atrasados (vermelho) | Hoje (amarelo) | Próximos 7d (verde). Ações: Feito (agenda próximo), Adiar, WhatsApp.
+- **Materiais** — CRUD de materiais comerciais (apresentação, ficha técnica, laudo, cartão). Envio via WhatsApp com tracking.
+- **Dashboard** — KPIs (contactados, deals, follow-ups atrasados, receita pipeline) + funil visual prospect→contactado→deal→proposta→ganho.
+- **Radar** — placeholder para integrações futuras (GSC, ML API, Google Trends).
+
+### Scoring (fn_top_prospects)
+- Score total = demanda UF (35%) + segmento (25%) + porte (20%) + proximidade (20%)
+- Demanda: `SUM(market_keywords.volume_mensal)` por UF / max
+- Segmento: constru=9, revest=8, arquit/engenh=7, outros=4
+- Porte: Médio/Grande=10, Pequeno Porte=5, Micro Empresa=3
+- Proximidade: MG=10, SP=7, RJ/ES=6, PR/SC=5, RS/GO/DF=4, BA/MT/MS=3
+- Calculado on-the-fly (sem pré-computar) — suporta 3.4M prospects
+
+### Tabelas Supabase
+- `prospect_scores` — tabela legada (criada mas não usada, scoring é on-the-fly)
+- `followups` — follow-ups agendados (prospect_id, deal_id, tipo, data_prevista, status)
+- `activity_log` — log de atividades comerciais (prospect_id, tipo, canal, detalhes)
+- `materiais_comerciais` — materiais de venda (titulo, tipo, url, envios)
+- `gsc_cache` — cache Google Search Console (futuro)
+
+### Edge Function
+- `central-vendas-scores` — ações: `scores` (RPC fn_top_prospects), `followups` (listar pendentes), `dashboard` (agregar KPIs)
+
+### Migration
+- `supabase/migrations/20260428_fix_scoring_performance.sql`
 
 ---
 
