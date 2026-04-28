@@ -1,0 +1,273 @@
+/* Loading skeleton */
+.loadingPage { padding: 40px 20px; min-height: 70vh; }
+.loadingSkeleton { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1200px; margin: 0 auto; }
+.skeletonImg { aspect-ratio: 4/3; background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 16px; }
+.skeletonInfo { display: flex; flex-direction: column; gap: 16px; }
+.skeletonLine { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* Not found */
+.notFound { text-align: center; padding: 100px 20px; min-height: 60vh; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.notFound h2 { color: #1e293b; font-size: 1.3rem; margin: 0; }
+.notFound p { color: #64748b; font-size: 0.9rem; max-width: 400px; }
+.notFoundBtn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 12px 24px;
+  background: #1a3a5c; color: #fff; border-radius: 10px; text-decoration: none;
+  font-weight: 600; font-size: 0.9rem; margin-top: 8px; transition: background 0.15s;
+}
+.notFoundBtn:hover { background: #142e4a; }
+
+.page { padding: 120px 0 60px; min-height: 70vh; }
+
+/* Breadcrumb */
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #94a3b8; margin-bottom: 20px; flex-wrap: wrap; }
+.breadcrumb a { color: #64748b; text-decoration: none; transition: color 0.15s; }
+.breadcrumb a:hover { color: #1a3a5c; text-decoration: underline; }
+.breadSep { color: #cbd5e1; }
+.breadCurrent { color: #1e293b; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px; }
+
+/* Layout 2 colunas: galeria + info (Mercado Livre style) */
+.layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px; align-items: start; }
+
+/* ═══ GALERIA ═══ */
+.galeria { position: sticky; top: 120px; align-self: start; display: flex; gap: 10px; }
+.thumbsVertical {
+  display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;
+}
+.thumbV {
+  width: 60px; height: 60px; border-radius: 8px; overflow: hidden; border: 2px solid #e2e8f0;
+  cursor: pointer; background: none; padding: 0; transition: border-color 0.15s; flex-shrink: 0;
+}
+.thumbV img { width: 100%; height: 100%; object-fit: cover; }
+.thumbVActive { border-color: #1a3a5c; }
+.fotoMain {
+  position: relative; border-radius: 16px; overflow: hidden; background: #f8fafc;
+  border: 1px solid #e2e8f0; cursor: zoom-in; flex: 1;
+}
+.fotoMain img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; transition: transform 0.3s ease; }
+.fotoZoomed { transform: scale(2); }
+.fotoBadges { position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; z-index: 2; }
+.badgeMarca { background: #1e3a5f; color: #fff; padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.3px; }
+.badgeSeminovo { background: #8b5cf6; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
+.badgeDesconto { background: #ef4444; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
+.badgePronta {
+  position: absolute; top: 12px; left: 12px; background: #22c55e; color: #fff;
+  padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; z-index: 2;
+}
+.badgeSobEncomenda {
+  position: absolute; top: 12px; left: 12px; background: #f59e0b; color: #fff;
+  padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; z-index: 2;
+}
+
+.thumbs { display: none; }
+.thumb { display: none; }
+.thumbActive { display: none; }
+
+
+
+.specsTable { display: flex; flex-direction: column; }
+.specRow { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.86rem; }
+.specRow:last-child { border-bottom: none; }
+.specKey { color: #64748b; }
+.specVal { color: #1e293b; font-weight: 600; text-align: right; }
+
+/* ═══ INFO ═══ */
+.info { display: flex; flex-direction: column; gap: 14px; }
+.metaRow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.categoria { font-size: 0.78rem; color: #64748b; background: #f1f5f9; padding: 3px 10px; border-radius: 12px; font-weight: 500; }
+.marcaTag { font-size: 0.78rem; color: #1e3a5f; background: #e8edf3; padding: 3px 10px; border-radius: 12px; font-weight: 600; }
+.shareBtn {
+  margin-left: auto; background: none; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 5px 12px; cursor: pointer; color: #64748b; font-size: 0.78rem;
+  display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s;
+}
+.shareBtn:hover { border-color: #1a3a5c; color: #1a3a5c; }
+
+.titulo { font-size: 1.5rem; font-weight: 800; color: #1e293b; line-height: 1.25; margin: 0; }
+.subtitulo { font-size: 0.85rem; color: #64748b; margin: 0; }
+
+/* Social proof */
+.socialProof {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+  background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px;
+  font-size: 0.82rem; font-weight: 600; color: #ea580c;
+}
+.socialIcon { font-size: 1rem; }
+
+/* Preço */
+.precoBox { display: flex; flex-direction: column; gap: 4px; padding: 16px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; }
+.precoOriginalRow { display: flex; align-items: center; gap: 8px; }
+.precoOriginal { font-size: 0.88rem; color: #94a3b8; text-decoration: line-through; }
+.descontoBadge { background: #ef4444; color: #fff; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
+.preco { font-size: 1.8rem; font-weight: 800; color: #1a3a5c; }
+.parcelas { font-size: 0.82rem; color: #64748b; }
+.pixDesconto {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem;
+  color: #16a34a; font-weight: 600; margin-top: 4px;
+}
+
+/* Quantidade */
+.qtdRow { display: flex; align-items: center; gap: 12px; }
+.qtdLabel { font-size: 0.88rem; font-weight: 600; color: #475569; }
+.qtdControls { display: flex; align-items: center; }
+.qtdBtn {
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 1.1rem;
+  color: #475569; transition: background 0.15s;
+}
+.qtdBtn:first-child { border-radius: 8px 0 0 8px; }
+.qtdBtn:last-child { border-radius: 0 8px 8px 0; }
+.qtdBtn:hover { background: #e2e8f0; }
+.qtdVal {
+  width: 44px; height: 36px; display: flex; align-items: center; justify-content: center;
+  border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;
+  font-size: 0.95rem; font-weight: 700; color: #1e293b;
+}
+.estoqueAviso { font-size: 0.78rem; color: #ef4444; font-weight: 600; }
+
+/* Botões compra */
+.botoesCompra { display: flex; gap: 10px; }
+.btnComprar {
+  flex: 1; padding: 14px; background: #1a3a5c; color: #fff; border: none;
+  border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
+}
+.btnComprar:hover { background: #142e4a; }
+.btnCarrinho {
+  flex: 1; padding: 14px; background: #fff; color: #1a3a5c; border: 2px solid #1a3a5c;
+  border-radius: 10px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.15s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btnCarrinho:hover { background: #f0f4f8; }
+
+/* Interesse */
+.interesseBox { border: 2px dashed #e2e8f0; border-radius: 12px; padding: 20px; background: #fafbfc; }
+.interesseTitulo { font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0 0 12px; }
+.interesseForm { display: flex; flex-direction: column; gap: 10px; }
+.interesseForm input {
+  padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.9rem;
+  outline: none; transition: border-color 0.15s;
+}
+.interesseForm input:focus { border-color: #1a3a5c; }
+.interesseBtn {
+  padding: 12px; background: #1a3a5c; color: #fff; border: none; border-radius: 10px;
+  font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
+}
+.interesseBtn:hover { background: #142e4a; }
+.interesseBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+.erroMsg { color: #ef4444; font-size: 0.82rem; margin: 0; }
+.sucesso { text-align: center; padding: 20px 0; }
+.sucesso h3 { color: #22c55e; margin: 8px 0 4px; }
+.sucesso p { color: #475569; font-size: 0.9rem; }
+
+/* Frete */
+.freteBox { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.freteHeader { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 700; color: #1e293b; }
+.freteInputRow { display: flex; gap: 8px; align-items: center; }
+.freteInput {
+  flex: 1; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+  font-size: 0.9rem; outline: none; transition: border-color 0.15s;
+}
+.freteInput:focus { border-color: #1a3a5c; }
+.freteBtn {
+  padding: 10px 18px; background: #1a3a5c; color: #fff; border: none;
+  border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background 0.15s;
+  white-space: nowrap;
+}
+.freteBtn:hover { background: #142e4a; }
+.freteBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+.freteLinkCep { font-size: 0.75rem; color: #64748b; text-decoration: underline; }
+.freteCidade { font-size: 0.82rem; color: #475569; font-weight: 500; }
+.freteErroMsg { font-size: 0.82rem; color: #ef4444; }
+.freteOpcoes { display: flex; flex-direction: column; gap: 6px; }
+.freteOpcao {
+  display: flex; align-items: center; justify-content: space-between; padding: 10px 12px;
+  border: 1.5px solid #e2e8f0; border-radius: 10px; transition: all 0.15s;
+}
+.freteOpcaoSel { border-color: #1a3a5c; background: #f0f4f8; }
+.freteOpcaoInfo { display: flex; flex-direction: column; gap: 2px; }
+.freteServico { font-size: 0.85rem; font-weight: 600; color: #1e293b; }
+.fretePrazo { font-size: 0.78rem; color: #64748b; }
+.fretePreco { font-size: 0.92rem; font-weight: 700; color: #1a3a5c; }
+
+.resumo { border-top: 1px solid #e2e8f0; padding-top: 10px; display: flex; flex-direction: column; gap: 4px; }
+.resumoLine { display: flex; justify-content: space-between; font-size: 0.85rem; color: #475569; }
+.resumoTotal { font-weight: 800; font-size: 1.05rem; color: #1a3a5c; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 4px; }
+
+/* Retirada na loja */
+.retiradaBox { border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.retiradaHeader { display: flex; gap: 10px; align-items: flex-start; }
+.retiradaHeader svg { flex-shrink: 0; color: #22c55e; margin-top: 2px; }
+.retiradaHeader div { display: flex; flex-direction: column; gap: 2px; }
+.retiradaHeader strong { font-size: 0.88rem; color: #1e293b; }
+.retiradaEnd { font-size: 0.8rem; color: #64748b; }
+.retiradaHorarios { font-size: 0.78rem; color: #64748b; display: flex; flex-direction: column; gap: 1px; padding-left: 28px; }
+.mapaEmbed { width: 100%; height: 160px; border: none; border-radius: 10px; margin-top: 4px; }
+
+/* Trust badges */
+.trustBadges { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.trustBadge {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;
+}
+.trustBadge svg { flex-shrink: 0; }
+.trustBadge div { display: flex; flex-direction: column; }
+.trustBadge strong { font-size: 0.78rem; color: #1e293b; }
+.trustBadge span { font-size: 0.7rem; color: #64748b; }
+
+/* ═══ DESCRIÇÃO + SPECS — FULL WIDTH ═══ */
+.descricaoSection, .specsSection {
+  margin-top: 40px; padding: 32px; background: #fff;
+  border: 1px solid #e2e8f0; border-radius: 16px;
+}
+.sectionTitulo { font-size: 1.15rem; font-weight: 800; color: #1e293b; margin: 0 0 16px; }
+.descricaoContent p { font-size: 0.94rem; color: #475569; line-height: 1.8; margin: 0 0 8px; }
+.descVazia { color: #94a3b8; font-style: italic; }
+.descMarca { font-size: 0.84rem; color: #64748b; margin-top: 12px; }
+
+/* ═══ PRODUTOS RELACIONADOS ═══ */
+.relacionados { margin-top: 60px; padding-top: 40px; border-top: 1px solid #e2e8f0; }
+.relacionadosTitulo { font-size: 1.2rem; font-weight: 800; color: #1e293b; margin: 0 0 20px; }
+.relacionadosGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.relCard {
+  text-decoration: none; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden;
+  transition: all 0.2s; display: flex; flex-direction: column;
+}
+.relCard:hover { border-color: #1a3a5c; box-shadow: 0 4px 16px rgba(26,58,92,0.08); transform: translateY(-2px); }
+.relFoto { overflow: hidden; }
+.relFoto img { width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block; transition: transform 0.3s; }
+.relCard:hover .relFoto img { transform: scale(1.05); }
+.relInfo { padding: 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.relTitulo { font-size: 0.85rem; font-weight: 600; color: #1e293b; line-height: 1.3; }
+.relPreco { font-size: 0.95rem; font-weight: 800; color: #1a3a5c; }
+.relCta { font-size: 0.78rem; color: #f97316; font-weight: 600; margin-top: auto; }
+
+/* WhatsApp flutuante */
+.whatsappFloat {
+  position: fixed; bottom: 24px; right: 24px; z-index: 900;
+  width: 56px; height: 56px; border-radius: 50%; background: #25d366;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(37,211,102,0.35); transition: transform 0.2s;
+}
+.whatsappFloat:hover { transform: scale(1.1); }
+
+/* ═══ MOBILE ═══ */
+@media (max-width: 768px) {
+  .loadingSkeleton { grid-template-columns: 1fr; }
+  .layout { grid-template-columns: 1fr; gap: 24px; }
+  .galeria { position: static; flex-direction: column; }
+  .thumbsVertical { flex-direction: row; overflow-x: auto; }
+  .abasDesktop { display: none; }
+  .abasMobile { display: block; }
+  .titulo { font-size: 1.25rem; }
+  .preco { font-size: 1.4rem; }
+  .botoesCompra { flex-direction: column; }
+  .trustBadges { grid-template-columns: 1fr; }
+  .relacionadosGrid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .whatsappFloat { bottom: 16px; right: 16px; width: 50px; height: 50px; }
+  .breadCurrent { max-width: 180px; }
+}
+
+@media (max-width: 480px) {
+  .relacionadosGrid { grid-template-columns: 1fr 1fr; }
+  .relInfo { padding: 10px; }
+}

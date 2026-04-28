@@ -23,6 +23,7 @@ import AdminOutlet from './pages/AdminOutlet'
 import AdminEstoque from './pages/AdminEstoque'
 import AdminVendas from './pages/AdminVendas'
 import AdminCentralVendas from './pages/AdminCentralVendas'
+import AdminIA from './pages/AdminIA'
 import AdminRelatorios from './pages/AdminRelatorios'
 import AdminDashboardBI from './pages/AdminDashboardBI'
 import AdminCanvaCallback from './pages/AdminCanvaCallback'
@@ -148,6 +149,7 @@ function App() {
             <Route path="estoque" element={<AdminEstoque />} />
             <Route path="vendas" element={<AdminVendas />} />
             <Route path="central-vendas" element={<AdminCentralVendas />} />
+            <Route path="ia" element={<AdminIA />} />
             <Route path="relatorios" element={<AdminRelatorios />} />
             <Route path="dashboard-bi" element={<AdminDashboardBI />} />
             <Route path="configuracao-financeiro" element={<AdminConfiguracaoFinanceiro />} />

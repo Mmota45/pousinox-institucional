@@ -1,4 +1,5 @@
 import SEO from '../components/SEO/SEO'
+import { useSiteConfig } from '../hooks/useSiteData'
 import fachada from '../assets/fachada-sede.webp'
 import styles from './Sobre.module.css'
 
@@ -21,6 +22,10 @@ const filosofia = [
 ]
 
 export default function Sobre() {
+  const { config: c } = useSiteConfig()
+  const mapsUrl = c.google_maps_url || 'https://maps.app.goo.gl/bNAwCL7Jz4n3pJZx8'
+  const fabricaVideoUrl = c.fabrica_video_url || 'https://www.youtube.com/embed/MMMGnD7oXZM'
+
   return (
     <div className={styles.page}>
       <SEO
@@ -31,10 +36,8 @@ export default function Sobre() {
       {/* Page Header */}
       <div className={styles.pageHeader}>
         <div className="container">
-          <h1 className={styles.pageTitle}>Quem Somos</h1>
-          <p className={styles.pageSubtitle}>
-            "Soluções em inox que elevam ambientes."
-          </p>
+          <h1 className={styles.pageTitle}>{c.sobre_titulo || 'Quem Somos'}</h1>
+          <p className={styles.pageSubtitle}>{c.sobre_subtitulo || '"Soluções em inox que elevam ambientes."'}</p>
         </div>
       </div>
 
@@ -43,23 +46,10 @@ export default function Sobre() {
         <div className="container">
           <div className={styles.quemSomosGrid}>
             <div className={styles.quemSomosContent}>
-              <h2 className="section-title">Há mais de duas décadas elevando padrões</h2>
-              <p>
-                A POUSINOX® desenvolve soluções em aço inox que elevam o padrão de ambientes
-                industriais, comerciais e residenciais em todo o Brasil. Mais do que fabricar
-                equipamentos, projetamos soluções sob medida que combinam eficiência operacional,
-                higiene, durabilidade e acabamento superior — atendendo necessidades reais de
-                cada cliente e de cada projeto.
-              </p>
-              <p>
-                Com estrutura fabril própria, tecnologia CNC e uma equipe técnica especializada,
-                atuamos em todas as etapas: do projeto à instalação, garantindo performance e
-                confiabilidade em cada entrega.
-              </p>
-              <p className={styles.destaque}>
-                Nosso compromisso é transformar o inox em um elemento estratégico para o
-                funcionamento, a produtividade e a longevidade dos ambientes.
-              </p>
+              <h2 className="section-title">{c.sobre_quem_titulo || 'Há mais de duas décadas elevando padrões'}</h2>
+              <p>{c.sobre_quem_p1 || 'A POUSINOX® desenvolve soluções em aço inox que elevam o padrão de ambientes industriais, comerciais e residenciais em todo o Brasil. Mais do que fabricar equipamentos, projetamos soluções sob medida que combinam eficiência operacional, higiene, durabilidade e acabamento superior — atendendo necessidades reais de cada cliente e de cada projeto.'}</p>
+              <p>{c.sobre_quem_p2 || 'Com estrutura fabril própria, tecnologia CNC e uma equipe técnica especializada, atuamos em todas as etapas: do projeto à instalação, garantindo performance e confiabilidade em cada entrega.'}</p>
+              <p className={styles.destaque}>{c.sobre_quem_destaque || 'Nosso compromisso é transformar o inox em um elemento estratégico para o funcionamento, a produtividade e a longevidade dos ambientes.'}</p>
             </div>
             <div className={styles.quemSomosStats}>
               <div className={styles.statCard}>
@@ -114,19 +104,12 @@ export default function Sobre() {
           <div className={styles.fabricaGrid}>
             <div className={styles.fabricaTexto}>
               <h2 className="section-title">Veja nossa fábrica em operação</h2>
-              <p>
-                Tecnologia de corte a laser aplicada ao aço inox com precisão milimétrica.
-                É assim que cada peça da POUSINOX® começa — com processo controlado,
-                equipamento de ponta e mão de obra especializada.
-              </p>
-              <p>
-                Da programação CNC ao acabamento final, fabricamos tudo internamente.
-                Isso garante qualidade, prazo e rastreabilidade em cada projeto entregue.
-              </p>
+              <p>{c.sobre_fabrica_p1 || 'Tecnologia de corte a laser aplicada ao aço inox com precisão milimétrica. É assim que cada peça da POUSINOX® começa — com processo controlado, equipamento de ponta e mão de obra especializada.'}</p>
+              <p>{c.sobre_fabrica_p2 || 'Da programação CNC ao acabamento final, fabricamos tudo internamente. Isso garante qualidade, prazo e rastreabilidade em cada projeto entregue.'}</p>
             </div>
             <div className={styles.fabricaVideo}>
               <iframe
-                src="https://www.youtube.com/embed/MMMGnD7oXZM"
+                src={fabricaVideoUrl}
                 title="Corte a Laser em Aço Inox — Pousinox"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -146,23 +129,9 @@ export default function Sobre() {
               <h2 className="section-title">Nossa História</h2>
             </div>
             <div className={styles.historiaTexto}>
-              <p>
-                A história da POUSINOX® começou com a visão de um jovem empreendedor apaixonado
-                pela área metalúrgica, formado em cursos técnicos do Senai e movido pelo desejo
-                de elevar a qualidade dos projetos em inox no mercado brasileiro.
-              </p>
-              <p>
-                Após anos de experiência prática atendendo clientes e compreendendo suas
-                necessidades reais, nasceu em <strong>2001</strong> a POUSINOX® — inicialmente
-                em uma garagem, com poucos recursos, mas com um propósito claro: entregar
-                excelência através do trabalho bem feito.
-              </p>
-              <p>
-                Com dedicação, evolução constante e foco no cliente, a empresa cresceu,
-                conquistou sede própria em Pouso Alegre (MG) e hoje conta com
-                <strong> estrutura industrial moderna</strong> para atender projetos em
-                todo o território nacional.
-              </p>
+              <p>{c.sobre_historia_p1 || 'A história da POUSINOX® começou com a visão de um jovem empreendedor apaixonado pela área metalúrgica, formado em cursos técnicos do Senai e movido pelo desejo de elevar a qualidade dos projetos em inox no mercado brasileiro.'}</p>
+              <p>{c.sobre_historia_p2 || 'Após anos de experiência prática atendendo clientes e compreendendo suas necessidades reais, nasceu em 2001 a POUSINOX® — inicialmente em uma garagem, com poucos recursos, mas com um propósito claro: entregar excelência através do trabalho bem feito.'}</p>
+              <p>{c.sobre_historia_p3 || 'Com dedicação, evolução constante e foco no cliente, a empresa cresceu, conquistou sede própria em Pouso Alegre (MG) e hoje conta com estrutura industrial moderna para atender projetos em todo o território nacional.'}</p>
             </div>
           </div>
         </div>
@@ -176,10 +145,7 @@ export default function Sobre() {
           </div>
           <div className={styles.sedeContent}>
             <h2 className={styles.sedeTitulo}>Nossa Sede</h2>
-            <p className={styles.sedeTexto}>
-              Fábrica, showroom e atendimento técnico no mesmo endereço — estrutura industrial
-              própria construída ao longo de mais de 25 anos.
-            </p>
+            <p className={styles.sedeTexto}>{c.sobre_sede_texto || 'Fábrica, showroom e atendimento técnico no mesmo endereço — estrutura industrial própria construída ao longo de mais de 25 anos.'}</p>
 
             <div className={styles.sedeStats}>
               <div className={styles.sedeStat}>
@@ -195,15 +161,15 @@ export default function Sobre() {
             <div className={styles.sedeInfoList}>
               <div className={styles.sedeInfoItem}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <span>Av. Antonio Mariosa, 4545 — Santa Angelina, Pouso Alegre, MG</span>
+                <span>{c.sobre_endereco || 'Av. Antonio Mariosa, 4545 — Santa Angelina, Pouso Alegre, MG'}</span>
               </div>
               <div className={styles.sedeInfoItem}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span>Seg–Qui: 7h30–18h &nbsp;·&nbsp; Sex: 7h30–17h</span>
+                <span>{c.sobre_horario || 'Seg–Qui: 7h30–18h · Sex: 7h30–17h'}</span>
               </div>
             </div>
 
-            <a href="https://maps.app.goo.gl/bNAwCL7Jz4n3pJZx8" target="_blank" rel="noopener noreferrer" className={styles.sedeCta}>
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className={styles.sedeCta}>
               Ver no Google Maps ↗
             </a>
           </div>
@@ -228,7 +194,7 @@ export default function Sobre() {
             ))}
           </div>
           <blockquote className={styles.lema}>
-            "Soluções em inox que elevam ambientes."
+            {c.sobre_lema || '"Soluções em inox que elevam ambientes."'}
           </blockquote>
         </div>
       </section>

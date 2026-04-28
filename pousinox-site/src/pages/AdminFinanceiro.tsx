@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, Fragment } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import { useAdmin } from '../contexts/AdminContext'
 import styles from './AdminFinanceiro.module.css'
+import CollapsibleSection from '../components/CollapsibleSection/CollapsibleSection'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -785,8 +786,7 @@ export default function AdminFinanceiro() {
           )}
 
           {/* ② KPIs do mês */}
-          <div>
-            <div className={styles.painelSecao}>Resultado do mês</div>
+          <CollapsibleSection title="📊 Resultado do mês" defaultOpen>
             <div className={styles.cards}>
               <div className={`${styles.card} ${styles.cardReceita}`}>
                 <span className={styles.cardLabel}>Receitas realizadas</span>
@@ -804,12 +804,11 @@ export default function AdminFinanceiro() {
                 <span className={styles.cardSub}>receitas − despesas</span>
               </div>
             </div>
-          </div>
+          </CollapsibleSection>
 
           {/* ③ Saldo por conta */}
           {saldosContas.length > 0 && (
-            <div>
-              <div className={styles.painelSecao}>Saldo atual por conta</div>
+            <CollapsibleSection title="🏦 Saldo atual por conta" defaultOpen>
               <div className={styles.contasGrid}>
                 {saldosContas.map(c => (
                   <div key={c.id} className={styles.contaCard}>
@@ -824,15 +823,11 @@ export default function AdminFinanceiro() {
                   </div>
                 ))}
               </div>
-            </div>
+          </CollapsibleSection>
           )}
 
           {/* ④ Agenda dos próximos 7 dias */}
-          <div>
-            <div className={styles.painelSecao}>
-              Agenda — próximos 7 dias
-              <button className={styles.btnLinkSmall} onClick={() => setAba('lancamentos')}>Ver todos →</button>
-            </div>
+          <CollapsibleSection title="📅 Agenda — próximos 7 dias" defaultOpen count={agendaItems.length}>
             {agendaItems.length === 0 ? (
               <div className={styles.agendaVazio}>Nenhum vencimento nos próximos 7 dias. 🎉</div>
             ) : (
@@ -902,7 +897,7 @@ export default function AdminFinanceiro() {
                 </table>
               </div>
             )}
-          </div>
+          </CollapsibleSection>
 
           {/* Acesso ao manual */}
           <div className={styles.manualAcesso}>

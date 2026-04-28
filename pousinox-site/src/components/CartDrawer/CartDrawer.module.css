@@ -82,3 +82,32 @@
   transition: all 0.15s;
 }
 .btnContinuar:hover { background: #f8fafc; color: #1a3a5c; }
+
+.freteBox { display: flex; flex-direction: column; gap: 6px; }
+.freteLabel { font-size: 0.8rem; font-weight: 600; color: #64748b; }
+.freteInputRow { display: flex; gap: 6px; }
+.freteInput {
+  flex: 1; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px;
+  font-size: 0.9rem; outline: none; transition: border-color 0.15s;
+}
+.freteInput:focus { border-color: #1a3a5c; }
+.freteBtn {
+  padding: 8px 16px; background: #1a3a5c; color: #fff; border: none;
+  border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  transition: background 0.15s;
+}
+.freteBtn:hover { background: #142e4a; }
+.freteBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+.freteErro { font-size: 0.78rem; color: #ef4444; }
+.freteOpcoes { display: flex; flex-direction: column; gap: 4px; }
+.freteOpcao {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+  border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer;
+  font-size: 0.8rem; transition: all 0.15s;
+}
+.freteOpcao input { accent-color: #1a3a5c; }
+.freteOpcaoSel { border-color: #1a3a5c; background: #f0f4f8; }
+.freteServico { font-weight: 600; color: #1e293b; }
+.fretePrazo { color: #64748b; flex: 1; }
+.fretePreco { font-weight: 700; color: #1a3a5c; }
+.totalGrand { font-size: 1.1rem; font-weight: 700; color: #1a3a5c; }

@@ -247,11 +247,17 @@ function FormCartao({ inicial, onSalvo, onCancelar }: FormProps) {
   const BUCKET = 'outlet-fotos'
 
   async function listarMidia() {
-    const { data } = await supabaseAdmin.storage.from(BUCKET).list('', { limit: 200, sortBy: { column: 'created_at', order: 'desc' } })
-    setMidiaArquivos((data ?? []).filter(f => f.name !== '.emptyFolderPlaceholder').map(f => ({
-      name: f.name,
-      url: `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${f.name}`,
-    })))
+    try {
+      const { data, error } = await supabaseAdmin.storage.from(BUCKET).list('', { limit: 200, sortBy: { column: 'created_at', order: 'desc' } })
+      if (error) throw error
+      setMidiaArquivos((data ?? []).filter(f => f.name !== '.emptyFolderPlaceholder').map(f => ({
+        name: f.name,
+        url: `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${f.name}`,
+      })))
+    } catch (err) {
+      console.error('Erro ao listar mídia:', err)
+      setErro('Erro ao carregar imagens do bucket.')
+    }
   }
 
   async function abrirMidiaPicker(campo: 'foto_url' | 'logo_url') {
@@ -281,33 +287,57 @@ function FormCartao({ inicial, onSalvo, onCancelar }: FormProps) {
   }
 
   async function uploadMidia(file: File) {
+    // Validação de tipo e tamanho
+    const TIPOS_ACEITOS = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
+    const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+    if (!TIPOS_ACEITOS.includes(file.type)) {
+      setErro('Tipo de arquivo não suportado. Use JPG, PNG, WebP, GIF ou SVG.')
+      return
+    }
+    if (file.size > MAX_SIZE) {
+      setErro('Arquivo muito grande. Máximo 5MB.')
+      return
+    }
+
     setMidiaUploadando(true)
+    setErro(null)
     try {
       const blob = await comprimirMidia(file)
       const nome = `${Date.now()}.webp`
       const { error } = await supabaseAdmin.storage.from(BUCKET).upload(nome, blob, { contentType: 'image/webp' })
-      if (!error) {
-        const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${nome}`
-        set(midiaPickerCampo!, url)
-        await listarMidia()
-        setMidiaPickerCampo(null)
-      }
+      if (error) throw error
+      const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${nome}`
+      set(midiaPickerCampo!, url)
+      await listarMidia()
+      setMidiaPickerCampo(null)
     } catch {
-      const nome = `${Date.now()}.${file.name.split('.').pop()}`
-      const { error } = await supabaseAdmin.storage.from(BUCKET).upload(nome, file, { contentType: file.type })
-      if (!error) {
+      // Fallback: envia original se compressão falhar
+      try {
+        const nome = `${Date.now()}.${file.name.split('.').pop()}`
+        const { error } = await supabaseAdmin.storage.from(BUCKET).upload(nome, file, { contentType: file.type })
+        if (error) throw error
         const url = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${nome}`
         set(midiaPickerCampo!, url)
         await listarMidia()
         setMidiaPickerCampo(null)
+      } catch (err) {
+        console.error('Erro no upload:', err)
+        setErro('Erro ao enviar imagem. Tente novamente.')
       }
+    } finally {
+      setMidiaUploadando(false)
     }
-    setMidiaUploadando(false)
   }
 
   async function excluirMidia(nome: string) {
-    await supabaseAdmin.storage.from(BUCKET).remove([nome])
-    await listarMidia()
+    try {
+      const { error } = await supabaseAdmin.storage.from(BUCKET).remove([nome])
+      if (error) throw error
+      await listarMidia()
+    } catch (err) {
+      console.error('Erro ao excluir mídia:', err)
+      setErro('Erro ao excluir imagem.')
+    }
   }
 
   function selecionarMidia(url: string) {
@@ -320,7 +350,8 @@ function FormCartao({ inicial, onSalvo, onCancelar }: FormProps) {
       .from('produtos')
       .select('id, titulo, fotos')
       .order('titulo')
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { console.error('Erro ao carregar produtos:', error); return }
         if (data) {
           const vistos = new Set<string>()
           const lista = (data as { id: string; titulo: string; fotos: string[] | null }[])
@@ -334,6 +365,7 @@ function FormCartao({ inicial, onSalvo, onCancelar }: FormProps) {
           setProdutosDisponiveis(lista)
         }
       })
+      .catch(err => console.error('Erro ao carregar produtos:', err))
   }, [])
 
   const slugSugerido = form.nome || form.empresa
@@ -376,8 +408,9 @@ function FormCartao({ inicial, onSalvo, onCancelar }: FormProps) {
       }
       onSalvo(data)
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e)
-      setErro(msg.includes('duplicate') ? 'Slug já existe. Tente outro nome.' : msg)
+      const err = e as { code?: string; message?: string }
+      const msg = err.message ?? String(e)
+      setErro(err.code === '23505' || msg.includes('duplicate') ? 'Slug já existe. Tente outro nome.' : msg)
     } finally {
       setSaving(false)
     }
@@ -711,14 +744,20 @@ function DetalheCartao({ cartao, onVoltar, onEditar, onAtualizado }: DetalheProp
 
   async function alterarStatus(novoStatus: Status) {
     setAtualizando(true)
-    const r = await supabaseAdmin
-      .from('cartoes_digitais')
-      .update({ status: novoStatus })
-      .eq('id', cartao.id)
-      .select()
-      .single()
-    setAtualizando(false)
-    if (!r.error && r.data) onAtualizado(r.data)
+    try {
+      const r = await supabaseAdmin
+        .from('cartoes_digitais')
+        .update({ status: novoStatus })
+        .eq('id', cartao.id)
+        .select()
+        .single()
+      if (r.error) throw r.error
+      if (r.data) onAtualizado(r.data)
+    } catch (err) {
+      console.error('Erro ao alterar status:', err)
+    } finally {
+      setAtualizando(false)
+    }
   }
 
   async function copiarLink() {
@@ -784,7 +823,11 @@ function DetalheCartao({ cartao, onVoltar, onEditar, onAtualizado }: DetalheProp
               <code style={{ fontSize: '0.85rem', background: '#f8fafc', padding: '6px 10px', borderRadius: 6, border: '1px solid var(--color-border)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {publicUrl}
               </code>
-              <button className={S.btnSecondary} onClick={copiarLink}>Copiar</button>
+              <button className={S.btnSecondary} onClick={copiarLink}>{copiado ? '✓ Copiado' : 'Copiar'}</button>
+              <a href={`https://wa.me/?text=${encodeURIComponent(`Confira meu cartão digital: ${publicUrl}`)}`}
+                target="_blank" rel="noopener noreferrer" className={S.btnSecondary} style={{ textDecoration: 'none' }}>
+                WhatsApp
+              </a>
               <a href={publicUrl} target="_blank" rel="noopener noreferrer" className={S.btnSecondary} style={{ textDecoration: 'none' }}>Abrir</a>
             </div>
             {copiado && <div className={S.copyFeedback}>Link copiado!</div>}
@@ -939,12 +982,18 @@ export default function AdminCartoes() {
 
   const carregar = useCallback(async () => {
     setLoading(true)
-    const r = await supabaseAdmin
-      .from('cartoes_digitais')
-      .select('*')
-      .order('criado_em', { ascending: false })
-    setLoading(false)
-    if (!r.error && r.data) setCartoes(r.data as Cartao[])
+    try {
+      const { data, error } = await supabaseAdmin
+        .from('cartoes_digitais')
+        .select('*')
+        .order('criado_em', { ascending: false })
+      if (error) throw error
+      setCartoes((data ?? []) as Cartao[])
+    } catch (err) {
+      console.error('Erro ao carregar cartões:', err)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => { carregar() }, [carregar])

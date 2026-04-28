@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts'
@@ -43,7 +43,28 @@ interface CrossUF {
   quadrant: 'oportunidade' | 'validado' | 'relacionamento' | 'baixa'
 }
 
-type TabId = 'visao' | 'busca' | 'externas' | 'cruzamento' | 'recomendacoes'
+interface ConcorrenteRow {
+  id: number
+  cnpj: string
+  razao_social: string | null
+  nome_fantasia: string | null
+  porte: string | null
+  uf: string | null
+  cidade: string | null
+  segmento: string | null
+  produto: string | null
+  cliente_ativo: boolean
+  telefone1: string | null
+  email: string | null
+}
+
+type TabId = 'visao' | 'busca' | 'externas' | 'cruzamento' | 'recomendacoes' | 'concorrencia'
+
+const TERMOS_CONCORRENTE_DEFAULT = [
+  'inox', 'aço inoxidável', 'metalurgica', 'metalúrgica', 'equipamento industrial',
+  'equipamentos industriais', 'cozinha industrial', 'equipamentos hospitalares',
+  'fixador porcelanato', 'fixadores',
+]
 
 const INTENCAO_LABEL: Record<string, string> = {
   comercial: 'Comercial', transacional: 'Transacional',
@@ -122,7 +143,7 @@ export default function AdminEstudoMercado() {
   const [meses, setMeses] = useState('12')
   const [filtroUF, setFiltroUF] = useState('')
   const [filtroSegmento, setFiltroSegmento] = useState('')
-  const [filtroFamilia, _setFiltroFamilia] = useState('')
+  const [filtroFamilia, setFiltroFamilia] = useState('')
 
   // Dados internos
   const [nfs, setNfs] = useState<NfRow[]>([])
@@ -149,6 +170,14 @@ export default function AdminEstudoMercado() {
   const [importandoGsc, setImportandoGsc] = useState(false)
   const [gscResult, setGscResult] = useState('')
 
+  // Concorrência
+  const [concorrentes, setConcorrentes] = useState<ConcorrenteRow[]>([])
+  const [loadingConc, setLoadingConc] = useState(false)
+  const [filtroUFConc, setFiltroUFConc] = useState('')
+  const [buscaConc, setBuscaConc] = useState('')
+  const [termosConc, setTermosConc] = useState(TERMOS_CONCORRENTE_DEFAULT)
+  const [novoTermo, setNovoTermo] = useState('')
+
   // UFs distintas nos dados
   const ufsDisponiveis = useMemo(() => {
     const set = new Set<string>()
@@ -166,33 +195,70 @@ export default function AdminEstudoMercado() {
 
   // ── Carregamento ──────────────────────────────────────────────────────────
 
-  async function carregar() {
+  const carregar = useCallback(async () => {
     setLoading(true)
-    const inicio = dataInicio(meses)
+    try {
+      const inicio = dataInicio(meses)
 
-    const [{ data: nfData }, { data: cliData }, { data: prospData }] = await Promise.all([
-      supabaseAdmin.from('nf_cabecalho').select('total, emissao, cnpj').gte('emissao', inicio),
-      supabaseAdmin.from('clientes').select('cnpj, total_gasto, rfm_segmento'),
-      supabaseAdmin.from('prospeccao').select('cnpj, uf, mesorregiao, segmento, cliente_ativo').eq('cliente_ativo', true),
-    ])
-    setNfs((nfData ?? []) as NfRow[])
-    setClientes((cliData ?? []) as ClienteRow[])
-    setProspectos((prospData ?? []) as ProspectRow[])
-    setLoading(false)
-  }
+      const [{ data: nfData }, { data: cliData }, { data: prospData }] = await Promise.all([
+        supabaseAdmin.from('nf_cabecalho').select('total, emissao, cnpj').gte('emissao', inicio),
+        supabaseAdmin.from('clientes').select('cnpj, total_gasto, rfm_segmento'),
+        supabaseAdmin.from('prospeccao').select('cnpj, uf, mesorregiao, segmento, cliente_ativo').eq('cliente_ativo', true),
+      ])
+      setNfs((nfData ?? []) as NfRow[])
+      setClientes((cliData ?? []) as ClienteRow[])
+      setProspectos((prospData ?? []) as ProspectRow[])
+    } catch (err) {
+      console.error('Erro ao carregar dados internos:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [meses])
 
-  async function carregarKeywords() {
+  const carregarKeywords = useCallback(async () => {
     setLoadingKw(true)
-    const { data } = await supabaseAdmin
-      .from('market_keywords')
-      .select('*')
-      .eq('ativo', true)
-      .order('volume_mensal', { ascending: false })
-    setKeywords((data ?? []) as Keyword[])
-    setLoadingKw(false)
-  }
+    try {
+      const { data } = await supabaseAdmin
+        .from('market_keywords')
+        .select('*')
+        .eq('ativo', true)
+        .order('volume_mensal', { ascending: false })
+      setKeywords((data ?? []) as Keyword[])
+    } catch (err) {
+      console.error('Erro ao carregar keywords:', err)
+    } finally {
+      setLoadingKw(false)
+    }
+  }, [])
 
-  useEffect(() => { carregar(); carregarKeywords() }, []) // eslint-disable-line
+  const carregarConcorrentes = useCallback(async (termos?: string[]) => {
+    const lista = termos ?? termosConc
+    if (!lista.length) return
+    setLoadingConc(true)
+    try {
+      const cols = 'id, cnpj, razao_social, nome_fantasia, porte, uf, cidade, segmento, produto, cliente_ativo, telefone1, email'
+      const results = await Promise.all(
+        lista.map(t =>
+          supabaseAdmin.from('prospeccao')
+            .select(cols)
+            .or(`razao_social.ilike.%${t}%,nome_fantasia.ilike.%${t}%`)
+            .order('uf')
+            .limit(500)
+            .then(r => r.data ?? [])
+        )
+      )
+      // Deduplica por id
+      const map = new Map<number, ConcorrenteRow>()
+      results.flat().forEach(r => { if (!map.has(r.id)) map.set(r.id, r as ConcorrenteRow) })
+      setConcorrentes(Array.from(map.values()))
+    } catch (e) {
+      console.error('Erro ao carregar concorrentes:', e)
+    } finally {
+      setLoadingConc(false)
+    }
+  }, [])
+
+  useEffect(() => { carregar(); carregarKeywords(); carregarConcorrentes() }, []) // eslint-disable-line
 
   // ── Dados derivados ───────────────────────────────────────────────────────
 
@@ -308,6 +374,56 @@ export default function AdminEstudoMercado() {
 
   // Max volume para barra relativa
   const maxVolKw = useMemo(() => Math.max(...kwFiltradas.map(k => k.volume_mensal), 1), [kwFiltradas])
+
+  // ── Concorrência (dados derivados) ────────────────────────────────────────
+
+  const concFiltrados = useMemo(() =>
+    concorrentes.filter(c =>
+      (!filtroUFConc || c.uf === filtroUFConc) &&
+      (!buscaConc || (c.razao_social ?? '').toLowerCase().includes(buscaConc.toLowerCase()) || (c.nome_fantasia ?? '').toLowerCase().includes(buscaConc.toLowerCase()))
+    ), [concorrentes, filtroUFConc, buscaConc])
+
+  const concPorUF = useMemo(() => {
+    const map = new Map<string, number>()
+    concFiltrados.forEach(c => { if (c.uf) map.set(c.uf, (map.get(c.uf) ?? 0) + 1) })
+    return Array.from(map.entries()).map(([uf, qtd]) => ({ uf, qtd })).sort((a, b) => b.qtd - a.qtd)
+  }, [concFiltrados])
+
+  const concPorPorte = useMemo(() => {
+    const map = new Map<string, number>()
+    concFiltrados.forEach(c => { const p = c.porte ?? 'Não informado'; map.set(p, (map.get(p) ?? 0) + 1) })
+    return Array.from(map.entries()).map(([porte, qtd]) => ({ porte, qtd })).sort((a, b) => b.qtd - a.qtd)
+  }, [concFiltrados])
+
+  const comparativoUF = useMemo(() => {
+    const concUFs = new Map<string, number>()
+    concorrentes.forEach(c => { if (c.uf) concUFs.set(c.uf, (concUFs.get(c.uf) ?? 0) + 1) })
+    const vendasUFs = new Map<string, number>()
+    vendasPorUF.forEach(v => vendasUFs.set(v.uf, v.total))
+    const allUFs = new Set([...concUFs.keys(), ...vendasUFs.keys()])
+    return Array.from(allUFs)
+      .map(uf => ({ uf, concorrentes: concUFs.get(uf) ?? 0, faturamento: vendasUFs.get(uf) ?? 0 }))
+      .sort((a, b) => b.concorrentes - a.concorrentes)
+  }, [concorrentes, vendasPorUF])
+
+  const densidadeTop = useMemo(() => {
+    const cidadeMap = new Map<string, { cidade: string; uf: string; qtd: number }>()
+    concorrentes.forEach(c => {
+      if (c.cidade && c.uf) {
+        const key = `${c.cidade}-${c.uf}`
+        const cur = cidadeMap.get(key)
+        if (cur) cur.qtd++
+        else cidadeMap.set(key, { cidade: c.cidade, uf: c.uf, qtd: 1 })
+      }
+    })
+    return Array.from(cidadeMap.values()).sort((a, b) => b.qtd - a.qtd).slice(0, 10)
+  }, [concorrentes])
+
+  const ufsConc = useMemo(() => {
+    const set = new Set<string>()
+    concorrentes.forEach(c => c.uf && set.add(c.uf))
+    return Array.from(set).sort()
+  }, [concorrentes])
 
   // ── Oportunidades Externas ────────────────────────────────────────────────
 
@@ -474,22 +590,27 @@ export default function AdminEstudoMercado() {
   async function salvarKeyword() {
     if (!form.termo.trim()) return
     setSalvando(true)
-    const payload = {
-      termo: form.termo.trim(), cluster: form.cluster || null,
-      uf: form.uf || null, mesorregiao: form.mesorregiao || null,
-      cidade: form.cidade || null, segmento: form.segmento || null,
-      familia_produto: form.familia_produto || null,
-      volume_mensal: Number(form.volume_mensal) || 0,
-      intencao: form.intencao, fonte: form.fonte,
+    try {
+      const payload = {
+        termo: form.termo.trim(), cluster: form.cluster || null,
+        uf: form.uf || null, mesorregiao: form.mesorregiao || null,
+        cidade: form.cidade || null, segmento: form.segmento || null,
+        familia_produto: form.familia_produto || null,
+        volume_mensal: Number(form.volume_mensal) || 0,
+        intencao: form.intencao, fonte: form.fonte,
+      }
+      if (editId) {
+        await supabaseAdmin.from('market_keywords').update(payload).eq('id', editId)
+      } else {
+        await supabaseAdmin.from('market_keywords').insert(payload)
+      }
+      setShowForm(false)
+      carregarKeywords()
+    } catch (err) {
+      console.error('Erro ao salvar keyword:', err)
+    } finally {
+      setSalvando(false)
     }
-    if (editId) {
-      await supabaseAdmin.from('market_keywords').update(payload).eq('id', editId)
-    } else {
-      await supabaseAdmin.from('market_keywords').insert(payload)
-    }
-    setSalvando(false)
-    setShowForm(false)
-    carregarKeywords()
   }
 
   async function excluirKeyword(id: number) {
@@ -501,31 +622,41 @@ export default function AdminEstudoMercado() {
   async function importarCSV(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    const texto = await file.text()
-    const linhas = texto.split('\n').filter(l => l.trim())
-    const lote = linhas.slice(1).map(linha => {
-      const c = linha.split(',').map(v => v.trim().replace(/^"|"$/g, ''))
-      return {
-        termo: c[0], cluster: c[1] || null, uf: c[2] || null,
-        mesorregiao: c[3] || null, cidade: c[4] || null,
-        segmento: c[5] || null, familia_produto: c[6] || null,
-        volume_mensal: Number(c[7]) || 0,
-        intencao: c[8] || 'comercial', fonte: 'csv',
+    if (!file.name.match(/\.(csv|txt)$/i)) { alert('Formato inválido. Envie um arquivo .csv ou .txt'); e.target.value = ''; return }
+    if (file.size > 5 * 1024 * 1024) { alert('Arquivo muito grande (máx. 5 MB)'); e.target.value = ''; return }
+    try {
+      const texto = await file.text()
+      const linhas = texto.split('\n').filter(l => l.trim())
+      const lote = linhas.slice(1).map(linha => {
+        const c = linha.split(',').map(v => v.trim().replace(/^"|"$/g, ''))
+        return {
+          termo: c[0], cluster: c[1] || null, uf: c[2] || null,
+          mesorregiao: c[3] || null, cidade: c[4] || null,
+          segmento: c[5] || null, familia_produto: c[6] || null,
+          volume_mensal: Number(c[7]) || 0,
+          intencao: c[8] || 'comercial', fonte: 'csv',
+        }
+      }).filter(r => r.termo)
+      if (!lote.length) return
+      for (let i = 0; i < lote.length; i += 200) {
+        await supabaseAdmin.from('market_keywords').insert(lote.slice(i, i + 200))
       }
-    }).filter(r => r.termo)
-    if (!lote.length) return
-    for (let i = 0; i < lote.length; i += 200) {
-      await supabaseAdmin.from('market_keywords').insert(lote.slice(i, i + 200))
+      carregarKeywords()
+    } catch (err) {
+      console.error('Erro ao importar CSV:', err)
+      alert('Erro ao importar CSV. Verifique o formato do arquivo.')
+    } finally {
+      e.target.value = ''
     }
-    e.target.value = ''
-    carregarKeywords()
   }
 
   async function importarGKP(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (!file.name.match(/\.(csv|txt)$/i)) { alert('Formato inválido. Envie um arquivo .csv ou .txt'); e.target.value = ''; return }
+    if (file.size > 5 * 1024 * 1024) { alert('Arquivo muito grande (máx. 5 MB)'); e.target.value = ''; return }
     setImportandoExt(true)
-
+    try {
     const texto = await file.text()
     const todasLinhas = texto.split('\n')
 
@@ -646,9 +777,47 @@ export default function AdminEstudoMercado() {
     for (let i = 0; i < lote.length; i += 200) {
       await supabaseAdmin.from('market_keywords').insert(lote.slice(i, i + 200))
     }
-    e.target.value = ''
-    setImportandoExt(false)
     carregarKeywords()
+    } catch (err) {
+      console.error('Erro ao importar GKP/CSV externo:', err)
+      alert('Erro ao importar arquivo. Verifique o formato.')
+    } finally {
+      e.target.value = ''
+      setImportandoExt(false)
+    }
+  }
+
+  // ── Export CSV ────────────────────────────────────────────────────────────
+
+  function exportCSV(filename: string, headers: string[], rows: string[][]) {
+    const bom = '\uFEFF'
+    const csv = bom + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = filename; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  function exportarBuscaRegional() {
+    exportCSV('busca-regional.csv',
+      ['Termo', 'Cluster', 'UF', 'Mesorregiao', 'Segmento', 'Familia', 'Volume/mes', 'Intencao'],
+      kwFiltradas.map(k => [k.termo, k.cluster ?? '', k.uf ?? '', k.mesorregiao ?? '', k.segmento ?? '', k.familia_produto ?? '', String(k.volume_mensal), k.intencao])
+    )
+  }
+
+  function exportarExternas() {
+    exportCSV('oportunidades-externas.csv',
+      ['Termo', 'Cluster', 'UF', 'Segmento', 'Volume/mes', 'Var 3m', 'Var YoY', 'Competicao', 'Trend', 'Fonte'],
+      kwExternas.map(k => [k.termo, k.cluster ?? '', k.uf ?? '', k.segmento ?? '', String(k.volume_mensal), k.variacao_3m != null ? String(k.variacao_3m) : '', k.variacao_yoy != null ? String(k.variacao_yoy) : '', k.competicao ?? '', k.trend_score != null ? String(k.trend_score) : '', k.fonte])
+    )
+  }
+
+  function exportarCruzamento() {
+    exportCSV('cruzamento-uf.csv',
+      ['UF', 'Busca/mes', 'Vendas', 'Busca norm', 'Vendas norm', 'Score', 'Quadrante'],
+      crossing.map(r => [r.uf, String(r.busca_volume), String(r.vendas_total), String(Math.round(r.busca_norm * 100)), String(Math.round(r.vendas_norm * 100)), String(r.score), r.quadrant])
+    )
   }
 
   // ── Render helpers ────────────────────────────────────────────────────────
@@ -713,7 +882,7 @@ export default function AdminEstudoMercado() {
   return (
     <div className={s.page}>
       <div className={s.header}>
-        <h1>📊 Estudo de Mercado</h1>
+        <h1>📊 Estudo de Mercado {keywords.length > 0 && <span className={s.headerBadge}>{fmtNum(keywords.length)} keywords</span>}</h1>
         <p>Cruzamento entre histórico interno da Pousinox® e demanda de busca regional para identificar mercados validados, oportunidades e prioridades comerciais.</p>
       </div>
 
@@ -758,6 +927,7 @@ export default function AdminEstudoMercado() {
           ['externas', '🌐 Oportunidades Externas'],
           ['cruzamento', '⚡ Cruzamento'],
           ['recomendacoes', '💡 Recomendações'],
+          ['concorrencia', '🏢 Concorrência'],
         ] as [TabId, string][]).map(([id, label]) => (
           <button key={id} className={`${s.tab} ${tab === id ? s.tabAtiva : ''}`} onClick={() => setTab(id)}>
             {label}
@@ -777,32 +947,50 @@ export default function AdminEstudoMercado() {
 
           <div className={s.kpiGrid}>
             <div className={s.kpiCard}>
-              <span className={s.kpiLabel}>Faturamento</span>
+              <div className={s.kpiLabelRow}>
+                <svg className={s.kpiIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <span className={s.kpiLabel}>Faturamento</span>
+              </div>
               <span className={s.kpiValor}>{fmtBRL(kpis.faturamento)}</span>
               <span className={s.kpiSub}>período selecionado</span>
             </div>
             <div className={s.kpiCard}>
-              <span className={s.kpiLabel}>Clientes únicos</span>
+              <div className={s.kpiLabelRow}>
+                <svg className={s.kpiIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span className={s.kpiLabel}>Clientes únicos</span>
+              </div>
               <span className={s.kpiValor}>{fmtNum(kpis.clientesUnicos)}</span>
               <span className={s.kpiSub}>com compra no período</span>
             </div>
             <div className={s.kpiCard}>
-              <span className={s.kpiLabel}>Ticket médio</span>
+              <div className={s.kpiLabelRow}>
+                <svg className={s.kpiIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                <span className={s.kpiLabel}>Ticket médio</span>
+              </div>
               <span className={s.kpiValor}>{fmtBRL(kpis.ticket)}</span>
               <span className={s.kpiSub}>por cliente</span>
             </div>
             <div className={s.kpiCard}>
-              <span className={s.kpiLabel}>UFs atendidas</span>
+              <div className={s.kpiLabelRow}>
+                <svg className={s.kpiIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                <span className={s.kpiLabel}>UFs atendidas</span>
+              </div>
               <span className={s.kpiValor}>{kpis.ufsAtendidas}</span>
               <span className={s.kpiSub}>com histórico de venda</span>
             </div>
             <div className={`${s.kpiCard} ${s.destaque}`}>
-              <span className={s.kpiLabel}>Volume de busca</span>
+              <div className={s.kpiLabelRow}>
+                <svg className={s.kpiIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                <span className={s.kpiLabel}>Volume de busca</span>
+              </div>
               <span className={s.kpiValor}>{fmtNum(kpis.volBusca)}</span>
               <span className={s.kpiSub}>/mês (keywords cadastradas)</span>
             </div>
             <div className={`${s.kpiCard} ${s.destaque}`}>
-              <span className={s.kpiLabel}>Oportunidades</span>
+              <div className={s.kpiLabelRow}>
+                <svg className={s.kpiIcon} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span className={s.kpiLabel}>Oportunidades</span>
+              </div>
               <span className={s.kpiValor}>{crossing.filter(r => r.quadrant === 'oportunidade').length}</span>
               <span className={s.kpiSub}>
                 {crossing.filter(r => r.quadrant === 'oportunidade').length === 1
@@ -815,7 +1003,7 @@ export default function AdminEstudoMercado() {
           <div className={s.section}>
             <div className={s.sectionTitle}>Demanda × Presença por UF <span>normalizado 0–100 · quanto maior o score, maior o gap entre busca e presença comercial</span></div>
             {crossing.length === 0
-              ? <div className={s.empty}>Sem histórico suficiente para esta combinação de filtros. Ajuste UF, segmento ou período para ampliar a leitura.</div>
+              ? <div className={s.empty}><span className={s.emptyIcon}>📭</span>Sem histórico suficiente para esta combinação de filtros. Ajuste UF, segmento ou período para ampliar a leitura.</div>
               : <QuadrantMatrix />}
           </div>
 
@@ -865,7 +1053,8 @@ export default function AdminEstudoMercado() {
               {importandoGsc ? '⏳ Importando…' : '🔍 Importar do Google Search Console'}
             </button>
             {gscResult && <span style={{ fontSize: '0.78rem', color: gscResult.startsWith('Erro') ? '#dc2626' : '#166534', fontWeight: 500 }}>{gscResult}</span>}
-            <input ref={fileRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={importarCSV} />
+            <button className={s.btnSecundario} onClick={exportarBuscaRegional} disabled={kwFiltradas.length === 0}>📤 Exportar CSV</button>
+            <input ref={fileRef} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={importarCSV} />
             <input
               className={s.searchInput}
               placeholder="Buscar termo ou cluster…"
@@ -920,7 +1109,7 @@ export default function AdminEstudoMercado() {
                   <tr><td colSpan={9} className={s.loading}>Carregando…</td></tr>
                 )}
                 {!loadingKw && kwFiltradas.length === 0 && (
-                  <tr><td colSpan={9} className={s.empty}>Nenhuma keyword cadastrada para este recorte. Importe termos para liberar o cruzamento entre demanda e vendas.</td></tr>
+                  <tr><td colSpan={9} className={s.empty}><span className={s.emptyIcon}>📭</span>Nenhuma keyword cadastrada para este recorte. Importe termos para liberar o cruzamento entre demanda e vendas.</td></tr>
                 )}
                 {kwFiltradas.map(k => (
                   <tr key={k.id}>
@@ -986,7 +1175,9 @@ export default function AdminEstudoMercado() {
               style={{ marginTop: 18 }}>
               {importandoExt ? 'Importando…' : '📥 Importar Google KP / CSV'}
             </button>
-            <input ref={fileRefExt} type="file" accept=".csv" style={{ display: 'none' }} onChange={importarGKP} />
+            <button className={s.btnSecundario} onClick={exportarExternas} disabled={kwExternas.length === 0}
+              style={{ marginTop: 18 }}>📤 Exportar CSV</button>
+            <input ref={fileRefExt} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={importarGKP} />
 
             <div style={{ width: 1, height: 32, background: '#d0d7de', margin: '0 4px', alignSelf: 'flex-end', marginBottom: 2 }} />
 
@@ -1014,6 +1205,7 @@ export default function AdminEstudoMercado() {
 
           {kwExternas.length === 0 ? (
             <div className={s.empty} style={{ padding: 40 }}>
+              <span className={s.emptyIcon}>📭</span>
               <strong>Nenhum dado externo cadastrado.</strong><br /><br />
               Importe um CSV do Google Keyword Planner ou no formato estendido:<br />
               <code style={{ fontSize: '0.75rem', color: '#555' }}>
@@ -1184,9 +1376,11 @@ export default function AdminEstudoMercado() {
       {tab === 'cruzamento' && (
         <>
           <div className={s.section}>
-            <div className={s.sectionTitle}>Busca Regional × Vendas Pousinox® por UF <span>(normalizado 0–100)</span></div>
+            <div className={s.sectionTitle}>Busca Regional × Vendas Pousinox® por UF <span>(normalizado 0–100)</span>
+              {crossing.length > 0 && <button className={s.btnSecundario} onClick={exportarCruzamento} style={{ marginLeft: 'auto', fontSize: '0.78rem', padding: '4px 12px' }}>📤 Exportar CSV</button>}
+            </div>
             {crossing.length === 0 ? (
-              <div className={s.empty}>Importe keywords com UF preenchida para ativar o cruzamento entre demanda de busca e histórico de vendas.</div>
+              <div className={s.empty}><span className={s.emptyIcon}>📭</span>Importe keywords com UF preenchida para ativar o cruzamento entre demanda de busca e histórico de vendas.</div>
             ) : (
               <>
                 <div className={s.chartCard} style={{ marginBottom: 24 }}>
@@ -1259,28 +1453,255 @@ export default function AdminEstudoMercado() {
             <div className={s.sectionTitle}>Recomendações acionáveis <span>{recomendacoes.length} insights gerados</span></div>
             {recomendacoes.length === 0 ? (
               <div className={s.empty}>
+                <span className={s.emptyIcon}>📭</span>
                 Importe keywords com UF e segmento preenchidos para gerar recomendações automáticas de prospecção, conteúdo e priorização comercial.
               </div>
             ) : (
               <div className={s.recomList}>
                 {recomendacoes.map((r, i) => (
                   <div key={i} className={`${s.recomCard} ${s[`recom-${r.tipo}`]}`}>
-                    <span className={s.recomTipo}>{
-                      r.tipo === 'oportunidade' ? '🟢 Oportunidade'
-                      : r.tipo === 'validado' ? '🔵 Mercado validado'
-                      : r.tipo === 'atencao' ? '🟡 Atenção'
-                      : '⚪ Baixa prioridade'
+                    <span className={s.recomIcone}>{
+                      r.tipo === 'oportunidade' ? '🚀'
+                      : r.tipo === 'validado' ? '✅'
+                      : r.tipo === 'atencao' ? '⚠️'
+                      : '➖'
                     }</span>
-                    <span className={s.recomTexto}>{r.titulo}</span>
-                    <span className={s.recomSub}>{r.sub}</span>
-                    <div className={s.recomChips}>
-                      {r.chips.map((c, j) => <span key={j} className={s.chip}>{c}</span>)}
+                    <div className={s.recomContent}>
+                      <span className={s.recomTipo}>{
+                        r.tipo === 'oportunidade' ? '🟢 Oportunidade'
+                        : r.tipo === 'validado' ? '🔵 Mercado validado'
+                        : r.tipo === 'atencao' ? '🟡 Atenção'
+                        : '⚪ Baixa prioridade'
+                      }</span>
+                      <span className={s.recomTexto}>{r.titulo}</span>
+                      <span className={s.recomSub}>{r.sub}</span>
+                      <div className={s.recomChips}>
+                        {r.chips.map((c, j) => <span key={j} className={s.chip}>{c}</span>)}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
+        </>
+      )}
+      {/* ── Tab: Concorrência ── */}
+      {tab === 'concorrencia' && (
+        <>
+          {loadingConc && <div className={s.loading}>Carregando concorrentes…</div>}
+          {!loadingConc && concorrentes.length === 0 && (
+            <div className={s.empty}><span className={s.emptyIcon}>🏢</span>Nenhum concorrente identificado na base de prospecção.</div>
+          )}
+          {!loadingConc && concorrentes.length > 0 && (
+            <>
+              {/* Resumo explicativo */}
+              <div className={s.resumoCard}>
+                <span className={s.resumoIcone}>🏢</span>
+                <p className={s.resumoTexto}>
+                  Concorrentes identificados automaticamente na base de 800K empresas por termos como "inox", "metalúrgica", "cozinha industrial" e "fixador" no nome.
+                  Compare a presença deles com seu faturamento por UF para encontrar mercados onde você domina, disputa ou tem risco.
+                </p>
+              </div>
+
+              {/* Termos de busca */}
+              <div className={s.filtros} style={{ marginBottom: 16 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#555', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 4 }}>Termos de busca</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                    {termosConc.map(t => (
+                      <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#e8f0f8', color: '#1a3a5c', padding: '3px 10px', borderRadius: 12, fontSize: '0.78rem', fontWeight: 600 }}>
+                        {t}
+                        <button type="button" onClick={() => { const novos = termosConc.filter(x => x !== t); setTermosConc(novos); carregarConcorrentes(novos) }}
+                          style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.9rem', lineHeight: 1, padding: 0 }}>×</button>
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <input className={s.searchInput} style={{ minWidth: 180 }} placeholder="Adicionar termo (ex: caldeiraria)" value={novoTermo}
+                      onChange={e => setNovoTermo(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' && novoTermo.trim()) {
+                          const novos = [...termosConc, novoTermo.trim().toLowerCase()]
+                          setTermosConc(novos); setNovoTermo(''); carregarConcorrentes(novos)
+                        }
+                      }} />
+                    <button className={s.btnPrimario} disabled={!novoTermo.trim()} onClick={() => {
+                      const novos = [...termosConc, novoTermo.trim().toLowerCase()]
+                      setTermosConc(novos); setNovoTermo(''); carregarConcorrentes(novos)
+                    }}>+ Adicionar</button>
+                    {termosConc.length !== TERMOS_CONCORRENTE_DEFAULT.length && (
+                      <button className={s.btnSecundario} onClick={() => { setTermosConc(TERMOS_CONCORRENTE_DEFAULT); carregarConcorrentes(TERMOS_CONCORRENTE_DEFAULT) }}>Restaurar padrão</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* KPIs */}
+              <div className={s.kpiGrid}>
+                <div className={s.kpiCard}>
+                  <span className={s.kpiLabel}>Total concorrentes</span>
+                  <span className={s.kpiValor}>{fmtNum(concFiltrados.length)}</span>
+                  <span className={s.kpiSub}>Empresas com termos de concorrência no nome</span>
+                </div>
+                <div className={s.kpiCard}>
+                  <span className={s.kpiLabel}>UFs com concorrentes</span>
+                  <span className={s.kpiValor}>{concPorUF.length}</span>
+                  <span className={s.kpiSub}>Dispersão geográfica da concorrência</span>
+                </div>
+                <div className={s.kpiCard}>
+                  <span className={s.kpiLabel}>Top UF</span>
+                  <span className={s.kpiValor}>{concPorUF[0]?.uf ?? '—'}</span>
+                  <span className={s.kpiSub}>{concPorUF[0] ? `${fmtNum(concPorUF[0].qtd)} empresas — maior concentração` : ''}</span>
+                </div>
+                <div className={s.kpiCard}>
+                  <span className={s.kpiLabel}>% clientes ativos</span>
+                  <span className={s.kpiValor}>{concFiltrados.length ? `${((concFiltrados.filter(c => c.cliente_ativo).length / concFiltrados.length) * 100).toFixed(1)}%` : '0%'}</span>
+                  <span className={s.kpiSub}>Concorrentes que já compram de você</span>
+                </div>
+              </div>
+
+              {/* Charts */}
+              <div className={s.chartRow}>
+                <div className={s.chartCard}>
+                  <div className={s.chartCardTitle}>Concorrentes por UF</div>
+                  <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: 8 }}>Onde a concorrência está concentrada — compare com suas vendas</p>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={concPorUF.slice(0, 12)} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="uf" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Bar dataKey="qtd" name="Concorrentes" fill="#1a3a5c" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className={s.chartCard}>
+                  <div className={s.chartCardTitle}>Concorrentes por porte</div>
+                  <p style={{ fontSize: '0.75rem', color: '#888', marginBottom: 8 }}>Maioria micro = sua estrutura é vantagem competitiva</p>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={concPorPorte} layout="vertical" margin={{ top: 5, right: 20, bottom: 5, left: 80 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tick={{ fontSize: 11 }} />
+                      <YAxis type="category" dataKey="porte" tick={{ fontSize: 11 }} width={75} />
+                      <Tooltip />
+                      <Bar dataKey="qtd" name="Empresas" fill="#2980b9" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Comparativo UF */}
+              <div className={s.section}>
+                <div className={s.sectionTitle}>Comparativo por UF <span>{comparativoUF.length} UFs</span></div>
+                <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: 12, lineHeight: 1.6 }}>
+                  🟢 <strong>Dominante</strong> = você vende e tem poucos concorrentes — proteger.{' '}
+                  🟡 <strong>Disputado</strong> = muitos concorrentes e você também vende — diferenciar.{' '}
+                  🔴 <strong>Risco</strong> = muitos concorrentes e você não vende — investigar.{' '}
+                  ⚪ <strong>Livre</strong> = poucos concorrentes e pouca venda — avaliar demanda real.
+                </p>
+                <div className={s.tableWrap}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>UF</th>
+                        <th>Concorrentes</th>
+                        <th>Faturamento Pousinox</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {comparativoUF.map(r => {
+                        const hasFat = r.faturamento > 0
+                        const highConc = r.concorrentes >= 10
+                        const status = hasFat && !highConc ? 'dominante' : hasFat && highConc ? 'disputado' : !hasFat && highConc ? 'risco' : 'livre'
+                        const statusLabel = status === 'dominante' ? 'Dominante' : status === 'disputado' ? 'Disputado' : status === 'risco' ? 'Risco' : 'Livre'
+                        return (
+                          <tr key={r.uf}>
+                            <td><strong>{r.uf}</strong></td>
+                            <td>{fmtNum(r.concorrentes)}</td>
+                            <td>{r.faturamento > 0 ? fmtBRL(r.faturamento) : '—'}</td>
+                            <td><span className={`${s.badgeStatus} ${s[`status-${status}`]}`}>{statusLabel}</span></td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Top 10 cidades */}
+              <div className={s.section}>
+                <div className={s.sectionTitle}>Top 10 cidades com mais concorrentes</div>
+                <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: 12, lineHeight: 1.6 }}>
+                  Cidades com maior concentração de concorrentes. As próximas a Pouso Alegre representam ameaça direta — as distantes podem ser oportunidade de expansão.
+                </p>
+                <div className={s.tableWrap}>
+                  <table>
+                    <thead><tr><th>#</th><th>Cidade</th><th>UF</th><th>Concorrentes</th></tr></thead>
+                    <tbody>
+                      {densidadeTop.map((d, i) => (
+                        <tr key={`${d.cidade}-${d.uf}`}>
+                          <td>{i + 1}</td>
+                          <td>{d.cidade}</td>
+                          <td>{d.uf}</td>
+                          <td>{fmtNum(d.qtd)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Lista de concorrentes */}
+              <div className={s.section}>
+                <div className={s.sectionTitle}>Lista de concorrentes <span>{fmtNum(concFiltrados.length)} registros</span></div>
+                <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: 12, lineHeight: 1.6 }}>
+                  Empresas identificadas por termos no nome. "Cliente: Sim" indica que a empresa já compra da Pousinox (revendedor ou parceiro, não necessariamente ameaça).
+                </p>
+                <div className={s.toolbar}>
+                  <input className={s.searchInput} placeholder="Buscar por razão social ou fantasia…" value={buscaConc} onChange={e => setBuscaConc(e.target.value)} />
+                  <select value={filtroUFConc} onChange={e => setFiltroUFConc(e.target.value)} style={{ padding: '7px 10px', border: '1px solid #d0d7de', borderRadius: 6, fontSize: '0.83rem' }}>
+                    <option value="">Todas UFs</option>
+                    {ufsConc.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                  </select>
+                  <button className={s.btnSecundario} onClick={() => {
+                    const header = 'CNPJ;Razão Social;Nome Fantasia;Cidade;UF;Porte;Segmento;Cliente Ativo'
+                    const rows = concFiltrados.map(c => [c.cnpj, c.razao_social ?? '', c.nome_fantasia ?? '', c.cidade ?? '', c.uf ?? '', c.porte ?? '', c.segmento ?? '', c.cliente_ativo ? 'Sim' : 'Não'].join(';'))
+                    const csv = [header, ...rows].join('\n')
+                    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a'); a.href = url; a.download = 'concorrentes.csv'; a.click(); URL.revokeObjectURL(url)
+                  }}>📥 Exportar CSV</button>
+                </div>
+                <div className={s.tableWrap}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Razão Social</th>
+                        <th>Nome Fantasia</th>
+                        <th>Cidade / UF</th>
+                        <th>Porte</th>
+                        <th>Cliente?</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {concFiltrados.slice(0, 200).map(c => (
+                        <tr key={c.id}>
+                          <td>{c.razao_social ?? '—'}</td>
+                          <td>{c.nome_fantasia ?? '—'}</td>
+                          <td>{c.cidade ?? '—'} / {c.uf ?? '—'}</td>
+                          <td>{c.porte ?? '—'}</td>
+                          <td><span className={`${s.badgeCliente} ${c.cliente_ativo ? s['cliente-sim'] : s['cliente-nao']}`}>{c.cliente_ativo ? 'Sim' : 'Não'}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {concFiltrados.length > 200 && <div className={s.kpiSub} style={{ textAlign: 'center', padding: 12 }}>Exibindo 200 de {fmtNum(concFiltrados.length)} resultados. Use os filtros para refinar.</div>}
+                </div>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

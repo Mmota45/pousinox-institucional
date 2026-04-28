@@ -52,9 +52,10 @@ const ROTA_PERMISSAO: Record<string, string> = {
   site: 'site',
   'dashboard-bi': 'relatorios',
   'central-vendas': 'central-vendas',
+  ia: 'ia',
 }
 
-const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao', 'clientes', 'produtos', 'projetos', 'fornecedores', 'financeiro', 'campanhas', 'conciliacao', 'pipeline', 'producao', 'qualidade', 'manutencao', 'solicitacoes-compra', 'cotacoes-compra', 'pedidos-compra', 'recebimentos-compra', 'estoque-mp', 'estoque-pa', 'inventario', 'docs-recebidos', 'docs-emitidos', 'bens-frota', 'estudo-mercado', 'configuracao-financeiro', 'cartoes', 'frete', 'pedidos-outlet', 'feature-flags', 'assistente', 'site', 'central-vendas']
+const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao', 'clientes', 'produtos', 'projetos', 'fornecedores', 'financeiro', 'campanhas', 'conciliacao', 'pipeline', 'producao', 'qualidade', 'manutencao', 'solicitacoes-compra', 'cotacoes-compra', 'pedidos-compra', 'recebimentos-compra', 'estoque-mp', 'estoque-pa', 'inventario', 'docs-recebidos', 'docs-emitidos', 'bens-frota', 'estudo-mercado', 'configuracao-financeiro', 'cartoes', 'frete', 'pedidos-outlet', 'feature-flags', 'assistente', 'site', 'central-vendas', 'ia']
 
 interface NavItem {
   to: string
@@ -563,6 +564,16 @@ const NAV_ITEMS: NavItem[] = [
         <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/>
         <path d="M8 14h8a4 4 0 0 1 4 4v2H4v-2a4 4 0 0 1 4-4z"/>
         <circle cx="9" cy="7" r="0.5" fill="currentColor"/><circle cx="15" cy="7" r="0.5" fill="currentColor"/>
+      </svg>
+    ),
+  },
+  {
+    to: '/admin/ia',
+    label: 'Hub de IA',
+    permissao: 'ia',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
       </svg>
     ),
   },

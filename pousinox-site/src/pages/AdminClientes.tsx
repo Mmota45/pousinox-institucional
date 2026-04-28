@@ -152,6 +152,69 @@ export default function AdminClientes() {
     if (ok > 0) buscarClientes()
   }
 
+  // Normalização de segmentos
+  const [normalizando, setNormalizando] = useState(false)
+  const [normProgresso, setNormProgresso] = useState('')
+
+  const SEGMENTO_ALIAS: Record<string, string> = {
+    'Comércio varejista de mercado': 'Supermercados',
+    'Comércio varejista de mercadorias em geral': 'Supermercados',
+    'Comércio varejista de mercadorias em geral, com predominância de produtos alimentícios - supermercados': 'Supermercados',
+    'Atacado': 'Supermercados',
+    'Comércio atacadista de mercado': 'Supermercados',
+    'Comércio atacadista de mercadorias em geral': 'Supermercados',
+    'Comércio atacadista': 'Supermercados',
+    'Restaurantes e similares': 'Restaurantes',
+    'Restaurantes e outros': 'Restaurantes',
+    'Lanchonetes, casas de chá, de sucos e similares': 'Restaurantes',
+    'Panificação': 'Padarias e Confeitarias',
+    'Padaria': 'Padarias e Confeitarias',
+    'Padarias': 'Padarias e Confeitarias',
+    'Confeitaria': 'Padarias e Confeitarias',
+    'Confeitarias': 'Padarias e Confeitarias',
+    'Hotéis': 'Hotelaria',
+    'Hotéis e similares': 'Hotelaria',
+    'Alojamento': 'Hotelaria',
+    'Hospitalar': 'Saúde',
+    'Hospital': 'Saúde',
+    'Hospitais': 'Saúde',
+    'Laboratórios': 'Saúde',
+    'Laboratório': 'Saúde',
+    'Fabricação de medicamentos alopáticos para uso humano': 'Saúde',
+    'Fabricação de medicamentos': 'Saúde',
+    'Atividades de atendimento em pronto-socorro e unidades hospitalares': 'Saúde',
+    'Atividades de atendimento hospitalar': 'Saúde',
+    'Fabricação de máquinas e equipamentos': 'Indústria',
+    'Comércio varejista especializado de eletrodomésticos': 'Varejo Especializado',
+    'Comércio varejista especializado': 'Varejo Especializado',
+  }
+
+  async function normalizarSegmentos() {
+    setNormalizando(true)
+    let total = 0
+    for (const [de, para] of Object.entries(SEGMENTO_ALIAS)) {
+      setNormProgresso(`Normalizando "${de}" → "${para}"...`)
+      // Match exato
+      const { count: c1 } = await supabaseAdmin
+        .from('clientes')
+        .update({ segmento: para })
+        .eq('segmento', de)
+        .select('*', { count: 'exact', head: true })
+      // Match por prefixo (CNAE truncado)
+      const { count: c2 } = await supabaseAdmin
+        .from('clientes')
+        .update({ segmento: para })
+        .like('segmento', `${de}%`)
+        .neq('segmento', para)
+        .select('*', { count: 'exact', head: true })
+      const count = (c1 || 0) + (c2 || 0)
+      total += count || 0
+    }
+    setNormProgresso(`✅ ${total} clientes normalizados`)
+    setNormalizando(false)
+    if (total > 0) buscarClientes()
+  }
+
   // NFs Recebidas
   const [arquivoRecCab,   setArquivoRecCab]   = useState<File | null>(null)
   const [arquivoRecItens, setArquivoRecItens] = useState<File | null>(null)
@@ -816,10 +879,18 @@ export default function AdminClientes() {
             <button className={styles.buscarBtn} onClick={enriquecerClientes} disabled={enriquecendo} style={{ marginLeft: 8, background: '#059669' }}>
               {enriquecendo ? '⏳ Enriquecendo...' : '🔄 Enriquecer cadastros'}
             </button>
+            <button className={styles.buscarBtn} onClick={normalizarSegmentos} disabled={normalizando} style={{ marginLeft: 8, background: '#7c3aed' }}>
+              {normalizando ? '⏳ Normalizando...' : '🏷 Normalizar segmentos'}
+            </button>
           </div>
           {enriqProgresso && (
             <div style={{ padding: '8px 12px', fontSize: '0.8rem', color: enriqProgresso.startsWith('✅') ? '#059669' : '#64748b', background: '#f0fdf4', borderRadius: 6, marginTop: 8 }}>
               {enriqProgresso}
+            </div>
+          )}
+          {normProgresso && (
+            <div style={{ padding: '8px 12px', fontSize: '0.8rem', color: normProgresso.startsWith('✅') ? '#7c3aed' : '#64748b', background: '#f5f3ff', borderRadius: 6, marginTop: 8 }}>
+              {normProgresso}
             </div>
           )}
 

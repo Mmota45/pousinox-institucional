@@ -1,0 +1,363 @@
+/* Dashboard BI — Premium Analytics */
+
+.page {
+  padding: 24px 28px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  font-size: 0.78rem;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+
+/* KPI Grid */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpiCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: box-shadow 0.15s;
+}
+
+.kpiCard:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+.kpiIcon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.kpiLabel {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+}
+
+.kpiValRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.kpiVal {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.kpiDelta {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.kpiDeltaUp {
+  color: #065f46;
+  background: #d1fae5;
+}
+
+.kpiDeltaDown {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.kpiSub {
+  font-size: 0.6rem;
+  color: #64748b;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+/* Chart rows */
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.cardActive {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.1), 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.cardTitle {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 14px;
+  letter-spacing: -0.01em;
+}
+
+.cardFilter {
+  font-weight: 500;
+  color: #3b82f6;
+  font-size: 0.72rem;
+}
+
+.noData {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+/* ── Segment Pie + List ── */
+.segRow {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.segList {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 4px;
+}
+
+.segItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s;
+  font-size: 0.68rem;
+}
+
+.segItem:hover { background: #f8fafc; }
+.segItemActive { background: #eff6ff; }
+
+.segDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.segName {
+  flex: 1;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.segPct {
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+  min-width: 32px;
+  text-align: right;
+}
+
+.segVal {
+  font-weight: 500;
+  color: #94a3b8;
+  font-variant-numeric: tabular-nums;
+  min-width: 55px;
+  text-align: right;
+  font-size: 0.62rem;
+}
+
+@media (max-width: 640px) {
+  .segRow { flex-direction: column; }
+  .segList { width: 100%; }
+}
+
+/* ── Compare Banner ── */
+.compareBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.compareBannerIcon { font-size: 0.9rem; }
+
+.compareBannerToggle {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid #fbbf24;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #92400e;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.1s;
+}
+.compareBannerToggle:hover { background: #fef3c7; }
+.compareBannerToggleOff { opacity: 0.6; border-style: dashed; }
+
+/* ── Custom Tooltip ── */
+.tooltip {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+  min-width: 160px;
+}
+
+.tooltipLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.tooltipRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.tooltipDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tooltipName {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-weight: 500;
+  flex: 1;
+}
+
+.tooltipValue {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltipDelta {
+  margin-top: 4px;
+  padding-top: 5px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.tooltipDeltaUp { color: #059669; }
+.tooltipDeltaDown { color: #dc2626; }
+
+/* ── Chart Legend ── */
+.chartLegend {
+  display: flex;
+  gap: 16px;
+  padding: 0 0 6px;
+  justify-content: flex-end;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.legendLine {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+.legendLineDashed {
+  width: 16px;
+  height: 0;
+  border-top: 2px dashed #94a3b8;
+}
+
+/* Responsive */
+@media (max-width: 1100px) {
+  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
+  .row2 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .page { padding: 16px 12px 32px; }
+  .kpiGrid { grid-template-columns: 1fr; }
+  .title { font-size: 1.1rem; }
+}

@@ -1,12 +1,63 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../../contexts/CartContext'
+import { supabase } from '../../lib/supabase'
 import styles from './CartDrawer.module.css'
+
+interface OpcaoFrete {
+  servico: string
+  codigo: string
+  preco: number
+  prazo: number
+  prazo_texto?: string
+  erro: string | null
+}
 
 function CartDrawer() {
   const { items, removeItem, updateQtd, totalItens, totalPreco, drawerOpen, setDrawerOpen } = useCart()
   const navigate = useNavigate()
 
+  const [cep, setCep] = useState('')
+  const [freteLoading, setFreteLoading] = useState(false)
+  const [freteOpcoes, setFreteOpcoes] = useState<OpcaoFrete[]>([])
+  const [freteErro, setFreteErro] = useState<string | null>(null)
+  const [freteSel, setFreteSel] = useState(-1)
+
   const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+
+  const calcularFrete = async () => {
+    const cepLimpo = cep.replace(/\D/g, '')
+    if (cepLimpo.length !== 8) { setFreteErro('CEP inválido'); return }
+    setFreteLoading(true)
+    setFreteErro(null)
+    setFreteOpcoes([])
+    setFreteSel(-1)
+
+    const pesoTotal = items.reduce((s, i) => s + (i.peso_kg || 0) * i.quantidade, 0)
+    const maxDim = (campo: 'comprimento_cm' | 'largura_cm' | 'altura_cm') =>
+      Math.max(...items.map(i => i[campo] || 0))
+
+    try {
+      const { data, error } = await supabase.functions.invoke('calcular-frete', {
+        body: {
+          cep_destino: cepLimpo,
+          peso_kg: pesoTotal || 1,
+          comprimento_cm: maxDim('comprimento_cm') || 20,
+          largura_cm: maxDim('largura_cm') || 15,
+          altura_cm: maxDim('altura_cm') || 10,
+        }
+      })
+      if (error) throw error
+      const validas = (data?.opcoes || []).filter((o: OpcaoFrete) => !o.erro)
+      if (validas.length === 0) { setFreteErro('Sem opções de frete para este CEP'); return }
+      setFreteOpcoes(validas)
+      setFreteSel(0)
+    } catch {
+      setFreteErro('Erro ao calcular frete')
+    } finally {
+      setFreteLoading(false)
+    }
+  }
 
   return (
     <>
@@ -60,6 +111,50 @@ function CartDrawer() {
               <span className={styles.totalLabel}>Subtotal</span>
               <span>R$ {fmtBRL(totalPreco)}</span>
             </div>
+
+            <div className={styles.freteBox}>
+              <label className={styles.freteLabel}>Calcular frete</label>
+              <div className={styles.freteInputRow}>
+                <input
+                  className={styles.freteInput}
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="00000-000"
+                  maxLength={9}
+                  value={cep}
+                  onChange={e => {
+                    let v = e.target.value.replace(/\D/g, '')
+                    if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5, 8)
+                    setCep(v)
+                  }}
+                  onKeyDown={e => e.key === 'Enter' && calcularFrete()}
+                />
+                <button className={styles.freteBtn} onClick={calcularFrete} disabled={freteLoading}>
+                  {freteLoading ? '...' : 'OK'}
+                </button>
+              </div>
+              {freteErro && <div className={styles.freteErro}>{freteErro}</div>}
+              {freteOpcoes.length > 0 && (
+                <div className={styles.freteOpcoes}>
+                  {freteOpcoes.map((op, i) => (
+                    <label key={op.codigo} className={`${styles.freteOpcao} ${freteSel === i ? styles.freteOpcaoSel : ''}`}>
+                      <input type="radio" name="frete" checked={freteSel === i} onChange={() => setFreteSel(i)} />
+                      <span className={styles.freteServico}>{op.servico}</span>
+                      <span className={styles.fretePrazo}>{op.prazo_texto || `${op.prazo} dias úteis`}</span>
+                      <span className={styles.fretePreco}>R$ {fmtBRL(op.preco)}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {freteSel >= 0 && (
+              <div className={styles.totalRow}>
+                <span className={styles.totalLabel}>Total</span>
+                <span className={styles.totalGrand}>R$ {fmtBRL(totalPreco + freteOpcoes[freteSel].preco)}</span>
+              </div>
+            )}
+
             <button className={styles.btnFinalizar} onClick={() => { setDrawerOpen(false); navigate('/checkout') }}>
               Finalizar compra
             </button>

@@ -4,6 +4,7 @@ import logoIcon from '../../assets/logo-icon.png'
 import { segmentos } from '../../data/segmentos'
 import Search from '../Search/Search'
 import { useCart } from '../../contexts/CartContext'
+import { usePublicFlag } from '../../hooks/useFeatureFlags'
 import styles from './Header.module.css'
 
 const CORTE_LASER = '/servicos/corte-laser'
@@ -16,6 +17,7 @@ export default function Header() {
   const isFixador = !!useMatch({ path: '/fixador-porcelanato', end: false })
 
   const { totalItens, setDrawerOpen } = useCart()
+  const checkoutAtivo = usePublicFlag('checkout')
   const closeAll = () => { setProdOpen(false); setFixadorOpen(false) }
 
   useEffect(() => {
@@ -93,13 +95,17 @@ export default function Header() {
         Pronta Entrega
       </NavLink>
 
-      <button className={styles.cartBtn} onClick={() => setDrawerOpen(true)} aria-label="Carrinho">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-          <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
-        </svg>
-        {totalItens > 0 && <span className={styles.cartBadge}>{totalItens}</span>}
-      </button>
+      {checkoutAtivo && (
+        <button className={styles.cartBtn} onClick={() => setDrawerOpen(true)} aria-label="Carrinho">
+          <span className={styles.cartIconWrap}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+              <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+            </svg>
+            {totalItens > 0 && <span className={styles.cartBadge}>{totalItens}</span>}
+          </span>
+        </button>
+      )}
     </>
   )
 
@@ -141,13 +147,17 @@ export default function Header() {
               <NavLink to="/pronta-entrega" className={styles.mobileOutletBadge} onClick={() => setMenuOpen(false)}>
                 Pronta Entrega
               </NavLink>
-              <button className={styles.cartBtn} onClick={() => setDrawerOpen(true)} aria-label="Carrinho">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
-                </svg>
-                {totalItens > 0 && <span className={styles.cartBadge}>{totalItens}</span>}
-              </button>
+              {checkoutAtivo && (
+                <button className={styles.cartBtn} onClick={() => setDrawerOpen(true)} aria-label="Carrinho">
+                  <span className={styles.cartIconWrap}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                      <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>
+                    </svg>
+                    {totalItens > 0 && <span className={styles.cartBadge}>{totalItens}</span>}
+                  </span>
+                </button>
+              )}
               <button className={styles.hamburger} onClick={() => setMenuOpen(!menuOpen)} aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'} aria-expanded={menuOpen}>
                 <span className={`${styles.bar} ${menuOpen ? styles.barOpen1 : ''}`} />
                 <span className={`${styles.bar} ${menuOpen ? styles.barOpen2 : ''}`} />

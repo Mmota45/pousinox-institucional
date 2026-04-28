@@ -226,6 +226,29 @@ function RenderResponse({ text, onFollowUp }: { text: string; onFollowUp?: (q: s
   const hasModelHighlights = blocks.some(b => b.type === 'highlights')
   const generatedHighlights = hasModelHighlights ? [] : autoHighlights(rows, hdr)
 
+  // Export functions
+  const exportCSV = () => {
+    const allHdr = showPct ? [...hdr, '%'] : hdr
+    const csvRows = [allHdr.join(';'), ...rows.map((r, i) => {
+      const row = showPct ? [...r, (moneyVals[i] / moneyTotal * 100).toFixed(2) + '%'] : r
+      return row.join(';')
+    })]
+    const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `${titleBlock.content.replace(/[^a-zA-Z0-9]/g, '_')}.csv`; a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const copyTable = () => {
+    const allHdr = showPct ? [...hdr, '%'] : hdr
+    const txt = [allHdr.join('\t'), ...rows.map((r, i) => {
+      const row = showPct ? [...r, (moneyVals[i] / moneyTotal * 100).toFixed(2) + '%'] : r
+      return row.join('\t')
+    })].join('\n')
+    navigator.clipboard.writeText(txt)
+  }
+
   return (
     <div className={s.reportCard}>
       <div className={s.reportHeader}>
@@ -243,6 +266,12 @@ function RenderResponse({ text, onFollowUp }: { text: string; onFollowUp?: (q: s
         </div>
       )}
 
+      {rows.length > 0 && (
+        <div className={s.tableActions}>
+          <button className={s.tableActionBtn} onClick={exportCSV} title="Baixar CSV">📥 CSV</button>
+          <button className={s.tableActionBtn} onClick={copyTable} title="Copiar tabela">📋 Copiar</button>
+        </div>
+      )}
       {rows.length > 0 && (
         <div className={s.tableWrap}>
           <table className={s.table}>
@@ -683,8 +712,11 @@ export default function AdminAssistente() {
       <div className={s.sidebar}>
         <div className={s.sideHead}>🤖 Assistente</div>
         <div className={s.sideSection}>Consultas rápidas</div>
-        {PRESETS.map((p, i) => (
-          <button key={i} className={s.sideBtn} onClick={() => enviar(p.prompt)} disabled={loading}>
+        {[...PRESETS].sort((a, b) => {
+          const usage = JSON.parse(localStorage.getItem('assistente_preset_usage') || '{}')
+          return (usage[b.label] || 0) - (usage[a.label] || 0)
+        }).map((p, i) => (
+          <button key={i} className={s.sideBtn} onClick={() => { const u = JSON.parse(localStorage.getItem('assistente_preset_usage') || '{}'); u[p.label] = (u[p.label] || 0) + 1; localStorage.setItem('assistente_preset_usage', JSON.stringify(u)); enviar(p.prompt) }} disabled={loading}>
             {p.label}
           </button>
         ))}
