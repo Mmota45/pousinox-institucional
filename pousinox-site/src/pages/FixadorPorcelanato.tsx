@@ -1,9 +1,11 @@
-import { useState, Fragment } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import fachadaPousinox from '../assets/fachada-pousinox.webp'
 import SEO from '../components/SEO/SEO'
 import SeloValidacao from '../components/SeloValidacao/SeloValidacao'
+import { useSiteConfig } from '../hooks/useSiteData'
+import { supabase } from '../lib/supabase'
 import styles from './FixadorPorcelanato.module.css'
 
 const PRODUCT_SCHEMA = {
@@ -237,6 +239,33 @@ const subpages = [
 
 export default function FixadorPorcelanato() {
   const [faqOpen, setFaqOpen] = useState<number | null>(null)
+  const { config } = useSiteConfig()
+  const [dbFaqs, setDbFaqs] = useState<{ id: number; pergunta: string; resposta: string }[]>([])
+
+  useEffect(() => {
+    supabase.from('site_faq').select('id, pergunta, resposta').eq('ativo', true).eq('categoria', 'fixador').order('ordem')
+      .then(({ data }) => { if (data?.length) setDbFaqs(data) })
+  }, [])
+
+  // Textos dinâmicos com fallback para hardcoded
+  const c = config
+  const heroEyebrow = c.fixador_hero_eyebrow || 'Reforço mecânico · Pousinox®'
+  const heroTitle = c.fixador_hero_titulo || 'Fixador de Porcelanato em Aço Inox'
+  const heroSub = c.fixador_hero_subtitulo || 'Reforço mecânico obrigatório para porcelanatos de grande formato, fachadas externas e revestimentos especiais. Quando a argamassa cede, o fixador mantém a placa no lugar — evitando quedas e acidentes.'
+  const introEyebrow = c.fixador_intro_eyebrow || 'Por que usar ancoragem mecânica?'
+  const introTitulo = c.fixador_intro_titulo || 'A argamassa sozinha não é suficiente'
+  const introP1 = c.fixador_intro_p1 || 'Porcelanatos de grande formato, fachadas externas e revestimentos sujeitos a variações térmicas e vibração sofrem com a fadiga da argamassa ao longo do tempo. Quando a aderência cede, a queda é abrupta — e pode causar acidentes graves.'
+  const introP2 = c.fixador_intro_p2 || 'O Fixador de Porcelanato Pousinox® é o reforço mecânico que garante a retenção da placa independente da argamassa: mesmo que ela perca aderência ao longo do tempo, o fixador mantém a placa no lugar — eliminando o risco de desprendimento.'
+  const lamatTitulo = c.fixador_lamat_titulo || 'Resistência mecânica comprovada pelo LAMAT/SENAI'
+  const lamatDesc = c.fixador_lamat_desc || 'O Fixador Pousinox® foi submetido a ensaios de resistência mecânica pelo LAMAT/SENAI, laboratório independente. Os ensaios avaliaram diferentes configurações de abertura — compatíveis com diversas espessuras de porcelanato — e comprovam a eficácia do produto em aplicações profissionais de fachada e revestimento.'
+  const empTitulo = c.fixador_empreiteiras_titulo || 'Por que especificar o Fixador Pousinox®?'
+  const empSubtitulo = c.fixador_empreiteiras_subtitulo || 'Além da segurança técnica, oferecemos a infraestrutura comercial que grandes obras precisam para especificar com confiança.'
+  const ctaTitulo = c.fixador_cta_titulo || 'Especifique o Fixador Pousinox® no seu próximo projeto'
+  const ctaSubtitulo = c.fixador_cta_subtitulo || 'Atendemos construtoras, empreiteiras e instaladores em todo o Brasil. Solicite orçamento ou fale diretamente com nossa equipe técnica.'
+  const waNum = c.whatsapp_numero || '553534238994'
+  const waMsgFixador = c.fixador_wa_mensagem || 'Olá, tenho interesse no Fixador de Porcelanato Pousinox. Pode me ajudar?'
+  const waLinkDynamic = `https://wa.me/${waNum}?text=${encodeURIComponent(waMsgFixador)}`
+  const activeFaqs = dbFaqs.length > 0 ? dbFaqs.map(f => ({ q: f.pergunta, a: f.resposta })) : faqs
 
   return (
     <>
@@ -259,23 +288,18 @@ export default function FixadorPorcelanato() {
         <div className={styles.heroOverlay} />
         <div className={`container ${styles.heroInner}`}>
           <div className={styles.heroContent}>
-            <span className={styles.heroEyebrow}>Reforço mecânico · Pousinox®</span>
+            <span className={styles.heroEyebrow}>{heroEyebrow}</span>
             <h1 className={styles.heroTitle}>
-              Fixador de<br />Porcelanato<br />
-              <span className={styles.heroHighlight}>em Aço Inox</span>
+              {heroTitle}
             </h1>
             <SeloValidacao />
-            <p className={styles.heroSubtitle}>
-              Reforço mecânico obrigatório para porcelanatos de grande formato,
-              fachadas externas e revestimentos especiais. Quando a argamassa cede,
-              o fixador mantém a placa no lugar — evitando quedas e acidentes.
-            </p>
+            <p className={styles.heroSubtitle}>{heroSub}</p>
             <div className={styles.heroCta}>
               <Link to="/fixador-porcelanato/orcamento" className="btn-primary">
                 Solicitar Orçamento
               </Link>
               <a
-                href={WA_LINK}
+                href={waLinkDynamic}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-whatsapp"
@@ -310,21 +334,10 @@ export default function FixadorPorcelanato() {
         <div className="container">
           <div className={styles.introGrid}>
             <div className={styles.introTexto}>
-              <span className={styles.eyebrow}>Por que usar ancoragem mecânica?</span>
-              <h2 className="section-title">
-                A argamassa sozinha não é suficiente
-              </h2>
-              <p>
-                Porcelanatos de grande formato, fachadas externas e revestimentos sujeitos a
-                variações térmicas e vibração sofrem com a fadiga da argamassa ao longo do tempo.
-                Quando a aderência cede, a queda é abrupta — e pode causar acidentes graves.
-              </p>
-              <p>
-                O Fixador de Porcelanato Pousinox® é o reforço mecânico que garante
-                a retenção da placa independente da argamassa: mesmo que ela perca
-                aderência ao longo do tempo, o fixador mantém a placa no lugar —
-                eliminando o risco de desprendimento.
-              </p>
+              <span className={styles.eyebrow}>{introEyebrow}</span>
+              <h2 className="section-title">{introTitulo}</h2>
+              <p>{introP1}</p>
+              <p>{introP2}</p>
               <div className={styles.introBullets}>
                 {[
                   'Ancoragem independente da argamassa',
@@ -447,17 +460,8 @@ export default function FixadorPorcelanato() {
           <div className={styles.lamatInner}>
             <div className={styles.lamatTexto}>
               <span className={styles.eyebrowLight}>Prova técnica independente</span>
-              <h2 className={styles.lamatTitle}>
-                Resistência mecânica comprovada pelo{' '}
-                <strong>LAMAT/SENAI</strong>
-              </h2>
-              <p className={styles.lamatDesc}>
-                O Fixador Pousinox® foi submetido a ensaios de resistência mecânica pelo
-                LAMAT/SENAI, laboratório independente. Os ensaios avaliaram diferentes
-                configurações de abertura — compatíveis com diversas espessuras de porcelanato
-                — e comprovam a eficácia do produto em aplicações profissionais de fachada
-                e revestimento.
-              </p>
+              <h2 className={styles.lamatTitle}>{lamatTitulo}</h2>
+              <p className={styles.lamatDesc}>{lamatDesc}</p>
               <div className={styles.lamatBullets}>
                 {[
                   'Ensaios realizados por laboratório independente',
@@ -489,11 +493,8 @@ export default function FixadorPorcelanato() {
         <div className="container">
           <div className={styles.sectionHead}>
             <span className={styles.eyebrow}>Para construtoras e empreiteiras</span>
-            <h2 className="section-title">Por que especificar o Fixador Pousinox®?</h2>
-            <p className="section-subtitle">
-              Além da segurança técnica, oferecemos a infraestrutura comercial que
-              grandes obras precisam para especificar com confiança.
-            </p>
+            <h2 className="section-title">{empTitulo}</h2>
+            <p className="section-subtitle">{empSubtitulo}</p>
           </div>
           <div className={styles.empreiteirasGrid}>
             {empreiteiras.map(e => (
@@ -515,7 +516,7 @@ export default function FixadorPorcelanato() {
             <h2 className="section-title">Perguntas mais comuns</h2>
           </div>
           <div className={styles.faqList}>
-            {faqs.map((f, i) => (
+            {activeFaqs.map((f, i) => (
               <div key={i} className={styles.faqItem}>
                 <button
                   className={styles.faqQuestion}
@@ -569,19 +570,14 @@ export default function FixadorPorcelanato() {
       <section className={styles.ctaSection}>
         <div className="container">
           <div className={styles.ctaBox}>
-            <h2 className={styles.ctaTitle}>
-              Especifique o Fixador Pousinox® no seu próximo projeto
-            </h2>
-            <p className={styles.ctaSubtitle}>
-              Atendemos construtoras, empreiteiras e instaladores em todo o Brasil.
-              Solicite orçamento ou fale diretamente com nossa equipe técnica.
-            </p>
+            <h2 className={styles.ctaTitle}>{ctaTitulo}</h2>
+            <p className={styles.ctaSubtitle}>{ctaSubtitulo}</p>
             <div className={styles.ctaActions}>
               <Link to="/fixador-porcelanato/orcamento" className="btn-primary">
                 Solicitar Orçamento
               </Link>
               <a
-                href={WA_LINK}
+                href={waLinkDynamic}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-whatsapp"

@@ -39,7 +39,7 @@ function Checkout() {
 
   const [step, setStep] = useState(0)
   const [produto, setProduto] = useState<ProdutoPublico | null>(null)
-  const [qtd] = useState(qtdParam)
+  const [_qtd] = useState(qtdParam) // eslint-disable-line
   // Itens do checkout: do carrinho ou produto único
   const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([])
   const [erro, setErro] = useState('')
@@ -105,7 +105,7 @@ function Checkout() {
         altura_cm: cart.items[0].altura_cm,
         comprimento_cm: cart.items[0].comprimento_cm,
         largura_cm: cart.items[0].largura_cm,
-      } as ProdutoPublico)
+      } as unknown as ProdutoPublico)
     }
   }, [produtoId])
 

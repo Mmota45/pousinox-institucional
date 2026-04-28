@@ -4,6 +4,7 @@ import SEO from '../components/SEO/SEO'
 import { supabase } from '../lib/supabase'
 import type { ProdutoPublico } from '../lib/supabase'
 import { useCart } from '../contexts/CartContext'
+import { usePublicFlag } from '../hooks/useFeatureFlags'
 import styles from './Outlet.module.css'
 
 interface OpcaoFrete {
@@ -23,6 +24,7 @@ interface FreteResult {
 function FreteCalculator({ produto }: { produto: ProdutoPublico }) {
   const navigate = useNavigate()
   const { addItem } = useCart()
+  const checkoutAtivo = usePublicFlag('checkout')
   const [addedToCart, setAddedToCart] = useState(false)
   const [cep, setCep] = useState('')
   const [qtd, setQtd] = useState(1)
@@ -162,7 +164,7 @@ function FreteCalculator({ produto }: { produto: ProdutoPublico }) {
       })()}
 
       {/* Botões Comprar / Carrinho */}
-      {produto.exibir_preco && produto.preco > 0 && produto.disponivel && (
+      {checkoutAtivo && produto.exibir_preco && produto.preco > 0 && produto.disponivel && (
         <div className={styles.botoesCompra}>
           <button className={styles.btnCarrinho}
             onClick={() => {
@@ -254,7 +256,7 @@ export default function Outlet() {
   const [selecionado, setSelecionado] = useState<ProdutoPublico | null>(null)
   const [form, setForm] = useState({ nome: '', whatsapp: '', cep: '', cidade: '', uf: '' })
   const [enviando, setEnviando] = useState(false)
-  const [buscandoCep, setBuscandoCep] = useState(false)
+  const [, setBuscandoCep] = useState(false)
   const [resultado, setResultado] = useState<'sucesso' | 'duplicado' | 'erro' | null>(null)
   const [copiado, setCopiado] = useState(false)
   const [categoriaFiltro, setCategoriaFiltro] = useState('Todos')
@@ -420,7 +422,7 @@ export default function Outlet() {
             {heroDestaques[0] && !loading && (
               <div className={styles.heroRightWrapper}>
                 <span className={styles.heroDestaquLabel}>Em destaque</span>
-                <button className={styles.heroRight} onClick={() => abrirModal(heroDestaques[0])} type="button">
+                <a href={`/produto/${heroDestaques[0].id}`} className={styles.heroRight}>
                   <div className={styles.heroFeaturedBadges}>
                     {heroDestaques[0].seminovo && <span className={styles.badgeSeminovo}>Seminovo</span>}
                     {heroDestaques[0].marca && <span className={styles.badgeMarca}>{heroDestaques[0].marca}</span>}
@@ -436,7 +438,7 @@ export default function Outlet() {
                     <span className={styles.heroFeaturedTitulo}>{heroDestaques[0].titulo}</span>
                     <span className={styles.heroFeaturedCta}>Ver preço →</span>
                   </div>
-                </button>
+                </a>
               </div>
             )}
           </div>
@@ -512,39 +514,50 @@ export default function Outlet() {
             </div>
           </div>
 
-          {/* Pills de categoria */}
-          {!loading && categorias.length > 1 && (
-            <div className={styles.categoriasFiltro}>
-              {categorias.map(cat => (
-                <button
-                  key={cat}
-                  className={`${styles.filtroBtn} ${categoriaFiltro === cat ? styles.filtroBtnActive : ''}`}
-                  onClick={() => setCategoriaFiltro(cat)}
-                  type="button"
-                >
-                  {cat === 'Todos' ? 'Todos os produtos' : cat.replace(/^Equipamentos\s+(de\s+)?/i, '')}
-                </button>
-              ))}
-            </div>
-          )}
+          <div className={styles.catalogoLayout}>
+            {/* Sidebar de categorias */}
+            {!loading && categorias.length > 1 && (
+              <aside className={styles.catSidebar}>
+                <h3 className={styles.catSidebarTitle}>Categorias</h3>
+                {categorias.map(cat => (
+                  <button
+                    key={cat}
+                    className={`${styles.catSidebarLink} ${categoriaFiltro === cat ? styles.catSidebarLinkActive : ''}`}
+                    onClick={() => setCategoriaFiltro(cat)}
+                    type="button"
+                  >
+                    <span className={styles.catDot} />
+                    {cat === 'Todos' ? 'Todos os produtos' : cat.replace(/^Equipamentos\s+(de\s+)?/i, '')}
+                    {cat !== 'Todos' && (
+                      <span className={styles.catCount}>
+                        {catalogo.filter(p => p.categoria === cat).length}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </aside>
+            )}
 
-
-          {loading ? (
-            <div className={styles.loadingGrid}>
-              {[...Array(3)].map((_, i) => <div key={i} className={styles.skeleton} />)}
+            {/* Grid de produtos */}
+            <div className={styles.catalogoMain}>
+              {loading ? (
+                <div className={styles.loadingGrid}>
+                  {[...Array(3)].map((_, i) => <div key={i} className={styles.skeleton} />)}
+                </div>
+              ) : catalogoFiltrado.length === 0 ? (
+                <div className={styles.empty}>
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  <p>Nenhum produto encontrado nessa categoria.</p>
+                </div>
+              ) : (
+                <div className={styles.grid}>
+                  {catalogoFiltrado.map(p => (
+                    <ProdutoCard key={p.id} produto={p} onCompartilhar={() => compartilhar(p)} />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : catalogoFiltrado.length === 0 ? (
-            <div className={styles.empty}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-              <p>Nenhum produto encontrado nessa categoria.</p>
-            </div>
-          ) : (
-            <div className={styles.grid}>
-              {catalogoFiltrado.map(p => (
-                <ProdutoCard key={p.id} produto={p} onInteresse={() => abrirModal(p)} onCompartilhar={() => compartilhar(p)} />
-              ))}
-            </div>
-          )}
+          </div>
         </div>
       </section>
 
@@ -788,12 +801,14 @@ export default function Outlet() {
   )
 }
 
-function ProdutoCard({ produto: p, onInteresse, onCompartilhar }: {
+function ProdutoCard({ produto: p, onCompartilhar }: {
   produto: ProdutoPublico
-  onInteresse: () => void
   onCompartilhar: () => void
 }) {
-  const foto = p.fotos?.[0] ?? PLACEHOLDER
+  const [hovered, setHovered] = useState(false)
+  const foto1 = p.fotos?.[0] ?? PLACEHOLDER
+  const foto2 = p.fotos?.[1]
+  const foto = hovered && foto2 ? foto2 : foto1
   const isVendido = !p.disponivel
   const specs = normalizeSpecs(p.specs).slice(0, 2)
 
@@ -803,44 +818,47 @@ function ProdutoCard({ produto: p, onInteresse, onCompartilhar }: {
       ? { label: 'Última unidade', cls: styles.badgeUltima }
       : { label: 'Pronta entrega', cls: styles.badgeEstoque }
 
-  const ctaLabel = isVendido && p.marca
-    ? 'Consultar disponibilidade'
-    : isVendido
-      ? 'Solicitar encomenda'
-      : 'Tenho interesse'
-
   return (
-    <div className={`${styles.card} ${isVendido ? styles.cardVendido : ''}`}>
+    <div className={`${styles.card} ${isVendido ? styles.cardVendido : ''}`}
+      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
 
-      {/* Foto */}
+      {/* Foto — imagem limpa, troca no hover */}
       <div className={styles.cardFoto}>
         <img
           src={foto}
           alt={p.titulo}
           onError={e => { (e.target as HTMLImageElement).src = PLACEHOLDER }}
         />
-        {/* Badge disponibilidade — topo esquerdo */}
-        <span className={`${styles.badgeEstoqueLabel} ${stockBadge.cls}`}>
-          {stockBadge.label}
-        </span>
-        {/* Badge marca — topo direito (só se tiver marca cadastrada) */}
-        {p.marca && (
-          <span className={styles.cardFotoMarca} style={getBrandColors(p.marca)}>
-            {p.marca}
-          </span>
+        {foto2 && (
+          <div className={styles.cardFotoDots}>
+            <span className={`${styles.cardFotoDot} ${!hovered ? styles.cardFotoDotActive : ''}`} />
+            <span className={`${styles.cardFotoDot} ${hovered ? styles.cardFotoDotActive : ''}`} />
+          </div>
         )}
       </div>
 
       {/* Corpo */}
       <div className={styles.cardBody}>
-        {/* Categoria + Seminovo */}
+        {/* Badges abaixo da imagem */}
+        <div className={styles.cardBadgesRow}>
+          <span className={`${styles.badgeSmall} ${stockBadge.cls}`}>
+            {stockBadge.label}
+          </span>
+          {p.marca && (
+            <span className={styles.badgeSmall} style={getBrandColors(p.marca)}>
+              {p.marca}
+            </span>
+          )}
+          {p.seminovo && <span className={`${styles.badgeSmall} ${styles.badgeSeminovo}`}>Seminovo</span>}
+        </div>
+
+        {/* Categoria */}
         <div className={styles.cardMetaRow}>
           {p.categoria && (
             <span className={styles.cardCategoria}>
               {p.categoria.replace(/^Equipamentos\s+(de\s+)?/i, '')}
             </span>
           )}
-          {p.seminovo && <span className={styles.badgeSeminovo}>Seminovo</span>}
         </div>
 
         {/* Nome */}
@@ -859,7 +877,7 @@ function ProdutoCard({ produto: p, onInteresse, onCompartilhar }: {
 
       {/* Rodapé: Ver preço + compartilhar */}
       <div className={styles.cardVerPrecoRow}>
-        <span className={styles.cardVerPreco} onClick={e => { e.stopPropagation(); onInteresse() }}>Ver preço →</span>
+        <a href={`/produto/${p.id}`} className={styles.cardVerPreco}>Ver preço →</a>
         <button className={styles.cardShareBtn} onClick={e => { e.stopPropagation(); onCompartilhar() }} type="button" title="Compartilhar">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
         </button>

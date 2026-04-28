@@ -9,14 +9,10 @@ interface OrcData {
   dataEmissao: string
   dataValidade: string
   validadeDias: number
-  empresa: {
-    nome_fantasia: string; razao_social: string | null; cnpj: string | null
-    numero: string | null; endereco: string | null; telefone: string | null; email: string | null
-    site: string | null; logo_url: string | null; telefone_is_whatsapp: boolean | null
-  } | null
+  empresa: Record<string, any> | null
   vendedor: { nome: string; telefone: string | null } | null
   cliente: {
-    nome: string; empresa: string; cnpj: string; telefone: string; email: string
+    nome: string; empresa: string; nome_fantasia?: string; cnpj: string; telefone: string; email: string
     endereco: string; tipo_pessoa: 'pf' | 'pj'; whatsapp: string; cargo: string
     inscricao_estadual: string; cep: string; cidade: string; uf: string; endereco_entrega: string
     logradouro: string; numero: string; complemento: string; bairro: string
@@ -531,16 +527,6 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
         const nomeExibido = isPF ? (d.cliente.nome || d.cliente.empresa) : d.cliente.empresa
         const FL = S.fieldLabel, FV = S.fieldValue, FM = S.fieldMono
 
-        const temInfoEmpresa = !!(emp?.endereco || emp?.telefone || emp?.email || emp?.site || d.vendedor)
-        const temInfoCliente = !!(
-          (d.exibir.endereco && (d.cliente.logradouro || d.cliente.endereco))
-          || (d.cliente.nome && !isPF)
-          || (d.exibir.telefone && d.cliente.telefone)
-          || (d.exibir.whatsapp && d.cliente.whatsapp)
-          || (d.exibir.email && d.cliente.email)
-          || (d.exibir.emailNf && d.cliente.email_nf)
-          || (d.exibir.contatosAdicionais && d.cliente.contatos.length > 0)
-        )
 
         return <>
           {/* Blocos unificados — Empresa + Cliente */}

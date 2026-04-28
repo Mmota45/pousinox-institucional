@@ -34,19 +34,19 @@ function fmtTel(t: string): string {
 }
 
 async function registrarAcesso(cartaoId: string, tipo: string) {
-  await supabase.from('cartoes_acessos').insert({
-    cartao_id: cartaoId, tipo,
-    referrer: document.referrer || null,
-    user_agent: navigator.userAgent,
-  })
+  try {
+    await supabase.from('cartoes_acessos').insert({
+      cartao_id: cartaoId, tipo,
+      referrer: document.referrer || null,
+      user_agent: navigator.userAgent,
+    })
+  } catch { /* silencioso */ }
 }
 
 async function incrementarContador(cartaoId: string, campo: 'visualizacoes' | 'downloads_vcard') {
   try {
     await supabase.rpc('incrementar_cartao_contador', { p_id: cartaoId, p_campo: campo })
-  } catch {
-    // RPC não existe ainda — ignora silenciosamente
-  }
+  } catch { /* RPC pode não existir */ }
 }
 
 function gerarVCard(c: Cartao): string {
@@ -60,7 +60,7 @@ function gerarVCard(c: Cartao): string {
     c.whatsapp ? `TEL;TYPE=CELL:${c.whatsapp}` : '',
     c.email ? `EMAIL:${c.email}` : '',
     c.site ? `URL:${c.site}` : '',
-    c.endereco && c.cidade ? `ADR;TYPE=WORK:;;${c.endereco};${c.cidade};${c.uf || ''};${(c as unknown as Record<string, unknown>).cep || ''};Brasil` : '',
+    c.endereco && c.cidade ? `ADR;TYPE=WORK:;;${c.endereco};${c.cidade};${c.uf || ''};;Brasil` : '',
     c.linkedin ? `X-SOCIALPROFILE;type=linkedin:${c.linkedin}` : '',
     c.instagram ? `X-SOCIALPROFILE;type=instagram:${c.instagram}` : '',
     c.foto_url ? `PHOTO;VALUE=URI:${c.foto_url}` : '',
@@ -74,37 +74,40 @@ export default function ViewCartao() {
   const [cartao, setCartao] = useState<Cartao | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [imgErro, setImgErro] = useState(false)
+  const [logoErro, setLogoErro] = useState(false)
 
   useEffect(() => {
     if (!slug) return
-    supabase
-      .from('cartoes_digitais')
-      .select('*')
-      .eq('slug', slug)
-      .eq('status', 'publicado')
-      .single()
-      .then(({ data, error }) => {
+    ;(async () => {
+      try {
+        const { data, error } = await supabase
+          .from('cartoes_digitais')
+          .select('*')
+          .eq('slug', slug)
+          .eq('status', 'publicado')
+          .single()
         setLoading(false)
         if (error || !data) { setNotFound(true); return }
         setCartao(data as Cartao)
-        // Registrar visualização
         registrarAcesso(data.id, 'visualizacao')
         incrementarContador(data.id, 'visualizacoes')
-      })
+      } catch { setLoading(false); setNotFound(true) }
+    })()
   }, [slug])
 
   if (loading) {
     return (
-      <div style={S.page}>
-        <div style={S.loading}>Carregando…</div>
+      <div style={ST.page}>
+        <div style={ST.loading}>Carregando…</div>
       </div>
     )
   }
 
   if (notFound || !cartao) {
     return (
-      <div style={S.page}>
-        <div style={S.notFound}>
+      <div style={ST.page}>
+        <div style={ST.notFound}>
           <div style={{ fontSize: '2rem', marginBottom: 12 }}>404</div>
           <div style={{ fontSize: '1rem', color: '#64748b' }}>Cartão não encontrado ou indisponível.</div>
         </div>
@@ -120,7 +123,6 @@ export default function ViewCartao() {
     const vcf = gerarVCard(cartao!)
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
     if (isIOS) {
-      // iOS não suporta download via blob — abre data URI diretamente
       const encoded = encodeURIComponent(vcf)
       window.location.href = `data:text/vcard;charset=utf-8,${encoded}`
     } else {
@@ -139,62 +141,71 @@ export default function ViewCartao() {
   }
 
   function handleShare() {
+    const url = window.location.href
+    const texto = `Confira o contato de ${cartao!.nome}: ${url}`
     if (navigator.share) {
-      navigator.share({ title: cartao!.nome, url: window.location.href })
+      navigator.share({ title: cartao!.nome, text: texto, url })
       registrarAcesso(cartao!.id, 'compartilhamento')
     } else {
-      navigator.clipboard.writeText(window.location.href)
+      navigator.clipboard.writeText(url)
     }
   }
 
+  function handleShareWhatsApp() {
+    const url = window.location.href
+    const texto = `Confira o contato de ${cartao!.nome}: ${url}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank')
+    registrarAcesso(cartao!.id, 'compartilhamento_whatsapp')
+  }
+
   return (
-    <div style={{ ...S.page, background: '#f0f4f8', minHeight: '100vh' }}>
-      <div style={{ ...S.card, background: fundo }}>
-        {/* Banner + Avatar (wrapper relativo para posicionamento sem clipping) */}
-        <div style={{ position: 'relative', height: 124, borderRadius: '16px 16px 0 0' }}>
-          {/* Banner */}
-          <div style={{ height: 88, background: cor, borderRadius: '16px 16px 0 0' }}>
-            {cartao.logo_url && (
+    <div style={{ ...ST.page, background: '#f0f4f8', minHeight: '100vh' }}>
+      <div style={{ ...ST.card, background: fundo }}>
+        {/* Banner + Avatar */}
+        <div style={{ position: 'relative', height: 100, borderRadius: '16px 16px 0 0' }}>
+          <div style={{ height: 68, background: cor, borderRadius: '16px 16px 0 0' }}>
+            {cartao.logo_url && !logoErro && (
               <img
                 src={cartao.logo_url}
-                alt="logo"
+                alt={`Logo ${cartao.empresa || ''}`}
+                onError={() => setLogoErro(true)}
                 style={{
-                  position: 'absolute', top: 12, right: 20,
-                  height: 36, objectFit: 'contain',
-                  background: '#fff', borderRadius: 8, padding: '3px 8px',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.12)',
+                  position: 'absolute', top: 10, right: 16,
+                  height: 30, objectFit: 'contain',
+                  background: '#fff', borderRadius: 6, padding: '2px 6px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                 }}
               />
             )}
           </div>
-          {/* Avatar */}
           <div style={{ position: 'absolute', bottom: 0, left: 20 }}>
-            {cartao.foto_url ? (
+            {cartao.foto_url && !imgErro ? (
               <img
                 src={cartao.foto_url}
                 alt={cartao.nome}
-                style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${cor}`, background: '#f1f5f9', display: 'block' }}
+                onError={() => setImgErro(true)}
+                style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: `3px solid ${cor}`, background: '#f1f5f9', display: 'block' }}
               />
             ) : (
               <div style={{
-                width: 72, height: 72, borderRadius: '50%',
+                width: 64, height: 64, borderRadius: '50%',
                 background: '#e2e8f0', border: `3px solid ${cor}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.8rem', color: '#94a3b8',
+                fontSize: '1.6rem', color: '#94a3b8',
               }}>👤</div>
-          )}
+            )}
           </div>
         </div>
 
-        <div style={{ padding: '8px 20px 0' }}>
-          <h1 style={{ margin: '0 0 2px', fontSize: '1.2rem', fontWeight: 700, color: '#1a202c' }}>{cartao.nome}</h1>
+        <div style={{ padding: '6px 20px 0' }}>
+          <h1 style={{ margin: '0 0 2px', fontSize: '1.1rem', fontWeight: 700, color: '#1a202c' }}>{cartao.nome}</h1>
           {(cartao.cargo || cartao.empresa) && (
-            <p style={{ margin: '0 0 4px', fontSize: '0.88rem', color: '#64748b' }}>
+            <p style={{ margin: '0 0 2px', fontSize: '0.85rem', color: '#64748b' }}>
               {cartao.cargo}{cartao.cargo && cartao.empresa ? ' · ' : ''}{cartao.empresa}
             </p>
           )}
           {cartao.cidade && (
-            <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8' }}>
+            <p style={{ margin: 0, fontSize: '0.78rem', color: '#94a3b8' }}>
               {cartao.cidade}{cartao.uf ? `/${cartao.uf}` : ''}
             </p>
           )}
@@ -202,15 +213,15 @@ export default function ViewCartao() {
 
         {/* Especialidades */}
         {cartao.especialidades?.length > 0 && (
-          <div style={{ padding: '10px 20px 0', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <div style={{ padding: '8px 20px 0', display: 'flex', flexWrap: 'wrap', gap: 5 }}>
             {cartao.especialidades.map(e => (
               <span key={e} style={{
-                padding: '3px 10px',
+                padding: '2px 8px',
                 borderRadius: 999,
                 background: '#f0f4f8',
                 border: `1px solid ${cor}33`,
                 color: cor,
-                fontSize: '0.78rem',
+                fontSize: '0.72rem',
                 fontWeight: 600,
               }}>{e}</span>
             ))}
@@ -219,30 +230,29 @@ export default function ViewCartao() {
 
         {/* Produtos */}
         {cartao.produtos?.length > 0 && (
-          <div style={{ padding: '10px 20px 0' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', marginBottom: 8 }}>Produtos</div>
+          <div style={{ padding: '8px 20px 0' }}>
+            <div style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8', marginBottom: 6 }}>Produtos</div>
             {cartao.produtos_info?.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {cartao.produtos_info.map(p => (
                   <a key={p.titulo} href={p.link} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 10, background: '#f1f5f9', textDecoration: 'none', border: '1px solid #e2e8f0', transition: 'background 0.15s' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#e2e8f0')}
-                    onMouseLeave={e => (e.currentTarget.style.background = '#f1f5f9')}>
+                    aria-label={`Ver produto ${p.titulo}`}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, background: '#f1f5f9', textDecoration: 'none', border: '1px solid #e2e8f0' }}>
                     {p.foto_url && (
                       <img src={p.foto_url} alt={p.titulo}
-                        style={{ width: 72, height: 72, borderRadius: 10, objectFit: 'cover', flexShrink: 0, border: '1px solid #e2e8f0' }} />
+                        style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid #e2e8f0' }} />
                     )}
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1e3f6e' }}>{p.titulo}</div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>Ver na loja →</div>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#1e3f6e' }}>{p.titulo}</div>
+                      <div style={{ fontSize: '0.68rem', color: '#64748b' }}>Ver na loja →</div>
                     </div>
                   </a>
                 ))}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                 {cartao.produtos.map(p => (
-                  <span key={p} style={{ padding: '3px 10px', borderRadius: 999, background: '#1e3f6e', color: '#fff', fontSize: '0.78rem', fontWeight: 600 }}>{p}</span>
+                  <span key={p} style={{ padding: '2px 8px', borderRadius: 999, background: '#1e3f6e', color: '#fff', fontSize: '0.72rem', fontWeight: 600 }}>{p}</span>
                 ))}
               </div>
             )}
@@ -250,99 +260,86 @@ export default function ViewCartao() {
         )}
 
         {/* Divisor */}
-        <div style={{ height: 1, background: '#e2e8f0', margin: '16px 0' }} />
+        <div style={{ height: 1, background: '#e2e8f0', margin: '12px 0' }} />
 
         {/* Contatos */}
-        <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {wa && (
-            <a
-              href={`https://wa.me/55${wa}`}
-              style={S.contactRow(cor)}
+            <a href={`https://wa.me/55${wa}`} style={ST.contactRow(cor)}
+              aria-label={`WhatsApp ${cartao.whatsapp}`}
               onClick={() => registrarAcesso(cartao.id, 'clique_whatsapp')}
-              target="_blank" rel="noopener noreferrer"
-            >
-              <span style={S.contactIcon(cor)}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              target="_blank" rel="noopener noreferrer">
+              <span style={ST.contactIcon(cor)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
                   <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.553 4.116 1.522 5.84L.057 23.428l5.753-1.507A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.859 0-3.593-.504-5.082-1.375l-.363-.215-3.416.895.91-3.325-.237-.381A9.928 9.928 0 012 12c0-5.514 4.486-10 10-10s10 4.486 10 10-4.486 10-10 10z"/>
                 </svg>
               </span>
-              <span style={S.contactText}>WhatsApp</span>
-              <span style={S.contactSub}>{cartao.whatsapp}</span>
+              <span style={ST.contactText}>WhatsApp</span>
+              <span style={ST.contactSub}>{cartao.whatsapp}</span>
             </a>
           )}
 
           {cartao.telefone && (
-            <a
-              href={`tel:${fmtTel(cartao.telefone)}`}
-              style={S.contactRow(cor)}
-              onClick={() => registrarAcesso(cartao.id, 'clique_telefone')}
-            >
-              <span style={S.contactIcon(cor)}>📞</span>
-              <span style={S.contactText}>Telefone</span>
-              <span style={S.contactSub}>{cartao.telefone}</span>
+            <a href={`tel:${fmtTel(cartao.telefone)}`} style={ST.contactRow(cor)}
+              aria-label={`Ligar para ${cartao.telefone}`}
+              onClick={() => registrarAcesso(cartao.id, 'clique_telefone')}>
+              <span style={ST.contactIcon(cor)}>📞</span>
+              <span style={ST.contactText}>Telefone</span>
+              <span style={ST.contactSub}>{cartao.telefone}</span>
             </a>
           )}
 
           {cartao.email && (
-            <a
-              href={`mailto:${cartao.email}`}
-              style={S.contactRow(cor)}
-              onClick={() => registrarAcesso(cartao.id, 'clique_email')}
-            >
-              <span style={S.contactIcon(cor)}>✉</span>
-              <span style={S.contactText}>E-mail</span>
-              <span style={S.contactSub}>{cartao.email}</span>
+            <a href={`mailto:${cartao.email}`} style={ST.contactRow(cor)}
+              aria-label={`Enviar email para ${cartao.email}`}
+              onClick={() => registrarAcesso(cartao.id, 'clique_email')}>
+              <span style={ST.contactIcon(cor)}>✉</span>
+              <span style={ST.contactText}>E-mail</span>
+              <span style={ST.contactSub}>{cartao.email}</span>
             </a>
           )}
 
           {cartao.site && (
-            <a
-              href={cartao.site}
-              style={S.contactRow(cor)}
+            <a href={cartao.site} style={ST.contactRow(cor)}
+              aria-label={`Visitar site ${cartao.site}`}
               onClick={() => registrarAcesso(cartao.id, 'clique_site')}
-              target="_blank" rel="noopener noreferrer"
-            >
-              <span style={S.contactIcon(cor)}>🌐</span>
-              <span style={S.contactText}>Site</span>
-              <span style={S.contactSub}>{cartao.site.replace(/^https?:\/\//, '')}</span>
+              target="_blank" rel="noopener noreferrer">
+              <span style={ST.contactIcon(cor)}>🌐</span>
+              <span style={ST.contactText}>Site</span>
+              <span style={ST.contactSub}>{cartao.site.replace(/^https?:\/\//, '')}</span>
             </a>
           )}
 
           {(cartao.cidade || cartao.endereco) && (
-            <a
-              href={`https://maps.google.com/?q=${encodeURIComponent([cartao.endereco, cartao.cidade, cartao.uf].filter(Boolean).join(', '))}`}
-              style={S.contactRow(cor)}
+            <a href={`https://maps.google.com/?q=${encodeURIComponent([cartao.endereco, cartao.cidade, cartao.uf].filter(Boolean).join(', '))}`}
+              style={ST.contactRow(cor)}
+              aria-label={`Ver localização no mapa`}
               onClick={() => registrarAcesso(cartao.id, 'clique_maps')}
-              target="_blank" rel="noopener noreferrer"
-            >
-              <span style={S.contactIcon(cor)}>📍</span>
-              <span style={S.contactText}>Localização</span>
-              <span style={S.contactSub}>{[cartao.endereco, cartao.cidade].filter(Boolean).join(', ')}</span>
+              target="_blank" rel="noopener noreferrer">
+              <span style={ST.contactIcon(cor)}>📍</span>
+              <span style={ST.contactText}>Localização</span>
+              <span style={ST.contactSub}>{[cartao.endereco, cartao.cidade].filter(Boolean).join(', ')}</span>
             </a>
           )}
         </div>
 
         {/* Redes Sociais */}
         {(cartao.linkedin || cartao.instagram) && (
-          <div style={{ padding: '16px 20px 0', display: 'flex', gap: 10 }}>
+          <div style={{ padding: '12px 20px 0', display: 'flex', gap: 8 }}>
             {cartao.linkedin && (
-              <a
-                href={cartao.linkedin}
-                style={S.socialBtn(cor)}
+              <a href={cartao.linkedin} style={ST.socialBtn(cor)}
+                aria-label="LinkedIn"
                 onClick={() => registrarAcesso(cartao.id, 'clique_linkedin')}
-                target="_blank" rel="noopener noreferrer"
-              >
+                target="_blank" rel="noopener noreferrer">
                 in
               </a>
             )}
             {cartao.instagram && (
-              <a
-                href={cartao.instagram}
-                style={S.socialBtn(cor)}
+              <a href={cartao.instagram} style={ST.socialBtn(cor)}
+                aria-label="Instagram"
                 onClick={() => registrarAcesso(cartao.id, 'clique_instagram')}
-                target="_blank" rel="noopener noreferrer"
-              >
+                target="_blank" rel="noopener noreferrer">
                 IG
               </a>
             )}
@@ -350,56 +347,56 @@ export default function ViewCartao() {
         )}
 
         {/* CTAs */}
-        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <button
-            onClick={handleDownloadVCard}
-            style={{ ...S.ctaPrimary, background: cor }}
-          >
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button onClick={handleDownloadVCard} style={{ ...ST.ctaPrimary, background: cor }}
+            aria-label="Salvar contato no celular">
             Salvar Contato
           </button>
-          <button
-            onClick={handleShare}
-            style={S.ctaSecondary}
-          >
-            Compartilhar
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={handleShareWhatsApp}
+              style={{ ...ST.ctaSecondary, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              aria-label="Compartilhar via WhatsApp">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="#25d366">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.553 4.116 1.522 5.84L.057 23.428l5.753-1.507A11.946 11.946 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.859 0-3.593-.504-5.082-1.375l-.363-.215-3.416.895.91-3.325-.237-.381A9.928 9.928 0 012 12c0-5.514 4.486-10 10-10s10 4.486 10 10-4.486 10-10 10z"/>
+              </svg>
+              WhatsApp
+            </button>
+            <button onClick={handleShare} style={{ ...ST.ctaSecondary, flex: 1 }}
+              aria-label="Compartilhar cartão">
+              Compartilhar
+            </button>
+          </div>
         </div>
 
-        {/* Footer — Marca Pousinox® */}
+        {/* Footer */}
         <div style={{
-          padding: '14px 20px',
+          padding: '10px 20px',
           borderTop: '1px solid #f1f5f9',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 8,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           background: '#fafbfc',
           borderRadius: '0 0 16px 16px',
         }}>
-          <span style={{ fontSize: '0.7rem', color: '#cbd5e1', letterSpacing: '0.03em' }}>Cartão digital por</span>
-          <img
-            src={logomarca}
-            alt="Pousinox®"
-            style={{ height: 20, opacity: 0.45, filter: 'grayscale(100%)' }}
-          />
+          <span style={{ fontSize: '0.65rem', color: '#cbd5e1', letterSpacing: '0.03em' }}>Cartão digital por</span>
+          <img src={logomarca} alt="Pousinox®" style={{ height: 16, opacity: 0.4, filter: 'grayscale(100%)' }} />
         </div>
       </div>
     </div>
   )
 }
 
-// ── Inline styles (sem CSS Module para isolamento total) ───────────────────
-const S = {
+// ── Inline styles ────────────────────────────────────────────────────────────
+const ST = {
   page: {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'flex-start',
-    padding: '24px 16px 48px',
+    padding: '20px 12px 40px',
     fontFamily: 'Inter, system-ui, sans-serif',
   } as React.CSSProperties,
   card: {
     width: '100%',
-    maxWidth: 420,
+    maxWidth: 400,
     borderRadius: 16,
     boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
   } as React.CSSProperties,
@@ -416,33 +413,33 @@ const S = {
   contactRow: (_cor: string) => ({
     display: 'flex',
     alignItems: 'center',
-    gap: 12,
-    padding: '10px 14px',
-    borderRadius: 10,
+    gap: 10,
+    padding: '8px 12px',
+    borderRadius: 8,
     background: '#f8fafc',
     textDecoration: 'none',
     color: '#1a202c',
-    border: `1px solid #e2e8f0`,
+    border: '1px solid #e2e8f0',
     transition: 'background 0.15s',
   } as React.CSSProperties),
   contactIcon: (cor: string) => ({
     color: cor,
-    fontSize: '1rem',
+    fontSize: '0.9rem',
     flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 28,
+    width: 24,
   } as React.CSSProperties),
   contactText: {
     fontWeight: 600,
-    fontSize: '0.88rem',
+    fontSize: '0.82rem',
     flex: 1,
   } as React.CSSProperties,
   contactSub: {
-    fontSize: '0.78rem',
+    fontSize: '0.72rem',
     color: '#94a3b8',
-    maxWidth: 140,
+    maxWidth: 130,
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -451,36 +448,35 @@ const S = {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 6,
     background: cor,
     color: '#fff',
     fontWeight: 700,
-    fontSize: '0.82rem',
+    fontSize: '0.78rem',
     textDecoration: 'none',
     letterSpacing: '-0.02em',
   } as React.CSSProperties),
   ctaPrimary: {
     width: '100%',
-    padding: '14px',
+    padding: '12px',
     border: 'none',
-    borderRadius: 10,
+    borderRadius: 8,
     color: '#fff',
     fontWeight: 700,
-    fontSize: '0.95rem',
+    fontSize: '0.9rem',
     cursor: 'pointer',
     transition: 'opacity 0.15s',
   } as React.CSSProperties,
   ctaSecondary: {
-    width: '100%',
-    padding: '12px',
+    padding: '10px',
     border: '1px solid #e2e8f0',
-    borderRadius: 10,
+    borderRadius: 8,
     background: '#fff',
     color: '#475569',
     fontWeight: 600,
-    fontSize: '0.9rem',
+    fontSize: '0.82rem',
     cursor: 'pointer',
   } as React.CSSProperties,
 }

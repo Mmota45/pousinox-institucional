@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
 import { Link } from 'react-router-dom'
+import { useSiteConfig, useSiteContadores, useSiteDepoimentos, useSiteEtapas, useSiteFaq } from '../hooks/useSiteData'
 import clienteAlvorada from '../assets/cliente-alvorada.png'
 import clienteCimed from '../assets/cliente-cimed.svg'
 import clienteMonreale from '../assets/cliente-monreale.svg'
@@ -148,16 +149,48 @@ const testimonials = [
 const GOOGLE_MAPS_URL = 'https://www.google.com/maps/place/Pousinox+-+A+arte+em+inox/@-22.2430805,-45.9564762,17z'
 
 export default function Home() {
+  const { config } = useSiteConfig()
+  const dbContadores = useSiteContadores()
+  const dbDepoimentos = useSiteDepoimentos()
+  const dbEtapas = useSiteEtapas()
+  const faqItems = useSiteFaq()
+  const [openFaq, setOpenFaq] = useState<number | null>(null)
+
+  // Dados dinâmicos com fallback para hardcoded
+  const activeStats = dbContadores.length > 0
+    ? dbContadores.map(c => ({ target: c.valor, suffix: c.sufixo, label: c.label }))
+    : heroStats
+  const activeTestimonials = dbDepoimentos.length > 0
+    ? dbDepoimentos.map(d => ({ name: d.nome, avatarColor: d.avatar_cor, text: d.texto }))
+    : testimonials
+  const activeSteps = dbEtapas.length > 0
+    ? dbEtapas.map(e => ({ number: e.numero, title: e.titulo, description: e.descricao }))
+    : steps
+  const waLink = config.whatsapp_numero
+    ? `https://wa.me/${config.whatsapp_numero}?text=${encodeURIComponent(config.whatsapp_mensagem || 'Olá, gostaria de solicitar um orçamento.')}`
+    : WA_LINK
+  const heroEyebrow = config.hero_eyebrow || 'POUSINOX® — Pouso Alegre, MG'
+  const heroTitulo = config.hero_titulo || 'Fabricante de inox sob medida'
+  const heroTagline = config.hero_tagline || 'para indústria, construção e projetos profissionais'
+  const heroSubtitulo = config.hero_subtitulo || '25 anos fabricando bancadas, equipamentos hospitalares, corrimãos e soluções especializadas em aço inox. Atendemos todo o Brasil direto da fábrica.'
+  const fabricaTitulo = config.fabrica_titulo || 'Fabricação própria do início ao fim'
+  const fabricaTexto = config.fabrica_texto || 'Tecnologia de corte a laser, dobradeira CNC e solda especializada — tudo feito internamente em Pouso Alegre, MG. Controle total sobre qualidade, prazo e acabamento de cada peça.'
+  const fabricaVideoUrl = config.fabrica_video_url || 'https://www.youtube.com/embed/MMMGnD7oXZM'
+  const ctaTitulo = config.cta_titulo || 'Pronto para começar seu projeto?'
+  const ctaSubtitulo = config.cta_subtitulo || 'Fale com nossos especialistas e receba um orçamento sem compromisso direto da fábrica.'
+  const mapsUrl = config.google_maps_url || 'https://maps.app.goo.gl/bNAwCL7Jz4n3pJZx8'
+  const googleRating = config.google_rating || '4,9'
+
   const [slide, setSlide] = useState(0)
-  const [counts, setCounts] = useState(heroStats.map(s => s.target))
+  const [counts, setCounts] = useState(activeStats.map(s => s.target))
   const carouselRef = useRef<HTMLDivElement>(null)
   const animatedRef = useRef(false)
 
   const animateCounters = useCallback(() => {
-    heroStats.forEach((stat, i) => {
+    activeStats.forEach((stat, i) => {
       const duration = 1400
-      const steps = 50
-      const increment = stat.target / steps
+      const numSteps = 50
+      const increment = stat.target / numSteps
       let current = 0
       const interval = setInterval(() => {
         current = Math.min(current + increment, stat.target)
@@ -167,18 +200,18 @@ export default function Home() {
           return next
         })
         if (current >= stat.target) clearInterval(interval)
-      }, duration / steps)
+      }, duration / numSteps)
     })
-  }, [])
+  }, [activeStats])
 
   useEffect(() => {
     if (animatedRef.current) return
     animatedRef.current = true
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCounts(heroStats.map(() => 0))
+    setCounts(activeStats.map(() => 0))
     const t = setTimeout(animateCounters, 400)
     return () => clearTimeout(t)
-  }, [animateCounters])
+  }, [animateCounters, activeStats])
 
   function scrollCarousel(dir: 'left' | 'right') {
     const el = carouselRef.current
@@ -213,17 +246,15 @@ export default function Home() {
 
         <div className={`container ${styles.heroInner}`}>
           <div className={styles.heroContent}>
-            <span className={styles.heroEyebrow}>POUSINOX® — Pouso Alegre, MG</span>
-            <h1 className={styles.heroTitle}>Fabricante de inox sob medida</h1>
-            <p className={styles.heroTagline}>para indústria, construção e projetos profissionais</p>
-            <p className={styles.heroSubtitle}>
-              25 anos fabricando bancadas, equipamentos hospitalares, corrimãos e soluções especializadas em aço inox. Atendemos todo o Brasil direto da fábrica.
-            </p>
+            <span className={styles.heroEyebrow}>{heroEyebrow}</span>
+            <h1 className={styles.heroTitle}>{heroTitulo}</h1>
+            <p className={styles.heroTagline}>{heroTagline}</p>
+            <p className={styles.heroSubtitle}>{heroSubtitulo}</p>
             <div className={styles.heroCta}>
               <Link to="/contato" className="btn-primary">
                 Solicitar Orçamento
               </Link>
-              <a href={WA_LINK} target="_blank" rel="noopener noreferrer" className="btn-whatsapp" data-source="home-hero">
+              <a href={waLink} target="_blank" rel="noopener noreferrer" className="btn-whatsapp" data-source="home-hero">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
                 </svg>
@@ -251,7 +282,7 @@ export default function Home() {
 
         {/* Stats bar */}
         <div className={styles.heroStatsBar}>
-          {heroStats.map((stat, i) => (
+          {activeStats.map((stat, i) => (
             <div key={stat.label} className={styles.heroStatItem}>
               <span className={styles.heroStatValue}>{counts[i]}{stat.suffix}</span>
               <span className={styles.heroStatLabel}>{stat.label}</span>
@@ -341,10 +372,10 @@ export default function Home() {
             </p>
           </div>
           <div className={styles.stepsGrid}>
-            {steps.map((step, i) => (
+            {activeSteps.map((step, i) => (
               <div key={step.number} className={styles.stepItem}>
                 <div className={styles.stepNumber}>{step.number}</div>
-                {i < steps.length - 1 && <div className={styles.stepConnector} />}
+                {i < activeSteps.length - 1 && <div className={styles.stepConnector} />}
                 <h3 className={styles.stepTitle}>{step.title}</h3>
                 <p className={styles.stepDesc}>{step.description}</p>
               </div>
@@ -359,7 +390,7 @@ export default function Home() {
           <div className={styles.fabricaGrid}>
             <div className={styles.fabricaVideo}>
               <iframe
-                src="https://www.youtube.com/embed/MMMGnD7oXZM"
+                src={fabricaVideoUrl}
                 title="Corte a Laser em Chapas Metálicas — Pousinox"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -369,12 +400,8 @@ export default function Home() {
             </div>
             <div className={styles.fabricaTexto}>
               <span className={styles.fabricaEyebrow}>Nossa fábrica</span>
-              <h2 className="section-title">Fabricação própria do início ao fim</h2>
-              <p>
-                Tecnologia de corte a laser, dobradeira CNC e solda especializada —
-                tudo feito internamente em Pouso Alegre, MG. Controle total sobre
-                qualidade, prazo e acabamento de cada peça.
-              </p>
+              <h2 className="section-title">{fabricaTitulo}</h2>
+              <p>{fabricaTexto}</p>
               <Link to="/sobre" className="btn-primary">Conheça a POUSINOX®</Link>
             </div>
           </div>
@@ -431,13 +458,13 @@ export default function Home() {
                   <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                 </svg>
-                <span className={styles.googleRatingScore}>4,9</span>
+                <span className={styles.googleRatingScore}>{googleRating}</span>
                 <span className={styles.googleRatingStars}>★★★★★</span>
                 <span className={styles.googleRatingLabel}>no Google</span>
               </div>
             </div>
             <a
-              href={GOOGLE_MAPS_URL}
+              href={mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
               className={styles.googleLink}
@@ -449,7 +476,7 @@ export default function Home() {
             </a>
           </div>
           <div className={styles.testimonialsGrid}>
-            {testimonials.map((t) => (
+            {activeTestimonials.map((t) => (
               <div key={t.name} className={styles.testimonialCard}>
                 <div className={styles.testimonialCardTop}>
                   <div className={styles.testimonialAuthor}>
@@ -544,19 +571,40 @@ export default function Home() {
         </div>
       </section>
 
+      {/* FAQ */}
+      {faqItems.length > 0 && (
+        <section className={`section ${styles.faqSection}`}>
+          <div className="container">
+            <div className={styles.sectionHead}>
+              <h2 className="section-title">Perguntas frequentes</h2>
+              <p className="section-subtitle">Tire suas dúvidas sobre nossos produtos e serviços.</p>
+            </div>
+            <div className={styles.faqList}>
+              {faqItems.map(f => (
+                <div key={f.id} className={styles.faqItem} data-open={openFaq === f.id || undefined}>
+                  <button className={styles.faqQuestion} onClick={() => setOpenFaq(openFaq === f.id ? null : f.id)}>
+                    <span>{f.pergunta}</span>
+                    <span className={styles.faqIcon}>{openFaq === f.id ? '−' : '+'}</span>
+                  </button>
+                  {openFaq === f.id && <div className={styles.faqAnswer}>{f.resposta}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* CTA final */}
       <section className={styles.ctaSection}>
         <div className="container">
           <div className={styles.ctaBox}>
-            <h2 className={styles.ctaTitle}>Pronto para começar seu projeto?</h2>
-            <p className={styles.ctaSubtitle}>
-              Fale com nossos especialistas e receba um orçamento sem compromisso direto da fábrica.
-            </p>
+            <h2 className={styles.ctaTitle}>{ctaTitulo}</h2>
+            <p className={styles.ctaSubtitle}>{ctaSubtitulo}</p>
             <div className={styles.ctaActions}>
               <Link to="/contato" className="btn-white">
                 Solicitar Orçamento
               </Link>
-              <a href={WA_LINK} target="_blank" rel="noopener noreferrer" className="btn-whatsapp" data-source="home-cta">
+              <a href={waLink} target="_blank" rel="noopener noreferrer" className="btn-whatsapp" data-source="home-cta">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
                 </svg>

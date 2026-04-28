@@ -376,7 +376,7 @@ export default function AdminVendas() {
       </div>
 
       {/* ── Formulário colapsável ── */}
-      <CollapsibleSection titulo="+ Nova venda" aberto={formAberto} onToggle={() => setFormAberto(!formAberto)}>
+      <CollapsibleSection title="+ Nova venda" defaultOpen={formAberto}>
         <form className={styles.form} onSubmit={registrarVenda} style={{ border: 'none', padding: 0 }}>
           <div className={styles.row}>
             <div className={styles.field}>

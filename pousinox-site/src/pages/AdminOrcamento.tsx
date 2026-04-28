@@ -301,7 +301,7 @@ export default function AdminOrcamento() {
     ])
     if (errOrc) throw errOrc
     if (!orc) return
-    const o = orc as Record<string, unknown>
+    const o = orc as any
     setEditandoId(id); setNumero(o.numero); setStatus(o.status); setFinLancId(o.fin_lancamento_id ?? null); setEtiquetaPreId(o.etiqueta_pre_id ?? null)
     setEmpresaId(o.empresa_id); setVendedorId(o.vendedor_id ?? null)
     setCliente({
@@ -334,7 +334,7 @@ export default function AdminOrcamento() {
       ent_bairro: o.cliente_ent_bairro ?? '', ent_cidade: o.cliente_ent_cidade ?? '', ent_uf: o.cliente_ent_uf ?? '',
     })
     setItens((itensD ?? []).length > 0
-      ? (itensD as Record<string, unknown>[]).map(i => ({
+      ? (itensD as any[]).map((i: any) => ({
           produto_id: i.produto_id, descricao: i.descricao, qtd: String(i.qtd),
           unidade: i.unidade, valorUnit: String(i.valor_unit),
           imagem_url: i.imagem_url ?? undefined,
@@ -586,7 +586,7 @@ export default function AdminOrcamento() {
         `CNPJ: ${empresaSel?.cnpj ?? ''} | Tel: ${empresaSel?.telefone ?? ''} | Email: ${empresaSel?.email ?? ''}`,
         '',
         `CLIENTE: ${nomeCliente}`,
-        `Doc: ${cliente.cnpj || cliente.cpf || ''}`,
+        `Doc: ${cliente.cnpj || ''}`,
         `Tel: ${cliente.telefone} | Email: ${cliente.email}`,
         `End: ${[cliente.endereco, cliente.bairro, cliente.cidade, cliente.uf, cliente.cep].filter(Boolean).join(', ')}`,
         '',
@@ -875,7 +875,7 @@ export default function AdminOrcamento() {
                 </tr></thead>
                 <tbody>
                   {[...lista].sort((a, b) => {
-                    const ak = (a as Record<string, unknown>)[ordenCol], bk = (b as Record<string, unknown>)[ordenCol]
+                    const ak = (a as unknown as Record<string, unknown>)[ordenCol], bk = (b as unknown as Record<string, unknown>)[ordenCol]
                     const av = typeof ak === 'number' ? ak : String(ak ?? '').toLowerCase()
                     const bv = typeof bk === 'number' ? bk : String(bk ?? '').toLowerCase()
                     if (av < bv) return ordenDir === 'asc' ? -1 : 1

@@ -101,7 +101,7 @@ export default function AdminPipeline() {
   const [dragId, setDragId] = useState<number | null>(null)
   const [dragOverCol, setDragOverCol] = useState<Estagio | null>(null)
   const [menuAberto, setMenuAberto] = useState<number | null>(null)
-  const searchTimeout = useRef<ReturnType<typeof setTimeout>>()
+  const searchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
     if (!msg) return
@@ -503,7 +503,7 @@ export default function AdminPipeline() {
         <button className={`${styles.btnMini} ${styles.btnMiniExcluir}`} onClick={() => excluir(deal)}>🗑</button>
         <AiActionButton label="Proposta" icon="📝" small modelName="Groq" action={async () => {
           const r = await aiChat({
-            prompt: `Deal: "${deal.titulo}"\nEmpresa: ${deal.empresa_nome || 'N/I'}\nCNPJ: ${deal.cnpj || 'N/I'}\nValor: R$ ${deal.valor || 0}\nEstágio: ${deal.estagio}\nContato: ${deal.contato_nome || 'N/I'}\n\nGere uma proposta comercial profissional para fixadores de porcelanato em aço inox. Inclua: saudação, apresentação da Pousinox, benefícios do produto, condições comerciais sugeridas e fechamento.`,
+            prompt: `Deal: "${deal.titulo}"\nEmpresa: ${deal.empresa_nome || 'N/I'}\nCNPJ: ${deal.empresa_cnpj || 'N/I'}\nValor: R$ ${deal.valor_estimado || 0}\nEstágio: ${deal.estagio}\n\nGere uma proposta comercial profissional para fixadores de porcelanato em aço inox. Inclua: saudação, apresentação da Pousinox, benefícios do produto, condições comerciais sugeridas e fechamento.`,
             system: 'Você é o departamento comercial da Pousinox, fabricante de fixadores de porcelanato em aço inox em Pouso Alegre/MG. Gere propostas profissionais em português brasileiro.',
             model: 'groq',
           })
