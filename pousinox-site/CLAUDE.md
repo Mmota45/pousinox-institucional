@@ -70,7 +70,8 @@ Rotas `/admin/*` com layout próprio (`AdminLayout`). Todos os módulos usam `su
 | `/admin/cobertura` | `AdminCobertura` | Comercial | ✅ cobertura por mesorregião |
 | `/admin/funil` | `AdminFunil` | Comercial | ✅ funil macro de prospecção |
 | `/admin/pipeline` | `AdminPipeline` | Comercial | ✅ deals, estágios, recebível |
-| `/admin/central-vendas` | `AdminCentralVendas` | Comercial | ✅ scoring on-the-fly, hot list, follow-ups, materiais, dashboard |
+| `/admin/central-vendas` | `AdminCentralVendas` | Comercial | ✅ scoring on-the-fly, hot list, follow-ups, materiais, dashboard, WhatsApp por segmento, validação Z-API |
+| `/admin/ia` | `AdminIA` | IA | ✅ multi-provider (Groq/Gemini/OpenRouter), busca web (Brave+Serper), consulta DB automática, roteamento inteligente |
 | `/admin/orcamento` | `AdminOrcamento` | Comercial | ✅ |
 | `/admin/vendas` | `AdminVendas` | Comercial | ✅ |
 | `/admin/clientes` | `AdminClientes` | Comercial | ✅ importação NFSTok + RFM |
@@ -315,7 +316,7 @@ Botão 🔍 (azul) na coluna Ações abre drawer lateral com:
 Central de vendas inteligente — hub comercial que prioriza prospects, gerencia follow-ups e materiais.
 
 ### Abas
-- **Hot List** — top 50 prospects com scoring on-the-fly via RPC `fn_top_prospects(n, filtro_uf)`. Multi-select UF/Segmento/Demanda (Alta≥7, Média 3–7, Baixa<3). Round-robin intercala UFs sem filtro.
+- **Hot List** — top 50 prospects com scoring on-the-fly via RPC `fn_top_prospects(n, filtro_uf)`. Multi-select UF/Segmento/Demanda (Alta≥7, Média 3–7, Baixa<3). Round-robin intercala UFs sem filtro. Filtro "Só com WhatsApp". Botão "Validar WhatsApp" (lote via Z-API).
 - **Follow-ups** — kanban 3 colunas: Atrasados (vermelho) | Hoje (amarelo) | Próximos 7d (verde). Ações: Feito (agenda próximo), Adiar, WhatsApp.
 - **Materiais** — CRUD de materiais comerciais (apresentação, ficha técnica, laudo, cartão). Envio via WhatsApp com tracking.
 - **Dashboard** — KPIs (contactados, deals, follow-ups atrasados, receita pipeline) + funil visual prospect→contactado→deal→proposta→ganho.
@@ -336,11 +337,51 @@ Central de vendas inteligente — hub comercial que prioriza prospects, gerencia
 - `materiais_comerciais` — materiais de venda (titulo, tipo, url, envios)
 - `gsc_cache` — cache Google Search Console (futuro)
 
-### Edge Function
-- `central-vendas-scores` — ações: `scores` (RPC fn_top_prospects), `followups` (listar pendentes), `dashboard` (agregar KPIs)
+### WhatsApp
+- Campo dedicado `prospeccao.whatsapp` + `whatsapp_validado` (boolean)
+- Mensagens por segmento via `gerarMsgWpp(nome, segmento)`: açougue, restaurante, construção, hospital, hotel, supermercado, genérico
+- Drawer: input WhatsApp + Salvar/Enviar/Validar, links "Buscar WhatsApp" (Google) e "Instagram"
+- Hot List: prioriza 📱 WhatsApp sobre 📞 telefone1
+- Validação individual e em lote via edge function `validar-whatsapp` (Z-API `phone-exists`)
+- Secrets: `ZAPI_INSTANCE_ID`, `ZAPI_TOKEN`, `ZAPI_CLIENT_TOKEN`
 
-### Migration
+### Edge Functions
+- `central-vendas-scores` — ações: `scores` (RPC fn_top_prospects), `followups` (listar pendentes), `dashboard` (agregar KPIs)
+- `validar-whatsapp` — ações: `check` (individual), `batch` (até 50, rate limit 600ms)
+
+### Migrations
 - `supabase/migrations/20260428_fix_scoring_performance.sql`
+- `supabase/migrations/20260428_prospeccao_whatsapp.sql`
+
+---
+
+## Módulo AdminIA (src/pages/AdminIA.tsx)
+
+Hub de IA multi-provider com busca web e consulta ao banco de dados.
+
+### Providers
+- **Groq** (Llama 70B) — default para roteamento automático de perguntas rápidas
+- **Gemini** (Google) — modelo alternativo
+- **OpenRouter** — acesso a múltiplos modelos
+
+### Busca Web
+- **Brave Search API** + **Serper (Google)** com fallback automático
+- Cache de 30 minutos por query
+- Seletor de fonte: Auto / Brave / Google / Sem busca
+- Roteamento inteligente: `shouldSearch()` pula web quando DB já responde
+
+### Integração DB
+- `fetchOverview()` — COUNTs de 9 tabelas (always-on, cache 5min)
+- `fetchDetail(messages)` — queries detalhadas baseadas no contexto da conversa
+- Keywords: produtos, clientes, prospects, pipeline, financeiro, estoque, etc.
+
+### UI
+- Badges: 🗄️ "Dados do sistema" (verde) e 🔍 "Busca web ativa" (amarelo)
+- Chips de provider com destaque para busca ativa
+
+### Edge Function
+- `ai-hub` — roteamento de providers, busca web, consulta DB, contexto do site (fixadorporcelanato.com.br)
+- Secrets: `BRAVE_API_KEY`, `SERPER_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`
 
 ---
 
@@ -430,7 +471,8 @@ Inteligência de mercado — cruzamento entre histórico interno (NFs + clientes
 
 ```bash
 npm run dev       # Servidor de desenvolvimento (Vite)
-npm run build     # Build de produção (tsc + vite build)
+npm run build     # Build de produção (vite build)
+npm run typecheck # Verificação de tipos (tsc -b) — separado do build
 npm run preview   # Preview do build local
 npm run deploy    # Deploy via script ../scripts/deploy.sh
 ```
