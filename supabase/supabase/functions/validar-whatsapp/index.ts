@@ -28,9 +28,12 @@ async function checkWhatsApp(phone: string): Promise<{ exists: boolean; number: 
   const res = await fetch(url, {
     headers: { "Client-Token": ZAPI_CLIENT_TOKEN },
   })
-  if (!res.ok) throw new Error(`Z-API ${res.status}`)
+  if (!res.ok) throw new Error(`Z-API ${res.status}: ${await res.text()}`)
   const data = await res.json()
-  return { exists: data.exists === true, number: normalized }
+  console.log(`Z-API phone-exists ${normalized}:`, JSON.stringify(data))
+  // Z-API returns { exists: true/false } or { value: true/false }
+  const exists = data.exists === true || data.value === true || data.numberExists === true
+  return { exists, number: normalized }
 }
 
 serve(async (req) => {
