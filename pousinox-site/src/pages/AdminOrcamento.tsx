@@ -13,6 +13,9 @@ import { useLinks } from '../components/Orcamento/hooks/useLinks'
 import HistoricoSection from '../components/Orcamento/sections/HistoricoSection'
 import LinksSection from '../components/Orcamento/sections/LinksSection'
 import ResumoSidebar from '../components/Orcamento/sections/ResumoSidebar'
+import ItensSection from '../components/Orcamento/sections/ItensSection'
+import CondicoesSection from '../components/Orcamento/sections/CondicoesSection'
+import DetalheView from '../components/Orcamento/sections/DetalheView'
 import ConfigDrawer from '../components/Orcamento/ConfigDrawer'
 
 import type {
@@ -22,7 +25,7 @@ import type {
 } from '../components/Orcamento/types'
 
 import {
-  UNIDADES, EXIBIR_DEFAULT, COND_PAGAMENTO, STATUS_CFG, EVENTO_LABEL,
+  EXIBIR_DEFAULT, STATUS_CFG,
   ITEM_VAZIO, CLIENTE_VAZIO, INST_VAZIO, OBS_DEFAULT,
   fmtBRL, hoje, fmtDataISO, formatarDadoBancario,
 } from '../components/Orcamento/types'
@@ -784,11 +787,6 @@ export default function AdminOrcamento() {
     })
     setBuscaOutlet(''); setResultadosOutlet([]); setShowBuscaOutlet(false)
   }
-  function addItem() { setItens(prev => [...prev, { ...ITEM_VAZIO }]) }
-  function removeItem(i: number) { setItens(prev => prev.filter((_, idx) => idx !== i)) }
-  function updateItem(i: number, field: keyof Item, val: string) {
-    setItens(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: val } : item))
-  }
 
 
   // ── JSX ───────────────────────────────────────────────────────────────────
@@ -928,160 +926,20 @@ export default function AdminOrcamento() {
       )}
 
       {/* ═══ DETALHE (read-only) ═══ */}
-      {vista === 'detalhe' && editandoId && (() => {
-        const cfg = STATUS_CFG[status]
-        const vend = vendedores.find(v => v.id === vendedorId)
-        const freteS = freteSummaryRef.current
-        return (
-          <div className={styles.detalheWrap}>
-            {/* Header */}
-            <div className={styles.detalheHeader}>
-              <div className={styles.detalheHeaderLeft}>
-                <span className={styles.detalheNumero}>{numero}</span>
-                <span className={styles.statusBadge} style={{ background: cfg?.cor + '22', color: cfg?.cor }}>{cfg?.label}</span>
-              </div>
-              <div className={styles.detalheActions}>
-                <button className={styles.btnPrimary} onClick={() => setVista('editor')}>✏️ Editar</button>
-                <button className={styles.btnImprimir} onClick={imprimir}>🖨 PDF</button>
-              </div>
-            </div>
-
-            <div className={styles.detalheGrid}>
-              {/* Empresa emissora */}
-              <div className={styles.detalheCard}>
-                <div className={styles.detalheCardTitle}>Empresa Emissora</div>
-                <div className={styles.detalheCampo}><strong>Empresa:</strong> <span>{empresaSel?.nome_fantasia ?? '—'}</span></div>
-                {empresaSel?.razao_social && <div className={styles.detalheCampo}><strong>Razão social:</strong> <span>{empresaSel.razao_social}</span></div>}
-                {empresaSel?.cnpj && <div className={styles.detalheCampo}><strong>CNPJ:</strong> <span>{empresaSel.cnpj}</span></div>}
-                {empresaSel?.telefone && <div className={styles.detalheCampo}><strong>Telefone:</strong> <span>{empresaSel.telefone}</span></div>}
-                {empresaSel?.email && <div className={styles.detalheCampo}><strong>E-mail:</strong> <span>{empresaSel.email}</span></div>}
-                {vend && <div className={styles.detalheCampo}><strong>Vendedor:</strong> <span>{vend.nome}</span></div>}
-              </div>
-
-              {/* Cliente */}
-              <div className={styles.detalheCard}>
-                <div className={styles.detalheCardTitle}>Cliente</div>
-                {cliente.empresa && <div className={styles.detalheCampo}><strong>Empresa:</strong> <span>{cliente.empresa}</span></div>}
-                {cliente.nome_fantasia && <div className={styles.detalheCampo}><strong>Nome fantasia:</strong> <span>{cliente.nome_fantasia}</span></div>}
-                {cliente.nome && <div className={styles.detalheCampo}><strong>Contato:</strong> <span>{cliente.nome}</span></div>}
-                {cliente.cargo && <div className={styles.detalheCampo}><strong>Cargo:</strong> <span>{cliente.cargo}</span></div>}
-                {cliente.cnpj && <div className={styles.detalheCampo}><strong>{cliente.tipo_pessoa === 'pf' ? 'CPF' : 'CNPJ'}:</strong> <span>{cliente.cnpj}</span></div>}
-                {cliente.telefone && <div className={styles.detalheCampo}><strong>Telefone:</strong> <span>{cliente.telefone}</span></div>}
-                {cliente.email && <div className={styles.detalheCampo}><strong>E-mail:</strong> <span>{cliente.email}</span></div>}
-                {cliente.cep && <div className={styles.detalheCampo}><strong>Endereço:</strong> <span>{[cliente.logradouro, cliente.numero, cliente.complemento, cliente.bairro, cliente.cidade, cliente.uf].filter(Boolean).join(', ')} — CEP {cliente.cep}</span></div>}
-                {cliente.perfil_comprador && <div className={styles.detalheCampo}><strong>Perfil:</strong> <span>{cliente.perfil_comprador}</span></div>}
-              </div>
-
-              {/* Itens */}
-              <div className={`${styles.detalheCard} ${styles.detalheCardFull}`}>
-                <div className={styles.detalheCardTitle}>Itens</div>
-                <table className={styles.detalheItensTable}>
-                  <thead><tr><th>#</th><th>Descrição</th><th>Qtd</th><th>Un</th><th>Vl. Unit.</th><th>Total</th></tr></thead>
-                  <tbody>
-                    {itens.filter(i => i.descricao.trim()).map((item, idx) => {
-                      const q = parseFloat(item.qtd.replace(',', '.')) || 0
-                      const v = parseFloat(item.valorUnit.replace(',', '.')) || 0
-                      return (
-                        <tr key={idx}>
-                          <td>{idx + 1}</td>
-                          <td>{item.descricao}{item.obs_tecnica ? <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{item.obs_tecnica}</div> : null}</td>
-                          <td>{item.qtd}</td>
-                          <td>{item.unidade}</td>
-                          <td>{fmt(v)}</td>
-                          <td>{fmt(q * v)}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-                <div className={styles.detalheTotais}>
-                  <div className={styles.detalheTotaisRow}><span>Subtotal</span><span>{fmt(subtotal())}</span></div>
-                  {valorDesc() > 0 && <div className={styles.detalheTotaisRow}><span>Desconto ({tipoDesc === '%' ? `${desconto}%` : 'R$'})</span><span>−{fmt(valorDesc())}</span></div>}
-                  {valorFrete() > 0 && <div className={styles.detalheTotaisRow}><span>Frete</span><span>{fmt(valorFrete())}</span></div>}
-                  {valorInst() > 0 && <div className={styles.detalheTotaisRow}><span>Instalação</span><span>{fmt(valorInst())}</span></div>}
-                  <div className={`${styles.detalheTotaisRow} ${styles.detalheTotaisTotal}`}><span>Total</span><span>{fmt(total())}</span></div>
-                </div>
-              </div>
-
-              {/* Frete & Logística */}
-              {freteS.tipo && (
-                <div className={styles.detalheCard}>
-                  <div className={styles.detalheCardTitle}>Frete & Logística</div>
-                  <div className={styles.detalheCampo}><strong>Tipo:</strong> <span>{freteS.tipo}</span></div>
-                  <div className={styles.detalheCampo}><strong>Modalidade:</strong> <span>{freteS.modalidade === 'cobrar' ? 'Cobrar do cliente' : 'Bonificado'}</span></div>
-                  {freteS.provedor && <div className={styles.detalheCampo}><strong>Provedor:</strong> <span>{freteS.provedor} {freteS.servico ? `— ${freteS.servico}` : ''}</span></div>}
-                  {freteS.valor > 0 && <div className={styles.detalheCampo}><strong>Valor:</strong> <span>{fmtBRL(freteS.valor)}</span></div>}
-                  {freteS.prazo && <div className={styles.detalheCampo}><strong>Prazo:</strong> <span>{freteS.prazo}</span></div>}
-                  {freteS.peso_total_kg > 0 && <div className={styles.detalheCampo}><strong>Peso:</strong> <span>{freteS.peso_total_kg} kg</span></div>}
-                </div>
-              )}
-
-              {/* Condições */}
-              <div className={styles.detalheCard}>
-                <div className={styles.detalheCardTitle}>Condições Comerciais</div>
-                {condicoes.length > 0 && <div className={styles.detalheCampo}><strong>Pagamento:</strong> <span>{condicoes.join(', ')}</span></div>}
-                {dadosBancariosSel.length > 0 && <div className={styles.detalheCampo}><strong>Dados bancários:</strong> <span>{dadosBancarios.filter(d => dadosBancariosSel.includes(d.id)).map(d => d.apelido).join(', ')}</span></div>}
-                {prazoEntrega && <div className={styles.detalheCampo}><strong>Prazo entrega:</strong> <span>{prazoEntrega}</span></div>}
-                <div className={styles.detalheCampo}><strong>Validade:</strong> <span>{validadeDias} dias</span></div>
-                <div className={styles.detalheCampo}><strong>Emissão:</strong> <span>{dataEmissao}</span></div>
-              </div>
-
-              {/* Instalação */}
-              {instalacao.inclui && (
-                <div className={styles.detalheCard}>
-                  <div className={styles.detalheCardTitle}>Instalação / Montagem</div>
-                  <div className={styles.detalheCampo}><strong>Modalidade:</strong> <span>{instalacao.modalidade === 'cobrar' ? 'Cobrar do cliente' : 'Bonificada'}</span></div>
-                  {instalacao.valor && <div className={styles.detalheCampo}><strong>Valor:</strong> <span>{fmtBRL(parseFloat(instalacao.valor.replace(',', '.')) || 0)}</span></div>}
-                  {instalacao.texto && <div className={styles.detalheCampo}><strong>Descrição:</strong> <span>{instalacao.texto}</span></div>}
-                </div>
-              )}
-
-              {/* Observações */}
-              {observacoes && observacoes !== OBS_DEFAULT && (
-                <div className={`${styles.detalheCard} ${styles.detalheCardFull}`}>
-                  <div className={styles.detalheCardTitle}>Observações</div>
-                  <div style={{ fontSize: '0.84rem', color: '#374151', whiteSpace: 'pre-line' }}>{observacoes}</div>
-                </div>
-              )}
-
-              {/* Anexos */}
-              {anexos.length > 0 && (
-                <div className={styles.detalheCard}>
-                  <div className={styles.detalheCardTitle}>Anexos ({anexos.length})</div>
-                  {anexos.map(a => (
-                    <div key={a.id ?? a.nome} className={styles.detalheCampo}>
-                      <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>📎 {a.nome}</a>
-                      {a.tamanho && <span style={{ color: '#94a3b8', fontSize: '0.76rem', marginLeft: 6 }}>{(a.tamanho / 1024).toFixed(0)} KB</span>}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Recebível */}
-              {finLancId && (
-                <div className={styles.detalheCard}>
-                  <div className={styles.detalheCardTitle}>Financeiro</div>
-                  <div className={styles.detalheCampo} style={{ color: '#16a34a', fontWeight: 600 }}>✓ Recebível #{finLancId} vinculado</div>
-                </div>
-              )}
-
-              {/* Histórico */}
-              {historico.length > 0 && (
-                <div className={`${styles.detalheCard} ${styles.detalheCardFull}`}>
-                  <div className={styles.detalheCardTitle}>Histórico</div>
-                  {historico.slice(0, 10).map((h, i) => (
-                    <div key={i} className={styles.detalheCampo} style={{ display: 'flex', gap: 8 }}>
-                      <span style={{ color: '#94a3b8', fontSize: '0.76rem', minWidth: 100 }}>{fmtDataISO(h.criado_em)}</span>
-                      <span>{EVENTO_LABEL[h.evento] ?? h.evento}{h.descricao ? ` — ${h.descricao}` : ''}</span>
-                      {h.usuario && <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>por {h.usuario}</span>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })()}
+      {vista === 'detalhe' && editandoId && (
+        <DetalheView
+          numero={numero} status={status} empresaSel={empresaSel} vendedores={vendedores}
+          vendedorId={vendedorId} cliente={cliente} itens={itens}
+          subtotal={subtotal()} valorDesc={valorDesc()} desconto={desconto} tipoDesc={tipoDesc}
+          valorFrete={valorFrete()} valorInst={valorInst()} total={total()} fmt={fmt}
+          freteSummary={freteSummaryRef.current} condicoes={condicoes}
+          dadosBancarios={dadosBancarios} dadosBancariosSel={dadosBancariosSel}
+          prazoEntrega={prazoEntrega} validadeDias={validadeDias} dataEmissao={dataEmissao}
+          instalacao={instalacao} observacoes={observacoes} anexos={anexos}
+          finLancId={finLancId} historico={historico}
+          onEditar={() => setVista('editor')} onImprimir={imprimir} styles={styles}
+        />
+      )}
 
       {/* ═══ EDITOR ═══ */}
       {vista === 'editor' && (
@@ -1120,101 +978,20 @@ export default function AdminOrcamento() {
               <ClienteForm cliente={cliente} setCliente={setCliente} styles={styles} />
 
               {/* Itens */}
-              <CollapsibleSection title="📦 Itens" defaultOpen>
-                <div className={styles.itensHeader}>
-                  <span className={styles.itemDesc}>Descrição</span>
-                  <span className={styles.itemQtd}>Qtd</span>
-                  <span className={styles.itemUn}>Un</span>
-                  <span className={styles.itemVu}>Vl. Unit.</span>
-                  <span className={styles.itemTotal}>Total</span>
-                  <span style={{ width: 28 }} />
-                </div>
-                {itens.map((item, i) => {
-                  const q = parseFloat(item.qtd.replace(',', '.')) || 0
-                  const v = parseFloat(item.valorUnit.replace(',', '.')) || 0
-                  return (
-                    <div key={i} className={styles.itemRow}>
-                      <div className={styles.itemDesc} style={{display:'flex',flexDirection:'column',gap:2}}>
-                        <input className={styles.input} placeholder="Produto / serviço" value={item.descricao} onChange={e => updateItem(i, 'descricao', e.target.value)} />
-                        {exibir.obsTecnicaItens && (
-                          <input className={styles.input} style={{fontSize:'0.75rem',color:'#64748b'}} placeholder="Obs. técnica (opcional)" value={item.obs_tecnica ?? ''} onChange={e => updateItem(i,'obs_tecnica',e.target.value)} />
-                        )}
-                      </div>
-                      <input className={`${styles.input} ${styles.itemQtd}`} type="number" min="0" step="any" value={item.qtd} onChange={e => updateItem(i, 'qtd', e.target.value)} />
-                      <select className={`${styles.input} ${styles.itemUn}`} value={item.unidade} onChange={e => updateItem(i, 'unidade', e.target.value)}>
-                        {UNIDADES.map(u => <option key={u}>{u}</option>)}
-                      </select>
-                      <input className={`${styles.input} ${styles.itemVu}`} type="number" min="0" step="any" placeholder="0,00" value={item.valorUnit} onChange={e => updateItem(i, 'valorUnit', e.target.value)} />
-                      <span className={styles.itemTotal}>{q > 0 && v > 0 ? fmtBRL(q * v) : '—'}</span>
-                      <button className={styles.btnRemoveItem} onClick={() => removeItem(i)}>✕</button>
-                    </div>
-                  )
-                })}
-                {showBuscaProduto && (
-                  <div className={styles.buscaProdWrap}>
-                    <input className={styles.input} autoFocus placeholder="Nome do produto cadastrado..."
-                      value={buscaProduto} onChange={e => setBuscaProduto(e.target.value)} />
-                    {loadingProduto && <div style={{ fontSize: '0.8rem', color: '#64748b', padding: '4px 0' }}>Buscando...</div>}
-                    {resultadosProduto.length > 0 && (
-                      <div className={styles.dropdown} style={{ position: 'static', boxShadow: 'none', border: '1px solid #e2e8f0', borderTop: 'none' }}>
-                        {resultadosProduto.map(p => (
-                          <div key={p.id} className={styles.dropItem} onClick={() => adicionarProduto(p)}>
-                            <strong>{p.nome_padronizado}</strong>
-                            <span style={{ fontSize: '0.74rem', color: '#64748b' }}> · {p.familia} · {p.unidade}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-                {showBuscaOutlet && (
-                  <div className={styles.buscaProdWrap}>
-                    <input className={styles.input} autoFocus placeholder="Buscar no Pronta Entrega..."
-                      value={buscaOutlet} onChange={e => setBuscaOutlet(e.target.value)} />
-                    {loadingOutlet && <div style={{ fontSize: '0.8rem', color: '#64748b', padding: '4px 0' }}>Buscando...</div>}
-                    {resultadosOutlet.length > 0 && (
-                      <div className={styles.dropdown} style={{ position: 'static', boxShadow: 'none', border: '1px solid #e2e8f0', borderTop: 'none' }}>
-                        {resultadosOutlet.map(p => (
-                          <div key={p.id} className={styles.dropItem} onClick={() => adicionarOutlet(p)} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            {p.fotos?.[0] && <img src={p.fotos[0]} alt={p.titulo} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0, border: '1px solid #e2e8f0' }} />}
-                            <div>
-                              <strong>{p.titulo}</strong>
-                              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
-                                {p.preco_original && p.preco_original > p.preco
-                                  ? <><s style={{ color: '#94a3b8' }}>{fmtBRL(p.preco_original)}</s> {fmtBRL(p.preco)}</>
-                                  : fmtBRL(p.preco)
-                                } · {p.quantidade} un. disponível
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {!loadingOutlet && buscaOutlet.length >= 2 && resultadosOutlet.length === 0 && (
-                      <div style={{ fontSize: '0.8rem', color: '#94a3b8', padding: '4px 0' }}>Nenhum produto disponível encontrado</div>
-                    )}
-                  </div>
-                )}
-                <div className={styles.itensActions}>
-                  <button className={styles.btnAddItem} onClick={addItem}>+ Linha manual</button>
-                  <button className={styles.btnAddItem} onClick={() => { setShowBuscaProduto(v => !v); setShowBuscaOutlet(false) }}>🔍 Catálogo</button>
-                  <button className={styles.btnAddItem} onClick={() => { setShowBuscaOutlet(v => !v); setShowBuscaProduto(false) }}>🏪 Pronta Entrega</button>
-                </div>
-                <div className={styles.totaisWrap}>
-                  <div className={styles.totaisRow}><span>Subtotal</span><span>{fmt(subtotal())}</span></div>
-                  {subtotal() > 0 && (
-                    <div className={styles.totaisRow}>
-                      <span>Desconto</span>
-                      <div className={styles.descontoGroup}>
-                        <input className={`${styles.input} ${styles.descontoInput}`} type="number" min="0" step="any" placeholder="0" value={desconto} onChange={e => setDesconto(e.target.value)} />
-                        <select className={`${styles.input} ${styles.descontoTipo}`} value={tipoDesc} onChange={e => setTipoDesc(e.target.value as '%' | 'R$')}><option>%</option><option>R$</option></select>
-                        {valorDesc() > 0 && <span className={styles.descontoValor}>−{fmt(valorDesc())}</span>}
-                      </div>
-                    </div>
-                  )}
-                  <div className={`${styles.totaisRow} ${styles.totaisTotal}`}><span>Total</span><span>{fmt(total())}</span></div>
-                </div>
-              </CollapsibleSection>
+              <ItensSection
+                itens={itens} setItens={setItens} exibir={exibir}
+                subtotal={subtotal()} desconto={desconto} setDesconto={setDesconto}
+                tipoDesc={tipoDesc} setTipoDesc={setTipoDesc}
+                valorDesc={valorDesc()} total={total()} fmt={fmt}
+                showBuscaProduto={showBuscaProduto} setShowBuscaProduto={setShowBuscaProduto}
+                buscaProduto={buscaProduto} setBuscaProduto={setBuscaProduto}
+                resultadosProduto={resultadosProduto} loadingProduto={loadingProduto}
+                adicionarProduto={adicionarProduto}
+                showBuscaOutlet={showBuscaOutlet} setShowBuscaOutlet={setShowBuscaOutlet}
+                buscaOutlet={buscaOutlet} setBuscaOutlet={setBuscaOutlet}
+                resultadosOutlet={resultadosOutlet} loadingOutlet={loadingOutlet}
+                adicionarOutlet={adicionarOutlet} styles={styles}
+              />
 
               {/* Frete & Logística */}
               <FreteSection
@@ -1259,79 +1036,15 @@ export default function AdminOrcamento() {
               </CollapsibleSection>
 
               {/* Condições Comerciais */}
-              <CollapsibleSection title="💰 Condições Comerciais">
-                <div className={styles.fg}>
-                  <label>Pagamento <span style={{ fontWeight: 400, color: '#64748b', fontSize: '0.78em' }}>(selecione uma ou mais)</span></label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 4 }}>
-                    {COND_PAGAMENTO.map(c => (
-                      <label key={c} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.85rem', cursor: 'pointer', fontWeight: 400 }}>
-                        <input type="checkbox" checked={condicoes.includes(c)}
-                          onChange={e => setCondicoes(prev => e.target.checked ? [...prev, c] : prev.filter(x => x !== c))} />
-                        {c}
-                      </label>
-                    ))}
-                  </div>
-                  {condicoes.length > 0 && (
-                    <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
-                      O envio será realizado após a confirmação do pagamento.
-                    </div>
-                  )}
-                </div>
-
-                {/* Dados bancários pré-cadastrados */}
-                {(condicoes.includes('PIX') || condicoes.includes('Depósito/Transferência') || condicoes.includes('Boleto bancário')) && (
-                  <div className={styles.fg}>
-                    <label>Dados bancários para pagamento</label>
-                    {dadosBancarios.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
-                        {dadosBancarios.map(d => (
-                          <label key={d.id} style={{
-                            display: 'flex', gap: 10, padding: '10px 12px', cursor: 'pointer',
-                            background: dadosBancariosSel.includes(d.id) ? '#f0f7ff' : '#f8fafc',
-                            border: `1.5px solid ${dadosBancariosSel.includes(d.id) ? '#1a5fa8' : '#e2e8f0'}`,
-                            borderRadius: 8, transition: 'border-color 0.15s',
-                          }}>
-                            <input type="checkbox" checked={dadosBancariosSel.includes(d.id)}
-                              onChange={e => setDadosBancariosSel(prev =>
-                                e.target.checked ? [...prev, d.id] : prev.filter(x => x !== d.id)
-                              )}
-                              style={{ marginTop: 2, accentColor: '#1a5fa8' }} />
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: 700, fontSize: '0.84rem', color: '#0f172a' }}>{d.apelido}</div>
-                              <div style={{ fontSize: '0.78rem', color: '#475569', whiteSpace: 'pre-line', marginTop: 2 }}>
-                                {formatarDadoBancario(d)}
-                              </div>
-                            </div>
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginTop: 4 }}>
-                        Nenhuma conta cadastrada.
-                      </div>
-                    )}
-                    <button className={styles.btnAddItem} style={{ marginTop: 6, fontSize: '0.75rem' }} onClick={() => setDrawerOpen(true)}>
-                      + Gerenciar contas (⚙️ Config)
-                    </button>
-
-                    {/* Dados livres (fallback/complemento) */}
-                    <div style={{ marginTop: 8 }}>
-                      <label style={{ fontSize: '0.78rem', color: '#64748b' }}>Informações adicionais de pagamento (texto livre)</label>
-                      <textarea className={`${styles.input} ${styles.textarea}`} rows={2}
-                        placeholder="Ex: observações sobre pagamento, condições especiais..."
-                        value={dadosPagamento} onChange={e => setDadosPagamento(e.target.value)} />
-                    </div>
-                  </div>
-                )}
-
-                <div className={styles.row2}>
-                  <div className={styles.fg}><label>Prazo de entrega</label><input className={styles.input} placeholder="Ex: 10 dias úteis" value={prazoEntrega} onChange={e => setPrazoEntrega(e.target.value)} /></div>
-                </div>
-                <div className={styles.row2}>
-                  <div className={styles.fg}><label>Validade (dias)</label><input className={styles.input} type="number" min="1" value={validadeDias} onChange={e => setValidadeDias(e.target.value)} /></div>
-                  <div className={styles.fg}><label>Emissão</label><input className={styles.input} value={dataEmissao} readOnly style={{ background: '#f8fafc' }} /></div>
-                </div>
-              </CollapsibleSection>
+              <CondicoesSection
+                condicoes={condicoes} setCondicoes={setCondicoes}
+                dadosBancarios={dadosBancarios} dadosBancariosSel={dadosBancariosSel}
+                setDadosBancariosSel={setDadosBancariosSel}
+                dadosPagamento={dadosPagamento} setDadosPagamento={setDadosPagamento}
+                prazoEntrega={prazoEntrega} setPrazoEntrega={setPrazoEntrega}
+                validadeDias={validadeDias} setValidadeDias={setValidadeDias}
+                dataEmissao={dataEmissao} onOpenConfig={() => setDrawerOpen(true)} styles={styles}
+              />
 
               {/* Observações */}
               <CollapsibleSection title="📝 Observações">
