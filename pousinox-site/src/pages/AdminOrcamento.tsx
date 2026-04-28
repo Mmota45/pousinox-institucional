@@ -32,9 +32,10 @@ export default function AdminOrcamento() {
   const { ocultarValores } = useAdmin()
   const fmt = (v: number) => ocultarValores ? '••••' : fmtBRL(v)
   const location = useLocation()
-  const fromProjeto = location.state as {
+  const fromState = location.state as {
     projeto?: { titulo: string; cliente_nome: string | null; cliente_cnpj: string | null; observacoes: string | null }
     componentes?: { nome: string; quantidade: number | null }[]
+    prospect?: { razao_social: string; nome_fantasia?: string; cnpj?: string; telefone?: string; email?: string; cidade?: string; uf?: string; segmento?: string }
   } | null
 
   const [vista, setVista]           = useState<Vista>('lista')
@@ -206,21 +207,39 @@ export default function AdminOrcamento() {
   }, [])
 
   useEffect(() => {
-    if (!fromProjeto?.projeto) return
-    const p = fromProjeto.projeto
-    setCliente({ ...CLIENTE_VAZIO, empresa: p.cliente_nome ?? '', cnpj: p.cliente_cnpj ?? '', tipo_pessoa: 'pj' })
-    if (fromProjeto.componentes?.length) {
-      setItens(fromProjeto.componentes.map(c => ({
-        produto_id: null,
-        descricao: `${c.nome}${c.quantidade ? ` (${c.quantidade} un)` : ''}`,
-        qtd: String(c.quantidade ?? 1), unidade: 'UN', valorUnit: '',
-      })))
+    if (fromState?.projeto) {
+      const p = fromState.projeto
+      setCliente({ ...CLIENTE_VAZIO, empresa: p.cliente_nome ?? '', cnpj: p.cliente_cnpj ?? '', tipo_pessoa: 'pj' })
+      if (fromState.componentes?.length) {
+        setItens(fromState.componentes.map(c => ({
+          produto_id: null,
+          descricao: `${c.nome}${c.quantidade ? ` (${c.quantidade} un)` : ''}`,
+          qtd: String(c.quantidade ?? 1), unidade: 'UN', valorUnit: '',
+        })))
+      }
+      if (p.observacoes) setObservacoes(p.observacoes)
+      supabaseAdmin.rpc('next_orcamento_numero').then(({ data }) => {
+        setNumero((data as string) ?? `${new Date().getFullYear()}/001`)
+      })
+      setVista('editor')
+    } else if (fromState?.prospect) {
+      const pr = fromState.prospect
+      setCliente({
+        ...CLIENTE_VAZIO,
+        empresa: pr.razao_social,
+        nome_fantasia: pr.nome_fantasia ?? '',
+        cnpj: pr.cnpj ?? '',
+        telefone: pr.telefone ?? '',
+        email: pr.email ?? '',
+        cidade: pr.cidade ?? '',
+        uf: pr.uf ?? '',
+        tipo_pessoa: 'pj',
+      })
+      supabaseAdmin.rpc('next_orcamento_numero').then(({ data }) => {
+        setNumero((data as string) ?? `${new Date().getFullYear()}/001`)
+      })
+      setVista('editor')
     }
-    if (p.observacoes) setObservacoes(p.observacoes)
-    supabaseAdmin.rpc('next_orcamento_numero').then(({ data }) => {
-      setNumero((data as string) ?? `${new Date().getFullYear()}/001`)
-    })
-    setVista('editor')
   }, [])
 
   // useEffect busca cliente movido para ClienteForm

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabaseAdmin } from '../lib/supabase'
 import { useAdmin } from '../contexts/AdminContext'
 import { aiChat } from '../lib/aiHelper'
@@ -113,6 +114,7 @@ const ABAS: { key: Aba; label: string; icon: string }[] = [
 
 export default function AdminCentralVendas() {
   const { ocultarValores } = useAdmin()
+  const navigate = useNavigate()
   const fmt = (v: number) => ocultarValores ? '••••' : fmtBRL(v)
 
   const [aba, setAba] = useState<Aba>('hotlist')
@@ -1443,7 +1445,19 @@ export default function AdminCentralVendas() {
               <div className={styles.drawerAcoes}>
                 <button className={styles.btnContactar} onClick={() => { marcarContactado(drawerPs); setDrawerPs(null) }}>✅ Contactei</button>
                 <button className={styles.btnPrimary} onClick={() => { criarDealDoDrawer(drawerPs); setDrawerPs(null) }}>➡ Criar Deal</button>
-                <button className={styles.btnWpp} onClick={() => abrirWhatsApp(drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento)}>WhatsApp</button>
+                <button className={styles.btnPrimary} onClick={() => {
+                  navigate('/admin/orcamento', { state: { prospect: {
+                    razao_social: drawerPs.razao_social,
+                    nome_fantasia: drawerPs.nome_fantasia,
+                    cnpj: drawerPs.cnpj,
+                    telefone: drawerPs.whatsapp || drawerPs.telefone1,
+                    email: drawerPs.email,
+                    cidade: drawerPs.cidade,
+                    uf: drawerPs.uf,
+                    segmento: drawerPs.segmento,
+                  }}})
+                }}>📄 Orçamento</button>
+                <button className={styles.btnWpp} onClick={() => abrirWhatsApp(drawerPs.whatsapp || drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento)}>WhatsApp</button>
                 <button className={styles.btnSecondary} onClick={() => setHistoricoAberto({ id: drawerPs.prospect_id, nome: drawerPs.nome_fantasia || drawerPs.razao_social })}>📋 Histórico</button>
               </div>
 
