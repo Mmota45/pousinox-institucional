@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseAdmin } from '../lib/supabase'
 import { useAdmin } from '../contexts/AdminContext'
-import { aiChat } from '../lib/aiHelper'
+import { aiChat, aiParallel, type MultiResult } from '../lib/aiHelper'
 import AiActionButton from '../components/assistente/AiActionButton'
 import HistoricoModal from '../components/HistoricoModal/HistoricoModal'
 import styles from './AdminCentralVendas.module.css'
@@ -110,6 +110,74 @@ const ABAS: { key: Aba; label: string; icon: string }[] = [
   { key: 'radar', label: 'Radar', icon: '📡' },
 ]
 
+// ── Multi-IA Drawer ──────────────────────────────────────────────────────────
+
+const MULTI_TARGETS = [
+  { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+  { provider: 'groq', model: 'gemma2-9b-it' },
+  { provider: 'groq', model: 'mixtral-8x7b-32768' },
+]
+
+function DrawerMultiIA({ prospect }: { prospect: ProspectScore }) {
+  const [results, setResults] = useState<MultiResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [copied, setCopied] = useState<number | null>(null)
+
+  async function gerar() {
+    setLoading(true)
+    setResults([])
+    const seg = (prospect.segmento || '').toLowerCase()
+    const isConstru = /constru|engenh|arquit|revest|imobil/i.test(seg)
+    const descEmpresa = isConstru
+      ? 'A Pousinox fabrica equipamentos em aço inox sob medida E o fixador de segurança para porcelanato (insert metálico que impede desprendimento de placas — NÃO substitui argamassa).'
+      : 'A Pousinox fabrica equipamentos e mobiliário em aço inox sob medida desde 2001: bancadas, fogões industriais, coifas, corrimãos, lava-botas, mesas de trabalho, tanques, cubas, mobiliário para cozinhas industriais e soluções personalizadas.'
+    const prompt = `Prospect: ${prospect.nome_fantasia || prospect.razao_social}\nCNPJ: ${prospect.cnpj || 'N/I'}\nSegmento: ${prospect.segmento || 'N/I'}\nPorte: ${prospect.porte || 'N/I'}\nCidade/UF: ${prospect.cidade || ''}/${prospect.uf || ''}\nScore: ${Number(prospect.score_total).toFixed(1)}\nStatus: ${prospect.status_contato || 'Novo'}\n\n${descEmpresa}\n\nCrie uma mensagem de abordagem comercial personalizada via WhatsApp. Foque nos produtos RELEVANTES para "${prospect.segmento || 'geral'}". Inclua: gancho, proposta de valor e call-to-action. Máx 3 parágrafos.`
+    const system = 'Vendedor consultivo B2B da Pousinox. Mensagens naturais e profissionais. Português brasileiro. NÃO mencione fixador de porcelanato se o segmento não for construção/engenharia/arquitetura.'
+    const res = await aiParallel(prompt, MULTI_TARGETS, system)
+    setResults(res)
+    setLoading(false)
+  }
+
+  function copiar(txt: string, idx: number) {
+    navigator.clipboard.writeText(txt)
+    setCopied(idx)
+    setTimeout(() => setCopied(null), 2000)
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
+      <button
+        onClick={gerar}
+        disabled={loading}
+        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, width: '100%', opacity: loading ? 0.7 : 1 }}
+      >
+        {loading ? '⏳ Gerando 3 variações...' : '🧠 Gerar 3 variações IA'}
+      </button>
+      {results.length > 0 && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {results.map((r, i) => (
+            <div key={i} style={{ background: r.error ? '#fef2f2' : '#f8fafc', border: '1px solid var(--color-border)', borderRadius: 8, padding: 10, fontSize: 13 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontWeight: 600, fontSize: 11, color: '#6366f1' }}>
+                  {r.model} {r.tempo ? `(${(r.tempo / 1000).toFixed(1)}s)` : ''}
+                </span>
+                {!r.error && (
+                  <button onClick={() => copiar(r.response, i)} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>
+                    {copied === i ? '✅ Copiado' : '📋 Copiar'}
+                  </button>
+                )}
+              </div>
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                {r.error ? `❌ ${r.error}` : r.response}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function AdminCentralVendas() {
@@ -137,6 +205,11 @@ export default function AdminCentralVendas() {
   const [mesorregioes, setMesorregioes] = useState<string[]>([])
   const [filtroMeso, setFiltroMeso] = useState<string[]>([])
   const [cidadesMeso, setCidadesMeso] = useState<string[]>([]) // cidades das mesorregiões selecionadas
+  const [filtroCidades, setFiltroCidades] = useState<string[]>([])
+  const [showCidadeDrop, setShowCidadeDrop] = useState(false)
+  const [buscaCidade, setBuscaCidade] = useState('')
+  const [buscaSegmento, setBuscaSegmento] = useState('')
+  const [buscaMeso, setBuscaMeso] = useState('')
   const [pagina, setPagina] = useState(0)
   const POR_PAGINA = 50
 
@@ -149,6 +222,39 @@ export default function AdminCentralVendas() {
   const [loadingMat, setLoadingMat] = useState(false)
   const [formMat, setFormMat] = useState({ titulo: '', tipo: 'apresentacao', url: '', descricao: '' })
   const [showFormMat, setShowFormMat] = useState(false)
+
+  // ── Template WhatsApp ──
+  const TEMPLATE_KEY = 'pousinox_wpp_template'
+  const PRODUTOS_KEY = 'pousinox_wpp_produtos'
+  const templateDefault = `Boa tarde, {nome}.
+
+Meu nome é Marcos, da Pousinox\u00AE. Fabricamos equipamentos em aço inox padrão e sob medida{origem}.
+
+Trabalhamos com: {produtos}.
+
+Caso estejam precisando de algum projeto específico sob medida ou equipamento, ficamos à disposição. Seria um prazer conversar com o responsável pela área de compras.
+
+Marcos Mota
+Pousinox\u00AE \u2014 A Arte em Inox
+pousinox.com.br`
+  const produtosDefault: Record<string, string> = {
+    generico: 'bancadas, mesas, coifas, fogões industriais, lava-botas, corrimãos e projetos sob medida',
+    'açougue/frigorífico': 'bancadas, mesas de corte, ganchos, lava-botas e estruturas para câmaras frias',
+    'restaurante/bar': 'bancadas, fogões industriais, coifas, mesas de preparo e mobiliário para cozinhas profissionais',
+    'padaria/confeitaria': 'bancadas, estantes, mesas de trabalho e estruturas para fornos',
+    'hospital/clínica': 'bancadas, pias cirúrgicas, mobiliário técnico e equipamentos para ambientes controlados',
+    'hotel/pousada': 'bancadas, buffets, mesas e mobiliário para cozinhas industriais',
+    'construção/engenharia': 'fixador de segurança para porcelanato, corrimãos, guarda-corpos e peças sob medida',
+    'supermercado/varejo': 'bancadas, balcões, mesas de manipulação e estruturas para áreas de preparo',
+  }
+  const [wppTemplate, setWppTemplate] = useState(() => {
+    try { return localStorage.getItem(TEMPLATE_KEY) || templateDefault } catch { return templateDefault }
+  })
+  const [wppProdutos, setWppProdutos] = useState<Record<string, string>>(() => {
+    try { const s = localStorage.getItem(PRODUTOS_KEY); return s ? JSON.parse(s) : produtosDefault } catch { return produtosDefault }
+  })
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false)
+  const [editSegmento, setEditSegmento] = useState('generico')
 
   // ── Radar / GSC ──
   const [gscData, setGscData] = useState<{ totalClicks: number; totalImpressions: number; avgCtr: number; avgPosition: number; topQueries: any[]; totalQueries: number } | null>(null)
@@ -390,11 +496,12 @@ export default function AdminCentralVendas() {
     } else {
       setCidadesMeso([])
     }
+    setFiltroCidades([])
     setPagina(0)
   }, [filtroMeso, filtroUFs])
 
   // Resetar página ao mudar filtros locais
-  useEffect(() => { setPagina(0) }, [filtroSegmentos, filtroDemanda, filtroBusca, filtroSoWa])
+  useEffect(() => { setPagina(0) }, [filtroSegmentos, filtroDemanda, filtroBusca, filtroSoWa, filtroCidades])
 
   // ── Ações ───────────────────────────────────────────────────────────────────
 
@@ -420,31 +527,46 @@ export default function AdminCentralVendas() {
     carregarHotList()
   }
 
-  function gerarMsgWpp(nome: string, segmento?: string): string {
-    const seg = (segmento || '').toLowerCase()
-    if (/açougue|frigoríf|carne/i.test(seg))
-      return `Olá${nome ? `, ${nome}` : ''}! Sou da Pousinox, fabricante de equipamentos em aço inox sob medida. Trabalhamos com bancadas, mesas de corte, ganchos, lava-botas e soluções completas para açougues e frigoríficos. Posso apresentar nossas soluções?`
-    if (/restaurante|gastrono|gourmet|alimenta|bar\b|lanchonete/i.test(seg))
-      return `Olá${nome ? `, ${nome}` : ''}! Sou da Pousinox, fabricante de equipamentos em aço inox sob medida. Produzimos bancadas, fogões industriais, coifas, mesas e mobiliário completo para cozinhas profissionais. Posso apresentar nossas soluções?`
-    if (/padaria|panifica|confeitaria/i.test(seg))
-      return `Olá${nome ? `, ${nome}` : ''}! Sou da Pousinox, fabricante de equipamentos em aço inox sob medida para padarias e confeitarias — bancadas, estantes, mesas de trabalho e mais. Podemos conversar?`
-    if (/hospital|clínica|saúde|laborat|farmác/i.test(seg))
-      return `Olá${nome ? `, ${nome}` : ''}! Sou da Pousinox, fabricante de equipamentos em aço inox sob medida para ambientes hospitalares e laboratoriais — bancadas, pias cirúrgicas, mobiliário técnico. Posso apresentar nossas soluções?`
-    if (/hotel|hotelaria|pousada/i.test(seg))
-      return `Olá${nome ? `, ${nome}` : ''}! Sou da Pousinox, fabricante de equipamentos em aço inox sob medida para hotelaria — cozinhas industriais, buffets, bancadas e mais. Podemos conversar?`
-    if (/constru|engenh|arquit|revest|imobil/i.test(seg))
-      return `Olá${nome ? `, ${nome}` : ''}! Sou da Pousinox, fabricante de equipamentos em aço inox e do fixador de segurança para porcelanato — um insert metálico que impede o desprendimento de placas em fachadas. Posso apresentar?`
-    if (/supermercado|mercado|varejo/i.test(seg))
-      return `Olá${nome ? `, ${nome}` : ''}! Sou da Pousinox, fabricante de equipamentos em aço inox sob medida — bancadas, balcões refrigerados, mesas e soluções para supermercados. Podemos conversar?`
-    // Genérico
-    return `Olá${nome ? `, ${nome}` : ''}! Sou da Pousinox, fabricante de equipamentos em aço inox sob medida desde 2001. Produzimos bancadas, fogões industriais, coifas, corrimãos, lava-botas e soluções personalizadas. Posso apresentar nossos produtos?`
+  function limparNome(raw: string): string {
+    // Remove CNPJ prefix (ex: "49.408.111 BRAZ FRANCISCO" → "BRAZ FRANCISCO")
+    return raw.replace(/^[\d.\-\/]+\s*/, '').replace(/\s+/g, ' ').trim()
   }
 
-  function abrirWhatsApp(tel: string | null, nome: string, segmento?: string) {
+  function gerarMsgWpp(nome: string, segmento?: string, cidade?: string): string {
+    const seg = (segmento || '').toLowerCase()
+    const nomeClean = limparNome(nome)
+    const nomeFmt = nomeClean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+    const cidadeLocal = (cidade || '').toLowerCase().includes('pouso alegre')
+    const origem = cidadeLocal ? '' : ', em Pouso Alegre/MG'
+
+    // Selecionar produtos por segmento
+    let produtos = wppProdutos['generico'] || produtosDefault['generico']
+    if (/açougue|frigoríf|carne/i.test(seg))
+      produtos = wppProdutos['açougue/frigorífico'] || produtosDefault['açougue/frigorífico']
+    else if (/restaurante|gastrono|gourmet|alimenta|bar\b|lanchonete/i.test(seg))
+      produtos = wppProdutos['restaurante/bar'] || produtosDefault['restaurante/bar']
+    else if (/padaria|panifica|confeitaria/i.test(seg))
+      produtos = wppProdutos['padaria/confeitaria'] || produtosDefault['padaria/confeitaria']
+    else if (/hospital|clínica|saúde|laborat|farmác/i.test(seg))
+      produtos = wppProdutos['hospital/clínica'] || produtosDefault['hospital/clínica']
+    else if (/hotel|hotelaria|pousada/i.test(seg))
+      produtos = wppProdutos['hotel/pousada'] || produtosDefault['hotel/pousada']
+    else if (/constru|engenh|arquit|revest|imobil/i.test(seg))
+      produtos = wppProdutos['construção/engenharia'] || produtosDefault['construção/engenharia']
+    else if (/supermercado|mercado|varejo/i.test(seg))
+      produtos = wppProdutos['supermercado/varejo'] || produtosDefault['supermercado/varejo']
+
+    return wppTemplate
+      .replace(/\{nome\}/g, nomeFmt || '')
+      .replace(/\{produtos\}/g, produtos)
+      .replace(/\{origem\}/g, origem)
+  }
+
+  function abrirWhatsApp(tel: string | null, nome: string, segmento?: string, cidade?: string) {
     if (!tel) { showMsg('erro', 'Sem telefone cadastrado'); return }
     const num = tel.replace(/\D/g, '')
     const numFull = num.length <= 11 ? `55${num}` : num
-    const msg = encodeURIComponent(gerarMsgWpp(nome, segmento))
+    const msg = encodeURIComponent(gerarMsgWpp(nome, segmento, cidade))
     window.open(`https://wa.me/${numFull}?text=${msg}`, '_blank')
   }
 
@@ -593,7 +715,8 @@ export default function AdminCentralVendas() {
   const hotlistFiltrada = hotlist.filter(h => {
     if (filtroSoWa && !h.whatsapp) return false
     if (filtroSegmentos.length > 0 && !filtroSegmentos.some(fs => (h.segmento ?? '').toLowerCase().includes(fs.toLowerCase()))) return false
-    if (cidadesMeso.length > 0 && !cidadesMeso.some(c => c.toUpperCase() === (h.cidade ?? '').toUpperCase())) return false
+    if (filtroCidades.length > 0 && !filtroCidades.some(c => c.toUpperCase() === (h.cidade ?? '').toUpperCase())) return false
+    else if (filtroCidades.length === 0 && cidadesMeso.length > 0 && !cidadesMeso.some(c => c.toUpperCase() === (h.cidade ?? '').toUpperCase())) return false
     const dem = Number(h.score_demanda)
     if (filtroDemanda === 'alta' && dem < 7) return false
     if (filtroDemanda === 'media' && (dem < 3 || dem >= 7)) return false
@@ -643,7 +766,10 @@ export default function AdminCentralVendas() {
               {loadingHot ? 'Calculando...' : 'Atualizar Scores'}
             </button>
             <button className={styles.btnSecondary} disabled={validandoWa} onClick={async () => {
-              const semWa = hotlistFiltrada.filter(h => !h.whatsapp && h.telefone1).slice(0, 50)
+              const semWaTodos = hotlistFiltrada.filter(h => !h.whatsapp && h.telefone1)
+              // Prioriza celulares (9 dígitos após DDD) sobre fixos
+              const celulares = semWaTodos.filter(h => { const n = (h.telefone1 ?? '').replace(/\D/g, ''); return n.length >= 10 && (n.length === 11 || (n.length === 10 && n[2] === '9') || (n.length >= 12 && n[4] === '9')) })
+              const semWa = (celulares.length > 0 ? celulares : semWaTodos).slice(0, 50)
               if (!semWa.length) { showMsg('erro', 'Todos já têm WhatsApp ou sem telefone'); return }
               setValidandoWa(true)
               showMsg('ok', `Validando ${semWa.length} telefones...`)
@@ -701,16 +827,44 @@ export default function AdminCentralVendas() {
                 </button>
                 {showMesoDrop && (
                   <>
-                    <div className={styles.backdrop} onClick={() => setShowMesoDrop(false)} />
+                    <div className={styles.backdrop} onClick={() => { setShowMesoDrop(false); setBuscaMeso('') }} />
                     <div className={styles.multiDrop}>
+                      <input className={styles.multiSearch} placeholder="Buscar mesorregiao..." value={buscaMeso} onChange={e => setBuscaMeso(e.target.value)} autoFocus />
                       {filtroMeso.length > 0 && (
-                        <button className={styles.multiOptClear} onClick={() => { setFiltroMeso([]); setShowMesoDrop(false) }}>✕ Limpar</button>
+                        <button className={styles.multiOptClear} onClick={() => { setFiltroMeso([]); setShowMesoDrop(false); setBuscaMeso('') }}>✕ Limpar</button>
                       )}
-                      {mesorregioes.map(m => (
+                      {mesorregioes.filter(m => !buscaMeso || m.toLowerCase().includes(buscaMeso.toLowerCase())).map(m => (
                         <label key={m} className={styles.multiOpt}>
                           <input type="checkbox" checked={filtroMeso.includes(m)}
                             onChange={() => setFiltroMeso(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m])} />
                           {m}
+                        </label>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+            {/* Cidade — aparece quando tem mesorregião com cidades */}
+            {cidadesMeso.length > 0 && (
+              <div className={styles.multiSelect}>
+                <button className={styles.multiBtn} onClick={() => setShowCidadeDrop(!showCidadeDrop)}>
+                  {filtroCidades.length === 0 ? 'Todas cidades' : filtroCidades.length > 2 ? `${filtroCidades.length} cidades` : filtroCidades.join(', ')}
+                  <span className={styles.arrow}>▾</span>
+                </button>
+                {showCidadeDrop && (
+                  <>
+                    <div className={styles.backdrop} onClick={() => { setShowCidadeDrop(false); setBuscaCidade('') }} />
+                    <div className={styles.multiDrop} style={{ maxHeight: 320 }}>
+                      <input className={styles.multiSearch} placeholder="Buscar cidade..." value={buscaCidade} onChange={e => setBuscaCidade(e.target.value)} autoFocus />
+                      {filtroCidades.length > 0 && (
+                        <button className={styles.multiOptClear} onClick={() => { setFiltroCidades([]); setShowCidadeDrop(false); setBuscaCidade('') }}>✕ Limpar</button>
+                      )}
+                      {[...cidadesMeso].sort().filter(c => !buscaCidade || c.toLowerCase().includes(buscaCidade.toLowerCase())).map(c => (
+                        <label key={c} className={styles.multiOpt}>
+                          <input type="checkbox" checked={filtroCidades.includes(c)}
+                            onChange={() => setFiltroCidades(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])} />
+                          {c}
                         </label>
                       ))}
                     </div>
@@ -726,14 +880,15 @@ export default function AdminCentralVendas() {
               </button>
               {showSegDrop && (
                 <>
-                  <div className={styles.backdrop} onClick={() => setShowSegDrop(false)} />
+                  <div className={styles.backdrop} onClick={() => { setShowSegDrop(false); setBuscaSegmento('') }} />
                   <div className={styles.multiDrop}>
+                    <input className={styles.multiSearch} placeholder="Buscar segmento..." value={buscaSegmento} onChange={e => setBuscaSegmento(e.target.value)} autoFocus />
                     {filtroSegmentos.length > 0 && (
-                      <button className={styles.multiOptClear} onClick={() => { setFiltroSegmentos([]); setShowSegDrop(false) }}>✕ Limpar</button>
+                      <button className={styles.multiOptClear} onClick={() => { setFiltroSegmentos([]); setShowSegDrop(false); setBuscaSegmento('') }}>✕ Limpar</button>
                     )}
                     {segmentosReais.length === 0 ? (
-                      <span style={{ padding: '8px 12px', fontSize: '0.8rem', color: '#94a3b8' }}>Carregando segmentos…</span>
-                    ) : segmentosReais.map(s => (
+                      <span style={{ padding: '8px 12px', fontSize: '0.8rem', color: '#94a3b8' }}>Carregando segmentos...</span>
+                    ) : segmentosReais.filter(s => !buscaSegmento || s.toLowerCase().includes(buscaSegmento.toLowerCase())).map(s => (
                       <label key={s} className={styles.multiOpt}>
                         <input type="checkbox" checked={filtroSegmentos.includes(s)}
                           onChange={() => setFiltroSegmentos(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s])} />
@@ -832,7 +987,7 @@ export default function AdminCentralVendas() {
                     <div className={styles.cardActions}>
                       <button className={styles.btnDetalhe} onClick={() => abrirDrawer(ps)} title="Ver detalhe">🔍</button>
                       <button className={styles.btnContactar} onClick={() => marcarContactado(ps)}>Contactei</button>
-                      <button className={styles.btnWpp} onClick={() => abrirWhatsApp(ps.whatsapp || ps.telefone1, nome, ps.segmento || '')}>{ps.whatsapp ? '📱 WhatsApp' : '📞 WhatsApp'}</button>
+                      <button className={styles.btnWpp} onClick={() => abrirWhatsApp(ps.whatsapp || ps.telefone1, nome, ps.segmento || '', ps.cidade)}>{ps.whatsapp ? '📱 WhatsApp' : '📞 WhatsApp'}</button>
                     </div>
                   </div>
                 )
@@ -867,7 +1022,7 @@ export default function AdminCentralVendas() {
                   <FollowupCard key={f.id} fup={f}
                     onFeito={() => marcarFollowupFeito(f)}
                     onAdiar={(d) => adiarFollowup(f, d)}
-                    onWpp={() => abrirWhatsApp(f.prospeccao?.telefone1, f.prospeccao?.razao_social, f.prospeccao?.segmento)}
+                    onWpp={() => abrirWhatsApp(f.prospeccao?.telefone1, f.prospeccao?.razao_social, f.prospeccao?.segmento, f.prospeccao?.cidade)}
                     corBorda="#fca5a5"
                   />
                 ))}
@@ -881,7 +1036,7 @@ export default function AdminCentralVendas() {
                   <FollowupCard key={f.id} fup={f}
                     onFeito={() => marcarFollowupFeito(f)}
                     onAdiar={(d) => adiarFollowup(f, d)}
-                    onWpp={() => abrirWhatsApp(f.prospeccao?.telefone1, f.prospeccao?.razao_social, f.prospeccao?.segmento)}
+                    onWpp={() => abrirWhatsApp(f.prospeccao?.telefone1, f.prospeccao?.razao_social, f.prospeccao?.segmento, f.prospeccao?.cidade)}
                     corBorda="#fde68a"
                   />
                 ))}
@@ -895,7 +1050,7 @@ export default function AdminCentralVendas() {
                   <FollowupCard key={f.id} fup={f}
                     onFeito={() => marcarFollowupFeito(f)}
                     onAdiar={(d) => adiarFollowup(f, d)}
-                    onWpp={() => abrirWhatsApp(f.prospeccao?.telefone1, f.prospeccao?.razao_social, f.prospeccao?.segmento)}
+                    onWpp={() => abrirWhatsApp(f.prospeccao?.telefone1, f.prospeccao?.razao_social, f.prospeccao?.segmento, f.prospeccao?.cidade)}
                     corBorda="#bbf7d0"
                   />
                 ))}
@@ -938,6 +1093,62 @@ export default function AdminCentralVendas() {
               <button type="submit" className={styles.btnPrimary}>Salvar</button>
             </form>
           )}
+
+          {/* ── Template WhatsApp ── */}
+          <div className={styles.templateSection}>
+            <div className={styles.templateHeader} onClick={() => setShowTemplateEditor(!showTemplateEditor)}>
+              <h3>{showTemplateEditor ? '▾' : '▸'} Template Mensagem WhatsApp</h3>
+              <span className={styles.countLabel}>Editável</span>
+            </div>
+            {showTemplateEditor && (
+              <div className={styles.templateBody}>
+                <p className={styles.templateHint}>
+                  Variáveis disponíveis: <code>{'{nome}'}</code> (nome do prospect), <code>{'{produtos}'}</code> (lista por segmento), <code>{'{origem}'}</code> (", em Pouso Alegre/MG" — omitido se prospect local)
+                </p>
+                <textarea
+                  className={styles.templateTextarea}
+                  rows={10}
+                  value={wppTemplate}
+                  onChange={e => setWppTemplate(e.target.value)}
+                />
+                <div className={styles.templateActions}>
+                  <button className={styles.btnPrimary} onClick={() => {
+                    localStorage.setItem(TEMPLATE_KEY, wppTemplate)
+                    showMsg('ok', 'Template salvo')
+                  }}>Salvar template</button>
+                  <button className={styles.btnSecondary} onClick={() => {
+                    setWppTemplate(templateDefault)
+                    localStorage.removeItem(TEMPLATE_KEY)
+                    showMsg('ok', 'Template restaurado ao padrão')
+                  }}>Restaurar padrão</button>
+                </div>
+
+                <h4 style={{ marginTop: 16 }}>Produtos por segmento</h4>
+                <div className={styles.filtros}>
+                  <select className={styles.input} value={editSegmento} onChange={e => setEditSegmento(e.target.value)}>
+                    {Object.keys(wppProdutos).map(k => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                </div>
+                <textarea
+                  className={styles.templateTextarea}
+                  rows={3}
+                  value={wppProdutos[editSegmento] || ''}
+                  onChange={e => setWppProdutos(p => ({ ...p, [editSegmento]: e.target.value }))}
+                />
+                <div className={styles.templateActions}>
+                  <button className={styles.btnPrimary} onClick={() => {
+                    localStorage.setItem(PRODUTOS_KEY, JSON.stringify(wppProdutos))
+                    showMsg('ok', 'Produtos por segmento salvos')
+                  }}>Salvar produtos</button>
+                  <button className={styles.btnSecondary} onClick={() => {
+                    setWppProdutos(produtosDefault)
+                    localStorage.removeItem(PRODUTOS_KEY)
+                    showMsg('ok', 'Produtos restaurados ao padrão')
+                  }}>Restaurar padrão</button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {loadingMat ? (
             <p className={styles.vazio}>Carregando...</p>
@@ -1310,7 +1521,7 @@ export default function AdminCentralVendas() {
                       <div className={styles.drawerContatoRow}>
                         <span>{drawerPs.telefone1}</span>
                         <a href={`tel:${drawerPs.telefone1}`} className={styles.btnSmall}>Ligar</a>
-                        <button className={styles.btnWppSmall} onClick={() => abrirWhatsApp(drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento)}>WPP</button>
+                        <button className={styles.btnWppSmall} onClick={() => abrirWhatsApp(drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento, drawerPs.cidade)}>WPP</button>
                       </div>
                     )}
                     {drawerPs.telefone2 && (
@@ -1342,7 +1553,7 @@ export default function AdminCentralVendas() {
                       }}>Salvar</button>
                       {drawerPs.whatsapp && (
                         <>
-                          <button className={styles.btnWppSmall} onClick={() => abrirWhatsApp(drawerPs.whatsapp!, drawerPs.razao_social, drawerPs.segmento)}>Enviar</button>
+                          <button className={styles.btnWppSmall} onClick={() => abrirWhatsApp(drawerPs.whatsapp!, drawerPs.razao_social, drawerPs.segmento, drawerPs.cidade)}>Enviar</button>
                           <button className={styles.btnWppSmall} disabled={validandoWa} onClick={async () => {
                             setValidandoWa(true)
                             try {
@@ -1457,26 +1668,12 @@ export default function AdminCentralVendas() {
                     segmento: drawerPs.segmento,
                   }}})
                 }}>📄 Orçamento</button>
-                <button className={styles.btnWpp} onClick={() => abrirWhatsApp(drawerPs.whatsapp || drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento)}>WhatsApp</button>
+                <button className={styles.btnWpp} onClick={() => abrirWhatsApp(drawerPs.whatsapp || drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento, drawerPs.cidade)}>WhatsApp</button>
                 <button className={styles.btnSecondary} onClick={() => setHistoricoAberto({ id: drawerPs.prospect_id, nome: drawerPs.nome_fantasia || drawerPs.razao_social })}>📋 Histórico</button>
               </div>
 
-              {/* IA — Sugerir abordagem */}
-              <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
-                <AiActionButton label="Sugerir abordagem" icon="💬" modelName="Groq" action={async () => {
-                  const seg = (drawerPs.segmento || '').toLowerCase()
-                  const isConstru = /constru|engenh|arquit|revest|imobil/i.test(seg)
-                  const descEmpresa = isConstru
-                    ? 'A Pousinox fabrica equipamentos em aço inox sob medida E o fixador de segurança para porcelanato (insert metálico que impede desprendimento de placas — NÃO substitui argamassa).'
-                    : 'A Pousinox fabrica equipamentos e mobiliário em aço inox sob medida desde 2001: bancadas, fogões industriais, coifas, corrimãos, lava-botas, mesas de trabalho, tanques, cubas, mobiliário para cozinhas industriais e soluções personalizadas.'
-                  const r = await aiChat({
-                    prompt: `Prospect: ${drawerPs.nome_fantasia || drawerPs.razao_social}\nCNPJ: ${drawerPs.cnpj || 'N/I'}\nSegmento: ${drawerPs.segmento || 'N/I'}\nPorte: ${drawerPs.porte || 'N/I'}\nCidade/UF: ${drawerPs.cidade || ''}/${drawerPs.uf || ''}\nScore: ${Number(drawerPs.score_total).toFixed(1)}\nStatus: ${drawerPs.status_contato || 'Novo'}\n\n${descEmpresa}\n\nSugira uma abordagem comercial personalizada para contato via WhatsApp e email. Foque nos produtos RELEVANTES para o segmento "${drawerPs.segmento || 'geral'}". Inclua: gancho de abertura, proposta de valor relevante para o segmento, e call-to-action.`,
-                    system: 'Vendedor consultivo B2B da Pousinox. Crie mensagens naturais e profissionais. Português brasileiro. Foque nos produtos relevantes ao segmento do prospect — NÃO mencione fixador de porcelanato se o segmento não for construção/engenharia/arquitetura.',
-                    model: 'groq',
-                  })
-                  return r.error ? `Erro: ${r.error}` : r.content
-                }} />
-              </div>
+              {/* IA — Sugerir abordagem (3 variações Multi-IA) */}
+              <DrawerMultiIA prospect={drawerPs} />
             </div>
           </div>
         </>

@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import CollapsibleSection from '../../CollapsibleSection/CollapsibleSection'
 import type { Item, ProdutoResult, OutletResult, ExibirProposta } from '../types'
 import { UNIDADES, fmtBRL } from '../types'
+import { aiChat } from '../../../lib/aiHelper'
 
 interface Props {
   itens: Item[]
@@ -30,6 +32,7 @@ interface Props {
   resultadosOutlet: OutletResult[]
   loadingOutlet: boolean
   adicionarOutlet: (p: OutletResult) => void
+  clienteNome?: string
   styles: Record<string, string>
 }
 
@@ -39,8 +42,28 @@ export default function ItensSection({
   showBuscaProduto, setShowBuscaProduto, buscaProduto, setBuscaProduto,
   resultadosProduto, loadingProduto, adicionarProduto,
   showBuscaOutlet, setShowBuscaOutlet, buscaOutlet, setBuscaOutlet,
-  resultadosOutlet, loadingOutlet, adicionarOutlet, styles,
+  resultadosOutlet, loadingOutlet, adicionarOutlet, clienteNome, styles,
 }: Props) {
+
+  const [aiLoadingIdx, setAiLoadingIdx] = useState<number | null>(null)
+
+  async function sugerirDescricao(i: number) {
+    const item = itens[i]
+    if (!item.descricao.trim()) return
+    setAiLoadingIdx(i)
+    try {
+      const r = await aiChat({
+        prompt: `Produto: "${item.descricao}"\nQuantidade: ${item.qtd} ${item.unidade}\nCliente: ${clienteNome || 'N/I'}\n\nReescreva a descrição do item para um orçamento comercial profissional. Seja técnico e objetivo. Máx 2 linhas. Retorne APENAS o texto da descrição, sem aspas.`,
+        system: 'Redator técnico-comercial da Pousinox (fabricante de equipamentos em aço inox). Descreva produtos com acabamento profissional para orçamentos B2B. Português brasileiro.',
+        model: 'groq',
+      })
+      if (!r.error && r.content) {
+        setItens(prev => prev.map((it, idx) => idx === i ? { ...it, descricao: r.content.trim() } : it))
+      }
+    } finally {
+      setAiLoadingIdx(null)
+    }
+  }
 
   function addItem() { setItens(prev => [...prev, { produto_id: null, descricao: '', qtd: '1', unidade: 'UN', valorUnit: '', obs_tecnica: '' }]) }
   function removeItem(i: number) { setItens(prev => prev.filter((_, idx) => idx !== i)) }
@@ -64,7 +87,17 @@ export default function ItensSection({
         return (
           <div key={i} className={styles.itemRow}>
             <div className={styles.itemDesc} style={{display:'flex',flexDirection:'column',gap:2}}>
-              <input className={styles.input} placeholder="Produto / serviço" value={item.descricao} onChange={e => updateItem(i, 'descricao', e.target.value)} />
+              <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                <input className={styles.input} style={{flex:1}} placeholder="Produto / serviço" value={item.descricao} onChange={e => updateItem(i, 'descricao', e.target.value)} />
+                {item.descricao.trim() && (
+                  <button
+                    onClick={() => sugerirDescricao(i)}
+                    disabled={aiLoadingIdx !== null}
+                    title="Sugerir descrição com IA"
+                    style={{ background:'none', border:'none', cursor:'pointer', fontSize:16, opacity: aiLoadingIdx === i ? 0.5 : 1, padding: '2px 4px', flexShrink: 0 }}
+                  >{aiLoadingIdx === i ? '⏳' : '✨'}</button>
+                )}
+              </div>
               {exibir.obsTecnicaItens && (
                 <input className={styles.input} style={{fontSize:'0.75rem',color:'#64748b'}} placeholder="Obs. técnica (opcional)" value={item.obs_tecnica ?? ''} onChange={e => updateItem(i,'obs_tecnica',e.target.value)} />
               )}

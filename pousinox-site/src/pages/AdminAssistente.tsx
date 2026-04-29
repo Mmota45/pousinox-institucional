@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
+import { aiHubChat } from '../lib/aiHelper'
 import UsageDashboard from '../components/assistente/UsageDashboard'
 import ModelSelector, { ModelBadge, type ModelKey } from '../components/assistente/ModelSelector'
 import ActionConfirm from '../components/assistente/ActionConfirm'
@@ -586,6 +587,7 @@ export default function AdminAssistente() {
   const [modelo, setModelo] = useState<ModelKey>(() => (localStorage.getItem('assistente_modelo') as ModelKey) || 'auto')
   const [pendingTools, setPendingTools] = useState<{ tools: ToolCall[]; historico: { role: string; content: string }[] } | null>(null)
   const [ragEnabled, setRagEnabled] = useState(() => localStorage.getItem('assistente_rag') === '1')
+  const [revisorAtivo, setRevisorAtivo] = useState(false)
   const [showKb, setShowKb] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -651,14 +653,29 @@ export default function AdminAssistente() {
         return
       }
       const ragInfo = parsed?.rag_used ? '\n\n📚 _Resposta baseada na base de conhecimento_' : ''
-      setMsgs(prev => [...prev, { role: 'assistant', content: (parsed?.content || parsed?.message || parsed?.error || 'Sem resposta.') + ragInfo, model: parsed?.model, rag_sources: parsed?.rag_sources }])
+      const mainContent = (parsed?.content || parsed?.message || parsed?.error || 'Sem resposta.') + ragInfo
+      setMsgs(prev => [...prev, { role: 'assistant', content: mainContent, model: parsed?.model, rag_sources: parsed?.rag_sources }])
+
+      // Modo Revisor: segunda IA valida a resposta
+      if (revisorAtivo && mainContent && !parsed?.error) {
+        try {
+          const review = await aiHubChat(
+            mainContent,
+            { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+            'Você é um revisor crítico. Analise a resposta abaixo e:\n1. Aponte erros factuais ou lógicos\n2. Identifique omissões importantes\n3. Sugira melhorias\n4. Dê uma nota de 0-10\nSeja direto e objetivo. Português brasileiro.',
+          )
+          if (review.response) {
+            setMsgs(prev => [...prev, { role: 'assistant', content: `🔍 **Revisão IA** _(${review.model}, ${((review.tempo || 0) / 1000).toFixed(1)}s)_\n\n${review.response}` }])
+          }
+        } catch { /* revisor falhou silenciosamente */ }
+      }
     } catch (err: unknown) {
       setMsgs(prev => [...prev, { role: 'assistant', content: `Erro: ${err instanceof Error ? err.message : 'desconhecido'}` }])
     } finally {
       setLoading(false)
       setTimeout(() => inputRef.current?.focus(), 50)
     }
-  }, [input, loading, msgs, modelo, ragEnabled])
+  }, [input, loading, msgs, modelo, ragEnabled, revisorAtivo])
 
   // Após confirmação das ações, enviar tool_results de volta ao Claude
   const handleActionComplete = useCallback(async (results: { tool_id: string; result: ActionResult }[]) => {
@@ -706,107 +723,86 @@ export default function AdminAssistente() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() }
   }
 
+  const [showHist, setShowHist] = useState(false)
+  const [metaAberto, setMetaAberto] = useState(false)
+
   return (
-    <div className={s.container}>
-      {/* ── Sidebar ── */}
-      <div className={s.sidebar}>
-        <div className={s.sideHead}>🤖 Assistente</div>
-        <div className={s.sideSection}>Consultas rápidas</div>
-        {[...PRESETS].sort((a, b) => {
-          const usage = JSON.parse(localStorage.getItem('assistente_preset_usage') || '{}')
-          return (usage[b.label] || 0) - (usage[a.label] || 0)
-        }).map((p, i) => (
-          <button key={i} className={s.sideBtn} onClick={() => { const u = JSON.parse(localStorage.getItem('assistente_preset_usage') || '{}'); u[p.label] = (u[p.label] || 0) + 1; localStorage.setItem('assistente_preset_usage', JSON.stringify(u)); enviar(p.prompt) }} disabled={loading}>
-            {p.label}
-          </button>
-        ))}
-        {msgs.length > 0 && (
-          <>
-            <div className={s.sideSection}>Conversa atual</div>
-            <button className={s.sideBtn} onClick={salvarConversa}>💾 Salvar e nova</button>
-            <button className={s.sideClear} onClick={() => setMsgs([])}>🗑 Limpar</button>
-          </>
-        )}
-        {threads.length > 0 && (
-          <>
-            <div className={s.sideSection}>Histórico</div>
-            <div className={s.threadList}>
-              {threads.map(t => (
-                <div key={t.id} className={s.threadItem}>
-                  <button className={s.threadBtn} onClick={() => carregarConversa(t)} title={t.title}>
-                    {t.title}
-                  </button>
-                  <button className={s.threadDel} onClick={() => excluirConversa(t.id)} title="Excluir">×</button>
-                </div>
-              ))}
+    <div className={s.wrap}>
+      {/* Drawer Histórico */}
+      {showHist && <div className={s.histOverlay} onClick={() => setShowHist(false)} />}
+      <div className={`${s.histDrawer} ${showHist ? s.histDrawerOpen : ''}`}>
+        <div className={s.histHeader}>
+          <span className={s.histTitle}>Conversas</span>
+          <button className={s.histNovaBtn} onClick={() => { setMsgs([]); setShowHist(false) }}>+ Nova</button>
+        </div>
+        <div className={s.histList}>
+          {threads.map(t => (
+            <div key={t.id} className={s.histItem}>
+              <button className={s.histItemBtn} onClick={() => { carregarConversa(t); setShowHist(false) }}>
+                <span className={s.histItemTitulo}>{t.title}</span>
+                <span className={s.histItemData}>{t.date}</span>
+              </button>
+              <button className={s.histItemExcluir} onClick={() => excluirConversa(t.id)} title="Excluir">✕</button>
             </div>
-          </>
-        )}
-        {/* Custo API */}
-        <div className={s.sideSection}>
-          <button className={s.usageToggle} onClick={() => setShowUsage(v => !v)}>
-            💰 Custos API {showUsage ? '▾' : '▸'}
-          </button>
+          ))}
+          {threads.length === 0 && <p className={s.histVazio}>Nenhuma conversa salva</p>}
         </div>
-        {showUsage && <UsageDashboard />}
-
-        <div className={s.sideSection}>
-          <button className={s.usageToggle} onClick={() => setShowKb(v => !v)}>
-            📚 Base Conhecimento {showKb ? '▾' : '▸'}
-          </button>
+        {/* KB e custos no drawer */}
+        <div className={s.histSection}>
+          <button className={s.histSectionBtn} onClick={() => setShowKb(v => !v)}>📚 Base Conhecimento {showKb ? '▾' : '▸'}</button>
+          {showKb && <KnowledgeBase ragEnabled={ragEnabled} onRagToggle={v => { setRagEnabled(v); localStorage.setItem('assistente_rag', v ? '1' : '0') }} onAskQuestion={q => { setInput(q); setShowHist(false); setTimeout(() => inputRef.current?.focus(), 50) }} />}
         </div>
-        {showKb && <KnowledgeBase ragEnabled={ragEnabled} onRagToggle={v => { setRagEnabled(v); localStorage.setItem('assistente_rag', v ? '1' : '0') }} onAskQuestion={q => { setInput(q); setTimeout(() => inputRef.current?.focus(), 50) }} />}
-
-        <div className={s.sideSpacer} />
+        <div className={s.histSection}>
+          <button className={s.histSectionBtn} onClick={() => setShowUsage(v => !v)}>💰 Custos API {showUsage ? '▾' : '▸'}</button>
+          {showUsage && <UsageDashboard />}
+        </div>
       </div>
 
-      {/* ── Main ── */}
-      <div className={s.main}>
-        {/* Scroll container — ONLY vertical scroll in the page */}
-        <div className={s.scroll} ref={scrollRef}>
-          <div className={s.content}>
-            {msgs.length === 0 && (
-              <div className={s.empty}>
-                <div>🤖</div>
-                <strong>Assistente Pousinox</strong>
-                <div>Consulte dados de financeiro, estoque, produção, vendas, pipeline, qualidade ou manutenção.</div>
-              </div>
-            )}
-
-            {msgs.map((m, i) => (
-              m.role === 'user' ? (
-                <div key={i} className={s.userRow}>
-                  <div className={s.userBubble}>{m.content}</div>
-                </div>
-              ) : (
-                <div key={i} className={s.botRow}>
-                  <div className={s.avatar}>{ico.bot}</div>
-                  <div className={s.botContent}>
-                    <RenderResponse text={m.content} onFollowUp={enviar} />
-                    {m.rag_sources?.length ? <RAGSources sources={m.rag_sources} /> : null}
-                    <ModelBadge model={m.model} />
+      <div className={s.chatArea}>
+        {msgs.length === 0 ? (
+          <div className={s.welcome}>
+            <h2 className={s.welcomeTitle}>Assistente Pousinox</h2>
+            <p className={s.welcomeSub}>Consulte dados do ERP com inteligência artificial</p>
+            <div className={s.sugestoes}>
+              {PRESETS.slice(0, 4).map((p, i) => (
+                <button key={i} className={s.sugestaoBtn} onClick={() => { const u = JSON.parse(localStorage.getItem('assistente_preset_usage') || '{}'); u[p.label] = (u[p.label] || 0) + 1; localStorage.setItem('assistente_preset_usage', JSON.stringify(u)); enviar(p.prompt) }} disabled={loading}>
+                  <span className={s.sugestaoBtnIcon}>{p.label.slice(0, 2)}</span>
+                  {p.label.slice(2).trim()}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className={s.scroll} ref={scrollRef}>
+            <div className={s.content}>
+              {msgs.map((m, i) => (
+                m.role === 'user' ? (
+                  <div key={i} className={s.userRow}>
+                    <div className={s.userBubble}>{m.content}</div>
+                  </div>
+                ) : (
+                  <div key={i} className={s.botRow}>
+                    <div className={s.botContent}>
+                      <RenderResponse text={m.content} onFollowUp={enviar} />
+                      {m.rag_sources?.length ? <RAGSources sources={m.rag_sources} /> : null}
+                      <ModelBadge model={m.model} />
+                    </div>
+                  </div>
+                )
+              ))}
+              {loading && (
+                <div className={s.typingRow}>
+                  <div className={s.typingBox}>
+                    <div className={s.dots}><span /><span /><span /></div>
+                    Analisando dados…
                   </div>
                 </div>
-              )
-            ))}
-
-            {loading && (
-              <div className={s.typingRow}>
-                <div className={s.avatar}>{ico.bot}</div>
-                <div className={s.typingBox}>
-                  <div className={s.dots}><span /><span /><span /></div>
-                  Analisando dados…
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Composer — fixed bottom, outside scroll */}
         <div className={s.composer}>
-          <div className={s.composerModel}>
-            <ModelSelector value={modelo} onChange={m => { setModelo(m); localStorage.setItem('assistente_modelo', m) }} />
-          </div>
           <div className={s.composerInner}>
             <FileUpload disabled={loading} onResult={handleFileResult} />
             <textarea
@@ -819,17 +815,39 @@ export default function AdminAssistente() {
               rows={1}
             />
             <button className={s.composerSend} onClick={() => enviar()} disabled={loading || !input.trim()} aria-label="Enviar">
-              {loading ? '…' : '↑'}
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
           </div>
-          <div className={s.composerHint}>
-            {ragEnabled && <span className={s.ragBadge}>📚 Base de conhecimento ativa</span>}
-            Dados buscados automaticamente com base na sua pergunta
+          <div className={s.composerMeta}>
+            <div className={s.metaRow}>
+              <button className={s.metaToggle} onClick={() => setMetaAberto(v => !v)}>
+                <span>🤖 {modelo === 'auto' ? 'Auto' : modelo}</span>
+                {revisorAtivo && <><span className={s.metaDot}>·</span><span>🔍 Revisor</span></>}
+                {ragEnabled && <><span className={s.metaDot}>·</span><span>📚 RAG</span></>}
+                <span className={`${s.metaChevron} ${metaAberto ? s.metaChevronAberto : ''}`}>▾</span>
+              </button>
+              <button className={s.metaBtn} onClick={() => setShowHist(v => !v)}>📂 Histórico{threads.length > 0 ? ` (${threads.length})` : ''}</button>
+              {msgs.length > 0 && <button className={s.metaBtn} onClick={salvarConversa}>💾 Salvar</button>}
+              {msgs.length > 0 && <button className={s.metaBtn} onClick={() => setMsgs([])}>+ Nova</button>}
+            </div>
+            {metaAberto && (
+              <div className={s.metaExpandido}>
+                <div className={s.metaGrupo}>
+                  <span className={s.metaLabel}>Modelo</span>
+                  <ModelSelector value={modelo} onChange={m => { setModelo(m); localStorage.setItem('assistente_modelo', m) }} />
+                </div>
+                <div className={s.metaGrupo}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+                    <input type="checkbox" checked={revisorAtivo} onChange={e => setRevisorAtivo(e.target.checked)} />
+                    🔍 Modo Revisor <span style={{ color: '#94a3b8', fontSize: 11 }}>(segunda IA valida)</span>
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Modal de confirmação de ações */}
       {pendingTools && (
         <ActionConfirm
           tools={pendingTools.tools}

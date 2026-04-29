@@ -1,0 +1,175 @@
+/* AdminUso — Gestão de Custos e Uso */
+
+.page { max-width: 1200px; margin: 0 auto; }
+
+.pageTitle {
+  font-size: 1.4rem; font-weight: 800; color: #0f172a;
+  margin-bottom: 24px; display: flex; align-items: center; gap: 10px;
+}
+
+.periodRow {
+  display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;
+}
+.periodBtn {
+  padding: 6px 16px; border-radius: 8px; border: 1.5px solid #e2e8f0;
+  background: #fff; color: #64748b; font-size: 0.8rem; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.periodBtn:hover { border-color: #2C5F8A; color: #1B3A5C; }
+.periodActive { background: #1B3A5C; color: #fff; border-color: #1B3A5C; }
+.periodActive:hover { background: #2C5F8A; color: #fff; }
+
+/* ── Seções colapsáveis ── */
+.section {
+  background: #fff; border-radius: 12px; border: 1px solid #e2e8f0;
+  margin-bottom: 16px; overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.sectionHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; cursor: pointer; user-select: none;
+  transition: background .15s;
+}
+.sectionHeader:hover { background: #f8fafc; }
+.sectionTitle {
+  font-size: 0.9rem; font-weight: 700; color: #1e293b;
+  display: flex; align-items: center; gap: 8px;
+}
+.sectionBadge {
+  font-size: 0.65rem; font-weight: 700; padding: 2px 8px;
+  border-radius: 6px; background: #e0f2fe; color: #0369a1;
+}
+.sectionChevron {
+  font-size: 0.75rem; color: #94a3b8; transition: transform .2s;
+}
+.sectionChevronOpen { transform: rotate(180deg); }
+.sectionBody { padding: 0 20px 20px; }
+
+/* ── KPI Cards ── */
+.kpiGrid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.kpiCard {
+  background: #f8fafc; border-radius: 10px; padding: 16px;
+  border: 1px solid #f1f5f9;
+}
+.kpiLabel { font-size: 0.72rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 4px; }
+.kpiVal { font-size: 1.3rem; font-weight: 800; color: #0f172a; }
+.kpiSub { font-size: 0.7rem; color: #64748b; margin-top: 2px; }
+.kpiTrend { font-size: 0.68rem; font-weight: 600; margin-top: 4px; }
+.kpiUp { color: #dc2626; }
+.kpiDown { color: #16a34a; }
+.kpiNeutral { color: #94a3b8; }
+
+/* ── Chart ── */
+.chartWrap { height: 220px; margin-top: 8px; }
+
+/* ── Tabela ── */
+.tableWrap { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.table th {
+  text-align: left; padding: 10px 12px; font-weight: 700; color: #64748b;
+  border-bottom: 2px solid #e2e8f0; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: .03em; cursor: pointer; user-select: none; white-space: nowrap;
+}
+.table th:hover { color: #1B3A5C; }
+.thActive { color: #1B3A5C !important; }
+.table td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+.table tr:hover td { background: #f8fafc; }
+.tableRight { text-align: right; font-variant-numeric: tabular-nums; }
+
+.tableToolbar {
+  display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;
+}
+.filterSelect {
+  padding: 6px 12px; border-radius: 8px; border: 1.5px solid #e2e8f0;
+  font-size: 0.78rem; color: #334155; background: #fff; cursor: pointer;
+}
+.groupToggle {
+  display: flex; gap: 0; border-radius: 8px; overflow: hidden; border: 1.5px solid #e2e8f0;
+}
+.groupBtn {
+  padding: 6px 14px; border: none; background: #fff; color: #64748b;
+  font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all .15s;
+}
+.groupBtn:hover { background: #f1f5f9; }
+.groupBtnActive { background: #1B3A5C; color: #fff; }
+
+/* ── Limites ── */
+.limitsGrid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.limitCard {
+  background: #f8fafc; border-radius: 10px; padding: 16px;
+  border: 1px solid #f1f5f9;
+}
+.limitHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.limitName { font-size: 0.82rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px; }
+.limitTier { font-size: 0.6rem; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+.limitFree { background: #dcfce7; color: #166534; }
+.limitPaid { background: #fef3c7; color: #92400e; }
+.limitUsage { background: #ede9fe; color: #6d28d9; }
+.limitCost { font-size: 0.65rem; font-weight: 700; color: #64748b; }
+.limitUsedVal { font-weight: 700; color: #1e293b; font-variant-numeric: tabular-nums; }
+
+/* ── Crédito Claude API ── */
+.creditBlock {
+  background: #f0f4ff; border-radius: 8px; padding: 10px 12px;
+  border: 1px dashed #93c5fd; display: flex; flex-direction: column; gap: 6px;
+}
+.creditHeader { display: flex; align-items: center; justify-content: space-between; }
+.creditTitle { font-size: 0.75rem; font-weight: 700; color: #1e40af; }
+.creditEditBtn {
+  background: none; border: none; cursor: pointer; font-size: 0.8rem;
+  padding: 2px 6px; border-radius: 4px; transition: background .15s;
+}
+.creditEditBtn:hover { background: rgba(30,64,175,0.1); }
+.creditForm { display: flex; gap: 6px; align-items: center; }
+.creditInput {
+  flex: 1; padding: 6px 10px; border: 1.5px solid #93c5fd; border-radius: 6px;
+  font-size: 0.78rem; font-family: inherit; outline: none;
+}
+.creditInput:focus { border-color: #2563eb; }
+.creditSaveBtn {
+  padding: 6px 14px; border-radius: 6px; border: none;
+  background: #1B3A5C; color: #fff; font-size: 0.75rem; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.creditSaveBtn:hover { background: #2C5F8A; }
+.cardChevron {
+  font-size: 0.65rem; color: #94a3b8; margin-left: 6px;
+  transition: transform .2s; display: inline-block;
+}
+.cardChevronOpen { transform: rotate(180deg); }
+
+.catTitle {
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; color: #94a3b8; margin-bottom: 8px; padding-left: 2px;
+}
+.limitRows { display: flex; flex-direction: column; gap: 8px; }
+.limitRow {}
+.limitLabel { font-size: 0.7rem; color: #64748b; margin-bottom: 3px; display: flex; justify-content: space-between; }
+.limitBarBg {
+  height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden;
+}
+.limitBar {
+  height: 100%; border-radius: 3px; transition: width .3s;
+}
+.limitOk { background: #22c55e; }
+.limitWarn { background: #f59e0b; }
+.limitDanger { background: #ef4444; }
+
+/* ── Loading ── */
+.loading { text-align: center; padding: 40px; color: #94a3b8; font-size: 0.85rem; }
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
+  .limitsGrid { grid-template-columns: 1fr; }
+  .chartWrap { height: 180px; }
+}

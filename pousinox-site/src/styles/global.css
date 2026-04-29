@@ -17,12 +17,12 @@
 }
 
 :root {
-  --color-primary: #1a2f4e;
-  --color-primary-light: #243d63;
-  --color-silver: #C0C0C0;
+  --color-primary: #1B3A5C;
+  --color-primary-light: #2C5F8A;
+  --color-silver: #C0C5CB;
   --color-white: #FFFFFF;
   --color-bg: #f5f7fa;
-  --color-text: #2c3e50;
+  --color-text: #3A3F47;
   --color-text-light: #6b7280;
   --color-border: #e5e7eb;
   --font-family: 'Inter', sans-serif;

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import styles from './AdminConteudo.module.css'
 import { supabaseAdmin } from '../lib/supabase'
+import { aiHubChat } from '../lib/aiHelper'
 import ArticlePreview from '../components/ArticlePreview/ArticlePreview'
 import AgentConteudo from '../components/assistente/AgentConteudo'
 
@@ -219,6 +220,8 @@ export default function AdminConteudo() {
   const [kwSelecionadas, setKwSelecionadas] = useState<string[]>([])
   const [gerandoRascunho, setGerandoRascunho] = useState(false)
   const [erroRascunho, setErroRascunho] = useState('')
+  const [pipelineSeo, setPipelineSeo] = useState(true)
+  const [revisaoSeo, setRevisaoSeo] = useState('')
   const [pautasSeo, setPautasSeo] = useState<{ termo: string; posicao: number; impressoes: number; cliques: number; volumeMk: number | null; acao: string }[]>([])
   const [carregandoPautas, setCarregandoPautas] = useState(false)
   const [pautasAberto, setPautasAberto] = useState(false)
@@ -396,6 +399,19 @@ export default function AdminConteudo() {
       if (data.meta) setMetaArtigo(data.meta)
       if (data.keywords_sugeridas) setKwsSugeridas(data.keywords_sugeridas)
       setAbaAtiva('editor')
+
+      // Pipeline etapa 2: revisão SEO automática
+      if (data.corpo && pipelineSeo) {
+        setRevisaoSeo('⏳ Revisando SEO...')
+        try {
+          const review = await aiHubChat(
+            `Título: ${data.titulo || tema}\nKeywords: ${kwSelecionadas.join(', ')}\n\nArtigo:\n${data.corpo}`,
+            { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+            'Especialista em SEO para blog B2B industrial. Analise o artigo e retorne:\n1. Score SEO (0-10)\n2. Densidade de keywords (ok/baixa/alta)\n3. Sugestões de melhoria (máx 5 itens)\n4. Meta description sugerida (máx 160 chars)\nSeja direto. Português brasileiro.',
+          )
+          setRevisaoSeo(review.error ? `❌ ${review.error}` : review.response)
+        } catch { setRevisaoSeo('') }
+      }
     } catch (e) {
       setErroRascunho(e instanceof Error ? e.message : 'Erro ao gerar rascunho.')
     }
@@ -873,7 +889,17 @@ export default function AdminConteudo() {
               {templateAplicado && <span style={{ fontSize: '0.78rem', color: '#15803d', fontWeight: 600 }}>✓ Estrutura aplicada</span>}
               {kwSelecionadas.length > 0 && <span style={{ fontSize: '0.78rem', color: '#475569' }}>{kwSelecionadas.length} keyword{kwSelecionadas.length > 1 ? 's' : ''} selecionada{kwSelecionadas.length > 1 ? 's' : ''}</span>}
               {erroRascunho && <span style={{ fontSize: '0.78rem', color: '#dc2626' }}>{erroRascunho}</span>}
+              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', color: '#475569', cursor: 'pointer' }}>
+                <input type="checkbox" checked={pipelineSeo} onChange={e => setPipelineSeo(e.target.checked)} />
+                🔍 Revisão SEO automática
+              </label>
             </div>
+            {revisaoSeo && (
+              <div style={{ marginTop: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: 12, fontSize: '0.82rem', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                <strong style={{ color: '#15803d' }}>🔍 Revisão SEO (Llama 70B)</strong>
+                <div style={{ marginTop: 6 }}>{revisaoSeo}</div>
+              </div>
+            )}
 
             {/* Sugerir pautas SEO */}
             <div style={{ marginTop: '0.75rem', borderTop: '1px dashed #e2e8f0', paddingTop: '0.75rem' }}>

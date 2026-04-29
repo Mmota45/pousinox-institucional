@@ -1,5 +1,5 @@
 // Helper centralizado para chamadas IA nos módulos do ERP
-import { supabaseAdmin } from './supabase'
+import { supabaseAdmin, supabase } from './supabase'
 
 interface AiChatOpts {
   prompt: string
@@ -44,6 +44,83 @@ export async function aiVision({ imageBase64, mimeType, filename }: AiVisionOpts
   const parsed = typeof data === 'string' ? JSON.parse(data) : data
   if (parsed.error) return { content: '', error: parsed.error }
   return { content: parsed.content ?? '', usage: parsed.usage }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   Multi-IA — chamadas via ai-hub (múltiplos providers)
+   ═══════════════════════════════════════════════════════════ */
+
+export interface MultiTarget { provider: string; model: string }
+export interface MultiResult { provider: string; model: string; response: string; tempo?: number; error?: string }
+
+/** Chamada direta ao ai-hub (qualquer provider) */
+export async function aiHubChat(
+  prompt: string,
+  target: MultiTarget,
+  system?: string,
+): Promise<MultiResult> {
+  const t0 = Date.now()
+  const messages = [
+    ...(system ? [{ role: 'system', content: system }] : []),
+    { role: 'user', content: prompt },
+  ]
+  const { data, error } = await supabase.functions.invoke('ai-hub', {
+    body: { action: 'chat', provider: target.provider, model: target.model, messages },
+  })
+  const tempo = Date.now() - t0
+  if (error || !data?.ok) return { ...target, response: '', tempo, error: data?.error || error?.message || 'Erro' }
+  return { ...target, response: data.response, tempo }
+}
+
+/** Paralelo — dispara N chamadas simultâneas, retorna todas */
+export async function aiParallel(
+  prompt: string,
+  targets: MultiTarget[],
+  system?: string,
+): Promise<MultiResult[]> {
+  const results = await Promise.allSettled(
+    targets.map(t => aiHubChat(prompt, t, system))
+  )
+  return results.map((r, i) =>
+    r.status === 'fulfilled'
+      ? r.value
+      : { ...targets[i], response: '', error: String((r as PromiseRejectedResult).reason) }
+  )
+}
+
+/** Pipeline — encadeia: resposta do step N vira contexto do step N+1 */
+export async function aiPipeline(
+  prompt: string,
+  steps: { target: MultiTarget; system: string }[],
+): Promise<MultiResult[]> {
+  const results: MultiResult[] = []
+  let lastResponse = prompt
+
+  for (const step of steps) {
+    const result = await aiHubChat(lastResponse, step.target, step.system)
+    results.push(result)
+    if (result.error) break
+    lastResponse = result.response
+  }
+  return results
+}
+
+/** Revisor — modelo A responde, modelo B valida/critica */
+export async function aiReviewer(
+  prompt: string,
+  main: MultiTarget,
+  reviewer: MultiTarget,
+  system?: string,
+): Promise<{ main: MultiResult; review: MultiResult }> {
+  const mainResult = await aiHubChat(prompt, main, system)
+  if (mainResult.error) return { main: mainResult, review: { ...reviewer, response: '', error: 'Pulado (erro no principal)' } }
+
+  const reviewResult = await aiHubChat(
+    mainResult.response,
+    reviewer,
+    'Você é um revisor crítico. Analise a resposta abaixo e:\n1. Aponte erros factuais ou lógicos\n2. Identifique omissões importantes\n3. Sugira melhorias\n4. Dê uma nota de 0-10 para a qualidade\nSeja direto e objetivo.',
+  )
+  return { main: mainResult, review: reviewResult }
 }
 
 /** Converte File para base64 */

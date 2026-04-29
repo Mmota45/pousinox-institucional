@@ -7,29 +7,39 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const PROVIDERS_MODELS: Record<string, string[]> = {
+/* Fallback hardcoded — usado quando não consegue ler do banco */
+const FALLBACK_MODELS: Record<string, string[]> = {
   groq: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"],
   gemini: ["gemini-2.5-flash"],
   cohere: ["command-a-03-2025", "command-r7b-12-2024"],
-  huggingface: [
-    "mistralai/Mistral-7B-Instruct-v0.3",
-    "google/gemma-2-2b-it",
-    "microsoft/Phi-3-mini-4k-instruct",
-  ],
-  together: [
-    "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-    "mistralai/Mixtral-8x7B-Instruct-v0.1",
-  ],
-  cloudflare: [
-    "@cf/meta/llama-3.1-8b-instruct",
-    "@cf/mistral/mistral-7b-instruct-v0.1",
-  ],
-  openrouter: [
-    "google/gemini-2.5-flash-exp:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "mistralai/mistral-7b-instruct:free",
-  ],
+  huggingface: ["mistralai/Mistral-7B-Instruct-v0.3", "google/gemma-2-2b-it", "microsoft/Phi-3-mini-4k-instruct"],
+  together: ["meta-llama/Llama-3.3-70B-Instruct-Turbo", "mistralai/Mixtral-8x7B-Instruct-v0.1"],
+  cloudflare: ["@cf/meta/llama-3.1-8b-instruct", "@cf/mistral/mistral-7b-instruct-v0.1"],
+  openrouter: ["google/gemini-2.5-flash-exp:free", "meta-llama/llama-3.3-70b-instruct:free", "mistralai/mistral-7b-instruct:free"],
 };
+
+/* Cache de modelos ativos (recarrega a cada 5min) */
+let modelsCache: Record<string, string[]> | null = null;
+let modelsCacheAt = 0;
+const MODELS_CACHE_TTL = 5 * 60 * 1000;
+
+async function getActiveModels(sb: any): Promise<Record<string, string[]>> {
+  if (modelsCache && Date.now() - modelsCacheAt < MODELS_CACHE_TTL) return modelsCache;
+  try {
+    const { data } = await sb.from("ai_hub_models").select("provider, model_id").eq("ativo", true);
+    if (data && data.length > 0) {
+      const result: Record<string, string[]> = {};
+      for (const row of data) {
+        if (!result[row.provider]) result[row.provider] = [];
+        result[row.provider].push(row.model_id);
+      }
+      modelsCache = result;
+      modelsCacheAt = Date.now();
+      return result;
+    }
+  } catch { /* fallback */ }
+  return FALLBACK_MODELS;
+}
 
 interface Message {
   role: string;
@@ -495,13 +505,171 @@ serve(async (req) => {
     const { provider, model, messages, action, search_source } = body;
 
     if (action === "models") {
-      return new Response(JSON.stringify({ ok: true, providers: PROVIDERS_MODELS }), {
+      const sb = getSupabase();
+      const activeModels = await getActiveModels(sb);
+      return new Response(JSON.stringify({ ok: true, providers: activeModels }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Ativar/desativar modelo ──
+    if (action === "activate" || action === "deactivate") {
+      const { model_id: mid, provider: prov, display_name, free: isFree, context_length: ctx, price: pr } = body;
+      if (!mid || !prov) {
+        return new Response(JSON.stringify({ ok: false, error: "model_id and provider required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const sb = getSupabase();
+      if (action === "activate") {
+        await sb.from("ai_hub_models").upsert({
+          provider: prov, model_id: mid, display_name: display_name || mid,
+          free: isFree ?? true, context_length: ctx, price: pr, ativo: true,
+        }, { onConflict: "provider,model_id" });
+      } else {
+        await sb.from("ai_hub_models").update({ ativo: false }).eq("provider", prov).eq("model_id", mid);
+      }
+      modelsCache = null; // limpa cache
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Descobrir modelos disponíveis nos providers ──
+    if (action === "discover") {
+      const discovered: Record<string, { id: string; name: string; free: boolean; context?: number; new?: boolean }[]> = {};
+      const sb = getSupabase();
+      const activeModels = await getActiveModels(sb);
+      const configured = new Set(Object.values(activeModels).flat());
+
+      // Groq
+      try {
+        const gk = Deno.env.get("GROQ_API_KEY");
+        if (gk) {
+          const r = await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: `Bearer ${gk}` } });
+          const d = await r.json();
+          discovered.groq = (d.data || [])
+            .filter((m: any) => m.active !== false && m.id && !m.id.includes("whisper") && !m.id.includes("guard") && !m.id.includes("tool-use"))
+            .map((m: any) => ({ id: m.id, name: m.id, free: true, context: m.context_window, new: !configured.has(m.id) }));
+        }
+      } catch { /* skip */ }
+
+      // OpenRouter (todos — free + pagos)
+      try {
+        const r = await fetch("https://openrouter.ai/api/v1/models");
+        const d = await r.json();
+        discovered.openrouter = (d.data || [])
+          .filter((m: any) => m.id)
+          .slice(0, 80)
+          .map((m: any) => {
+            const isFree = m.pricing?.prompt === "0" || m.id?.endsWith(":free");
+            const price = !isFree && m.pricing?.prompt ? `$${(parseFloat(m.pricing.prompt) * 1_000_000).toFixed(2)}/1M` : undefined;
+            return { id: m.id, name: m.name || m.id, free: isFree, context: m.context_length, new: !configured.has(m.id), price };
+          });
+      } catch { /* skip */ }
+
+      // Together (todos)
+      try {
+        const tk = Deno.env.get("TOGETHER_API_KEY");
+        if (tk) {
+          const r = await fetch("https://api.together.xyz/v1/models", { headers: { Authorization: `Bearer ${tk}` } });
+          const d = await r.json();
+          discovered.together = (d || [])
+            .filter((m: any) => m.type === "chat" || m.type === "language")
+            .slice(0, 80)
+            .map((m: any) => {
+              const price = m.pricing?.input ? `$${(parseFloat(m.pricing.input) * 1_000_000).toFixed(2)}/1M` : undefined;
+              return { id: m.id, name: m.display_name || m.id, free: !price || price === "$0.00/1M", context: m.context_length, new: !configured.has(m.id), price };
+            });
+        }
+      } catch { /* skip */ }
+
+      // Cohere
+      try {
+        const ck = Deno.env.get("COHERE_API_KEY");
+        if (ck) {
+          const r = await fetch("https://api.cohere.com/v2/models", { headers: { Authorization: `Bearer ${ck}`, "Content-Type": "application/json" } });
+          const d = await r.json();
+          discovered.cohere = (d.models || [])
+            .filter((m: any) => m.endpoints?.includes("chat"))
+            .map((m: any) => ({ id: m.name, name: m.name, free: true, context: m.context_length, new: !configured.has(m.name) }));
+        }
+      } catch { /* skip */ }
+
+      // HuggingFace (modelos populares de chat/text-generation)
+      try {
+        const hfToken = Deno.env.get("HUGGINGFACE_TOKEN");
+        const headers: Record<string, string> = {};
+        if (hfToken) headers["Authorization"] = `Bearer ${hfToken}`;
+        const r = await fetch("https://huggingface.co/api/models?pipeline_tag=text-generation&sort=likes&direction=-1&limit=50&filter=conversational", { headers });
+        const d = await r.json();
+        discovered.huggingface = (d || [])
+          .filter((m: any) => m.modelId && m.likes > 100)
+          .map((m: any) => ({ id: m.modelId, name: m.modelId, free: true, context: undefined, new: !configured.has(m.modelId), likes: m.likes }));
+      } catch { /* skip */ }
+
+      return new Response(JSON.stringify({ ok: true, configured: activeModels, discovered }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Transcrição de áudio via Groq Whisper ──
+    if (action === "transcribe") {
+      const { audio_base64, audio_name } = body;
+      if (!audio_base64) {
+        return new Response(JSON.stringify({ ok: false, error: "audio_base64 is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const groqKey = Deno.env.get("GROQ_API_KEY");
+      if (!groqKey) {
+        return new Response(JSON.stringify({ ok: false, error: "GROQ_API_KEY not configured" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Decode base64 to binary
+      const binaryStr = atob(audio_base64);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+      const fileName = audio_name || "audio.ogg";
+      const ext = fileName.split(".").pop()?.toLowerCase() || "ogg";
+      const mimeMap: Record<string, string> = { ogg: "audio/ogg", mp3: "audio/mpeg", m4a: "audio/mp4", wav: "audio/wav", webm: "audio/webm", mp4: "audio/mp4" };
+      const mime = mimeMap[ext] || "audio/ogg";
+
+      const formData = new FormData();
+      formData.append("file", new Blob([bytes], { type: mime }), fileName);
+      formData.append("model", "whisper-large-v3");
+      formData.append("language", "pt");
+      formData.append("response_format", "verbose_json");
+
+      const whisperRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${groqKey}` },
+        body: formData,
+      });
+
+      if (!whisperRes.ok) {
+        const errText = await whisperRes.text();
+        return new Response(JSON.stringify({ ok: false, error: `Whisper error: ${errText}` }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const result = await whisperRes.json();
+      return new Response(JSON.stringify({
+        ok: true,
+        text: result.text,
+        language: result.language,
+        duration: result.duration,
+        segments: result.segments?.map((s: any) => ({ start: s.start, end: s.end, text: s.text })),
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     if (action !== "chat") {
-      return new Response(JSON.stringify({ ok: false, error: "action must be 'chat' or 'models'" }), {
+      return new Response(JSON.stringify({ ok: false, error: "action must be 'chat', 'models' or 'transcribe'" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

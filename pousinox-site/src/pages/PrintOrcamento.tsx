@@ -87,12 +87,12 @@ const FRETE_TIPOS: Record<string, string> = {
 
 // Cores do tema
 const C = {
-  navy: '#0b1a2e',
-  navyLight: '#162d4a',
-  accent: '#2563eb',
+  navy: '#1B3A5C',
+  navyLight: '#2C5F8A',
+  accent: '#2C5F8A',
   accentSoft: '#dbeafe',
   gold: '#b8860b',
-  text: '#1a1a2e',
+  text: '#3A3F47',
   textMuted: '#5a6578',
   textLight: '#8896a6',
   border: '#dfe4ea',
@@ -495,7 +495,7 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
           </a>
         )}
         {/* PDF */}
-        <button onClick={() => window.print()} style={{ background: '#1a2f4e', color: '#e2e8f0', border: 'none', borderRadius: 8, padding: '10px 18px', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.20)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button onClick={() => window.print()} style={{ background: '#1B3A5C', color: '#e2e8f0', border: 'none', borderRadius: 8, padding: '10px 18px', fontFamily: 'Inter, sans-serif', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.20)', display: 'flex', alignItems: 'center', gap: 8 }}>
           ⬇️ Baixar / Imprimir PDF
         </button>
       </div>

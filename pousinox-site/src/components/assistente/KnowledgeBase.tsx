@@ -62,6 +62,21 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }
     fetchDocs()
   }, [selected, fetchDocs])
 
+  const AI_HUB_URL = `${import.meta.env.VITE_SUPABASE_URL || 'https://vcektwtpofypsgdgdjlx.supabase.co'}/functions/v1/ai-hub`
+  const SRV_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjZWt0d3Rwb2Z5cHNnZGdkamx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDM2NTgyNSwiZXhwIjoyMDg5OTQxODI1fQ.uuTk39oZ1JZW2BfsHytiwhO6f0kHk92AWX5WqKewulg'
+
+  async function transcreverParaTexto(base64: string, nome: string): Promise<string> {
+    const res = await fetch(AI_HUB_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: SRV_KEY, Authorization: `Bearer ${SRV_KEY}` },
+      body: JSON.stringify({ action: 'transcribe', audio_base64: base64, audio_name: nome }),
+    })
+    const data = await res.json()
+    if (!data.ok) throw new Error(data.error || 'Falha na transcrição')
+    const duracao = data.duration ? ` (${Math.round(data.duration)}s)` : ''
+    return `Transcrição de áudio "${nome}"${duracao}:\n\n${data.text}`
+  }
+
   const handleUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files
     if (!fileList?.length) return
@@ -72,10 +87,17 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }
     const total = files.length
     let ok = 0, erros = 0
     const todasPerguntas: string[] = []
+    const audioExts = ['mp3', 'ogg', 'wav', 'm4a', 'webm', 'opus', 'mp4']
 
     for (let f = 0; f < total; f++) {
       const file = files[f]
-      setProgress(`Analisando ${f + 1}/${total}: ${file.name}...`)
+      const ext = file.name.split('.').pop()?.toLowerCase() || ''
+      const isAudio = file.type.startsWith('audio/') || audioExts.includes(ext)
+
+      setProgress(isAudio
+        ? `🎙️ Transcrevendo ${f + 1}/${total}: ${file.name}...`
+        : `Analisando ${f + 1}/${total}: ${file.name}...`)
+
       try {
         const buffer = await file.arrayBuffer()
         const bytes = new Uint8Array(buffer)
@@ -83,20 +105,56 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }
         for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
         const base64 = btoa(binary)
 
-        const { data, error } = await supabaseAdmin.functions.invoke('indexar-documento', {
-          body: { file_base64: base64, mime_type: file.type, filename: file.name },
-        })
+        if (isAudio) {
+          // Transcrever áudio via Groq Whisper
+          setProgress(`🎙️ Transcrevendo ${f + 1}/${total}: ${file.name}...`)
+          let transcricao: string
+          try {
+            transcricao = await transcreverParaTexto(base64, file.name)
+          } catch (err) {
+            console.error(`[KB] erro transcrição ${file.name}:`, err)
+            throw new Error(`Falha na transcrição: ${(err as Error).message}`)
+          }
 
-        console.log(`[KB] ${file.name} →`, { data, error })
-        if (error) throw new Error(typeof error === 'object' ? JSON.stringify(error) : String(error))
-        const parsed = typeof data === 'string' ? JSON.parse(data) : data
-        console.log(`[KB] parsed:`, parsed)
+          console.log(`[KB] transcrição ok ${file.name}: ${transcricao.length} chars`)
+          setProgress(`📚 Indexando transcrição de ${file.name}...`)
 
-        if (parsed.success) {
-          ok++
-          if (parsed.perguntas_sugeridas?.length) todasPerguntas.push(...parsed.perguntas_sugeridas)
+          // Converter transcrição para base64 (compatível UTF-8)
+          const encoder = new TextEncoder()
+          const txtBytes = encoder.encode(transcricao)
+          let txtBinary = ''
+          for (let i = 0; i < txtBytes.length; i++) txtBinary += String.fromCharCode(txtBytes[i])
+          const txtBase64 = btoa(txtBinary)
+
+          const { data, error } = await supabaseAdmin.functions.invoke('indexar-documento', {
+            body: { file_base64: txtBase64, mime_type: 'text/plain', filename: `${file.name}.txt` },
+          })
+          console.log(`[KB] indexar transcrição ${file.name}:`, { data, error })
+          if (error) {
+            const errMsg = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error))
+            throw new Error(`Indexação falhou: ${errMsg}`)
+          }
+          const parsed = typeof data === 'string' ? JSON.parse(data) : data
+          if (parsed.success) {
+            ok++
+            if (parsed.perguntas_sugeridas?.length) todasPerguntas.push(...parsed.perguntas_sugeridas)
+          } else { erros++ }
         } else {
-          erros++
+          const { data, error } = await supabaseAdmin.functions.invoke('indexar-documento', {
+            body: { file_base64: base64, mime_type: file.type, filename: file.name },
+          })
+
+          console.log(`[KB] ${file.name} →`, { data, error })
+          if (error) throw new Error(typeof error === 'object' ? JSON.stringify(error) : String(error))
+          const parsed = typeof data === 'string' ? JSON.parse(data) : data
+          console.log(`[KB] parsed:`, parsed)
+
+          if (parsed.success) {
+            ok++
+            if (parsed.perguntas_sugeridas?.length) todasPerguntas.push(...parsed.perguntas_sugeridas)
+          } else {
+            erros++
+          }
         }
       } catch (err) {
         console.error(`[KB] erro upload ${file.name}:`, err)
@@ -127,7 +185,7 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }
       <input
         ref={inputRef}
         type="file"
-        accept=".pdf,.csv,.txt,.md,.doc,.docx"
+        accept=".pdf,.csv,.txt,.md,.doc,.docx,audio/*,.mp3,.ogg,.wav,.m4a,.webm,.opus"
         multiple
         style={{ display: 'none' }}
         onChange={handleUpload}
@@ -137,7 +195,7 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
       >
-        {uploading ? '⏳ Analisando...' : '📚 Adicionar documento'}
+        {uploading ? '⏳ Processando...' : '📚 Adicionar documento ou áudio'}
       </button>
 
       {progress && (

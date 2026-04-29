@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { NavLink, Outlet as RouterOutlet, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import type { User } from '@supabase/supabase-js'
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { supabase, supabaseAdmin } from '../../lib/supabase'
 import { AdminContext } from '../../contexts/AdminContext'
 import logomarca from '../../assets/logomarca.png'
@@ -53,9 +57,10 @@ const ROTA_PERMISSAO: Record<string, string> = {
   'dashboard-bi': 'relatorios',
   'central-vendas': 'central-vendas',
   ia: 'ia',
+  uso: 'uso',
 }
 
-const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao', 'clientes', 'produtos', 'projetos', 'fornecedores', 'financeiro', 'campanhas', 'conciliacao', 'pipeline', 'producao', 'qualidade', 'manutencao', 'solicitacoes-compra', 'cotacoes-compra', 'pedidos-compra', 'recebimentos-compra', 'estoque-mp', 'estoque-pa', 'inventario', 'docs-recebidos', 'docs-emitidos', 'bens-frota', 'estudo-mercado', 'configuracao-financeiro', 'cartoes', 'frete', 'pedidos-outlet', 'feature-flags', 'assistente', 'site', 'central-vendas', 'ia']
+const TODAS_PERMISSOES = ['dashboard', 'outlet', 'estoque', 'vendas', 'relatorios', 'analise-nf', 'orcamento', 'usuarios', 'conteudo', 'analytics', 'prospeccao', 'clientes', 'produtos', 'projetos', 'fornecedores', 'financeiro', 'campanhas', 'conciliacao', 'pipeline', 'producao', 'qualidade', 'manutencao', 'solicitacoes-compra', 'cotacoes-compra', 'pedidos-compra', 'recebimentos-compra', 'estoque-mp', 'estoque-pa', 'inventario', 'docs-recebidos', 'docs-emitidos', 'bens-frota', 'estudo-mercado', 'configuracao-financeiro', 'cartoes', 'frete', 'pedidos-outlet', 'feature-flags', 'assistente', 'site', 'central-vendas', 'ia', 'uso']
 
 interface NavItem {
   to: string
@@ -578,6 +583,16 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
+    to: '/admin/uso',
+    label: 'Uso e Custos',
+    permissao: 'uso',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 20V10M12 20V4M6 20v-6"/>
+      </svg>
+    ),
+  },
+  {
     to: '/admin/site',
     label: 'Gestão do Site',
     permissao: 'site',
@@ -601,6 +616,78 @@ const NAV_ITEMS: NavItem[] = [
   },
 ]
 
+const NAV_ORDER_KEY = 'pousinox_nav_order'
+
+function getCustomOrder(): string[] | null {
+  try {
+    const s = localStorage.getItem(NAV_ORDER_KEY)
+    return s ? JSON.parse(s) : null
+  } catch { return null }
+}
+
+function applyCustomOrder(items: NavItem[]): NavItem[] {
+  const order = getCustomOrder()
+  if (!order) return items
+  const map = new Map(items.map(i => [i.to, i]))
+  const ordered: NavItem[] = []
+  for (const to of order) {
+    const item = map.get(to)
+    if (item) { ordered.push(item); map.delete(to) }
+  }
+  // Itens novos que não estão na ordem salva
+  map.forEach(item => ordered.push(item))
+  return ordered
+}
+
+function SortableNavItem({ item, isActive, collapsed, onDrawerClose, editMode }: {
+  item: NavItem & { badge?: string }
+  isActive: boolean
+  collapsed: boolean
+  onDrawerClose: () => void
+  editMode: boolean
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.to })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    position: 'relative' as const,
+  }
+
+  if (editMode) {
+    return (
+      <div ref={setNodeRef} style={style} {...attributes} {...listeners}
+        className={`${styles.navItem} ${styles.navItemDrag}`}
+      >
+        <span className={styles.dragHandle}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="8" cy="4" r="2"/><circle cx="16" cy="4" r="2"/>
+            <circle cx="8" cy="12" r="2"/><circle cx="16" cy="12" r="2"/>
+            <circle cx="8" cy="20" r="2"/><circle cx="16" cy="20" r="2"/>
+          </svg>
+        </span>
+        <span className={styles.navIcon}>{item.icon}</span>
+        <span className={styles.navLabel}>{item.label}</span>
+      </div>
+    )
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <NavLink
+        to={item.to}
+        end={item.end}
+        onClick={onDrawerClose}
+        className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+      >
+        <span className={styles.navIcon}>{item.icon}</span>
+        <span className={styles.navLabel}>{item.label}</span>
+        {item.badge && <span className={styles.navBadge}>{item.badge}</span>}
+      </NavLink>
+    </div>
+  )
+}
+
 export default function AdminLayout() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<User | null>(null)
@@ -610,6 +697,12 @@ export default function AdminLayout() {
   const [verSenha, setVerSenha] = useState(false)
   const [tabelaPendente, setTabelaPendente] = useState(false)
   const [ocultarValores, setOcultarValores] = useState(false)
+  const [editNav, setEditNav] = useState(false)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  )
+
   const [secoesRecolhidas, setSecoesRecolhidas] = useState<Set<string>>(() => {
     try {
       const salvo = localStorage.getItem('pousinox_nav_recolhidas')
@@ -1065,11 +1158,25 @@ export default function AdminLayout() {
     )
   }
 
-  const navVisivel = NAV_ITEMS.filter(item => !item.permissao || perfil.permissoes.includes(item.permissao))
+  const navFiltrado = NAV_ITEMS.filter(item => !item.permissao || perfil.permissoes.includes(item.permissao))
     .map(item => item.to === '/admin/pedidos-outlet' && pedidosPendentes > 0
       ? { ...item, badge: String(pedidosPendentes) }
       : item
     )
+
+  const navVisivel = editNav ? applyCustomOrder(navFiltrado) : applyCustomOrder(navFiltrado)
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIdx = navVisivel.findIndex(i => i.to === active.id)
+    const newIdx = navVisivel.findIndex(i => i.to === over.id)
+    if (oldIdx < 0 || newIdx < 0) return
+    const reordered = arrayMove(navVisivel, oldIdx, newIdx)
+    localStorage.setItem(NAV_ORDER_KEY, JSON.stringify(reordered.map(i => i.to)))
+    // Force re-render
+    setSecoesRecolhidas(prev => new Set(prev))
+  }
 
   // Rastreia qual seção cada item pertence
   let secaoAtual = ''
@@ -1077,7 +1184,13 @@ export default function AdminLayout() {
   const segmento = location.pathname.replace(/^\/admin\/?/, '').split('/')[0]
   const permissaoNecessaria = ROTA_PERMISSAO[segmento]
   const semPermissao = !!(permissaoNecessaria && !perfil.permissoes.includes(permissaoNecessaria))
-  const primeiroAcessivel = navVisivel[0]?.to ?? '/admin/outlet'
+  const primeiroAcessivel = navVisivel[0]?.to ?? '/admin'
+
+  // Redirecionar /admin para o primeiro módulo do menu customizado
+  const isAdminExact = location.pathname === '/admin' || location.pathname === '/admin/'
+  if (isAdminExact && primeiroAcessivel !== '/admin') {
+    return <Navigate to={primeiroAcessivel} replace />
+  }
 
   return (
     <AdminContext.Provider value={{ ocultarValores, toggleOcultarValores: () => setOcultarValores(v => !v) }}>
@@ -1139,40 +1252,57 @@ export default function AdminLayout() {
         <div className={styles.overlay} onClick={() => setDrawerOpen(false)} />
         <aside className={styles.sidebar}>
           <nav className={styles.nav}>
-            {navVisivel.map(item => {
-              if (item.section) secaoAtual = item.section
-              const recolhida = secoesRecolhidas.has(secaoAtual)
-              return (
-                <div key={item.to}>
-                  {item.section && (
-                    <button
-                      className={styles.navSection}
-                      onClick={() => toggleSecao(item.section!)}
-                      title={recolhida ? 'Expandir' : 'Recolher'}
-                    >
-                      <span className={styles.navSectionLabel}>{item.section}</span>
-                      <span className={styles.navSectionChevron} style={{ transform: recolhida ? 'rotate(-90deg)' : 'none' }}>▾</span>
-                    </button>
-                  )}
-                  {!recolhida && (
-                    <NavLink
-                      to={item.to}
-                      end={item.end}
-                      onClick={() => setDrawerOpen(false)}
-                      className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
-                    >
-                      <span className={styles.navIcon}>{item.icon}</span>
-                      <span className={styles.navLabel}>{item.label}</span>
-                      {item.badge && <span className={styles.navBadge}>{item.badge}</span>}
-                    </NavLink>
-                  )}
-                </div>
-              )
-            })}
+            {editNav && (
+              <div className={styles.navEditBar}>
+                <button className={styles.navEditBtn} onClick={() => setEditNav(false)}>✓ Pronto</button>
+                <button className={styles.navResetBtn} onClick={() => { localStorage.removeItem(NAV_ORDER_KEY); setEditNav(false); setSecoesRecolhidas(prev => new Set(prev)) }}>↺ Resetar</button>
+              </div>
+            )}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={navVisivel.map(i => i.to)} strategy={verticalListSortingStrategy}>
+                {navVisivel.map(item => {
+                  if (item.section) secaoAtual = item.section
+                  const recolhida = !editNav && secoesRecolhidas.has(secaoAtual)
+                  return (
+                    <div key={item.to}>
+                      {item.section && !editNav && (
+                        <button
+                          className={styles.navSection}
+                          onClick={() => toggleSecao(item.section!)}
+                          title={recolhida ? 'Expandir' : 'Recolher'}
+                        >
+                          <span className={styles.navSectionLabel}>{item.section}</span>
+                          <span className={styles.navSectionChevron} style={{ transform: recolhida ? 'rotate(-90deg)' : 'none' }}>▾</span>
+                        </button>
+                      )}
+                      {!recolhida && (
+                        <SortableNavItem
+                          item={item}
+                          isActive={location.pathname === item.to || (item.end ? false : location.pathname.startsWith(item.to + '/'))}
+                          collapsed={collapsed}
+                          onDrawerClose={() => setDrawerOpen(false)}
+                          editMode={editNav}
+                        />
+                      )}
+                    </div>
+                  )
+                })}
+              </SortableContext>
+            </DndContext>
+            {!editNav && (
+              <button className={styles.navEditToggle} onClick={() => setEditNav(true)} title="Reorganizar menu">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="8" cy="4" r="1.5"/><circle cx="16" cy="4" r="1.5"/>
+                  <circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/>
+                  <circle cx="8" cy="20" r="1.5"/><circle cx="16" cy="20" r="1.5"/>
+                </svg>
+                <span className={styles.navLabel}>Organizar</span>
+              </button>
+            )}
           </nav>
         </aside>
 
-        <main className={styles.content}>
+        <main className={styles.content} style={location.pathname === '/admin/ia' || location.pathname === '/admin/assistente' ? { padding: 0, overflow: 'hidden' } : undefined}>
           {semPermissao ? <Navigate to={primeiroAcessivel} replace /> : <RouterOutlet />}
         </main>
       </div>

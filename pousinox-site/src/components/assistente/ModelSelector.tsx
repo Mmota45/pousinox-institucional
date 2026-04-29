@@ -1,6 +1,6 @@
 import s from './ModelSelector.module.css'
 
-export type ModelKey = 'auto' | 'gemini' | 'mistral' | 'cerebras'
+export type ModelKey = 'auto' | 'gemini' | 'mistral' | 'cerebras' | 'groq' | 'haiku' | 'sonnet'
 
 interface ModelOption {
   key: ModelKey
@@ -12,9 +12,12 @@ interface ModelOption {
 
 const OPTIONS: ModelOption[] = [
   { key: 'auto',     label: 'Auto',     icon: '🤖', cost: 'grátis',  best: 'Escolhe a melhor IA para cada pergunta' },
-  { key: 'gemini',   label: 'Gemini',   icon: '💎', cost: 'grátis',  best: 'Textos longos, resumos, conteúdo criativo' },
-  { key: 'mistral',  label: 'Mistral',  icon: '🌀', cost: 'grátis',  best: 'Dados, tabelas, cálculos, análises' },
-  { key: 'cerebras', label: 'Cerebras', icon: '⚡', cost: 'grátis',  best: 'Qwen 235B — rápido e poderoso' },
+  { key: 'gemini',   label: 'Gemini',   icon: '💎', cost: 'grátis',  best: '📄 Contexto 1M tokens · visão · rápido' },
+  { key: 'groq',     label: 'Groq',     icon: '⚡', cost: 'grátis',  best: '🎯 Llama 70B — versátil · ultra rápido' },
+  { key: 'cerebras', label: 'Cerebras', icon: '🧠', cost: 'grátis',  best: '🚀 Inferência recorde · propósito geral' },
+  { key: 'mistral',  label: 'Mistral',  icon: '🌀', cost: 'grátis',  best: '⚡ Leve · código · multilingual' },
+  { key: 'haiku',    label: 'Haiku',    icon: '🍃', cost: 'pago',    best: '⚡ Rápido · barato · classificação' },
+  { key: 'sonnet',   label: 'Sonnet',   icon: '🎵', cost: 'pago',    best: '🧠 Raciocínio avançado · código · análise' },
 ]
 
 interface Props {
@@ -47,6 +50,9 @@ export function ModelBadge({ model }: { model?: string }) {
     gemini:   { match: 'gemini',   label: 'Gemini',   cls: s.badgeGemini },
     mistral:  { match: 'mistral',  label: 'Mistral',  cls: s.badgeMistral },
     cerebras: { match: 'qwen',     label: 'Cerebras', cls: s.badgeCerebras },
+    groq:     { match: 'llama',    label: 'Groq',     cls: s.badgeGroq },
+    haiku:    { match: 'haiku',    label: 'Haiku',     cls: s.badgeHaiku },
+    sonnet:   { match: 'sonnet',   label: 'Sonnet',    cls: s.badgeSonnet },
   }
   const entry = Object.values(BADGE_MAP).find(b => model.includes(b.match))
   if (!entry) return null

@@ -6,7 +6,7 @@
 
 import { logUsage } from '../_shared/logUsage.ts'
 
-const GEMINI_KEY    = Deno.env.get('GEMINI_KEY') ?? ''
+const GEMINI_KEY    = Deno.env.get('GEMINI_KEY') ?? Deno.env.get('GEMINI_API_KEY') ?? ''
 const SUPABASE_URL  = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_KEY   = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 

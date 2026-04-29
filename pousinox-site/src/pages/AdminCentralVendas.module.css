@@ -45,6 +45,12 @@
 .multiBtn:hover { border-color: var(--color-primary); }
 .arrow { font-size: 0.7rem; color: var(--color-text-light); margin-left: auto; }
 .backdrop { position: fixed; inset: 0; z-index: 9; }
+.multiSearch {
+  width: calc(100% - 16px); margin: 4px 8px 2px; padding: 6px 10px;
+  border: 1px solid var(--color-border); border-radius: 6px; font-size: 0.82rem;
+  outline: none; background: #f8fafc; position: sticky; top: 0;
+}
+.multiSearch:focus { border-color: var(--color-primary); background: #fff; }
 .multiDrop {
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 10;
   background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius);
@@ -153,6 +159,28 @@
   background: #fff; border: 1px dashed var(--color-border); border-radius: var(--radius-lg);
   padding: 20px; display: flex; flex-direction: column; gap: 12px;
 }
+/* ── Template WhatsApp ── */
+.templateSection {
+  background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.templateHeader {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 20px; cursor: pointer; user-select: none;
+}
+.templateHeader:hover { background: #f9fafb; }
+.templateHeader h3 { margin: 0; font-size: 0.95rem; color: var(--color-text); }
+.templateBody { padding: 0 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+.templateHint { font-size: 0.78rem; color: var(--color-text-light); margin: 0; }
+.templateHint code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-size: 0.76rem; }
+.templateTextarea {
+  width: 100%; font-family: inherit; font-size: 0.88rem; padding: 12px;
+  border: 1px solid var(--color-border); border-radius: var(--radius);
+  resize: vertical; line-height: 1.5;
+}
+.templateTextarea:focus { border-color: var(--color-primary); outline: none; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1); }
+.templateActions { display: flex; gap: 8px; }
+
 .matGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .matCard {
   background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg);

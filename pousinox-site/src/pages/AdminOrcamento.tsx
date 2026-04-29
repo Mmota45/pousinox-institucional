@@ -990,7 +990,9 @@ export default function AdminOrcamento() {
                 showBuscaOutlet={showBuscaOutlet} setShowBuscaOutlet={setShowBuscaOutlet}
                 buscaOutlet={buscaOutlet} setBuscaOutlet={setBuscaOutlet}
                 resultadosOutlet={resultadosOutlet} loadingOutlet={loadingOutlet}
-                adicionarOutlet={adicionarOutlet} styles={styles}
+                adicionarOutlet={adicionarOutlet}
+                clienteNome={cliente.nome || cliente.razao_social || ''}
+                styles={styles}
               />
 
               {/* Frete & Logística */}

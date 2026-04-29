@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0a1628;
+  background: #1B3A5C;
 }
 
 .loadingSpinner {
@@ -25,7 +25,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0a1628;
+  background: #1B3A5C;
 }
 
 .loginCard {
@@ -65,7 +65,7 @@
   box-sizing: border-box;
 }
 
-.loginInput:focus { border-color: #1a5fa8; }
+.loginInput:focus { border-color: #2C5F8A; }
 .loginInputErro { border-color: #dc2626 !important; }
 
 .loginErro {
@@ -78,7 +78,7 @@
 .loginBtn {
   width: 100%;
   padding: 11px;
-  background: #0a1628;
+  background: #1B3A5C;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -88,7 +88,7 @@
   transition: background 0.15s;
 }
 
-.loginBtn:hover { background: #163f7a; }
+.loginBtn:hover { background: #1B3A5C; }
 .loginBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .setupInfo {
@@ -139,7 +139,7 @@
 /* ── Topbar ── */
 .topbar {
   height: 56px;
-  background: #0a1628;
+  background: #1B3A5C;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -260,7 +260,7 @@
 /* ── Sidebar ── */
 .sidebar {
   width: 220px;
-  background: #111827;
+  background: #152F4D;
   flex-shrink: 0;
   overflow-y: auto;
   transition: width 0.2s;
@@ -268,7 +268,7 @@
   flex-direction: column;
 }
 
-.shellCollapsed .sidebar { width: 56px; }
+.shellCollapsed .sidebar { width: 68px; }
 
 .nav {
   display: flex;
@@ -321,7 +321,7 @@
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
-  background: #1a5fa8;
+  background: #2C5F8A;
   color: #fff;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -370,12 +370,58 @@
 .shellCollapsed .navSectionLabel { display: none; }
 .shellCollapsed .navSectionChevron { display: none; }
 
+/* ── Nav drag & edit ── */
+.navItemDrag {
+  cursor: grab; border: 1px dashed rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.04);
+}
+.navItemDrag:active { cursor: grabbing; }
+
+.dragHandle {
+  color: rgba(255,255,255,0.3); display: flex; align-items: center;
+  flex-shrink: 0; margin-right: -4px;
+}
+
+.navEditBar {
+  display: flex; gap: 6px; padding: 8px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.navEditBtn {
+  flex: 1; padding: 6px; border-radius: 6px; border: none;
+  background: rgba(44,95,138,0.6); color: #fff; font-size: 0.72rem;
+  font-weight: 600; cursor: pointer; transition: background .15s;
+}
+.navEditBtn:hover { background: rgba(44,95,138,0.9); }
+.navResetBtn {
+  padding: 6px 10px; border-radius: 6px; border: none;
+  background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
+  font-size: 0.72rem; cursor: pointer; transition: all .15s;
+}
+.navResetBtn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+.navEditToggle {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 10px; margin-top: 4px;
+  border-radius: 8px; border: none;
+  background: transparent; color: rgba(255,255,255,0.25);
+  font-size: 0.78rem; cursor: pointer; transition: all .15s;
+  width: 100%;
+}
+.navEditToggle:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.55); }
+.shellCollapsed .navEditToggle .navLabel { opacity: 0; pointer-events: none; }
+
 /* ── Content ── */
 .content {
   flex: 1;
   overflow-y: auto;
   padding: 32px;
+  scrollbar-width: thin;
+  scrollbar-color: #C0C5CB transparent;
 }
+.content::-webkit-scrollbar { width: 4px; }
+.content::-webkit-scrollbar-track { background: transparent; }
+.content::-webkit-scrollbar-thumb { background: #C0C5CB; border-radius: 3px; }
+.content::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
 /* ── Overlay (mobile drawer backdrop) ── */
 .overlay {
@@ -453,7 +499,7 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  background: #1e3a5f;
+  background: #2C5F8A;
   color: #fff;
   border-radius: 10px;
   padding: 14px 16px;
