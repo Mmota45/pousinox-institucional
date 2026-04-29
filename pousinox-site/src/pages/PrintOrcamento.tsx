@@ -31,6 +31,8 @@ interface OrcData {
   instalacao: { inclui: boolean; modalidade: string; texto: string; valor: number }
   exibir: Record<string, boolean>
   anexos: { nome: string; url: string }[]
+  modoProposta?: boolean
+  proposta?: { apresentacao: string; problema: string; escopo: string; cronograma: string; garantias: string; encerramento: string }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -373,6 +375,8 @@ export default function PrintOrcamento() {
       instalacao: { inclui: o.inst_inclui ?? false, modalidade: o.inst_modalidade ?? 'cobrar', texto: o.inst_texto ?? '', valor: Number(o.inst_valor ?? 0) },
       exibir: { cnpj: false, inscricaoEstadual: false, telefone: true, whatsapp: false, email: false, emailNf: false, contatosAdicionais: false, cargo: false, endereco: false, enderecoEntrega: false, entResponsavel: false, obsTecnicaItens: false, instMontagem: false, anexos: false, detalhesLogistica: false, ...(o.exibir_config ?? {}) },
       anexos: (anexosD ?? []) as { nome: string; url: string }[],
+      modoProposta: o.modo_proposta ?? false,
+      proposta: o.proposta_comercial ?? null,
     })
 
     // Carregar dados bancários selecionados
@@ -658,6 +662,30 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
         </>
       })()}
 
+      {/* ═══ Seções da Proposta Comercial ═══ */}
+      {d.modoProposta && d.proposta && (
+        <>
+          {d.proposta.apresentacao && (
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ ...S.sectionTitle, background: C.navy, color: '#fff', padding: '8px 14px', borderRadius: '6px 6px 0 0', margin: 0 }}>🏭 Apresentação</div>
+              <div style={{ border: `1px solid ${C.border}`, borderTop: 'none', borderRadius: '0 0 6px 6px', padding: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '0.84rem' }}>{d.proposta.apresentacao}</div>
+            </div>
+          )}
+          {d.proposta.problema && (
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ ...S.sectionTitle, background: C.navy, color: '#fff', padding: '8px 14px', borderRadius: '6px 6px 0 0', margin: 0 }}>🎯 Problema e Solução</div>
+              <div style={{ border: `1px solid ${C.border}`, borderTop: 'none', borderRadius: '0 0 6px 6px', padding: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '0.84rem' }}>{d.proposta.problema}</div>
+            </div>
+          )}
+          {d.proposta.escopo && (
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ ...S.sectionTitle, background: C.navy, color: '#fff', padding: '8px 14px', borderRadius: '6px 6px 0 0', margin: 0 }}>📐 Escopo Técnico</div>
+              <div style={{ border: `1px solid ${C.border}`, borderTop: 'none', borderRadius: '0 0 6px 6px', padding: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '0.84rem' }}>{d.proposta.escopo}</div>
+            </div>
+          )}
+        </>
+      )}
+
       {/* Itens */}
       <div className="table-scroll">
       <table style={S.table}>
@@ -802,6 +830,30 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
             <div style={S.condicaoItem}><strong>Instalação:</strong> {d.instalacao.texto}</div>
           )}
         </div>
+      )}
+
+      {/* ═══ Cronograma & Garantias (Proposta) ═══ */}
+      {d.modoProposta && d.proposta && (
+        <>
+          {d.proposta.cronograma && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ ...S.sectionTitle, background: C.navy, color: '#fff', padding: '8px 14px', borderRadius: '6px 6px 0 0', margin: 0 }}>📅 Cronograma</div>
+              <div style={{ border: `1px solid ${C.border}`, borderTop: 'none', borderRadius: '0 0 6px 6px', padding: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '0.84rem' }}>{d.proposta.cronograma}</div>
+            </div>
+          )}
+          {d.proposta.garantias && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ ...S.sectionTitle, background: C.navy, color: '#fff', padding: '8px 14px', borderRadius: '6px 6px 0 0', margin: 0 }}>🛡️ Garantias</div>
+              <div style={{ border: `1px solid ${C.border}`, borderTop: 'none', borderRadius: '0 0 6px 6px', padding: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '0.84rem' }}>{d.proposta.garantias}</div>
+            </div>
+          )}
+          {d.proposta.encerramento && (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ ...S.sectionTitle, background: C.navy, color: '#fff', padding: '8px 14px', borderRadius: '6px 6px 0 0', margin: 0 }}>🤝 Encerramento</div>
+              <div style={{ border: `1px solid ${C.border}`, borderTop: 'none', borderRadius: '0 0 6px 6px', padding: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '0.84rem' }}>{d.proposta.encerramento}</div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Observações */}

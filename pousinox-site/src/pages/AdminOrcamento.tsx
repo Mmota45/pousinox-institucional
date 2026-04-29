@@ -17,6 +17,9 @@ import ItensSection from '../components/Orcamento/sections/ItensSection'
 import CondicoesSection from '../components/Orcamento/sections/CondicoesSection'
 import DetalheView from '../components/Orcamento/sections/DetalheView'
 import ConfigDrawer from '../components/Orcamento/ConfigDrawer'
+import PropostaSection, { type PropostaData, PROPOSTA_VAZIA } from '../components/Orcamento/sections/PropostaSection'
+import CompartilharProposta from '../components/Orcamento/CompartilharProposta'
+import EspecificacaoSection from '../components/Orcamento/sections/EspecificacaoSection'
 
 import type {
   EmpresaEmissora, Vendedor, OrcamentoResumo, Item, Instalacao, OrcLink,
@@ -101,6 +104,8 @@ export default function AdminOrcamento() {
   const handleFreteChange = useCallback((s: FreteSummary) => { freteSummaryRef.current = s }, [])
   const [instalacao, setInstalacao] = useState<Instalacao>(INST_VAZIO)
   const [obsInternas, setObsInternas] = useState('')
+  const [modoProposta, setModoProposta] = useState(false)
+  const [proposta, setProposta] = useState<PropostaData>(PROPOSTA_VAZIA)
   const [origemLead, setOrigemLead] = useState('')
   const [exibir, setExibir]         = useState<ExibirProposta>(EXIBIR_DEFAULT)
   const [showControles, setShowControles] = useState(false)
@@ -286,6 +291,7 @@ export default function AdminOrcamento() {
       setWatermarkAtivo(false); setWatermarkTexto('CONFIDENCIAL'); setWatermarkLogo(false)
       setImagemUrl(''); setAnexos([]); setHistorico([]); setLinks([])
       setInstalacao(INST_VAZIO)
+      setModoProposta(false); setProposta(PROPOSTA_VAZIA)
       setObsInternas(''); setOrigemLead(''); setExibir(EXIBIR_DEFAULT); setDadosBancariosSel([])
       const emp = empresas.find(e => e.id === empresaId)
       const { data: created, error } = await supabaseAdmin.from('orcamentos').insert({
@@ -379,6 +385,8 @@ export default function AdminOrcamento() {
     setOrigemLead(o.origem_lead ?? '')
     setExibir({ ...EXIBIR_DEFAULT, ...(o.exibir_config ?? {}) })
     setWatermarkLogo(o.watermark_logo ?? false)
+    setModoProposta(o.modo_proposta ?? false)
+    setProposta(o.proposta_comercial ?? PROPOSTA_VAZIA)
     setAnexos((anexosD ?? []) as Anexo[]); setHistorico((histD ?? []) as HistoricoItem[])
     setEmpresaSnapshot({
       nome_fantasia: o.empresa_nome ?? null,
@@ -471,6 +479,8 @@ export default function AdminOrcamento() {
       validade_dias: parseInt(validadeDias) || 7, observacoes: observacoes || null,
       watermark_ativo: watermarkAtivo, watermark_texto: watermarkTexto,
       imagem_url: imagemUrl || null,
+      modo_proposta: modoProposta,
+      proposta_comercial: modoProposta ? proposta : null,
     }
     let orcId = editandoId
     if (editandoId) {
@@ -975,7 +985,9 @@ export default function AdminOrcamento() {
                 </div>
               </CollapsibleSection>
 
-              <ClienteForm cliente={cliente} setCliente={setCliente} styles={styles} />
+              <CollapsibleSection title="👤 Destinatário">
+                <ClienteForm cliente={cliente} setCliente={setCliente} styles={styles} />
+              </CollapsibleSection>
 
               {/* Itens */}
               <ItensSection
@@ -995,7 +1007,44 @@ export default function AdminOrcamento() {
                 styles={styles}
               />
 
+              {/* Toggle Proposta Comercial */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600 }}>
+                  <input type="checkbox" checked={modoProposta} onChange={e => setModoProposta(e.target.checked)} style={{ width: 18, height: 18 }} />
+                  📄 Proposta Comercial
+                </label>
+                {!modoProposta && <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Ative para adicionar seções de apresentação, escopo, cronograma e garantias</span>}
+                {modoProposta && editandoId && (
+                  <CompartilharProposta
+                    orcamentoId={editandoId}
+                    empresa={cliente.empresa || cliente.nome || cliente.razao_social || ''}
+                    cnpj={cliente.cnpj || ''}
+                    contato={cliente.nome || ''}
+                    email={cliente.email || ''}
+                    usuario={nomeUsuario}
+                  />
+                )}
+              </div>
+
+              {modoProposta && (
+                <PropostaSection
+                  proposta={proposta} setProposta={setProposta}
+                  clienteNome={cliente.empresa || cliente.nome || cliente.razao_social || ''}
+                  clienteSegmento={fromState?.prospect?.segmento || ''}
+                  itensResumo={itens.filter(i => i.descricao.trim()).map(i => `${i.descricao} (${i.qtd} ${i.unidade})`).join(', ')}
+                  styles={styles}
+                />
+              )}
+
+              {/* Especificação Técnica de Materiais */}
+              <EspecificacaoSection
+                orcamentoId={editandoId}
+                onItensAdded={novos => setItens(prev => [...prev.filter(i => i.descricao.trim()), ...novos])}
+                styles={styles}
+              />
+
               {/* Frete & Logística */}
+              <CollapsibleSection title="🚚 Frete & Logística">
               <FreteSection
                 orcamentoId={editandoId}
                 cepOrigem={empresaSel?.cep || '37550360'}
@@ -1005,6 +1054,7 @@ export default function AdminOrcamento() {
                 onFreteChange={handleFreteChange}
                 usuario={nomeUsuario}
               />
+              </CollapsibleSection>
 
               {/* Instalação/Montagem */}
               <CollapsibleSection title="🔧 Instalação / Montagem">

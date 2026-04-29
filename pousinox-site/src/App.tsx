@@ -17,6 +17,8 @@ import FixadorOrcamento from './pages/FixadorOrcamento'
 import Outlet from './pages/Outlet'
 import ProdutoDetalhe from './pages/ProdutoDetalhe'
 import Obrigado from './pages/Obrigado'
+import LaudoAcesso from './pages/LaudoAcesso'
+import PropostaAcesso from './pages/PropostaAcesso'
 import AdminLayout from './components/AdminLayout/AdminLayout'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminOutlet from './pages/AdminOutlet'
@@ -66,12 +68,15 @@ import AdminRecebimentosCompra from './pages/AdminRecebimentosCompra'
 import AdminBensFrota from './pages/AdminBensFrota'
 import AdminConfiguracaoFinanceiro from './pages/AdminConfiguracaoFinanceiro'
 import AdminFeatureFlags from './pages/AdminFeatureFlags'
+import AdminFixadores from './pages/AdminFixadores'
 import AdminAssistente from './pages/AdminAssistente'
 import AdminUso from './pages/AdminUso'
 import AdminSite from './pages/AdminSite'
 import Privacidade from './pages/Privacidade'
 import LgpdBanner from './components/LgpdBanner/LgpdBanner'
 import PrintOrcamento from './pages/PrintOrcamento'
+import PrintEspecificacao from './pages/PrintEspecificacao'
+import CalculadoraFixador from './pages/CalculadoraFixador'
 import ViewOrcamento from './pages/ViewOrcamento'
 import RedirectShortLink from './pages/RedirectShortLink'
 
@@ -139,6 +144,7 @@ function App() {
           <Route path="/fixador-porcelanato/testes-lamat" element={<Navigate to="/fixador-porcelanato/ensaios" replace />} />
           <Route path="/fixador-porcelanato/normas" element={<FixadorNormas />} />
           <Route path="/fixador-porcelanato/orcamento" element={<FixadorOrcamento />} />
+          <Route path="/fixador-porcelanato/calculadora" element={<CalculadoraFixador />} />
           <Route path="/pronta-entrega" element={<Outlet />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/pedido/:codigo" element={<PedidoStatus />} />
@@ -187,16 +193,20 @@ function App() {
             <Route path="docs-recebidos"       element={<AdminDocsRecebidos />} />
             <Route path="docs-emitidos"        element={<AdminDocsEmitidos />} />
             <Route path="feature-flags"       element={<AdminFeatureFlags />} />
+            <Route path="fixadores"           element={<AdminFixadores />} />
             <Route path="assistente"          element={<AdminAssistente />} />
             <Route path="uso"                element={<AdminUso />} />
             <Route path="site"               element={<AdminSite />} />
             <Route path="canva-callback"    element={<AdminCanvaCallback />} />
           </Route>
           <Route path="/print/orcamento/:id" element={<PrintOrcamento />} />
+          <Route path="/print/especificacao/:id" element={<PrintEspecificacao />} />
           <Route path="/c/:slug" element={<ViewCartao />} />
           <Route path="/view/orcamento/:token" element={<ViewOrcamento />} />
           <Route path="/p/:code" element={<RedirectShortLink />} />
           <Route path="/privacidade" element={<Privacidade />} />
+          <Route path="/laudo/:id" element={<LaudoAcesso />} />
+          <Route path="/proposta/:id" element={<PropostaAcesso />} />
           <Route path="/obrigado" element={<Obrigado />} />
         </Routes>
       </main>
