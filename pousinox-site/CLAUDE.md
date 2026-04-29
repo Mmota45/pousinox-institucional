@@ -67,8 +67,6 @@ Rotas `/admin/*` com layout próprio (`AdminLayout`). Todos os módulos usam `su
 |---|---|---|---|
 | `/admin` | `AdminDashboard` | — | ✅ |
 | `/admin/prospeccao` | `AdminProspeccao` | Comercial | ✅ 800K CNPJs, mapa Leaflet, drawer de detalhe com histórico de compras e criação de deal |
-| `/admin/cobertura` | `AdminCobertura` | Comercial | ✅ cobertura por mesorregião |
-| `/admin/funil` | `AdminFunil` | Comercial | ✅ funil macro de prospecção |
 | `/admin/pipeline` | `AdminPipeline` | Comercial | ✅ deals, estágios, recebível |
 | `/admin/central-vendas` | `AdminCentralVendas` | Comercial | ✅ scoring on-the-fly, hot list, follow-ups, materiais, dashboard, WhatsApp por segmento, validação Z-API |
 | `/admin/ia` | `AdminIA` | IA | ✅ multi-provider (Groq/Gemini/OpenRouter), busca web (Brave+Serper), consulta DB automática, roteamento inteligente |
@@ -102,6 +100,14 @@ Rotas `/admin/*` com layout próprio (`AdminLayout`). Todos os módulos usam `su
 | `/admin/relatorios` | `AdminRelatorios` | Relatórios | ✅ |
 | `/admin/usuarios` | `AdminUsuarios` | Configuração | ✅ |
 | `/admin/estudo-mercado` | `AdminEstudoMercado` | Comercial | ✅ cruzamento interno×externo, import GKP, score por UF — ver abaixo |
+| `/admin/fixadores` | `AdminFixadores` | Catálogo | ✅ CRUD modelos, regras de cálculo, consumíveis |
+| `/admin/assistente` | `AdminAssistente` | IA | ✅ chat multi-modelo, knowledge base, agentes |
+| `/admin/site` | `AdminSite` | Marketing | ✅ CMS páginas e seções do site |
+| `/admin/frete` | `AdminFrete` | Operação | ✅ configuração de frete Correios + Braspress |
+| `/admin/feature-flags` | `AdminFeatureFlags` | Configuração | ✅ flags públicas e internas |
+| `/admin/dashboard-bi` | `AdminDashboardBI` | Relatórios | ✅ dashboard BI com filtros e gráficos |
+| `/admin/pedidos-outlet` | `AdminPedidosOutlet` | Catálogo | ✅ pedidos do outlet/pronta-entrega |
+| `/admin/uso` | `AdminUso` | Configuração | ✅ custos por provider, créditos API, recursos do sistema |
 
 ---
 
@@ -466,6 +472,14 @@ Inteligência de mercado — cruzamento entre histórico interno (NFs + clientes
 | `/servicos/corte-laser` | `CorteLaser` | Serviço de corte a laser |
 | `/pronta-entrega` | `Outlet` | Produtos pronta entrega |
 | `/obrigado` | `Obrigado` | Pós-conversão |
+| `/fixador-porcelanato/calculadora` | `CalculadoraFixador` | Calculadora pública de materiais (OTP WhatsApp) |
+| `/checkout` | `Checkout` | Checkout outlet com Pix QR |
+| `/pedido/:id` | `PedidoStatus` | Status do pedido |
+| `/produto/:id` | `ProdutoDetalhe` | Detalhe de produto |
+| `/privacidade` | `Privacidade` | Política de privacidade (LGPD) |
+| `/laudo/:id` | `LaudoAcesso` | Acesso protegido a laudo técnico |
+| `/proposta/:id` | `PropostaAcesso` | Acesso público a proposta comercial |
+| `/print/especificacao/:id` | `PrintEspecificacao` | PDF especificação de materiais |
 
 ## Comandos
 
