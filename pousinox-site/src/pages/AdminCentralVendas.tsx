@@ -291,12 +291,18 @@ pousinox.com.br`
   const [drawerProducao, setDrawerProducao] = useState<any[]>([])
   const [drawerDeals, setDrawerDeals] = useState<any[]>([])
   const [drawerNfResumo, setDrawerNfResumo] = useState<{ total: number; qtd: number; ultima: string | null; media: number } | null>(null)
+  const [fichaExpandida, setFichaExpandida] = useState<number | null>(null)
+  const [drawerConcorrentes, setDrawerConcorrentes] = useState<any[]>([])
   // ── IA Agentes ──
   const [iaAnalise, setIaAnalise] = useState('')
   const [iaResumo, setIaResumo] = useState('')
   const [iaObjecao, setIaObjecao] = useState('')
   const [iaObjecaoInput, setIaObjecaoInput] = useState('')
   const [iaLoadingTipo, setIaLoadingTipo] = useState<string | null>(null)
+  const [iaConsultor, setIaConsultor] = useState('')
+  const [iaConsultorInput, setIaConsultorInput] = useState('')
+  const [iaComparativo, setIaComparativo] = useState('')
+  const [iaProposta, setIaProposta] = useState('')
   const statusRef = useRef<HTMLDivElement>(null)
 
   // ── Dashboard ──
@@ -671,7 +677,7 @@ pousinox.com.br`
       setDrawerPortfolioLoading(true)
       const { data: pData } = await supabaseAdmin
         .from('segmento_portfolio')
-        .select('id, relevancia, destaque, portfolio_produtos(id, nome, descricao, categoria)')
+        .select('id, relevancia, destaque, portfolio_produtos(id, nome, descricao, categoria, material, dimensoes, peso_kg, norma_aplicavel, laudo_url, laudo_descricao, ficha_tecnica, vantagens, aplicacoes)')
         .eq('segmento', ps.segmento)
         .order('relevancia', { ascending: false })
       setDrawerPortfolio(pData ?? [])
@@ -700,6 +706,12 @@ pousinox.com.br`
       setDrawerEquipamentos([])
       setMsgRegulatoria('')
     }
+    // Carregar concorrentes
+    const { data: concData } = await supabaseAdmin
+      .from('portfolio_concorrentes')
+      .select('*')
+    setDrawerConcorrentes(concData ?? [])
+    setFichaExpandida(null)
     // Carregar deals do prospect
     const { data: dealsData } = await supabaseAdmin
       .from('pipeline_deals')
@@ -753,6 +765,10 @@ pousinox.com.br`
     setIaAnalise('')
     setIaResumo('')
     setIaObjecao('')
+    setIaConsultor('')
+    setIaConsultorInput('')
+    setIaComparativo('')
+    setIaProposta('')
   }
 
   // Calcular resumo NFs quando mudam
@@ -818,6 +834,114 @@ Portfólio: ${drawerPortfolio.slice(0, 5).map((sp: any) => sp.portfolio_produtos
       const res = await aiChat(`O prospect disse: "${iaObjecaoInput}"\n\nContexto:\n${ctx}\n\nComo responder esta objeção?`, system)
       setIaObjecao(res)
     } catch { setIaObjecao('Erro ao gerar resposta') }
+    setIaLoadingTipo(null)
+  }
+
+  async function iaConsultorTecnico() {
+    if (!drawerPs || !iaConsultorInput.trim()) return
+    setIaLoadingTipo('consultor')
+    const produtos = drawerPortfolio.slice(0, 8).map((sp: any) => {
+      const p = sp.portfolio_produtos
+      return p ? `${p.nome} (${p.material || 'inox'})${p.laudo_url ? ' — com laudo técnico' : ''}` : ''
+    }).filter(Boolean).join(', ')
+    const normasCtx = drawerNormas.map((n: any) => `${n.norma}: ${n.titulo}. Penalidade: ${n.penalidade || 'N/A'}`).join('\n')
+    const concCtx = drawerConcorrentes.map((c: any) => `${c.concorrente} (${c.produto_concorrente}): ${c.desvantagem_concorrente}`).join('\n')
+    const ctx = `Empresa compradora: ${drawerPs.nome_fantasia || drawerPs.razao_social} | Segmento: ${drawerPs.segmento || 'N/I'}
+Produtos Pousinox relevantes: ${produtos || 'diversos equipamentos em aço inox'}
+Normas regulatórias:\n${normasCtx || 'Nenhuma específica'}
+Concorrentes:\n${concCtx || 'N/I'}`
+    const system = `Você é um consultor técnico da Pousinox que explica conceitos de engenharia e materiais para LEIGOS (síndicos, compradores, gestores que NÃO são engenheiros).
+
+REGRAS:
+- Use linguagem simples, sem jargão técnico
+- Quando usar termo técnico, explique entre parênteses
+- Use analogias do dia a dia
+- Seja transparente: se algo tem limitação, diga
+- NUNCA invente dados, certificações ou números
+- Se mencionar laudos, deixe claro que são verificáveis
+- Tom: educativo, paciente, confiável
+- Máx 200 palavras
+- Português brasileiro`
+    try {
+      const res = await aiChat(`Dúvida do cliente: "${iaConsultorInput}"\n\nContexto:\n${ctx}`, system)
+      setIaConsultor(res)
+    } catch { setIaConsultor('Erro ao gerar resposta') }
+    setIaLoadingTipo(null)
+  }
+
+  async function iaGerarComparativo() {
+    if (!drawerPs) return
+    setIaLoadingTipo('comparativo')
+    const concCtx = drawerConcorrentes.length > 0
+      ? drawerConcorrentes.map((c: any) => `Concorrente: ${c.concorrente}\nProduto: ${c.produto_concorrente}\nMaterial: ${c.material}\nMétodo: ${c.metodo}\nDesvantagem: ${c.desvantagem_concorrente}\nVantagem Pousinox: ${c.vantagem_pousinox}`).join('\n\n')
+      : 'Sem dados específicos de concorrentes cadastrados'
+    const produtos = drawerPortfolio.slice(0, 5).map((sp: any) => {
+      const p = sp.portfolio_produtos
+      return p ? `${p.nome}: ${p.material || 'inox 304'}, ${p.vantagens || ''}` : ''
+    }).filter(Boolean).join('\n')
+    const system = `Consultor técnico-comercial da Pousinox. Gere um comparativo técnico honesto entre Pousinox e concorrentes.
+
+REGRAS:
+- Tabela comparativa: Pousinox vs Concorrente (critérios: material, método, estética, durabilidade, laudos, preço)
+- Seja honesto: se o concorrente tem vantagem em algo, reconheça
+- Destaque diferenciais reais (insert interno, laudos SENAI/LAMAT, inox 304)
+- Linguagem acessível para leigos
+- NUNCA invente dados
+- Máx 250 palavras
+- Português brasileiro`
+    try {
+      const res = await aiChat(`Gere comparativo técnico para o segmento "${drawerPs.segmento || 'geral'}":\n\nDados concorrentes:\n${concCtx}\n\nProdutos Pousinox:\n${produtos}`, system)
+      setIaComparativo(res)
+    } catch { setIaComparativo('Erro ao gerar comparativo') }
+    setIaLoadingTipo(null)
+  }
+
+  async function iaGerarProposta() {
+    if (!drawerPs) return
+    setIaLoadingTipo('proposta')
+    const produtos = drawerPortfolio.map((sp: any) => {
+      const p = sp.portfolio_produtos
+      if (!p) return ''
+      let line = `- ${p.nome}`
+      if (p.material) line += ` (${p.material})`
+      if (p.dimensoes) line += ` — ${p.dimensoes}`
+      if (p.laudo_url) line += ' ✅ Com laudo técnico'
+      return line
+    }).filter(Boolean).join('\n')
+    const normasCtx = drawerNormas.map((n: any) => `- ${n.norma} (${n.orgao}): ${n.titulo}`).join('\n')
+    const equipCtx = drawerEquipamentos.filter((e: any) => e.obrigatorio).map((e: any) => `- ${e.equipamento} (${e.material})`).join('\n')
+    const ctx = `DADOS DO PROSPECT:
+Nome: ${drawerPs.nome_fantasia || drawerPs.razao_social}
+CNPJ: ${drawerPs.cnpj || 'N/I'}
+Segmento: ${drawerPs.segmento || 'N/I'}
+Cidade/UF: ${drawerPs.cidade}/${drawerPs.uf}
+Contato: ${drawerPs.whatsapp || drawerPs.telefone1 || drawerPs.email || 'N/I'}
+Histórico: ${drawerNfResumo ? `${drawerNfResumo.qtd} compras, total ${fmtBRL(drawerNfResumo.total)}` : 'Primeiro contato'}
+
+PRODUTOS RECOMENDADOS:
+${produtos || 'Equipamentos em aço inox sob medida'}
+
+NORMAS REGULATÓRIAS APLICÁVEIS:
+${normasCtx || 'Nenhuma específica'}
+
+EQUIPAMENTOS OBRIGATÓRIOS EM INOX:
+${equipCtx || 'Conforme segmento'}`
+    const system = `Gere uma proposta comercial profissional da Pousinox para este prospect. Estrutura:
+
+1. CABEÇALHO — "Pousinox — A Arte em Inox" + data + destinatário
+2. APRESENTAÇÃO — breve (fabricante desde 2001, Pouso Alegre/MG)
+3. PRODUTOS RECOMENDADOS — lista com material e especificações
+4. ARGUMENTAÇÃO REGULATÓRIA — normas que exigem inox no segmento
+5. DIFERENCIAIS — laudos técnicos SENAI/LAMAT, fabricação própria, personalização
+6. CONDIÇÕES — "Valores sob consulta conforme especificação"
+7. CONTATO — (35) 3423-8994 / contato@pousinox.com.br
+
+Tom: profissional, consultivo. Português brasileiro. Máx 400 palavras.
+NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
+    try {
+      const res = await aiChat(`Gere proposta comercial:\n\n${ctx}`, system)
+      setIaProposta(res)
+    } catch { setIaProposta('Erro ao gerar proposta') }
     setIaLoadingTipo(null)
   }
 
@@ -1928,13 +2052,39 @@ Portfólio: ${drawerPortfolio.slice(0, 5).map((sp: any) => sp.portfolio_produtos
                         {drawerPortfolio.map((sp: any) => {
                           const prod = sp.portfolio_produtos
                           if (!prod) return null
+                          const temFicha = prod.material || prod.dimensoes || prod.norma_aplicavel || prod.laudo_url || prod.ficha_tecnica || prod.vantagens
                           return (
-                            <div key={sp.id} className={styles.portfolioItem}>
-                              <div className={styles.portfolioInfo}>
-                                <strong>{sp.destaque ? '⭐ ' : ''}{prod.nome}</strong>
-                                {prod.descricao && <span className={styles.portfolioDesc}>{prod.descricao}</span>}
+                            <div key={sp.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <div className={styles.portfolioItem}>
+                                <div className={styles.portfolioInfo} style={{ cursor: temFicha ? 'pointer' : 'default' }}
+                                  onClick={() => temFicha && setFichaExpandida(fichaExpandida === prod.id ? null : prod.id)}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    {temFicha && <span style={{ fontSize: 10, color: '#94a3b8' }}>{fichaExpandida === prod.id ? '▼' : '▶'}</span>}
+                                    <strong>{sp.destaque ? '⭐ ' : ''}{prod.nome}</strong>
+                                    {prod.laudo_url && <span style={{ fontSize: 10, background: '#dcfce7', color: '#15803d', padding: '1px 5px', borderRadius: 4, fontWeight: 600 }}>📄 Laudo</span>}
+                                    {prod.material && <span style={{ fontSize: 10, background: '#f1f5f9', color: '#64748b', padding: '1px 5px', borderRadius: 4 }}>{prod.material}</span>}
+                                  </div>
+                                  {prod.descricao && <span className={styles.portfolioDesc}>{prod.descricao}</span>}
+                                </div>
+                                <button className={styles.portfolioRemover} onClick={() => removerPortfolioItem(sp.id)} title="Remover do portfólio">✕</button>
                               </div>
-                              <button className={styles.portfolioRemover} onClick={() => removerPortfolioItem(sp.id)} title="Remover do portfólio">✕</button>
+                              {fichaExpandida === prod.id && (
+                                <div style={{ padding: '8px 16px 12px 28px', background: '#f8fafc', fontSize: '0.78rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                  {prod.material && <div><strong>Material:</strong> {prod.material}</div>}
+                                  {prod.dimensoes && <div><strong>Dimensões:</strong> {prod.dimensoes}</div>}
+                                  {prod.peso_kg && <div><strong>Peso:</strong> {prod.peso_kg} kg</div>}
+                                  {prod.norma_aplicavel && <div><strong>Norma:</strong> {prod.norma_aplicavel}</div>}
+                                  {prod.aplicacoes && <div><strong>Aplicações:</strong> {prod.aplicacoes}</div>}
+                                  {prod.vantagens && <div style={{ color: '#15803d' }}><strong>Vantagens:</strong> {prod.vantagens}</div>}
+                                  {prod.ficha_tecnica && <div style={{ marginTop: 4, lineHeight: 1.4, color: '#475569' }}>{prod.ficha_tecnica}</div>}
+                                  {prod.laudo_url && (
+                                    <a href={prod.laudo_url} target="_blank" rel="noreferrer"
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, padding: '4px 10px', background: '#dcfce7', color: '#15803d', borderRadius: 6, fontSize: '0.76rem', fontWeight: 600, textDecoration: 'none' }}>
+                                      📄 {prod.laudo_descricao || 'Ver laudo técnico'}
+                                    </a>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )
                         })}
@@ -2207,6 +2357,65 @@ Portfólio: ${drawerPortfolio.slice(0, 5).map((sp: any) => sp.portfolio_produtos
                         </div>
                       )}
                     </div>
+
+                    {/* Agente 4: Consultor Técnico para Leigos */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid #e2e8f0', paddingTop: 12 }}>
+                      <h4 style={{ margin: 0, fontSize: 12, color: '#64748b' }}>🎓 Consultor Técnico (para leigos)</h4>
+                      <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Explica conceitos técnicos em linguagem simples para síndicos, compradores e gestores</span>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input style={{ flex: 1, padding: '7px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.82rem' }}
+                          placeholder='Ex: "O que é capacidade de carga?", "Por que inox e não galvanizado?"'
+                          value={iaConsultorInput} onChange={e => setIaConsultorInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && iaConsultorTecnico()} />
+                        <button className={styles.btnPrimary} style={{ fontSize: '0.78rem', padding: '6px 14px' }}
+                          disabled={iaLoadingTipo !== null || !iaConsultorInput.trim()} onClick={iaConsultorTecnico}>
+                          {iaLoadingTipo === 'consultor' ? '⏳...' : '🎓'}
+                        </button>
+                      </div>
+                      {iaConsultor && (
+                        <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: 12, fontSize: '0.82rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                          {iaConsultor}
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontSize: '0.78rem' }}
+                              onClick={() => { navigator.clipboard.writeText(iaConsultor); showMsg('ok', 'Copiado!') }}>📋 Copiar</button>
+                            <button style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontSize: '0.78rem' }}
+                              onClick={() => {
+                                const tel = drawerPs.whatsapp || drawerPs.telefone1
+                                if (!tel) { showMsg('erro', 'Sem telefone'); return }
+                                const num = tel.replace(/\D/g, '')
+                                window.open(`https://wa.me/${num.length <= 11 ? '55' + num : num}?text=${encodeURIComponent(iaConsultor)}`, '_blank')
+                              }}>📱 Enviar via WhatsApp</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Agente 5: Comparativo Técnico */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid #e2e8f0', paddingTop: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button className={styles.btnPrimary} style={{ fontSize: '0.78rem', padding: '6px 14px' }}
+                          disabled={iaLoadingTipo !== null} onClick={iaGerarComparativo}>
+                          {iaLoadingTipo === 'comparativo' ? '⏳ Gerando...' : '⚔️ Comparativo vs Concorrentes'}
+                        </button>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Análise honesta Pousinox vs mercado</span>
+                      </div>
+                      {iaComparativo && (
+                        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: 12, fontSize: '0.82rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                          {iaComparativo}
+                          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                            <button style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.78rem' }}
+                              onClick={() => { navigator.clipboard.writeText(iaComparativo); showMsg('ok', 'Copiado!') }}>📋 Copiar</button>
+                            <button style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.78rem' }}
+                              onClick={() => {
+                                const tel = drawerPs.whatsapp || drawerPs.telefone1
+                                if (!tel) { showMsg('erro', 'Sem telefone'); return }
+                                const num = tel.replace(/\D/g, '')
+                                window.open(`https://wa.me/${num.length <= 11 ? '55' + num : num}?text=${encodeURIComponent(iaComparativo)}`, '_blank')
+                              }}>📱 Enviar via WhatsApp</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -2229,7 +2438,32 @@ Portfólio: ${drawerPortfolio.slice(0, 5).map((sp: any) => sp.portfolio_produtos
                 }}>📄 Orçamento</button>
                 <button className={styles.btnWpp} onClick={() => abrirWhatsApp(drawerPs.whatsapp || drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento, drawerPs.cidade)}>WhatsApp</button>
                 <button className={styles.btnSecondary} onClick={() => setHistoricoAberto({ id: drawerPs.prospect_id, nome: drawerPs.nome_fantasia || drawerPs.razao_social })}>📋 Histórico</button>
+                <button className={styles.btnPrimary} style={{ background: '#7c3aed' }} disabled={iaLoadingTipo !== null} onClick={iaGerarProposta}>
+                  {iaLoadingTipo === 'proposta' ? '⏳...' : '📝 Proposta IA'}
+                </button>
               </div>
+              {iaProposta && (
+                <div style={{ padding: '12px 20px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 10, fontSize: '0.82rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                  {iaProposta}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10, borderTop: '1px solid #e9d5ff', paddingTop: 8 }}>
+                    <button style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}
+                      onClick={() => { navigator.clipboard.writeText(iaProposta); showMsg('ok', 'Proposta copiada!') }}>📋 Copiar</button>
+                    <button style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}
+                      onClick={() => {
+                        const tel = drawerPs.whatsapp || drawerPs.telefone1
+                        if (!tel) { showMsg('erro', 'Sem telefone'); return }
+                        const num = tel.replace(/\D/g, '')
+                        window.open(`https://wa.me/${num.length <= 11 ? '55' + num : num}?text=${encodeURIComponent(iaProposta)}`, '_blank')
+                      }}>📱 Enviar via WhatsApp</button>
+                    <button style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}
+                      onClick={() => {
+                        const mailto = drawerPs.email
+                        if (!mailto) { showMsg('erro', 'Sem e-mail'); return }
+                        window.open(`mailto:${mailto}?subject=${encodeURIComponent('Proposta Comercial — Pousinox')}&body=${encodeURIComponent(iaProposta)}`, '_blank')
+                      }}>📧 Enviar por Email</button>
+                  </div>
+                </div>
+              )}
 
               {/* IA — Sugerir abordagem (3 variações Multi-IA) */}
               <DrawerMultiIA prospect={drawerPs} />
