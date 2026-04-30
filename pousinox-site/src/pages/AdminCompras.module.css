@@ -262,7 +262,7 @@
   gap: 14px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .formGrid { grid-template-columns: 1fr; }
 }
 
@@ -567,7 +567,7 @@
 .formActions { flex-wrap: wrap; }
 .formActions > * { flex: 1; min-height: 44px; }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .toolbar, .filtros { flex-direction: row; align-items: center; }
   .toolbar > *, .filtros > * { width: auto; }
   .tabela, table { min-width: unset; }
@@ -575,4 +575,11 @@
   .formGrid { grid-template-columns: 1fr 1fr; }
   .formActions { justify-content: flex-end; }
   .formActions > * { flex: none; }
+}
+
+@media (max-width: 480px) {
+  .abas { gap: 2px; }
+  .aba { padding: 8px 10px; font-size: 0.78rem; }
+  .card { padding: 12px; }
+  .tabela th, .tabela td { padding: 6px 6px; font-size: 0.78rem; }
 }

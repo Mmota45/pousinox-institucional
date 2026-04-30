@@ -439,10 +439,37 @@
 }
 .toggleWa input { accent-color: #25d366; width: 16px; height: 16px; cursor: pointer; }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .cardGrid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
   .kanban { grid-template-columns: 1fr 1fr 1fr; }
   .kpiGrid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
   .filtros { flex-direction: row; }
   .btnPrimary, .btnSecondary { min-height: auto; }
+}
+
+/* ── Mobile ── */
+@media (max-width: 768px) {
+  .drawer { width: 100vw !important; }
+  .drawerHead h3 { font-size: 0.9rem; }
+  .drawerBody { padding: 12px 14px; gap: 14px; }
+  .drawerAcoes { flex-direction: column; }
+  .drawerAcoes > button { width: 100%; justify-content: center; }
+  .tabs { gap: 2px; padding: 3px; }
+  .tab { padding: 8px 12px; font-size: 0.8rem; }
+  .tabIcon { font-size: 0.85rem; }
+  .hotTable { font-size: 0.78rem; }
+  .hotTable th, .hotTable td { padding: 6px 8px; }
+  .multiBtn { min-width: 120px; font-size: 0.82rem; }
+  .regHeader { font-size: 0.85rem; }
+  .equipLista { gap: 4px; }
+  .regMsgActions { flex-direction: column; }
+  .regMsgActions button { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  .drawerBody { padding: 10px 12px; gap: 10px; }
+  .drawerContatoRow { font-size: 0.8rem; }
+  .drawerLinks a { font-size: 0.72rem; padding: 4px 8px; }
+  .kpiGrid { grid-template-columns: 1fr; }
+  .sectionHeader { flex-direction: column; align-items: flex-start; }
 }

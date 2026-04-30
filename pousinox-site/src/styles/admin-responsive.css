@@ -1,0 +1,218 @@
+/* ═══════════════════════════════════════════════════
+   Admin Responsive Utilities
+   Breakpoints padrão:
+     480px  — mobile
+     768px  — tablet
+     1024px — desktop
+     1280px — wide
+   ═══════════════════════════════════════════════════ */
+
+/* ── Visibilidade ── */
+.mobile-only { display: none !important; }
+.desktop-only { display: block !important; }
+
+@media (max-width: 768px) {
+  .mobile-only { display: block !important; }
+  .desktop-only { display: none !important; }
+}
+
+/* ── Toolbar / Filtros ── */
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .admin-toolbar {
+    gap: 6px;
+  }
+  .admin-toolbar > input,
+  .admin-toolbar > select,
+  .admin-toolbar > .admin-input-responsive {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+  .admin-toolbar > button {
+    flex: 1 1 calc(50% - 4px);
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-toolbar > button {
+    flex: 1 1 100%;
+  }
+}
+
+/* ── Tabela responsiva ── */
+.admin-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+
+@media (max-width: 768px) {
+  .admin-table-wrap table {
+    font-size: 12px;
+  }
+  .admin-table-wrap th,
+  .admin-table-wrap td {
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
+  /* Colunas opcionais — ocultar no mobile */
+  .admin-table-wrap .col-hide-mobile {
+    display: none;
+  }
+}
+
+/* ── Cards grid (alternativa a tabelas no mobile) ── */
+.admin-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .admin-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* ── Drawer full-width no mobile ── */
+.admin-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  background: #fff;
+  z-index: 1000;
+  overflow-y: auto;
+  width: 460px;
+  max-width: 100vw;
+  box-shadow: -4px 0 24px rgba(0,0,0,.12);
+}
+
+@media (max-width: 768px) {
+  .admin-drawer {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+}
+
+/* ── Stack vertical no mobile ── */
+.admin-stack-mobile {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .admin-stack-mobile {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ── Form grid: 2 cols → 1 col no mobile ── */
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* ── Abas scrolláveis no mobile ── */
+.admin-tabs-scroll {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.admin-tabs-scroll::-webkit-scrollbar { display: none; }
+
+@media (max-width: 768px) {
+  .admin-tabs-scroll > button {
+    font-size: 12px;
+    padding: 8px 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+/* ── Seção colapsável padrão ── */
+.admin-collapsible-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f8fafc;
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
+  transition: background .15s;
+}
+.admin-collapsible-header:hover {
+  background: #f1f5f9;
+}
+
+/* ── Badges / contadores no header ── */
+.admin-badge-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+/* ── KPI cards responsivos ── */
+.admin-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .admin-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+}
+
+/* ── Ações compactas no mobile ── */
+@media (max-width: 768px) {
+  .admin-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .admin-actions-row > button {
+    flex: 1 1 calc(50% - 4px);
+    font-size: 12px;
+    padding: 8px;
+  }
+}

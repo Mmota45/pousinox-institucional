@@ -851,8 +851,18 @@
 /* Formulário — padding mais apertado em mobile */
 .form, .formSmall { padding: 16px; }
 
-/* ── Tablet (640px+) ── */
-@media (min-width: 640px) {
+/* ── Mobile (≤480px) ── */
+@media (max-width: 480px) {
+  .abas { gap: 2px; }
+  .aba { padding: 8px 10px; font-size: 0.78rem; }
+  .cards { gap: 8px; }
+  .card { padding: 12px; }
+  .tabela th, .tabela td { padding: 6px 6px; font-size: 0.78rem; }
+  .budgetResumo { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Tablet (768px+) ── */
+@media (min-width: 768px) {
   .cards      { grid-template-columns: repeat(2, 1fr); gap: 16px; }
   .fluxoCards { grid-template-columns: repeat(2, 1fr); gap: 14px; }
   .row2       { grid-template-columns: 1fr 1fr; }

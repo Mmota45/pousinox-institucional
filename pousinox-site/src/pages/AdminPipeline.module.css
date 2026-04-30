@@ -300,7 +300,7 @@
   .kanbanCol { flex: none; min-height: auto; }
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .formGrid { grid-template-columns: 1fr 1fr 1fr; }
   .toolbar { flex-direction: row; align-items: center; justify-content: space-between; }
   .filtros { flex-wrap: wrap; overflow: visible; }

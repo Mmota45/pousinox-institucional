@@ -8,6 +8,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { supabase, supabaseAdmin } from '../../lib/supabase'
 import { AdminContext } from '../../contexts/AdminContext'
 import logomarca from '../../assets/logomarca.png'
+import '../../styles/admin-responsive.css'
 import styles from './AdminLayout.module.css'
 
 interface Perfil {
