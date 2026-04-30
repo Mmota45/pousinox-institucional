@@ -61,6 +61,10 @@ export default function AdminPortfolio() {
   const [equipSegmentos, setEquipSegmentos] = useState<string[]>([])
   const [equipEdit, setEquipEdit] = useState<Partial<Equipamento> & { _new?: boolean }>({})
   const [equipNormaPopover, setEquipNormaPopover] = useState<number | null>(null)
+  const [equipFiltroTipo, setEquipFiltroTipo] = useState<string>('')
+  const [equipFiltroMaterial, setEquipFiltroMaterial] = useState<string>('')
+  const [equipBusca, setEquipBusca] = useState('')
+  const [equipSecaoAberta, setEquipSecaoAberta] = useState<Record<string, boolean>>({})
 
   // ── IA ──
   const [iaLoading, setIaLoading] = useState<string | null>(null) // 'desc'|'sugestao'|'resumo'
@@ -324,6 +328,28 @@ Formato: texto corrido com negrito, pronto para copiar e colar. Máximo 400 pala
 
   const orgaosUnicos = useMemo(() => [...new Set(normas.map(n => n.orgao))].sort(), [normas])
   const statusUnicos = useMemo(() => [...new Set(normas.map(n => n.status))].sort(), [normas])
+
+  // Equipamentos filtrados e agrupados
+  const equipsFiltrados = useMemo(() => {
+    return equipamentos.filter(eq => {
+      if (equipFiltroTipo === 'obrigatorio' && !eq.obrigatorio) return false
+      if (equipFiltroTipo === 'recomendado' && eq.obrigatorio) return false
+      if (equipFiltroMaterial && eq.material !== equipFiltroMaterial) return false
+      if (equipBusca && !eq.equipamento.toLowerCase().includes(equipBusca.toLowerCase())) return false
+      return true
+    })
+  }, [equipamentos, equipFiltroTipo, equipFiltroMaterial, equipBusca])
+
+  const equipsPorSegmento = useMemo(() => {
+    const map: Record<string, typeof equipsFiltrados> = {}
+    equipsFiltrados.forEach(eq => {
+      if (!map[eq.segmento]) map[eq.segmento] = []
+      map[eq.segmento].push(eq)
+    })
+    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
+  }, [equipsFiltrados])
+
+  const materiaisUnicos = useMemo(() => [...new Set(equipamentos.map(e => e.material))].sort(), [equipamentos])
 
   const statusCor = (s: string) => {
     if (s === 'vigente') return { bg: '#dcfce7', color: '#15803d' }
@@ -613,11 +639,22 @@ Formato: texto corrido com negrito, pronto para copiar e colar. Máximo 400 pala
       {aba === 'equipamentos' && (
         <div className={styles.card}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
-            <select className={styles.inputBusca} value={equipFiltro} onChange={e => setEquipFiltro(e.target.value)} style={{ minWidth: 200 }}>
+            <input className={styles.inputBusca} placeholder="Buscar equipamento..." value={equipBusca} onChange={e => setEquipBusca(e.target.value)} style={{ minWidth: 160, flex: 1 }} />
+            <select className={styles.inputBusca} value={equipFiltro} onChange={e => setEquipFiltro(e.target.value)} style={{ minWidth: 180 }}>
               <option value="">Todos os segmentos</option>
               {equipSegmentos.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            <button className={styles.btnPrimary} onClick={() => setEquipEdit({ _new: true, obrigatorio: false, material: '304' })}>+ Novo Equipamento</button>
+            <select className={styles.inputBusca} value={equipFiltroTipo} onChange={e => setEquipFiltroTipo(e.target.value)} style={{ minWidth: 120 }}>
+              <option value="">Todos os tipos</option>
+              <option value="obrigatorio">✅ Obrigatório</option>
+              <option value="recomendado">⭐ Recomendado</option>
+            </select>
+            <select className={styles.inputBusca} value={equipFiltroMaterial} onChange={e => setEquipFiltroMaterial(e.target.value)} style={{ minWidth: 100 }}>
+              <option value="">Material</option>
+              {materiaisUnicos.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>{equipsFiltrados.length} equip.</span>
+            <button className={styles.btnPrimary} onClick={() => setEquipEdit({ _new: true, obrigatorio: false, material: '304' })}>+ Novo</button>
           </div>
 
           {/* Form inline */}
@@ -651,66 +688,67 @@ Formato: texto corrido com negrito, pronto para copiar e colar. Máximo 400 pala
             </div>
           )}
 
-          {/* Tabela */}
-          <div style={{ overflowX: 'auto' }}>
-            <table className={styles.tabela}>
-              <thead>
-                <tr>
-                  <th>Segmento</th>
-                  <th>Equipamento</th>
-                  <th>Tipo</th>
-                  <th>Material</th>
-                  <th>Norma Ref</th>
-                  <th>Observação</th>
-                  <th style={{ width: 90 }}>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {equipamentos.map(eq => (
-                  <tr key={eq.id}>
-                    <td>{eq.segmento}</td>
-                    <td>{eq.equipamento}</td>
-                    <td><span style={{ padding: '2px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: eq.obrigatorio ? '#dcfce7' : '#fef3c7', color: eq.obrigatorio ? '#15803d' : '#92400e' }}>{eq.obrigatorio ? '✅ Obrig.' : '⭐ Recom.'}</span></td>
-                    <td><span style={{ padding: '2px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: eq.material !== '304' ? '#ede9fe' : '#f1f5f9', color: eq.material !== '304' ? '#7c3aed' : '#64748b' }}>{eq.material}</span></td>
-                    <td style={{ fontSize: 12, position: 'relative' }}>
-                      {eq.norma_ref ? (
-                        <>
-                          <button onClick={() => setEquipNormaPopover(equipNormaPopover === eq.id ? null : eq.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e40af', fontWeight: 600, fontSize: 12, textDecoration: 'underline', padding: 0 }}>{eq.norma_ref}</button>
-                          {equipNormaPopover === eq.id && (() => {
-                            const norma = normas.find(n => n.norma === eq.norma_ref)
-                            return norma ? (
-                              <>
-                                <div onClick={() => setEquipNormaPopover(null)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
-                                <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100, width: 340, maxWidth: '80vw', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.12)', padding: 14, fontSize: '0.82rem' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                                    <span style={{ background: '#1e40af', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>{norma.orgao}</span>
-                                    <strong>{norma.norma}</strong>
-                                  </div>
-                                  {norma.titulo && <p style={{ margin: '0 0 6px', fontWeight: 600, color: '#1e293b', lineHeight: 1.3 }}>{norma.titulo}</p>}
-                                  {norma.penalidade && <p style={{ margin: '0 0 6px', color: '#b91c1c', fontSize: '0.78rem' }}>⚠️ <strong>Penalidade:</strong> {norma.penalidade}</p>}
-                                  {norma.observacao && <p style={{ margin: '0 0 6px', color: '#64748b', fontSize: '0.78rem', lineHeight: 1.4 }}>{norma.observacao}</p>}
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 6 }}>
-                                    {(norma.segmentos || []).map((s: string) => (
-                                      <span key={s} style={{ background: s === eq.segmento ? '#dbeafe' : '#f1f5f9', color: s === eq.segmento ? '#1e40af' : '#64748b', fontSize: '0.68rem', padding: '1px 5px', borderRadius: 4, fontWeight: s === eq.segmento ? 700 : 400 }}>{s}</span>
-                                    ))}
-                                  </div>
-                                </div>
-                              </>
-                            ) : null
-                          })()}
-                        </>
-                      ) : <span style={{ color: '#94a3b8' }}>—</span>}
-                    </td>
-                    <td style={{ fontSize: 12, color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eq.observacao || '—'}</td>
-                    <td>
-                      <button title="Editar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }} onClick={() => setEquipEdit(eq)}>✏️</button>
-                      <button title="Excluir" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }} onClick={() => excluirEquipamento(eq.id)}>🗑</button>
-                    </td>
-                  </tr>
-                ))}
-                {equipamentos.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#94a3b8', padding: 24 }}>Nenhum equipamento cadastrado</td></tr>}
-              </tbody>
-            </table>
+          {/* Equipamentos agrupados por segmento — colapsável */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {equipsPorSegmento.map(([seg, eqs]) => {
+              const aberta = equipSecaoAberta[seg] ?? false
+              const obrigCount = eqs.filter(e => e.obrigatorio).length
+              return (
+                <div key={seg} style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                  <button onClick={() => setEquipSecaoAberta(p => ({ ...p, [seg]: !p[seg] }))} style={{ width: '100%', padding: '10px 16px', background: '#f8fafc', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', fontSize: '0.88rem', fontWeight: 700, color: '#1e293b' }}>
+                    <span>{aberta ? '▼' : '▶'}</span>
+                    <span style={{ flex: 1 }}>{seg}</span>
+                    {obrigCount > 0 && <span style={{ background: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 700 }}>✅ {obrigCount} obrig.</span>}
+                    <span style={{ background: '#e2e8f0', padding: '2px 8px', borderRadius: 10, fontSize: '0.72rem', fontWeight: 700, color: '#475569' }}>{eqs.length}</span>
+                  </button>
+                  {aberta && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                      {eqs.map(eq => (
+                        <div key={eq.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderTop: '1px solid #f1f5f9', background: '#fff', flexWrap: 'wrap' }}>
+                          <span style={{ padding: '2px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: eq.obrigatorio ? '#dcfce7' : '#fef3c7', color: eq.obrigatorio ? '#15803d' : '#92400e' }}>{eq.obrigatorio ? '✅' : '⭐'}</span>
+                          <strong style={{ fontSize: '0.84rem', flex: 1, minWidth: 120 }}>{eq.equipamento}</strong>
+                          <span style={{ padding: '2px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: eq.material !== '304' ? '#ede9fe' : '#f1f5f9', color: eq.material !== '304' ? '#7c3aed' : '#64748b' }}>{eq.material}</span>
+                          {eq.norma_ref ? (
+                            <span style={{ position: 'relative' }}>
+                              <button onClick={() => setEquipNormaPopover(equipNormaPopover === eq.id ? null : eq.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e40af', fontWeight: 600, fontSize: '0.78rem', textDecoration: 'underline', padding: 0 }}>{eq.norma_ref}</button>
+                              {equipNormaPopover === eq.id && (() => {
+                                const norma = normas.find(n => n.norma === eq.norma_ref)
+                                return norma ? (
+                                  <>
+                                    <div onClick={() => setEquipNormaPopover(null)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+                                    <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 100, width: 340, maxWidth: '85vw', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.15)', padding: 14, fontSize: '0.82rem' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                                        <span style={{ background: '#1e40af', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>{norma.orgao}</span>
+                                        <strong>{norma.norma}</strong>
+                                        <button onClick={() => setEquipNormaPopover(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#94a3b8' }}>✕</button>
+                                      </div>
+                                      {norma.titulo && <p style={{ margin: '0 0 6px', fontWeight: 600, color: '#1e293b', lineHeight: 1.3 }}>{norma.titulo}</p>}
+                                      {norma.penalidade && <p style={{ margin: '0 0 6px', color: '#b91c1c', fontSize: '0.78rem' }}>⚠️ <strong>Penalidade:</strong> {norma.penalidade}</p>}
+                                      {norma.observacao && <p style={{ margin: '0 0 6px', color: '#64748b', fontSize: '0.78rem', lineHeight: 1.4 }}>{norma.observacao}</p>}
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 6 }}>
+                                        {(norma.segmentos || []).map((s: string) => (
+                                          <span key={s} style={{ background: s === seg ? '#dbeafe' : '#f1f5f9', color: s === seg ? '#1e40af' : '#64748b', fontSize: '0.68rem', padding: '1px 5px', borderRadius: 4, fontWeight: s === seg ? 700 : 400 }}>{s}</span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </>
+                                ) : <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>(norma não encontrada)</span>
+                              })()}
+                            </span>
+                          ) : null}
+                          {eq.observacao && <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>{eq.observacao}</span>}
+                          <div style={{ display: 'flex', gap: 2 }}>
+                            <button title="Editar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }} onClick={() => setEquipEdit(eq)}>✏️</button>
+                            <button title="Excluir" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }} onClick={() => excluirEquipamento(eq.id)}>🗑</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+            {equipsFiltrados.length === 0 && <p style={{ textAlign: 'center', color: '#94a3b8', padding: 24 }}>Nenhum equipamento encontrado</p>}
           </div>
         </div>
       )}
