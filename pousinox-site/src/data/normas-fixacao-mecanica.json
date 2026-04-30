@@ -1,0 +1,262 @@
+[
+  {
+    "norma": "ABNT NBR 13755:2017",
+    "orgao": "ABNT",
+    "titulo": "Revestimentos cerâmicos de fachadas e paredes externas com utilização de argamassa colante — Projeto, execução, inspeção e aceitação — Procedimento",
+    "status": "Vigente (revisão 2017, substitui a versão de 1996)",
+    "segmentos": ["construtoras", "revestimentos", "fachadas", "arquitetura"],
+    "exigencias_inox": [
+      {
+        "artigo": "Seção 6 — Projeto de Revestimento de Fachada (PRF)",
+        "texto_resumido": "Obrigatória a elaboração de PRF por profissional habilitado. Os locais sujeitos à aplicação de reforços mecânicos, seus tipos, formas de aplicação e demais detalhes construtivos devem estar previstos no PRF. Telas e dispositivos de ancoragem devem ser química e mecanicamente compatíveis.",
+        "produtos_inox": ["fixadores de porcelanato", "insertos metálicos", "telas de reforço inox", "grampos de ancoragem"]
+      },
+      {
+        "artigo": "Seção 6.4 — Reforço mecânico acima de 3 metros",
+        "texto_resumido": "Acima de 3 metros de altura, o uso de fixação adicional e juntas de assentamento é OBRIGATÓRIO. Isso inclui insertos metálicos, parafusos ou grampos aparafusados à parede e encaixados em ranhura executada na espessura da placa cerâmica.",
+        "produtos_inox": ["fixadores de porcelanato", "parafusos inox", "grampos inox", "insertos metálicos"]
+      },
+      {
+        "artigo": "Seção 6.5 — Placas acima de 900 cm²",
+        "texto_resumido": "Para formatos maiores que 30×30 cm (900 cm²), recomenda-se o uso de fixadores adicionais por meio de insertos metálicos, parafusos ou grampos. Condições especiais de aplicação devem ser previamente aprovadas.",
+        "produtos_inox": ["fixadores de porcelanato", "insertos metálicos", "grampos de fixação"]
+      },
+      {
+        "artigo": "Seção 7 — Argamassa colante tipo ACIII",
+        "texto_resumido": "Obrigatório uso de argamassa colante ACIII para fachadas. Para edifícios abaixo de 15 m pode-se usar ACII com anuência do projetista, mas reforço mecânico complementar é recomendado em todos os casos.",
+        "produtos_inox": ["fixadores de porcelanato como reforço complementar à argamassa"]
+      }
+    ],
+    "penalidade": "Descumprimento gera responsabilidade técnica do projetista (CREA/CAU) e responsabilidade civil da construtora por vícios construtivos (arts. 618 e 927 do Código Civil, arts. 12 e 14 do CDC). Seguradora pode negar cobertura."
+  },
+  {
+    "norma": "ABNT NBR 15575:2021",
+    "orgao": "ABNT",
+    "titulo": "Edificações habitacionais — Desempenho (Partes 1 a 6)",
+    "status": "Vigente (revisão 2021, substitui versão 2013)",
+    "segmentos": ["construtoras", "incorporadoras", "projetistas"],
+    "exigencias_inox": [
+      {
+        "artigo": "Parte 4 — Sistemas de vedações verticais externas (SVVE)",
+        "texto_resumido": "Exige que o projeto inclua medidas para minimizar riscos de lesões ou contusões por destacamento ou projeção de materiais de fachadas. O sistema de revestimento deve manter aderência e estanqueidade por toda a vida útil de projeto (VUP mínima de 20 anos para fachadas).",
+        "produtos_inox": ["fixadores de porcelanato como medida de segurança contra desplacamento"]
+      },
+      {
+        "artigo": "Parte 4 — Requisito de segurança estrutural",
+        "texto_resumido": "O SVVE deve resistir às cargas de vento (NBR 6123) sem desplacamento. Em edifícios altos, a combinação argamassa + fixação mecânica é a forma mais segura de atender ao requisito de desempenho.",
+        "produtos_inox": ["fixadores de porcelanato", "ancoragens metálicas inox"]
+      }
+    ],
+    "penalidade": "Norma de cumprimento obrigatório para edificações habitacionais. Descumprimento: responsabilidade objetiva da construtora/incorporadora (CDC), impedimento de obter Habite-se em alguns municípios, recusa de financiamento pela CEF."
+  },
+  {
+    "norma": "ABNT NBR 13707:1996",
+    "orgao": "ABNT",
+    "titulo": "Projeto de revestimento de paredes e estruturas com placas de rocha",
+    "status": "CANCELADA (junho/2010)",
+    "segmentos": ["marmorarias", "revestimentos de pedra", "fachadas em rocha"],
+    "exigencias_inox": [
+      {
+        "artigo": "Seção de fixação e ancoragem",
+        "texto_resumido": "Especificava requisitos para fixação mecânica de placas de rocha em fachadas, incluindo tipos de fixadores, cálculo de cargas e juntas de dilatação. Embora cancelada, seus princípios de ancoragem mecânica são referência para projetos com pedras naturais e porcelanato de grande formato.",
+        "produtos_inox": ["insertos metálicos", "grampos de fixação", "ancoragens em aço inox"]
+      }
+    ],
+    "penalidade": "Norma cancelada — não gera obrigação direta, mas princípios técnicos continuam sendo referência para projetos de fachada."
+  },
+  {
+    "norma": "ABNT NBR 10821:2017 (Partes 1 a 5)",
+    "orgao": "ABNT",
+    "titulo": "Esquadrias para edificações — Esquadrias externas",
+    "status": "Vigente (2017). Parte 8 (fachadas-cortina) em elaboração.",
+    "segmentos": ["esquadrias", "fachadas-cortina", "fachadas ventiladas"],
+    "exigencias_inox": [
+      {
+        "artigo": "Parte 2 — Requisitos e classificação",
+        "texto_resumido": "Norma-mãe para fachadas-cortina e esquadrias externas. Exige compatibilidade galvânica entre materiais (ex: alumínio + aço inox austenítico passivado). Referência para projetos de fachada ventilada com porcelanato.",
+        "produtos_inox": ["suportes em aço inox austenítico", "fixadores compatíveis galvanicamente"]
+      },
+      {
+        "artigo": "Parte 8 (em elaboração) — Fachadas-cortina",
+        "texto_resumido": "Futura norma específica para fachadas-cortina, incluindo sistemas com porcelanato fixado mecanicamente. Quando publicada, será a primeira norma brasileira prescritiva para fachadas ventiladas.",
+        "produtos_inox": ["fixadores de porcelanato para fachada ventilada", "subestruturas inox"]
+      }
+    ],
+    "penalidade": "Obrigatória para esquadrias externas. Parte 8 ainda em elaboração — enquanto não publicada, projetos de fachada ventilada devem atender NBR 15575 (desempenho) e NBR 6123 (ventos)."
+  },
+  {
+    "norma": "ABNT NBR 6123:1988",
+    "orgao": "ABNT",
+    "titulo": "Forças devidas ao vento em edificações",
+    "status": "Vigente (1988, com emenda 2013)",
+    "segmentos": ["construtoras", "projetistas estruturais", "fachadas"],
+    "exigencias_inox": [
+      {
+        "artigo": "Cálculo de pressão de vento em fachadas",
+        "texto_resumido": "Define as forças de vento que atuam sobre fachadas. O dimensionamento dos fixadores mecânicos de porcelanato deve considerar a pressão de sucção do vento, especialmente em bordas e cantos de edifícios altos onde a pressão pode ser 2-3x maior.",
+        "produtos_inox": ["fixadores dimensionados para carga de vento", "ancoragens reforçadas para cantos e bordas"]
+      }
+    ],
+    "penalidade": "Obrigatória — faz parte do cálculo estrutural. Fixação mecânica não dimensionada para vento pode ser reprovada em laudo técnico."
+  },
+  {
+    "norma": "ABNT NBR 5674:2012",
+    "orgao": "ABNT",
+    "titulo": "Manutenção de edificações — Requisitos para o sistema de gestão de manutenção",
+    "status": "Vigente",
+    "segmentos": ["condomínios", "administradoras", "construtoras"],
+    "exigencias_inox": [
+      {
+        "artigo": "Plano de manutenção — Fachadas",
+        "texto_resumido": "Fachadas cerâmicas devem ser lavadas e inspecionadas a cada 3 anos no mínimo. Juntas e rejuntes revisados anualmente. Inspeção por percussão para detectar sons ocos (desplacamento iminente). Fixação mecânica em aço inox reduz risco de desplacamento e custo de manutenção.",
+        "produtos_inox": ["fixadores de porcelanato como prevenção de desplacamento"]
+      }
+    ],
+    "penalidade": "Descumprimento do plano de manutenção gera responsabilidade do síndico por negligência (art. 1348 do Código Civil). Seguro condominial pode negar cobertura."
+  },
+  {
+    "norma": "ABNT NBR 11802:1991",
+    "orgao": "ABNT",
+    "titulo": "Pisos elevados — Requisitos e métodos de ensaio",
+    "status": "Vigente",
+    "segmentos": ["pisos elevados", "datacenters", "áreas técnicas", "corporativo"],
+    "exigencias_inox": [
+      {
+        "artigo": "Sistema de fixação mecânica",
+        "texto_resumido": "Pisos elevados com porcelanato utilizam fixação 100% mecânica por pedestais e travessas metálicas. A placa cerâmica é apoiada sobre subestrutura sem argamassa. Complementada pela NBR 15575-3 (desempenho de pisos).",
+        "produtos_inox": ["pedestais", "travessas metálicas", "grampos de fixação para piso elevado"]
+      }
+    ],
+    "penalidade": "Obrigatória para pisos elevados em edificações habitacionais (via NBR 15575-3)."
+  },
+  {
+    "norma": "Lei Municipal SP 10.518/1988",
+    "orgao": "Prefeitura de São Paulo",
+    "titulo": "Conservação de fachadas — Lavagem e pintura obrigatória a cada 5 anos",
+    "status": "Vigente",
+    "segmentos": ["condomínios", "administradoras", "síndicos"],
+    "exigencias_inox": [
+      {
+        "artigo": "Art. 1º",
+        "texto_resumido": "Obriga prédios em São Paulo a lavar ou pintar fachadas a cada 5 anos. Inclui inspeção visual do estado do revestimento. Fixação mecânica em inox é solução preventiva contra desplacamento identificado em inspeções.",
+        "produtos_inox": ["fixadores de porcelanato para manutenção preventiva"]
+      }
+    ],
+    "penalidade": "Multa municipal ao proprietário/condomínio por descumprimento."
+  },
+  {
+    "norma": "Lei Municipal SP 16.642/2017 (Código de Obras)",
+    "orgao": "Prefeitura de São Paulo",
+    "titulo": "Código de Obras e Edificações de São Paulo",
+    "status": "Vigente",
+    "segmentos": ["construtoras", "condomínios", "síndicos"],
+    "exigencias_inox": [
+      {
+        "artigo": "Vistorias técnicas obrigatórias",
+        "texto_resumido": "Edificações acima de 5 pavimentos devem passar por vistorias técnicas regulares, incluindo estado das fachadas. Desplacamento de revestimento cerâmico é item de inspeção. Fixação mecânica complementar pode ser exigida como medida corretiva pelo laudo técnico.",
+        "produtos_inox": ["fixadores de porcelanato como medida corretiva pós-inspeção"]
+      }
+    ],
+    "penalidade": "Multa, embargo, interdição parcial ou total da edificação."
+  },
+  {
+    "norma": "Lei Municipal Fortaleza 9.913/2012",
+    "orgao": "Prefeitura de Fortaleza",
+    "titulo": "Inspeção predial obrigatória em Fortaleza",
+    "status": "Vigente",
+    "segmentos": ["condomínios", "administradoras", "síndicos"],
+    "exigencias_inox": [
+      {
+        "artigo": "Art. 3º — Laudo de inspeção",
+        "texto_resumido": "Obriga laudo de inspeção predial incluindo descrição detalhada do estado da edificação. Imóveis com fachadas que projetam sobre passeio público são alvos obrigatórios. Desplacamento de cerâmica pode exigir fixação mecânica como solução.",
+        "produtos_inox": ["fixadores de porcelanato para correção de fachadas"]
+      }
+    ],
+    "penalidade": "Multa, notificação e eventual interdição."
+  },
+  {
+    "norma": "Lei Federal 10.406/2002 (Código Civil)",
+    "orgao": "Governo Federal",
+    "titulo": "Código Civil Brasileiro — Responsabilidade por vícios construtivos",
+    "status": "Vigente",
+    "segmentos": ["construtoras", "incorporadoras", "condomínios"],
+    "exigencias_inox": [
+      {
+        "artigo": "Art. 618 — Garantia de solidez e segurança (5 anos)",
+        "texto_resumido": "Construtor responde por 5 anos pela solidez e segurança da obra. Desplacamento de revestimento cerâmico de fachada dentro deste prazo gera responsabilidade objetiva. Fixação mecânica em aço inox é evidência de diligência técnica.",
+        "produtos_inox": ["fixadores de porcelanato como garantia de solidez"]
+      },
+      {
+        "artigo": "Art. 927 — Responsabilidade por dano a terceiros",
+        "texto_resumido": "Quem causa dano a outrem é obrigado a repará-lo. Queda de revestimento de fachada sobre pedestres gera responsabilidade objetiva do condomínio/construtora.",
+        "produtos_inox": ["fixadores de porcelanato como prevenção de acidentes"]
+      },
+      {
+        "artigo": "Art. 1348 — Responsabilidade do síndico",
+        "texto_resumido": "Síndico é responsável pela conservação das partes comuns, incluindo fachadas. Negligência na manutenção de revestimentos pode configurar responsabilidade pessoal.",
+        "produtos_inox": ["fixadores de porcelanato em plano de manutenção"]
+      }
+    ],
+    "penalidade": "Indenização por danos materiais e morais, responsabilidade criminal em caso de lesão corporal ou morte."
+  },
+  {
+    "norma": "Lei Federal 8.078/1990 (CDC)",
+    "orgao": "Governo Federal",
+    "titulo": "Código de Defesa do Consumidor — Vícios de produto e serviço",
+    "status": "Vigente",
+    "segmentos": ["construtoras", "incorporadoras"],
+    "exigencias_inox": [
+      {
+        "artigo": "Arts. 12 e 14 — Responsabilidade objetiva",
+        "texto_resumido": "Construtora responde objetivamente (independente de culpa) por defeitos que causem danos, incluindo desplacamento de revestimento cerâmico. Uso de fixação mecânica complementar demonstra adoção de melhores práticas técnicas.",
+        "produtos_inox": ["fixadores de porcelanato como evidência de qualidade construtiva"]
+      }
+    ],
+    "penalidade": "Indenização por danos materiais e morais, multa do Procon, ação coletiva."
+  },
+  {
+    "norma": "Portaria MRD 532/2022",
+    "orgao": "Ministério do Desenvolvimento Regional",
+    "titulo": "Seguros obrigatórios para empreendimentos habitacionais",
+    "status": "Vigente",
+    "segmentos": ["construtoras", "incorporadoras"],
+    "exigencias_inox": [
+      {
+        "artigo": "Seguro de Dano Estrutural (SDE)",
+        "texto_resumido": "Construtoras devem contratar seguro que cubra danos estruturais, incluindo colapso de fachadas. Seguradoras podem exigir fixação mecânica complementar para revestimentos cerâmicos em fachadas como condição de cobertura ou prêmio reduzido.",
+        "produtos_inox": ["fixadores de porcelanato como requisito de segurabilidade"]
+      }
+    ],
+    "penalidade": "Impedimento de operar programa habitacional federal sem os seguros obrigatórios."
+  },
+  {
+    "norma": "Jurisprudência — TJDFT (2021)",
+    "orgao": "Tribunal de Justiça do DF e Territórios",
+    "titulo": "Condenação de construtora e condomínio por desplacamento de pastilhas de fachada",
+    "status": "Precedente jurisprudencial",
+    "segmentos": ["construtoras", "condomínios"],
+    "exigencias_inox": [
+      {
+        "artigo": "Acórdão — responsabilidade solidária",
+        "texto_resumido": "Construtora e condomínio condenados solidariamente a indenizar morador por acidente com pastilhas de revestimento de fachada. Tribunal entendeu que tanto o vício construtivo quanto a falta de manutenção contribuíram para o dano. Fixação mecânica teria prevenido o desplacamento.",
+        "produtos_inox": ["fixadores de porcelanato como prevenção de litígios"]
+      }
+    ],
+    "penalidade": "Indenização por danos materiais e morais. Precedente aplicável a casos semelhantes em todo o Brasil."
+  },
+  {
+    "norma": "Fachada ventilada — Sem norma prescritiva brasileira",
+    "orgao": "ABNT (lacuna normativa)",
+    "titulo": "Sistema de fachada ventilada com porcelanato — fixação 100% mecânica",
+    "status": "Sem norma específica brasileira. Referências: NBR 15575 (desempenho), NBR 6123 (ventos), NBR 10821 (esquadrias). Parte 8 da NBR 10821 em elaboração.",
+    "segmentos": ["construtoras", "fachadas ventiladas", "arquitetura"],
+    "exigencias_inox": [
+      {
+        "artigo": "Prática de mercado e normas europeias (ETAG 034, EN 13964)",
+        "texto_resumido": "Fachada ventilada dispensa argamassa — fixação é 100% mecânica. Porcelanato é fixado por grampos metálicos encaixados em rasgos na espessura da placa, sobre subestrutura de perfis verticais de alumínio com inserts pontuais em aço inoxidável. Chumbadores ancoram à base do edifício. Aço inox é OBRIGATÓRIO nos inserts por resistência à corrosão e compatibilidade galvânica com alumínio.",
+        "produtos_inox": ["inserts de fixação em aço inox", "grampos de ancoragem inox", "chumbadores inox", "fixadores de porcelanato para fachada ventilada"]
+      }
+    ],
+    "penalidade": "Ausência de norma específica não isenta responsabilidade — aplica-se NBR 15575 (desempenho mínimo obrigatório) e Código Civil (solidez e segurança)."
+  }
+]

@@ -1,0 +1,232 @@
+[
+  {
+    "segmento": "Restaurantes",
+    "produtos": [
+      {"nome": "Bancada de preparo", "descricao": "Mesa em aço inox com prateleira inferior para preparo de alimentos"},
+      {"nome": "Pia industrial", "descricao": "Pia em inox com cuba profunda e espelho para cozinha profissional"},
+      {"nome": "Coifa com filtro", "descricao": "Coifa de parede ou ilha em inox com filtros laváveis para exaustão"},
+      {"nome": "Estante com prateleiras", "descricao": "Estante em inox com prateleiras gradeadas ou lisas para estoque"},
+      {"nome": "Pass-through (passa-pratos)", "descricao": "Balcão passa-pratos em inox entre cozinha e salão"},
+      {"nome": "Mesa com cuba", "descricao": "Mesa em inox com cuba integrada para higienização de alimentos"},
+      {"nome": "Carro de transporte GN", "descricao": "Carro em inox para transporte de cubas gastronorm"},
+      {"nome": "Balcão refrigerado", "descricao": "Estrutura em inox para balcão com sistema de refrigeração embutido"}
+    ]
+  },
+  {
+    "segmento": "Pizzaria",
+    "produtos": [
+      {"nome": "Bancada de preparo de massas", "descricao": "Mesa em inox com tampo liso reforçado para abrir e preparar massas de pizza"},
+      {"nome": "Balcão de montagem de pizzas", "descricao": "Bancada em inox com compartimentos para ingredientes e condimentos"},
+      {"nome": "Coifa para forno a lenha", "descricao": "Coifa em inox de alta temperatura com duto para forno a lenha ou esteira"},
+      {"nome": "Mesa de apoio para forno", "descricao": "Mesa lateral em inox para apoio de pizzas prontas na saída do forno"},
+      {"nome": "Pia de higienização", "descricao": "Pia em inox com duas cubas para lavagem de utensílios e ingredientes"},
+      {"nome": "Estante para formas e telas", "descricao": "Estante em inox com divisórias para organização de formas e telas de pizza"},
+      {"nome": "Balcão vitrine", "descricao": "Estrutura em inox para exposição de pizzas com proteção salivar"},
+      {"nome": "Carro porta-bandejas", "descricao": "Carro em inox com trilhos para bandejas de pizzas em preparo"}
+    ]
+  },
+  {
+    "segmento": "Bar",
+    "produtos": [
+      {"nome": "Balcão de bar com pia", "descricao": "Balcão em inox com pia embutida e escorredor para copos"},
+      {"nome": "Speed rail", "descricao": "Suporte em inox para garrafas de doses rápidas fixado no balcão"},
+      {"nome": "Pia para copos", "descricao": "Pia em inox com cuba rasa e escorredor para lavagem rápida de copos"},
+      {"nome": "Estante de garrafas", "descricao": "Estante em inox para armazenamento e exposição de garrafas"},
+      {"nome": "Mesa de apoio compacta", "descricao": "Mesa em inox compacta para preparo de drinks e petiscos"},
+      {"nome": "Grade de escoamento", "descricao": "Grade em inox para escoamento de líquidos no balcão do bar"},
+      {"nome": "Porta-gelo em inox", "descricao": "Recipiente em inox com isolamento para armazenar gelo no balcão"},
+      {"nome": "Coifa para cozinha de bar", "descricao": "Coifa compacta em inox para área de petiscos e porções"}
+    ]
+  },
+  {
+    "segmento": "Cafeteria",
+    "produtos": [
+      {"nome": "Balcão de atendimento", "descricao": "Balcão em inox com tampo para máquinas de café e vitrine de doces"},
+      {"nome": "Bancada para máquina de espresso", "descricao": "Mesa em inox reforçada com recorte para máquina de café profissional"},
+      {"nome": "Pia compacta", "descricao": "Pia em inox com cuba pequena para limpeza de utensílios de café"},
+      {"nome": "Estante para xícaras e canecas", "descricao": "Estante em inox com prateleiras para organização de louças"},
+      {"nome": "Vitrine expositora (estrutura)", "descricao": "Estrutura em inox para vitrine de bolos, tortas e salgados"},
+      {"nome": "Carro de apoio", "descricao": "Carro auxiliar em inox para transporte de louças e insumos"},
+      {"nome": "Dispensador de canudos/mexedores", "descricao": "Porta-canudos em inox para balcão de autoatendimento"}
+    ]
+  },
+  {
+    "segmento": "Hamburgueria",
+    "produtos": [
+      {"nome": "Bancada de montagem de hambúrguer", "descricao": "Mesa em inox com compartimentos para ingredientes e molhos"},
+      {"nome": "Coifa para chapa/grelha", "descricao": "Coifa em inox dimensionada para chapas de hambúrguer com filtro de gordura"},
+      {"nome": "Mesa de apoio para chapa", "descricao": "Mesa lateral em inox para apoio de pães e ingredientes junto à chapa"},
+      {"nome": "Pia industrial dupla", "descricao": "Pia em inox com duas cubas para higienização de utensílios e alimentos"},
+      {"nome": "Estante de condimentos", "descricao": "Estante em inox com divisórias para molhos, queijos e acompanhamentos"},
+      {"nome": "Pass-through de pedidos", "descricao": "Balcão passa-pedidos em inox entre cozinha e área de entrega"},
+      {"nome": "Carro para lixo segregado", "descricao": "Suporte em inox para lixeiras de coleta seletiva na cozinha"},
+      {"nome": "Prateleira de parede", "descricao": "Prateleira em inox fixada na parede para utensílios e temperos"}
+    ]
+  },
+  {
+    "segmento": "Sorveteria",
+    "produtos": [
+      {"nome": "Balcão expositor (estrutura)", "descricao": "Estrutura em inox para balcão de exposição de sabores com cubas removíveis"},
+      {"nome": "Cuba para sorvete", "descricao": "Cubas em inox para acondicionamento de sorvete no expositor"},
+      {"nome": "Bancada de preparo de açaí/milk-shake", "descricao": "Mesa em inox para preparo de açaí, milk-shakes e sundaes"},
+      {"nome": "Pia de higienização", "descricao": "Pia em inox para lavagem de colheres, espátulas e utensílios"},
+      {"nome": "Estante para insumos", "descricao": "Estante em inox para caldas, coberturas e complementos"},
+      {"nome": "Porta-colheres em inox", "descricao": "Recipiente em inox com água corrente para higienização de colheres"},
+      {"nome": "Carro de transporte de cubas", "descricao": "Carro em inox para transporte de cubas entre produção e exposição"}
+    ]
+  },
+  {
+    "segmento": "Churrascaria",
+    "produtos": [
+      {"nome": "Balcão de buffet refrigerado", "descricao": "Estrutura em inox para buffet de saladas e pratos frios com refrigeração"},
+      {"nome": "Balcão de buffet aquecido", "descricao": "Estrutura em inox com banho-maria para pratos quentes do buffet"},
+      {"nome": "Carrinho de espetos", "descricao": "Carro em inox para transporte de espetos entre churrasqueira e salão"},
+      {"nome": "Coifa para churrasqueira", "descricao": "Coifa em inox de alta capacidade para exaustão de churrasqueira industrial"},
+      {"nome": "Bancada de corte de carnes", "descricao": "Mesa em inox reforçada para corte e preparo de carnes"},
+      {"nome": "Pia industrial tripla", "descricao": "Pia em inox com três cubas para lavagem de carnes, louça e mãos"},
+      {"nome": "Estante para espetos", "descricao": "Estante em inox com ganchos e suportes para espetos e acessórios"},
+      {"nome": "Porta-facas em inox", "descricao": "Suporte de parede em inox com ímã ou slots para facas de corte"},
+      {"nome": "Carro de sobremesas", "descricao": "Carro em inox com prateleiras para exposição de sobremesas no salão"}
+    ]
+  },
+  {
+    "segmento": "Buffet",
+    "produtos": [
+      {"nome": "Rechaud em inox", "descricao": "Rechaud com banho-maria e tampa basculante para serviço de buffet"},
+      {"nome": "Balcão de distribuição", "descricao": "Balcão em inox modular para montagem de linha de self-service"},
+      {"nome": "Carro de transporte GN", "descricao": "Carro em inox com trilhos para cubas gastronorm"},
+      {"nome": "Mesa de apoio dobrável", "descricao": "Mesa em inox com pés dobráveis para eventos e montagem externa"},
+      {"nome": "Coifa central de ilha", "descricao": "Coifa em inox suspensa para cozinhas industriais de grande produção"},
+      {"nome": "Bancada de finalização", "descricao": "Mesa em inox para montagem e finalização de pratos"},
+      {"nome": "Estante porta-cubas", "descricao": "Estante em inox para armazenamento de cubas GN limpas"},
+      {"nome": "Dispensador de pratos aquecido", "descricao": "Estrutura em inox com mola para dispensar pratos aquecidos"},
+      {"nome": "Carro de louça suja", "descricao": "Carro em inox para recolhimento de louça suja do salão"}
+    ]
+  },
+  {
+    "segmento": "Padaria/Confeitaria",
+    "produtos": [
+      {"nome": "Bancada de confeitaria", "descricao": "Mesa em inox com tampo liso e espesso para trabalho com massas e confeitos"},
+      {"nome": "Estante porta-assadeiras", "descricao": "Estante em inox com trilhos para assadeiras e bandejas de forno"},
+      {"nome": "Carro de fermentação", "descricao": "Carro em inox com bandejas para descanso e fermentação de pães"},
+      {"nome": "Coifa para forno de panificação", "descricao": "Coifa em inox para exaustão de fornos de lastro e turbo"},
+      {"nome": "Pia com escorredor", "descricao": "Pia em inox com escorredor lateral para utensílios de confeitaria"},
+      {"nome": "Balcão vitrine (estrutura)", "descricao": "Estrutura em inox para vitrine de pães, bolos e doces"},
+      {"nome": "Mesa de embalagem", "descricao": "Bancada em inox para embalagem e rotulagem de produtos"},
+      {"nome": "Dosador de farinha em inox", "descricao": "Recipiente em inox com tampa e dosador para farinha a granel"}
+    ]
+  },
+  {
+    "segmento": "Supermercados/Atacadista",
+    "produtos": [
+      {"nome": "Balcão de açougue", "descricao": "Estrutura em inox para balcão frigorífico de açougue com vitrine"},
+      {"nome": "Balcão de frios e laticínios", "descricao": "Estrutura em inox para exposição refrigerada de frios fatiados"},
+      {"nome": "Bancada de manipulação de carnes", "descricao": "Mesa em inox para corte e preparo na retaguarda do açougue"},
+      {"nome": "Pia de higienização ANVISA", "descricao": "Pia em inox com acionamento por pedal conforme normas sanitárias"},
+      {"nome": "Estante de estoque", "descricao": "Estante em inox com prateleiras gradeadas para câmara fria e estoque"},
+      {"nome": "Carro plataforma", "descricao": "Carro plataforma em inox para transporte de caixas e mercadorias"},
+      {"nome": "Gancheira para câmara fria", "descricao": "Trilho com ganchos em inox para pendurar peças de carne na câmara"},
+      {"nome": "Balcão de padaria in-store", "descricao": "Estrutura em inox para seção de padaria dentro do supermercado"},
+      {"nome": "Mesa de embalagem", "descricao": "Bancada em inox para embalar bandejas de produtos perecíveis"}
+    ]
+  },
+  {
+    "segmento": "Açougue/Frigorífico/Casa de Carnes",
+    "produtos": [
+      {"nome": "Mesa de desossa", "descricao": "Bancada em inox reforçada com canaleta para desossa de carcaças"},
+      {"nome": "Gancheira e trilho aéreo", "descricao": "Sistema de trilhos e ganchos em inox para transporte de peças na câmara"},
+      {"nome": "Pia com acionamento por pedal", "descricao": "Pia em inox com acionamento sem contato manual (norma ANVISA)"},
+      {"nome": "Tanque de salga/imersão", "descricao": "Tanque em inox para salga, marinagem ou imersão de carnes"},
+      {"nome": "Carro de bins/carretilha", "descricao": "Carro em inox tipo bin (200L) para transporte de carne desossada"},
+      {"nome": "Balcão frigorífico", "descricao": "Estrutura em inox para balcão de exposição refrigerada de cortes"},
+      {"nome": "Prateleira para câmara fria", "descricao": "Prateleira em inox com grade para armazenamento em câmara fria"},
+      {"nome": "Mesa de embalagem a vácuo", "descricao": "Mesa em inox com espaço para seladora a vácuo e balança"},
+      {"nome": "Chute de resíduos", "descricao": "Calha/chute em inox para descarte de aparas e resíduos de corte"},
+      {"nome": "Porta-facas magnético", "descricao": "Barra magnética em inox para fixação de facas na parede"}
+    ]
+  },
+  {
+    "segmento": "Hospitalar/Clínica",
+    "produtos": [
+      {"nome": "Mesa cirúrgica/instrumental", "descricao": "Mesa em inox para apoio de instrumentos cirúrgicos durante procedimentos"},
+      {"nome": "Carro de medicação", "descricao": "Carro em inox com gavetas para distribuição de medicamentos"},
+      {"nome": "Carro de curativos", "descricao": "Carro em inox com bandejas para materiais de curativo"},
+      {"nome": "Pia cirúrgica (scrub sink)", "descricao": "Pia em inox com acionamento por cotovelo/pedal para assepsia pré-cirúrgica"},
+      {"nome": "Mesa de Mayo", "descricao": "Mesa de Mayo em inox com bandeja removível para instrumentação"},
+      {"nome": "Hamper/carro de roupa hospitalar", "descricao": "Carro em inox com saco para coleta de roupas contaminadas"},
+      {"nome": "Bancada de CME (esterilização)", "descricao": "Bancada em inox para área de esterilização central de materiais"},
+      {"nome": "Suporte de soro em inox", "descricao": "Pedestal em inox com ganchos para bolsas de soro e medicação IV"},
+      {"nome": "Maca de transporte", "descricao": "Estrutura de maca em inox com rodízios para transporte de pacientes"},
+      {"nome": "Dispensador de EPIs", "descricao": "Suporte de parede em inox para luvas, máscaras e toucas descartáveis"}
+    ]
+  },
+  {
+    "segmento": "Laboratório de Análises",
+    "produtos": [
+      {"nome": "Bancada de laboratório", "descricao": "Bancada em inox com tampo resistente a reagentes químicos"},
+      {"nome": "Pia de laboratório com cuba", "descricao": "Pia em inox com cuba profunda resistente a ácidos e solventes"},
+      {"nome": "Carro de coleta de amostras", "descricao": "Carro em inox com bandejas para transporte de tubos e amostras"},
+      {"nome": "Estante para reagentes", "descricao": "Estante em inox com bordas de contenção para frascos de reagentes"},
+      {"nome": "Mesa anti-vibração", "descricao": "Mesa em inox com estrutura reforçada para equipamentos sensíveis (balanças analíticas)"},
+      {"nome": "Armário de amostras", "descricao": "Armário em inox com prateleiras para armazenamento de amostras"},
+      {"nome": "Suporte para pipetas", "descricao": "Rack de parede em inox para organização de pipetas"},
+      {"nome": "Lava-olhos de emergência", "descricao": "Estação lava-olhos com estrutura em inox para segurança laboratorial"}
+    ]
+  },
+  {
+    "segmento": "Farmácia",
+    "produtos": [
+      {"nome": "Bancada de manipulação", "descricao": "Bancada em inox para manipulação de fórmulas farmacêuticas"},
+      {"nome": "Pia de manipulação", "descricao": "Pia em inox com acionamento por pedal para área de manipulação"},
+      {"nome": "Estante para matérias-primas", "descricao": "Estante em inox para armazenamento organizado de insumos farmacêuticos"},
+      {"nome": "Carro de dispensação", "descricao": "Carro em inox com divisórias para distribuição interna de medicamentos"},
+      {"nome": "Capela de fluxo laminar (estrutura)", "descricao": "Estrutura em inox para capela de manipulação estéril"},
+      {"nome": "Pass-through de materiais", "descricao": "Passagem em inox entre áreas limpa e suja da manipulação"},
+      {"nome": "Mesa de embalagem", "descricao": "Bancada em inox para rotulagem e embalagem de produtos manipulados"}
+    ]
+  },
+  {
+    "segmento": "Odontologia",
+    "produtos": [
+      {"nome": "Bancada de esterilização", "descricao": "Bancada em inox para área de lavagem e esterilização de instrumentos"},
+      {"nome": "Pia com cuba dupla", "descricao": "Pia em inox com duas cubas para lavagem e enxágue de instrumentais"},
+      {"nome": "Armário de instrumentais", "descricao": "Armário em inox com gavetas para organização de instrumentos odontológicos"},
+      {"nome": "Mesa auxiliar clínica", "descricao": "Mesa auxiliar em inox para apoio de materiais durante procedimentos"},
+      {"nome": "Carro de atendimento", "descricao": "Carro em inox com bandejas para materiais de uso no consultório"},
+      {"nome": "Dispensador de materiais descartáveis", "descricao": "Suporte de parede em inox para luvas, máscaras e sugadores"},
+      {"nome": "Rack de moldeiras", "descricao": "Suporte em inox para organização de moldeiras odontológicas"}
+    ]
+  },
+  {
+    "segmento": "Hotelaria/Pousada/Resort",
+    "produtos": [
+      {"nome": "Bancada de cozinha industrial", "descricao": "Mesa em inox para cozinha do hotel com dimensões sob medida"},
+      {"nome": "Balcão de buffet de café da manhã", "descricao": "Balcão em inox com banho-maria e seção refrigerada para café da manhã"},
+      {"nome": "Carro de room service", "descricao": "Carro em inox com prateleiras e tampa para serviço de quarto"},
+      {"nome": "Carro de lavanderia", "descricao": "Carro em inox para transporte de roupas de cama e banho"},
+      {"nome": "Coifa de cozinha", "descricao": "Coifa em inox para cozinha industrial do restaurante do hotel"},
+      {"nome": "Carro de governança", "descricao": "Carro em inox com compartimentos para amenities e produtos de limpeza"},
+      {"nome": "Dispenser de toalhas/amenities", "descricao": "Suportes em inox para banheiros: papel-toalha, sabonete, álcool gel"},
+      {"nome": "Mesa de eventos", "descricao": "Mesa desmontável em inox para montagem de buffets em eventos"},
+      {"nome": "Rechaud para eventos", "descricao": "Rechaud em inox com tampa e sistema de aquecimento para banquetes"}
+    ]
+  },
+  {
+    "segmento": "Revestimentos/Marmoraria/Cerâmica",
+    "produtos": [
+      {"nome": "Fixador de Porcelanato Standard", "descricao": "Insert de segurança em aço inox para fixação de porcelanato em fachadas e pisos elevados"},
+      {"nome": "Fixador de Porcelanato para Fachada Ventilada", "descricao": "Fixador em inox específico para sistemas de fachada ventilada com porcelanato"},
+      {"nome": "Fixador de Porcelanato para Piso Elevado", "descricao": "Fixador em inox para instalação de porcelanato em pisos elevados técnicos"},
+      {"nome": "Fixador de Porcelanato Sob Medida", "descricao": "Fixador em inox com dimensões personalizadas para projetos especiais de revestimento"}
+    ]
+  },
+  {
+    "segmento": "Construtoras",
+    "produtos": [
+      {"nome": "Fixador de Porcelanato para Obra", "descricao": "Insert de segurança em aço inox para fixação de porcelanato em obras civis"},
+      {"nome": "Fixador de Porcelanato para Fachada", "descricao": "Fixador em inox para fachadas de edifícios residenciais e comerciais"},
+      {"nome": "Fixador de Porcelanato para Piso Elevado", "descricao": "Fixador em inox para pisos elevados em edifícios corporativos"},
+      {"nome": "Fixador de Porcelanato Sob Medida", "descricao": "Fixador em inox com projeto customizado para construtoras com especificações próprias"}
+    ]
+  }
+]

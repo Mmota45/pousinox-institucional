@@ -1,0 +1,273 @@
+[
+  {
+    "norma": "RDC 216/2004",
+    "orgao": "ANVISA",
+    "titulo": "Regulamento Técnico de Boas Práticas para Serviços de Alimentação",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Em processo de revisão (oficina AIR em abril/2025). Atualizada pela RDC 52/2014 (ajustes pontuais). Continua plenamente vigente e fiscalizável.",
+    "segmentos": ["Restaurantes", "Bares", "Lanchonetes", "Padarias", "Cantinas", "Bufês", "Comissarias", "Cozinhas industriais", "Cozinhas institucionais", "Delicatéssens", "Serviços de alimentação em eventos"],
+    "exigencias_inox": [
+      {
+        "artigo": "4.1.3",
+        "texto_resumido": "Instalações físicas (piso, parede, teto) devem possuir revestimento liso, impermeável e lavável. Mantidos íntegros, livres de rachaduras, trincas, bolores.",
+        "produtos_inox": ["Revestimento de paredes em áreas de preparo", "Painéis sanitários"]
+      },
+      {
+        "artigo": "4.1.9",
+        "texto_resumido": "Equipamentos, móveis e utensílios que entram em contato com alimentos devem ser de materiais que não transmitam substâncias tóxicas, odores nem sabores. Devem ser mantidos em adequado estado de conservação, resistentes à corrosão, de fácil higienização.",
+        "produtos_inox": ["Bancadas de preparo", "Mesas de trabalho", "Prateleiras", "Estantes", "Cubas", "Pias", "Carros térmicos", "Coifas"]
+      },
+      {
+        "artigo": "4.1.12",
+        "texto_resumido": "Superfícies de equipamentos, móveis e utensílios utilizados na preparação, embalagem, armazenamento, transporte e exposição devem ser lisas, impermeáveis, laváveis e isentas de rugosidades, frestas e outras imperfeições.",
+        "produtos_inox": ["Bancada inox", "Estante inox", "Mesa de manipulação inox", "Carro de transporte inox"]
+      },
+      {
+        "artigo": "4.1.15",
+        "texto_resumido": "Paletes, estrados e prateleiras devem ser de material liso, resistente, impermeável e lavável.",
+        "produtos_inox": ["Estrados inox", "Prateleiras inox", "Estantes de armazenamento inox"]
+      }
+    ],
+    "penalidade": "Lei 6.437/77: advertência, multa de R$2.000 a R$1.500.000, apreensão/inutilização de produtos, interdição parcial ou total do estabelecimento, cancelamento de alvará",
+    "observacao": "Norma base nacional para food service. Qualquer restaurante, bar ou lanchonete no Brasil deve cumprir. O aço inoxidável AISI 304 é o material que melhor atende todos os requisitos simultaneamente (liso, impermeável, lavável, resistente à corrosão, atóxico)."
+  },
+  {
+    "norma": "RDC 275/2002",
+    "orgao": "ANVISA",
+    "titulo": "Regulamento Técnico de POPs e Lista de Verificação de BPF para Estabelecimentos Produtores/Industrializadores de Alimentos",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Reforçada pela RDC 843/2024 com modernizações. Processo de revisão em andamento, mas permanece vigente.",
+    "segmentos": ["Indústrias de alimentos", "Fábricas de embalagens para alimentos", "Frigoríficos (complementar ao MAPA)", "Laticínios", "Panificadoras industriais"],
+    "exigencias_inox": [
+      {
+        "artigo": "Lista de Verificação - Edificação e Instalações (item 1)",
+        "texto_resumido": "Piso, parede e teto em condição adequada: acabamento liso, impermeável, lavável, em adequado estado de conservação. Sem rachaduras, trincas, goteiras, bolores.",
+        "produtos_inox": ["Revestimento de paredes em áreas de produção", "Painéis sanitários inox"]
+      },
+      {
+        "artigo": "Lista de Verificação - Equipamentos (item 2)",
+        "texto_resumido": "Equipamentos da linha de produção com desenho sanitário adequado: superfícies lisas, de fácil higienização, material resistente à corrosão, atóxico.",
+        "produtos_inox": ["Mesas de produção", "Esteiras", "Tanques", "Silos", "Tubulações", "Válvulas", "Bancadas"]
+      },
+      {
+        "artigo": "POP - Higienização de instalações, equipamentos, móveis e utensílios",
+        "texto_resumido": "POPs devem conter informações sobre natureza da superfície a ser higienizada. Superfícies lisas e impermeáveis facilitam higienização conforme os procedimentos.",
+        "produtos_inox": ["Todos os equipamentos de contato com alimentos"]
+      }
+    ],
+    "penalidade": "Lei 6.437/77: multa de R$2.000 a R$1.500.000, interdição do estabelecimento, apreensão e inutilização de produtos",
+    "observacao": "Complementa a RDC 216 para o segmento industrial. A Lista de Verificação é usada nas inspeções da Vigilância Sanitária. Itens não conformes geram pontuação negativa e podem impedir o alvará."
+  },
+  {
+    "norma": "RDC 50/2002",
+    "orgao": "ANVISA",
+    "titulo": "Regulamento Técnico para Planejamento, Programação, Elaboração e Avaliação de Projetos Físicos de Estabelecimentos Assistenciais de Saúde",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Alterada pela RDC 307/2002. Vigente desde 2002, sem substituição prevista.",
+    "segmentos": ["Hospitais", "Clínicas", "Laboratórios", "Unidades de Pronto Atendimento (UPA)", "Centros cirúrgicos", "UTIs", "Consultórios odontológicos", "Centros de diagnóstico"],
+    "exigencias_inox": [
+      {
+        "artigo": "Parte II - Programação Físico-Funcional",
+        "texto_resumido": "Superfícies, equipamentos e mobiliários hospitalares devem ser de materiais laváveis, resistentes, não porosos, impermeáveis e fáceis de desinfetar.",
+        "produtos_inox": ["Bancadas de laboratório", "Mesas cirúrgicas", "Bancadas de preparo de medicamentos", "Pias com acionamento por pedal ou sensor", "Carros de curativos", "Macas"]
+      },
+      {
+        "artigo": "Parte III - Critérios para Projetos",
+        "texto_resumido": "Áreas críticas (centro cirúrgico, UTI, CME) exigem acabamentos que permitam lavagem e desinfecção. Paredes, pisos e tetos devem ser lisos, sem juntas e resistentes a produtos químicos.",
+        "produtos_inox": ["Painéis de parede inox", "Rodapés sanitários", "Guarnições de porta", "Armários de guarda de materiais esterilizados"]
+      }
+    ],
+    "penalidade": "Lei 6.437/77: multa, interdição parcial ou total, cancelamento de alvará sanitário. Impedimento de obtenção/renovação de licença de funcionamento.",
+    "observacao": "Norma obrigatória para qualquer projeto ou reforma de estabelecimento de saúde. Arquitetos e engenheiros hospitalares exigem equipamentos inox por padrão para atender esta RDC."
+  },
+  {
+    "norma": "RDC 67/2007",
+    "orgao": "ANVISA",
+    "titulo": "Boas Práticas de Manipulação de Preparações Magistrais e Oficinais para Uso Humano em Farmácias",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Vigente sem alterações significativas. Complementada pela RDC 87/2008.",
+    "segmentos": ["Farmácias de manipulação", "Farmácias magistrais", "Farmácias hospitalares com manipulação"],
+    "exigencias_inox": [
+      {
+        "artigo": "Anexo I - Infraestrutura Física (item 3)",
+        "texto_resumido": "Mobiliário deve ser estritamente necessário, feito de material liso, impermeável, resistente e de fácil limpeza.",
+        "produtos_inox": ["Bancadas de manipulação", "Prateleiras", "Armários de matéria-prima"]
+      },
+      {
+        "artigo": "Anexo I - Equipamentos e Utensílios",
+        "texto_resumido": "Equipamentos e utensílios devem ser mantidos limpos, desinfetados e armazenados em local apropriado. Material que não transmita substâncias ao produto.",
+        "produtos_inox": ["Espátulas inox", "Bandejas", "Cubas de pesagem", "Bancadas de manipulação inox"]
+      },
+      {
+        "artigo": "Anexo VII - Roteiro de Inspeção",
+        "texto_resumido": "Checklist de inspeção verifica se superfícies de trabalho são lisas, impermeáveis e de fácil higienização.",
+        "produtos_inox": ["Bancadas", "Estantes", "Superfícies de manipulação"]
+      }
+    ],
+    "penalidade": "Lei 6.437/77: multa, interdição do laboratório de manipulação, suspensão de atividades, cancelamento de autorização de funcionamento",
+    "observacao": "Farmácias de manipulação são inspecionadas periodicamente. Bancadas de inox são praticamente obrigatórias na prática, pois nenhum outro material atende simultaneamente todos os requisitos de lisura, impermeabilidade e resistência química."
+  },
+  {
+    "norma": "RDC 222/2018",
+    "orgao": "ANVISA",
+    "titulo": "Regulamenta as Boas Práticas de Gerenciamento dos Resíduos de Serviços de Saúde",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Substituiu a RDC 306/2004. Vigente sem alterações.",
+    "segmentos": ["Hospitais", "Clínicas", "Laboratórios", "Consultórios", "Drogarias", "Unidades de saúde animal", "Necrotérios", "Serviços de tatuagem e piercing"],
+    "exigencias_inox": [
+      {
+        "artigo": "Cap. II - Manejo dos RSS",
+        "texto_resumido": "Recipientes de acondicionamento de resíduos devem ser de material resistente, lavável, impermeável e de fácil higienização. Abrigos de resíduos devem ter paredes e pisos lisos, laváveis e impermeáveis.",
+        "produtos_inox": ["Lixeiras hospitalares inox com pedal", "Carros de coleta inox", "Recipientes de armazenamento temporário"]
+      }
+    ],
+    "penalidade": "Lei 6.437/77 e Lei 9.605/98 (crimes ambientais): multa, interdição, responsabilização criminal",
+    "observacao": "Lixeiras hospitalares em inox com acionamento por pedal são o padrão de mercado para cumprir esta norma. A superfície lisa e resistente do inox evita contaminação cruzada."
+  },
+  {
+    "norma": "Portaria CVS 5/2013",
+    "orgao": "CVS - Centro de Vigilância Sanitária de São Paulo",
+    "titulo": "Regulamento Técnico sobre Boas Práticas para Estabelecimentos Comerciais de Alimentos e para Serviços de Alimentação",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Substituiu a CVS 6/1999. Vigente no estado de São Paulo, frequentemente adotada como referência por outros estados.",
+    "segmentos": ["Restaurantes (SP)", "Bares (SP)", "Lanchonetes (SP)", "Bufês (SP)", "Padarias (SP)", "Rotisserias", "Serviços de alimentação em geral no estado de SP"],
+    "exigencias_inox": [
+      {
+        "artigo": "Art. 18 - Edificação e Instalações",
+        "texto_resumido": "Superfícies de manipulação devem ser lisas, impermeáveis, laváveis e de cores claras. Telas em janelas devem ser de material durável como aço inoxidável, aço galvanizado ou alumínio.",
+        "produtos_inox": ["Telas de proteção inox para janelas", "Bancadas de manipulação", "Revestimentos de parede"]
+      },
+      {
+        "artigo": "Art. 26 - Equipamentos e Utensílios",
+        "texto_resumido": "Equipamentos e utensílios de contato com alimentos devem ser de material atóxico, resistente, impermeável, liso e lavável. Luva de malha de aço exigida para corte e desossa de carnes.",
+        "produtos_inox": ["Luva de malha de aço", "Bancadas", "Estantes", "Equipamentos de preparo", "Pias com acionamento sem contato manual"]
+      }
+    ],
+    "penalidade": "Lei Estadual 10.083/98 (Código Sanitário SP): multa de R$1.000 a R$500.000, interdição, apreensão, cancelamento de licença",
+    "observacao": "Norma mais detalhada que a RDC 216 federal. São Paulo é o maior mercado do Brasil — atender a CVS 5 é essencial. Muitos estados usam esta portaria como modelo."
+  },
+  {
+    "norma": "Decreto 9.013/2017 (RIISPOA)",
+    "orgao": "MAPA - Ministério da Agricultura, Pecuária e Abastecimento",
+    "titulo": "Regulamento de Inspeção Industrial e Sanitária de Produtos de Origem Animal",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Substituiu o Decreto 30.691/1952 (RIISPOA original). Atualizado pelo Decreto 10.468/2020.",
+    "segmentos": ["Frigoríficos", "Abatedouros", "Laticínios", "Entrepostos de pescado", "Fábricas de conservas", "Unidades de beneficiamento de mel", "Entrepostos de ovos"],
+    "exigencias_inox": [
+      {
+        "artigo": "Art. 42 - Instalações e Equipamentos",
+        "texto_resumido": "Equipamentos e utensílios devem ser resistentes à corrosão, de fácil limpeza, atóxicos, que não permitam acúmulo de resíduos. Utensílios de produtos não comestíveis devem ser identificados em vermelho.",
+        "produtos_inox": ["Mesas de desossa inox", "Ganchos inox", "Nórias", "Tanques de processamento", "Câmaras frigoríficas (revestimento)", "Calhas e canaletas", "Plataformas de inspeção"]
+      },
+      {
+        "artigo": "Art. 33 e 34 - Condições higiênico-sanitárias",
+        "texto_resumido": "Pisos, paredes e tetos de áreas de manipulação devem ser de material impermeável, liso e resistente, de fácil higienização. Pé-direito mínimo. Iluminação adequada.",
+        "produtos_inox": ["Revestimentos de parede inox", "Prateleiras de câmara fria", "Portas de câmara frigorífica"]
+      }
+    ],
+    "penalidade": "Lei 1.283/50 e Decreto 9.013/17: multa, apreensão e condenação de produtos, interdição do estabelecimento, cassação de registro no SIF (Serviço de Inspeção Federal)",
+    "observacao": "Frigoríficos e laticínios são o maior mercado para equipamentos inox pesados. Perder o registro SIF significa fechar as portas. O inox é praticamente o único material aceito para equipamentos de contato direto com carnes e derivados."
+  },
+  {
+    "norma": "NBR 14518:2019",
+    "orgao": "ABNT / Corpo de Bombeiros",
+    "titulo": "Sistemas de Ventilação para Cozinhas Profissionais",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Revisão de 2019 da versão original de 2000.",
+    "segmentos": ["Restaurantes", "Hotéis", "Hospitais", "Escolas", "Cozinhas industriais", "Qualquer cozinha profissional"],
+    "exigencias_inox": [
+      {
+        "artigo": "Seção 5 - Coifas",
+        "texto_resumido": "Coifas devem ser preferencialmente de aço inoxidável com espessura mínima de 0,94 mm. Devem conter filtros metálicos removíveis, calhas periféricas com drenos e luminárias embutidas.",
+        "produtos_inox": ["Coifas inox", "Filtros metálicos para coifa", "Calhas de gordura"]
+      },
+      {
+        "artigo": "Seção 6 - Dutos",
+        "texto_resumido": "Dutos devem ser de aço-carbono (mín. 1,37 mm) ou aço inoxidável (mín. 1,09 mm), soldados ou flangeados.",
+        "produtos_inox": ["Dutos de exaustão inox", "Conexões e flanges"]
+      }
+    ],
+    "penalidade": "Impedimento de obtenção do AVCB (Auto de Vistoria do Corpo de Bombeiros). Sem AVCB, o estabelecimento não pode funcionar legalmente.",
+    "observacao": "O AVCB é pré-requisito para qualquer estabelecimento comercial. Bombeiros exigem conformidade com a NBR 14518. Coifas inox são praticamente obrigatórias pela norma. A IT 38 (SP) e NT 38 (outros estados) referenciam esta NBR."
+  },
+  {
+    "norma": "RDC 843/2024",
+    "orgao": "ANVISA",
+    "titulo": "Marco Regulatório para Regularização de Alimentos",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Nova norma (2024). Substituiu RDC 22/2000. Complementa (não substitui) RDC 216 e RDC 275.",
+    "segmentos": ["Indústrias de alimentos", "Importadores de alimentos", "Fabricantes de suplementos"],
+    "exigencias_inox": [
+      {
+        "artigo": "Requisitos de BPF referenciados",
+        "texto_resumido": "Mantém e reforça exigências de BPF da RDC 275/2002 para instalações e equipamentos. Moderniza com ênfase em rastreabilidade digital nos POPs.",
+        "produtos_inox": ["Equipamentos de linha de produção com desenho sanitário", "Superfícies de contato com alimentos"]
+      }
+    ],
+    "penalidade": "Lei 6.437/77: multa, interdição, apreensão de produtos. Prazo de adequação até setembro/2025.",
+    "observacao": "Nova norma que reforça a importância de BPF. Empresas que não investirem em equipamentos adequados (inox) terão dificuldade de regularização no novo marco."
+  },
+  {
+    "norma": "Portaria 326/1997",
+    "orgao": "Ministério da Saúde / ANVISA",
+    "titulo": "Regulamento Técnico sobre Condições Higiênico-Sanitárias e de Boas Práticas de Fabricação para Estabelecimentos Produtores/Industrializadores de Alimentos",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Em processo de revisão junto com RDC 275. Permanece vigente.",
+    "segmentos": ["Indústrias de alimentos", "Estabelecimentos que produzem/industrializam alimentos"],
+    "exigencias_inox": [
+      {
+        "artigo": "Item 5.3 - Equipamentos e utensílios",
+        "texto_resumido": "Todo equipamento e utensílio que entre em contato com alimentos deve ser de material atóxico, não absorvente, resistente à corrosão, que não transmita substâncias tóxicas. Superfícies lisas, sem rugosidades e frestas.",
+        "produtos_inox": ["Todos os equipamentos de processamento", "Utensílios", "Tanques", "Tubulações"]
+      }
+    ],
+    "penalidade": "Lei 6.437/77: multa, interdição, apreensão",
+    "observacao": "Norma federal complementar à RDC 275. Texto explícito sobre resistência à corrosão direciona para o uso de aço inoxidável."
+  },
+  {
+    "norma": "IT 38/2019 (Instrução Técnica)",
+    "orgao": "Corpo de Bombeiros do Estado de São Paulo",
+    "titulo": "Segurança Contra Incêndio em Cozinha Profissional",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Versão 2019. Cada estado tem norma equivalente (NT 38 em MS, etc.).",
+    "segmentos": ["Restaurantes", "Hotéis", "Cozinhas industriais", "Qualquer cozinha profissional em SP"],
+    "exigencias_inox": [
+      {
+        "artigo": "Seção de Sistemas de Exaustão",
+        "texto_resumido": "Referencia diretamente a NBR 14518. Coifas e dutos devem ser de material incombustível — aço inoxidável é o padrão. Filtros metálicos removíveis obrigatórios.",
+        "produtos_inox": ["Coifas inox", "Dutos de exaustão inox", "Filtros de gordura metálicos"]
+      }
+    ],
+    "penalidade": "Negativa de AVCB. Estabelecimento não pode funcionar sem AVCB. Multa e interdição pelo Corpo de Bombeiros.",
+    "observacao": "Norma estadual que traduz a NBR 14518 para efeito de fiscalização. Fundamental para qualquer projeto de cozinha comercial em SP."
+  },
+  {
+    "norma": "RDC 52/2014",
+    "orgao": "ANVISA",
+    "titulo": "Altera a RDC 216/2004",
+    "status": "vigente",
+    "substituida_por": null,
+    "observacao_status": "Complemento da RDC 216. Ajustes no campo de aplicação.",
+    "segmentos": ["Serviços de alimentação (mesmo escopo da RDC 216)"],
+    "exigencias_inox": [
+      {
+        "artigo": "Mantém todos os requisitos da RDC 216",
+        "texto_resumido": "Não altera requisitos de equipamentos e superfícies. Mantém exigências de material liso, impermeável e lavável.",
+        "produtos_inox": ["Mesmos da RDC 216"]
+      }
+    ],
+    "penalidade": "Mesma da RDC 216 (Lei 6.437/77)",
+    "observacao": "Citada como 'atualização' da RDC 216, mas muda apenas campo de aplicação. Os requisitos técnicos de equipamentos permanecem idênticos."
+  }
+]

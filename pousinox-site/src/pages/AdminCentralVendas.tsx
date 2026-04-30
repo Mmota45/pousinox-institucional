@@ -43,7 +43,7 @@ interface Followup {
   observacao: string | null
   created_by: string | null
   created_at: string
-  prospeccao: { id: number; razao_social: string; nome_fantasia: string | null; cnpj: string; uf: string; cidade: string; telefone1: string | null; email: string | null }
+  prospeccao: { id: number; razao_social: string; nome_fantasia: string | null; cnpj: string; uf: string; cidade: string; telefone1: string | null; email: string | null; segmento: string | null }
   pipeline_deals: { id: number; titulo: string; estagio: string; valor_estimado: number } | null
 }
 
@@ -274,7 +274,15 @@ pousinox.com.br`
   const [drawerNfItens, setDrawerNfItens] = useState<Record<number, any[]>>({})
   const [drawerStatusOpen, setDrawerStatusOpen] = useState(false)
   const [historicoAberto, setHistoricoAberto] = useState<{ id: number; nome: string } | null>(null)
-  const [drawerSecoes, setDrawerSecoes] = useState<Record<string, boolean>>({ contato: true, scores: false, nfs: false })
+  const [drawerSecoes, setDrawerSecoes] = useState<Record<string, boolean>>({ contato: true, scores: false, nfs: false, portfolio: true, normas: false })
+  const [drawerPortfolio, setDrawerPortfolio] = useState<any[]>([])
+  const [drawerPortfolioLoading, setDrawerPortfolioLoading] = useState(false)
+  const [drawerNormas, setDrawerNormas] = useState<any[]>([])
+  const [portfolioAddOpen, setPortfolioAddOpen] = useState(false)
+  const [portfolioAddNome, setPortfolioAddNome] = useState('')
+  const [portfolioAddDesc, setPortfolioAddDesc] = useState('')
+  const [todosPortfolioProdutos, setTodosPortfolioProdutos] = useState<any[]>([])
+  const [portfolioAddExistente, setPortfolioAddExistente] = useState<number | null>(null)
   const statusRef = useRef<HTMLDivElement>(null)
 
   // ── Dashboard ──
@@ -562,11 +570,11 @@ pousinox.com.br`
       .replace(/\{origem\}/g, origem)
   }
 
-  function abrirWhatsApp(tel: string | null, nome: string, segmento?: string, cidade?: string) {
+  function abrirWhatsApp(tel: string | null, nome: string, segmento?: string | null, cidade?: string | null) {
     if (!tel) { showMsg('erro', 'Sem telefone cadastrado'); return }
     const num = tel.replace(/\D/g, '')
     const numFull = num.length <= 11 ? `55${num}` : num
-    const msg = encodeURIComponent(gerarMsgWpp(nome, segmento, cidade))
+    const msg = encodeURIComponent(gerarMsgWpp(nome, segmento ?? undefined, cidade ?? undefined))
     window.open(`https://wa.me/${numFull}?text=${msg}`, '_blank')
   }
 
@@ -617,6 +625,77 @@ pousinox.com.br`
       setDrawerNfsLoading(false)
     } else {
       setDrawerNfs([])
+    }
+    // Carregar portfólio do segmento
+    if (ps.segmento) {
+      setDrawerPortfolioLoading(true)
+      const { data: pData } = await supabaseAdmin
+        .from('segmento_portfolio')
+        .select('id, relevancia, destaque, portfolio_produtos(id, nome, descricao, categoria)')
+        .eq('segmento', ps.segmento)
+        .order('relevancia', { ascending: false })
+      setDrawerPortfolio(pData ?? [])
+      setDrawerPortfolioLoading(false)
+    } else {
+      setDrawerPortfolio([])
+    }
+    // Carregar normas aplicáveis ao segmento
+    if (ps.segmento) {
+      const { data: nData } = await supabaseAdmin
+        .from('portfolio_normas')
+        .select('id, norma, orgao, titulo, status, penalidade, observacao, segmentos')
+        .contains('segmentos', [ps.segmento])
+      setDrawerNormas(nData ?? [])
+    } else {
+      setDrawerNormas([])
+    }
+    setPortfolioAddOpen(false)
+  }
+
+  async function removerPortfolioItem(mapId: number) {
+    await supabaseAdmin.from('segmento_portfolio').delete().eq('id', mapId)
+    setDrawerPortfolio(prev => prev.filter(p => p.id !== mapId))
+    showMsg('ok', 'Produto removido do portfólio')
+  }
+
+  async function adicionarPortfolioProduto(segmento: string) {
+    if (portfolioAddExistente) {
+      // Vincular produto existente ao segmento
+      const { error } = await supabaseAdmin.from('segmento_portfolio').insert({
+        segmento, produto_id: portfolioAddExistente, relevancia: 5
+      })
+      if (error) { showMsg('erro', error.message.includes('unique') ? 'Já vinculado' : error.message); return }
+    } else if (portfolioAddNome.trim()) {
+      // Criar produto novo e vincular
+      const { data: prod, error: pErr } = await supabaseAdmin
+        .from('portfolio_produtos')
+        .insert({ nome: portfolioAddNome.trim(), descricao: portfolioAddDesc.trim() || null, categoria: 'fabricacao' })
+        .select('id')
+        .single()
+      if (pErr || !prod) { showMsg('erro', 'Erro ao criar produto'); return }
+      await supabaseAdmin.from('segmento_portfolio').insert({
+        segmento, produto_id: prod.id, relevancia: 5
+      })
+    } else { return }
+    // Recarregar
+    const { data } = await supabaseAdmin
+      .from('segmento_portfolio')
+      .select('id, relevancia, destaque, portfolio_produtos(id, nome, descricao, categoria)')
+      .eq('segmento', segmento)
+      .order('relevancia', { ascending: false })
+    setDrawerPortfolio(data ?? [])
+    setPortfolioAddNome('')
+    setPortfolioAddDesc('')
+    setPortfolioAddExistente(null)
+    setPortfolioAddOpen(false)
+    showMsg('ok', 'Produto adicionado ao portfólio')
+  }
+
+  async function abrirPortfolioAdd() {
+    setPortfolioAddOpen(true)
+    if (todosPortfolioProdutos.length === 0) {
+      const { data } = await supabaseAdmin.from('portfolio_produtos').select('id, nome').eq('ativo', true).order('nome')
+      setTodosPortfolioProdutos(data ?? [])
     }
   }
 
@@ -1521,7 +1600,7 @@ pousinox.com.br`
                       <div className={styles.drawerContatoRow}>
                         <span>{drawerPs.telefone1}</span>
                         <a href={`tel:${drawerPs.telefone1}`} className={styles.btnSmall}>Ligar</a>
-                        <button className={styles.btnWppSmall} onClick={() => abrirWhatsApp(drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento, drawerPs.cidade)}>WPP</button>
+                        <button className={styles.btnWppSmall} onClick={() => abrirWhatsApp(drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento ?? undefined, drawerPs.cidade)}>WPP</button>
                       </div>
                     )}
                     {drawerPs.telefone2 && (
@@ -1553,7 +1632,7 @@ pousinox.com.br`
                       }}>Salvar</button>
                       {drawerPs.whatsapp && (
                         <>
-                          <button className={styles.btnWppSmall} onClick={() => abrirWhatsApp(drawerPs.whatsapp!, drawerPs.razao_social, drawerPs.segmento, drawerPs.cidade)}>Enviar</button>
+                          <button className={styles.btnWppSmall} onClick={() => abrirWhatsApp(drawerPs.whatsapp!, drawerPs.razao_social, drawerPs.segmento ?? undefined, drawerPs.cidade)}>Enviar</button>
                           <button className={styles.btnWppSmall} disabled={validandoWa} onClick={async () => {
                             setValidandoWa(true)
                             try {
@@ -1651,6 +1730,92 @@ pousinox.com.br`
                   </div>
                 )}
               </div>
+
+              {/* Portfólio Sugerido */}
+              <div className={styles.secaoColapsavel}>
+                <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('portfolio')}>
+                  <span>{drawerSecoes.portfolio ? '▼' : '▶'}</span>
+                  <span>🏭 Portfólio para {drawerPs.segmento || 'este segmento'} {drawerPortfolio.length > 0 ? `(${drawerPortfolio.length})` : ''}</span>
+                </button>
+                {drawerSecoes.portfolio && (
+                  <div style={{ padding: '12px 20px' }}>
+                    {drawerPortfolioLoading ? (
+                      <p className={styles.vazio}>Carregando portfólio...</p>
+                    ) : !drawerPs.segmento ? (
+                      <p className={styles.vazio}>Prospect sem segmento definido</p>
+                    ) : drawerPortfolio.length === 0 ? (
+                      <p className={styles.vazio}>Nenhum produto mapeado para este segmento</p>
+                    ) : (
+                      <div className={styles.portfolioLista}>
+                        {drawerPortfolio.map((sp: any) => {
+                          const prod = sp.portfolio_produtos
+                          if (!prod) return null
+                          return (
+                            <div key={sp.id} className={styles.portfolioItem}>
+                              <div className={styles.portfolioInfo}>
+                                <strong>{sp.destaque ? '⭐ ' : ''}{prod.nome}</strong>
+                                {prod.descricao && <span className={styles.portfolioDesc}>{prod.descricao}</span>}
+                              </div>
+                              <button className={styles.portfolioRemover} onClick={() => removerPortfolioItem(sp.id)} title="Remover do portfólio">✕</button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                    {drawerPs.segmento && !portfolioAddOpen && (
+                      <button className={styles.btnSecondary} style={{ marginTop: 8, width: '100%' }} onClick={abrirPortfolioAdd}>+ Adicionar produto</button>
+                    )}
+                    {portfolioAddOpen && drawerPs.segmento && (
+                      <div className={styles.portfolioAdd}>
+                        <select className={styles.portfolioSelect} value={portfolioAddExistente ?? ''} onChange={e => { setPortfolioAddExistente(e.target.value ? Number(e.target.value) : null); if (e.target.value) setPortfolioAddNome('') }}>
+                          <option value="">— Produto existente ou novo abaixo —</option>
+                          {todosPortfolioProdutos.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                        </select>
+                        {!portfolioAddExistente && (
+                          <>
+                            <input className={styles.portfolioInput} placeholder="Nome do novo produto" value={portfolioAddNome} onChange={e => setPortfolioAddNome(e.target.value)} />
+                            <input className={styles.portfolioInput} placeholder="Descrição (opcional)" value={portfolioAddDesc} onChange={e => setPortfolioAddDesc(e.target.value)} />
+                          </>
+                        )}
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button className={styles.btnPrimary} onClick={() => adicionarPortfolioProduto(drawerPs.segmento!)}>Salvar</button>
+                          <button className={styles.btnSecondary} onClick={() => setPortfolioAddOpen(false)}>Cancelar</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Normas Regulatórias */}
+              {drawerNormas.length > 0 && (
+                <div className={styles.secaoColapsavel}>
+                  <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('normas')}>
+                    <span>{drawerSecoes.normas ? '▼' : '▶'}</span>
+                    <span>⚖️ Normas Regulatórias ({drawerNormas.length})</span>
+                  </button>
+                  {drawerSecoes.normas && (
+                    <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {drawerNormas.map((n: any) => (
+                        <div key={n.id} className={styles.normaItem}>
+                          <div className={styles.normaHead}>
+                            <span className={styles.normaBadge}>{n.orgao}</span>
+                            <strong>{n.norma}</strong>
+                            <span className={styles.normaStatus} data-status={n.status}>{n.status}</span>
+                          </div>
+                          <p className={styles.normaTitulo}>{n.titulo}</p>
+                          {n.penalidade && (
+                            <p className={styles.normaPenalidade}>⚠️ {n.penalidade}</p>
+                          )}
+                        </div>
+                      ))}
+                      <p className={styles.normaArgumento}>
+                        💡 <strong>Argumento:</strong> "Sua empresa está em conformidade? O aço inox AISI 304 é o único material que atende todos os requisitos: liso, impermeável, lavável, atóxico."
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Ações */}
               <div className={styles.drawerAcoes}>
