@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import { supabaseAdmin } from '../lib/supabase'
 import { getModelSkill, getModelInfo } from '../lib/modelInfo'
 import { aiParallel, type MultiTarget, type MultiResult } from '../lib/aiHelper'
+import ModelMonitor from '../components/ia/ModelMonitor'
 import styles from './AdminIA.module.css'
 
 // ── Providers e modelos ──────────────────────────────────────────────────────
@@ -12,20 +13,19 @@ const PROVIDERS: Record<string, { label: string; modelos: { id: string; label: s
   groq: {
     label: '⚡ Groq',
     modelos: [
+      { id: 'meta-llama/llama-4-scout-17b-16e-instruct', label: 'Llama 4 Scout 17B' },
       { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B' },
       { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B' },
-      { id: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B' },
-      { id: 'gemma2-9b-it', label: 'Gemma 2 9B' },
-      { id: 'llama-3.2-90b-vision-preview', label: 'Llama 3.2 90B Vision' },
       { id: 'deepseek-r1-distill-llama-70b', label: 'DeepSeek R1 70B' },
-      { id: 'mistral-saba-24b', label: 'Mistral Saba 24B' },
       { id: 'qwen-qwq-32b', label: 'Qwen QwQ 32B' },
+      { id: 'mistral-saba-24b', label: 'Mistral Saba 24B' },
     ],
   },
   gemini: {
     label: '💎 Gemini',
     modelos: [
       { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+      { id: 'gemini-2.5-flash-lite', label: 'Gemini 2.5 Flash Lite' },
     ],
   },
   cohere: {
@@ -38,19 +38,16 @@ const PROVIDERS: Record<string, { label: string; modelos: { id: string; label: s
   huggingface: {
     label: '🤗 HuggingFace',
     modelos: [
-      { id: 'mistralai/Mistral-7B-Instruct-v0.3', label: 'Mistral 7B' },
-      { id: 'google/gemma-2-2b-it', label: 'Gemma 2 2B' },
-      { id: 'microsoft/Phi-3-mini-4k-instruct', label: 'Phi-3 Mini' },
-      { id: 'meta-llama/Llama-3.1-8B-Instruct', label: 'Llama 3.1 8B' },
       { id: 'Qwen/Qwen2.5-72B-Instruct', label: 'Qwen 2.5 72B' },
-      { id: 'mistralai/Mixtral-8x7B-Instruct-v0.1', label: 'Mixtral 8x7B' },
+      { id: 'meta-llama/Llama-3.1-8B-Instruct', label: 'Llama 3.1 8B' },
+      { id: 'mistralai/Mistral-7B-Instruct-v0.3', label: 'Mistral 7B' },
+      { id: 'microsoft/Phi-3-mini-4k-instruct', label: 'Phi-3 Mini' },
     ],
   },
   together: {
     label: '🤝 Together',
     modelos: [
       { id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', label: 'Llama 3.3 70B Turbo' },
-      { id: 'mistralai/Mixtral-8x7B-Instruct-v0.1', label: 'Mixtral 8x7B' },
       { id: 'Qwen/Qwen2.5-72B-Instruct-Turbo', label: 'Qwen 2.5 72B Turbo' },
       { id: 'deepseek-ai/DeepSeek-R1-Distill-Llama-70B', label: 'DeepSeek R1 70B' },
       { id: 'meta-llama/Llama-3.1-405B-Instruct-Turbo', label: 'Llama 405B Turbo' },
@@ -60,7 +57,6 @@ const PROVIDERS: Record<string, { label: string; modelos: { id: string; label: s
     label: '☁️ Cloudflare',
     modelos: [
       { id: '@cf/meta/llama-3.1-8b-instruct', label: 'Llama 3.1 8B' },
-      { id: '@cf/mistral/mistral-7b-instruct-v0.1', label: 'Mistral 7B' },
       { id: '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b', label: 'DeepSeek R1 32B' },
       { id: '@cf/qwen/qwen2.5-coder-32b-instruct', label: 'Qwen Coder 32B' },
     ],
@@ -68,12 +64,12 @@ const PROVIDERS: Record<string, { label: string; modelos: { id: string; label: s
   openrouter: {
     label: '🔀 OpenRouter',
     modelos: [
-      { id: 'google/gemini-2.5-flash-exp:free', label: 'Gemini 2.5 Flash' },
-      { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B' },
-      { id: 'mistralai/mistral-7b-instruct:free', label: 'Mistral 7B' },
       { id: 'qwen/qwen3-coder-480b:free', label: 'Qwen3 Coder 480B' },
       { id: 'deepseek/deepseek-r1:free', label: 'DeepSeek R1' },
+      { id: 'google/gemini-2.5-flash-exp:free', label: 'Gemini 2.5 Flash' },
+      { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B' },
       { id: 'nvidia/llama-3.1-nemotron-70b-instruct:free', label: 'Nemotron 70B' },
+      { id: 'mistralai/devstral-small:free', label: 'Devstral Small' },
     ],
   },
 }
@@ -122,31 +118,35 @@ function autoLinkify(text: string): string {
 function escolherProviderModelo(texto: string): { provider: string; modelo: string; motivo: string } {
   const t = texto.toLowerCase()
 
-  // Código, programação, técnico → Groq Llama 70B (rápido e capaz)
-  if (/\b(código|code|programa|function|sql|api|bug|erro|html|css|javascript|typescript|react)\b/.test(t))
-    return { provider: 'groq', modelo: 'llama-3.3-70b-versatile', motivo: 'Técnico/código → Llama 3.3 70B' }
+  // Código, programação, técnico → Qwen3 Coder (melhor free p/ código)
+  if (/\b(código|code|programa|function|sql|api|bug|html|css|javascript|typescript|react|python|script|deploy|docker|git)\b/.test(t))
+    return { provider: 'openrouter', modelo: 'qwen/qwen3-coder-480b:free', motivo: 'Código → Qwen3 Coder 480B' }
 
-  // Análise longa, estratégia, relatório → Gemini (contexto grande)
-  if (/\b(analis[ea]|estratégia|relatório|report|planeja|mercado|comparar|pesquis[ea]|estud[oa])\b/.test(t))
-    return { provider: 'gemini', modelo: 'gemini-2.5-flash', motivo: 'Análise/estratégia → Gemini 2.0 Flash' }
+  // Raciocínio complexo, matemática, lógica → DeepSeek R1
+  if (/\b(raciocín|lógic[ao]|matemátic|calcul[aeo]|demonstr|prov[ae]r?\b|equação|fórmula|resolver)\b/.test(t))
+    return { provider: 'openrouter', modelo: 'deepseek/deepseek-r1:free', motivo: 'Raciocínio → DeepSeek R1' }
 
-  // Texto comercial, vendas, pitch, marketing → Cohere (bom em texto)
-  if (/\b(pitch|vend[ae]|comercial|marketing|post|instagram|facebook|cliente|proposta|email|campanha)\b/.test(t))
+  // Análise longa, estratégia, relatório → Gemini 2.5 Flash (1M contexto)
+  if (/\b(analis[ea]|estratégia|relatório|report|planeja|mercado|comparar|pesquis[ea]|estud[oa]|dados|dashboard)\b/.test(t))
+    return { provider: 'gemini', modelo: 'gemini-2.5-flash', motivo: 'Análise/estratégia → Gemini 2.5 Flash' }
+
+  // Texto comercial, vendas, pitch, marketing → Cohere Command A
+  if (/\b(pitch|vend[ae]|comercial|marketing|post|instagram|facebook|cliente|proposta|email|campanha|texto|redação)\b/.test(t))
     return { provider: 'cohere', modelo: 'command-a-03-2025', motivo: 'Comercial/marketing → Cohere Command A' }
 
   // Tradução, resumo → OpenRouter Gemini grátis
-  if (/\b(traduz|translate|resum[oa]|summarize)\b/.test(t))
-    return { provider: 'openrouter', modelo: 'google/gemini-2.5-flash-exp:free', motivo: 'Tradução/resumo → OpenRouter Gemini' }
+  if (/\b(traduz|translate|resum[oa]|summarize|sintetiz)\b/.test(t))
+    return { provider: 'openrouter', modelo: 'google/gemini-2.5-flash-exp:free', motivo: 'Tradução/resumo → Gemini Flash (free)' }
 
-  // Criativo, ideia, brainstorm → Together Llama 70B
-  if (/\b(cri[ea]|ideia|brainstorm|sugir[ae]|inov[ae]|imagin[ea]|banner|design)\b/.test(t))
-    return { provider: 'together', modelo: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', motivo: 'Criativo → Together Llama 3.3 70B' }
+  // Criativo, ideia, brainstorm → Groq Llama 4 Scout (multimodal, rápido)
+  if (/\b(cri[ea]|ideia|brainstorm|sugir[ae]|inov[ae]|imagin[ea]|banner|design|inspiração)\b/.test(t))
+    return { provider: 'groq', modelo: 'meta-llama/llama-4-scout-17b-16e-instruct', motivo: 'Criativo → Llama 4 Scout' }
 
-  // Perguntas rápidas, simples → Groq (mais rápido)
+  // Perguntas rápidas → Groq Llama 4 Scout (mais rápido)
   if (texto.length < 100)
-    return { provider: 'groq', modelo: 'llama-3.3-70b-versatile', motivo: 'Pergunta rápida → Groq Llama 70B' }
+    return { provider: 'groq', modelo: 'meta-llama/llama-4-scout-17b-16e-instruct', motivo: 'Pergunta rápida → Llama 4 Scout' }
 
-  // Default: Groq 70B (melhor custo-benefício)
+  // Default: Groq Llama 3.3 70B (melhor custo-benefício geral)
   return { provider: 'groq', modelo: 'llama-3.3-70b-versatile', motivo: 'Geral → Groq Llama 3.3 70B' }
 }
 
@@ -175,13 +175,14 @@ export default function AdminIA() {
   const [showHistorico, setShowHistorico] = useState(false)
   const [metaAberto, setMetaAberto] = useState(false)
   const [loadingHist, setLoadingHist] = useState(false)
+  const [showMonitor, setShowMonitor] = useState(false)
 
   // Multi-IA
   const [multiMode, setMultiMode] = useState(false)
   const [multiTargets, setMultiTargets] = useState<MultiTarget[]>([
-    { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+    { provider: 'groq', model: 'meta-llama/llama-4-scout-17b-16e-instruct' },
     { provider: 'gemini', model: 'gemini-2.5-flash' },
-    { provider: 'openrouter', model: 'deepseek/deepseek-r1:free' },
+    { provider: 'openrouter', model: 'qwen/qwen3-coder-480b:free' },
   ])
   const [multiResults, setMultiResults] = useState<MultiResult[]>([])
   const [multiLoading, setMultiLoading] = useState(false)
@@ -427,6 +428,13 @@ export default function AdminIA() {
       </div>
 
       <div className={styles.chatArea}>
+        {/* ── Painel Monitor de Modelos ── */}
+        {showMonitor && (
+          <div style={{ padding: 16, overflowY: 'auto', flex: 1 }}>
+            <ModelMonitor onClose={() => setShowMonitor(false)} />
+          </div>
+        )}
+
         {/* ── Painel Multi-IA ── */}
         {multiMode && (multiResults.length > 0 || multiLoading) && (
           <div style={{ padding: 16, overflowY: 'auto', flex: 1 }}>
@@ -575,6 +583,11 @@ export default function AdminIA() {
                   style={multiMode ? { background: '#ede9fe', color: '#7c3aed', borderColor: '#c4b5fd' } : {}}
                 >🧠 Multi-IA</button>
                 <button className={styles.limpar} onClick={() => setShowHistorico(v => !v)}>📂 Histórico{conversas.length > 0 ? ` (${conversas.length})` : ''}</button>
+                <button
+                  className={styles.limpar}
+                  onClick={() => setShowMonitor(v => !v)}
+                  style={showMonitor ? { background: '#fef3c7', color: '#92400e', borderColor: '#fcd34d' } : {}}
+                >🔬 Monitor</button>
                 {msgs.length > 0 && !multiMode && <button className={styles.limpar} onClick={novaConversa}>+ Nova</button>}
               </div>
               {metaAberto && (

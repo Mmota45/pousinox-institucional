@@ -9,13 +9,13 @@ const corsHeaders = {
 
 /* Fallback hardcoded — usado quando não consegue ler do banco */
 const FALLBACK_MODELS: Record<string, string[]> = {
-  groq: ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"],
-  gemini: ["gemini-2.5-flash"],
+  groq: ["meta-llama/llama-4-scout-17b-16e-instruct", "llama-3.3-70b-versatile", "llama-3.1-8b-instant", "deepseek-r1-distill-llama-70b", "qwen-qwq-32b"],
+  gemini: ["gemini-2.5-flash", "gemini-2.5-flash-lite"],
   cohere: ["command-a-03-2025", "command-r7b-12-2024"],
-  huggingface: ["mistralai/Mistral-7B-Instruct-v0.3", "google/gemma-2-2b-it", "microsoft/Phi-3-mini-4k-instruct"],
-  together: ["meta-llama/Llama-3.3-70B-Instruct-Turbo", "mistralai/Mixtral-8x7B-Instruct-v0.1"],
-  cloudflare: ["@cf/meta/llama-3.1-8b-instruct", "@cf/mistral/mistral-7b-instruct-v0.1"],
-  openrouter: ["google/gemini-2.5-flash-exp:free", "meta-llama/llama-3.3-70b-instruct:free", "mistralai/mistral-7b-instruct:free"],
+  huggingface: ["Qwen/Qwen2.5-72B-Instruct", "meta-llama/Llama-3.1-8B-Instruct", "mistralai/Mistral-7B-Instruct-v0.3"],
+  together: ["meta-llama/Llama-3.3-70B-Instruct-Turbo", "Qwen/Qwen2.5-72B-Instruct-Turbo", "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"],
+  cloudflare: ["@cf/meta/llama-3.1-8b-instruct", "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b", "@cf/qwen/qwen2.5-coder-32b-instruct"],
+  openrouter: ["qwen/qwen3-coder-480b:free", "deepseek/deepseek-r1:free", "google/gemini-2.5-flash-exp:free", "meta-llama/llama-3.3-70b-instruct:free", "nvidia/llama-3.1-nemotron-70b-instruct:free"],
 };
 
 /* Cache de modelos ativos (recarrega a cada 5min) */
@@ -668,8 +668,41 @@ serve(async (req) => {
       });
     }
 
+    // ── Health check — testa modelos ativos com prompt simples ──
+    if (action === "health_check") {
+      const sb = getSupabase();
+      const activeModels = await getActiveModels(sb);
+      const results: { provider: string; model: string; ok: boolean; latency_ms: number; error?: string }[] = [];
+      const testMsgs: Message[] = [{ role: "user", content: "Responda apenas: OK" }];
+
+      const providerFns: Record<string, (m: string, msgs: Message[]) => Promise<string>> = {
+        groq: callGroq, gemini: callGemini, cohere: callCohere,
+        huggingface: callHuggingFace, together: callTogether,
+        cloudflare: callCloudflare, openrouter: callOpenRouter,
+      };
+
+      // Testa até 2 modelos por provider para não demorar demais
+      for (const [prov, models] of Object.entries(activeModels)) {
+        const fn = providerFns[prov];
+        if (!fn) continue;
+        for (const mid of models.slice(0, 2)) {
+          const t0 = Date.now();
+          try {
+            await fn(mid, testMsgs);
+            results.push({ provider: prov, model: mid, ok: true, latency_ms: Date.now() - t0 });
+          } catch (e) {
+            results.push({ provider: prov, model: mid, ok: false, latency_ms: Date.now() - t0, error: e instanceof Error ? e.message : String(e) });
+          }
+        }
+      }
+
+      return new Response(JSON.stringify({ ok: true, results, checked_at: new Date().toISOString() }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (action !== "chat") {
-      return new Response(JSON.stringify({ ok: false, error: "action must be 'chat', 'models' or 'transcribe'" }), {
+      return new Response(JSON.stringify({ ok: false, error: "action must be 'chat', 'models', 'discover', 'health_check' or 'transcribe'" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
