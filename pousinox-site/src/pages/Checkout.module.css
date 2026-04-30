@@ -1,4 +1,15 @@
-.wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 60px; display: flex; flex-direction: column; gap: 24px; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 60px; display: flex; flex-direction: column; gap: 24px; position: relative; min-height: 100vh; }
+
+/* Marca d'água — elemento .watermark no JSX */
+.watermark {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background-repeat: repeat;
+  background-size: 120px;
+  background-position: center;
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 0;
+}
 
 .titulo { font-size: 1.4rem; font-weight: 700; color: var(--color-text); margin: 0; }
 .subtitulo { font-size: 0.88rem; color: var(--color-text-light); margin: 2px 0 0; }
@@ -106,8 +117,15 @@
 .sucesso { background: #dcfce7; color: #166534; padding: 10px 14px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; }
 
 /* Voltar */
-.voltar { display: inline-flex; align-items: center; gap: 6px; color: var(--color-text-light); text-decoration: none; font-size: 0.85rem; font-weight: 500; }
-.voltar:hover { color: var(--color-text); }
+.voltar {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--color-primary); text-decoration: none;
+  font-size: 0.9rem; font-weight: 600;
+  padding: 8px 16px; border-radius: 8px;
+  background: #f0f5ff; border: 1px solid rgba(26,63,92,0.15);
+  transition: all 0.2s; position: relative; z-index: 1;
+}
+.voltar:hover { background: #e0eaff; color: var(--color-primary-dark, #1a3a5c); transform: translateX(-2px); }
 
 @media (max-width: 600px) {
   .formGrid, .formGrid3 { grid-template-columns: 1fr; }

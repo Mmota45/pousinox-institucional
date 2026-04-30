@@ -5,6 +5,7 @@ import type { ProdutoPublico } from '../lib/supabase'
 import { gerarPixQRCodeDataUrl } from '../lib/pix'
 import { useCart, type CartItem } from '../contexts/CartContext'
 import styles from './Checkout.module.css'
+import logoIcon from '../assets/logo-icon.png'
 
 interface OpcaoFrete {
   servico: string
@@ -279,6 +280,7 @@ function Checkout() {
 
   return (
     <div className={styles.wrap}>
+      <div className={styles.watermark} style={{ backgroundImage: `url(${logoIcon})` }} />
       <Link to="/pronta-entrega" className={styles.voltar}>← Voltar ao Outlet</Link>
 
       <div>
