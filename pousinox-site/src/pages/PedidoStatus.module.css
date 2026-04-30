@@ -165,7 +165,22 @@
 @media (max-width: 600px) {
   .infoGrid { grid-template-columns: 1fr; }
   .wrap { padding: 20px 12px 60px; }
-  .timelineLabel { font-size: 0.6rem; }
-  .timelineDot { width: 30px; height: 30px; font-size: 0.85rem; }
+  .timelineLabel { font-size: 0.55rem; max-width: 52px; word-wrap: break-word; }
+  .timelineDot { width: 28px; height: 28px; font-size: 0.75rem; }
+  .timelineStep:not(:last-child)::after { top: 14px; height: 2px; }
   .pixValor { font-size: 1.3rem; }
+  .pixBox { padding: 20px 14px; }
+  .pixCopiaCola { flex-direction: column; gap: 8px; }
+  .pixCopiar { width: 100%; text-align: center; }
+  .rastreio { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .rastreioLink { width: 100%; text-align: center; }
+  .card { padding: 18px 14px; }
+  .titulo { font-size: 1.2rem; }
+  .subtituloRow { flex-wrap: wrap; }
+}
+
+@media (max-width: 380px) {
+  .timelineDot { width: 24px; height: 24px; font-size: 0.65rem; }
+  .timelineStep:not(:last-child)::after { top: 12px; }
+  .timelineLabel { font-size: 0.5rem; max-width: 44px; }
 }

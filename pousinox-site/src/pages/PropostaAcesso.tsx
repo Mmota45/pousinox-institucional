@@ -146,7 +146,7 @@ export default function PropostaAcesso() {
           </div>
         </div>
 
-        <div style={{ padding: '20px 32px 40px' }}>
+        <div style={{ padding: '20px 16px 40px' }}>
           {/* Destinatário */}
           <SectionTitle label="DESTINATÁRIO" />
           <div style={cardStyle}>
@@ -171,6 +171,7 @@ export default function PropostaAcesso() {
 
           {/* Itens */}
           <SectionTitle label="ITENS" />
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={tableStyle}>
             <thead>
               <tr>
@@ -195,6 +196,7 @@ export default function PropostaAcesso() {
               ))}
             </tbody>
           </table>
+          </div>
 
           {/* Totais */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
@@ -281,7 +283,7 @@ const page: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: "'Inter', sans-serif",
 }
 const card: React.CSSProperties = {
-  background: '#fff', borderRadius: 16, padding: '40px 36px', width: 420, maxWidth: '95vw',
+  background: '#fff', borderRadius: 16, padding: '32px 20px', width: 420, maxWidth: '95vw',
   boxShadow: '0 20px 60px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: 20,
 }
 const logoArea: React.CSSProperties = { textAlign: 'center', borderBottom: '2px solid #1a3a5c', paddingBottom: 16 }
@@ -300,7 +302,7 @@ const wmOverlay: React.CSSProperties = {
   position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
   gap: 80, pointerEvents: 'none', zIndex: 9999, opacity: 0.04, transform: 'rotate(-35deg)',
 }
-const wmText: React.CSSProperties = { fontSize: '3rem', fontWeight: 900, color: '#000', letterSpacing: '0.05em', whiteSpace: 'nowrap' }
+const wmText: React.CSSProperties = { fontSize: 'clamp(1.2rem, 5vw, 3rem)', fontWeight: 900, color: '#000', letterSpacing: '0.05em', whiteSpace: 'nowrap' }
 const wmTextSm: React.CSSProperties = { fontSize: '1.2rem', fontWeight: 700, color: '#000', whiteSpace: 'nowrap' }
 
 const avisoBanner: React.CSSProperties = {
@@ -310,12 +312,13 @@ const avisoBanner: React.CSSProperties = {
 
 const docContainer: React.CSSProperties = {
   maxWidth: 860, margin: '20px auto', background: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.1)',
-  borderRadius: 4, overflow: 'hidden',
+  borderRadius: 4, overflow: 'hidden', marginLeft: 8, marginRight: 8,
 }
 
 const headerBand: React.CSSProperties = {
   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-  padding: '14px 32px', borderBottom: '2.5px solid #1B3A5C',
+  padding: '14px 16px', borderBottom: '2.5px solid #1B3A5C',
+  flexWrap: 'wrap', gap: 8,
 }
 
 const cardStyle: React.CSSProperties = {
@@ -342,4 +345,5 @@ const totalLine: React.CSSProperties = {
 const rodape: React.CSSProperties = {
   marginTop: 32, borderTop: '1px solid #dfe4ea', paddingTop: 8,
   display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#8896a6',
+  flexWrap: 'wrap', gap: 4,
 }

@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminOrcamento.module.css'
+import fx from './AdminFixadores.module.css'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -192,16 +193,16 @@ export default function AdminFixadores() {
 
       {/* ── ABA MODELOS ── */}
       {aba === 'modelos' && (
-        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid #f1f5f9' }}>
-            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>Modelos de Fixador</h3>
+        <div className={fx.secao}>
+          <div className={fx.secaoHeader}>
+            <h3>Modelos de Fixador</h3>
             <button onClick={() => setEditModelo({ ...MODELO_VAZIO })} style={{ ...btnSm, background: '#0a1628', color: '#fff' }}>+ Novo Modelo</button>
           </div>
 
           {/* Form */}
           {editModelo && (
-            <div style={{ padding: 18, borderBottom: '2px dashed #e2e8f0', background: '#fafbfc' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div className={fx.formWrap}>
+              <div className={fx.formGrid3}>
                 <div>
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Nome *</label>
                   <input style={inputStyle} value={editModelo.nome ?? ''} onChange={e => setEditModelo({ ...editModelo, nome: e.target.value })} placeholder="Ex: Fixador Padrão 304" />
@@ -219,7 +220,7 @@ export default function AdminFixadores() {
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Descrição</label>
                 <input style={inputStyle} value={editModelo.descricao ?? ''} onChange={e => setEditModelo({ ...editModelo, descricao: e.target.value })} placeholder="Descrição curta" />
               </div>
-              <div style={{ display: 'flex', gap: 16, marginTop: 12, alignItems: 'center' }}>
+              <div className={fx.formRow}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={editModelo.laudo ?? false} onChange={e => setEditModelo({ ...editModelo, laudo: e.target.checked })} /> Possui laudo/ensaio
                 </label>
@@ -236,6 +237,7 @@ export default function AdminFixadores() {
           )}
 
           {/* Table */}
+          <div className={fx.tableWrap}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
             <thead>
               <tr style={{ background: '#f8fafc' }}>
@@ -264,20 +266,21 @@ export default function AdminFixadores() {
               {modelos.length === 0 && <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Nenhum modelo cadastrado</td></tr>}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* ── ABA REGRAS ── */}
       {aba === 'regras' && (
-        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid #f1f5f9' }}>
-            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>Regras de Cálculo</h3>
+        <div className={fx.secao}>
+          <div className={fx.secaoHeader}>
+            <h3>Regras de Cálculo</h3>
             <button onClick={() => setEditRegra({ ...REGRA_VAZIA })} style={{ ...btnSm, background: '#0a1628', color: '#fff' }}>+ Nova Regra</button>
           </div>
 
           {editRegra && (
-            <div style={{ padding: 18, borderBottom: '2px dashed #e2e8f0', background: '#fafbfc' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 12 }}>
+            <div className={fx.formWrap}>
+              <div className={fx.formGrid4}>
                 <div>
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Nome *</label>
                   <input style={inputStyle} value={editRegra.nome ?? ''} onChange={e => setEditRegra({ ...editRegra, nome: e.target.value })} placeholder="Ex: Peça padrão (até 60×60)" />
@@ -298,7 +301,7 @@ export default function AdminFixadores() {
                   <input style={inputStyle} type="number" value={editRegra.prioridade ?? 10} onChange={e => setEditRegra({ ...editRegra, prioridade: parseInt(e.target.value) || 10 })} />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginTop: 12 }}>
+              <div className={fx.formGrid3} style={{ marginTop: 12 }}>
                 <div>
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Lado máx (cm)</label>
                   <input style={inputStyle} type="number" value={editRegra.lado_max_cm ?? ''} onChange={e => setEditRegra({ ...editRegra, lado_max_cm: e.target.value ? Number(e.target.value) : null })} placeholder="Sem limite" />
@@ -312,7 +315,7 @@ export default function AdminFixadores() {
                   <input style={inputStyle} type="number" step="0.1" value={editRegra.peso_max_kg ?? ''} onChange={e => setEditRegra({ ...editRegra, peso_max_kg: e.target.value ? Number(e.target.value) : null })} placeholder="Sem limite" />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 16, marginTop: 12, alignItems: 'center' }}>
+              <div className={fx.formRow}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={editRegra.exige_revisao ?? false} onChange={e => setEditRegra({ ...editRegra, exige_revisao: e.target.checked })} /> Exige revisão técnica
                 </label>
@@ -325,6 +328,7 @@ export default function AdminFixadores() {
             </div>
           )}
 
+          <div className={fx.tableWrap}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
             <thead>
               <tr style={{ background: '#f8fafc' }}>
@@ -357,20 +361,21 @@ export default function AdminFixadores() {
               {regras.length === 0 && <tr><td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Nenhuma regra cadastrada</td></tr>}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* ── ABA CONSUMÍVEIS ── */}
       {aba === 'consumiveis' && (
-        <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid #f1f5f9' }}>
-            <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700 }}>Consumíveis</h3>
+        <div className={fx.secao}>
+          <div className={fx.secaoHeader}>
+            <h3>Consumíveis</h3>
             <button onClick={() => setEditConsumivel({ ...CONSUMIVEL_VAZIO })} style={{ ...btnSm, background: '#0a1628', color: '#fff' }}>+ Novo Consumível</button>
           </div>
 
           {editConsumivel && (
-            <div style={{ padding: 18, borderBottom: '2px dashed #e2e8f0', background: '#fafbfc' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', gap: 12 }}>
+            <div className={fx.formWrap}>
+              <div className={fx.formGrid5}>
                 <div>
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Nome *</label>
                   <input style={inputStyle} value={editConsumivel.nome ?? ''} onChange={e => setEditConsumivel({ ...editConsumivel, nome: e.target.value })} placeholder="Ex: Parafuso" />
@@ -397,7 +402,7 @@ export default function AdminFixadores() {
                   <input style={inputStyle} type="number" value={editConsumivel.ordem ?? 1} onChange={e => setEditConsumivel({ ...editConsumivel, ordem: parseInt(e.target.value) || 1 })} />
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+              <div className={fx.formActions}>
                 <button onClick={() => setEditConsumivel(null)} style={{ ...btnSm, background: '#f1f5f9', color: '#475569' }}>Cancelar</button>
                 <button onClick={salvarConsumivel} disabled={saving} style={{ ...btnSm, background: '#16a34a', color: '#fff' }}>
                   {saving ? 'Salvando…' : editConsumivel.id ? 'Atualizar' : 'Criar'}
@@ -406,6 +411,7 @@ export default function AdminFixadores() {
             </div>
           )}
 
+          <div className={fx.tableWrap}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
             <thead>
               <tr style={{ background: '#f8fafc' }}>
@@ -438,6 +444,7 @@ export default function AdminFixadores() {
               {consumiveis.length === 0 && <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Nenhum consumível cadastrado</td></tr>}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

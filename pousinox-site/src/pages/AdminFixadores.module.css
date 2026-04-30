@@ -1,0 +1,104 @@
+/* AdminFixadores — Mobile responsive */
+
+.secao {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.secaoHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.secaoHeader h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.formWrap {
+  padding: 18px;
+  border-bottom: 2px dashed #e2e8f0;
+  background: #fafbfc;
+}
+
+.formGrid3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.formGrid4 {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.formGrid5 {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.formRow {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.formActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tableWrap table {
+  min-width: 560px;
+}
+
+@media (max-width: 640px) {
+  .formGrid3,
+  .formGrid4,
+  .formGrid5 {
+    grid-template-columns: 1fr;
+  }
+
+  .secaoHeader {
+    padding: 12px 14px;
+  }
+
+  .formWrap {
+    padding: 14px;
+  }
+
+  .formRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .formActions {
+    flex-direction: column;
+  }
+
+  .formActions > * {
+    width: 100%;
+    text-align: center;
+  }
+}

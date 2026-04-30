@@ -286,3 +286,21 @@
   display: flex; align-items: center; gap: 12px;
   color: #94a3b8; font-size: 0.9rem; padding: 24px 0;
 }
+
+/* ══ Mobile ══ */
+@media (max-width: 640px) {
+  .abas { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; }
+  .aba { padding: 9px 12px; font-size: 0.82rem; }
+  .importCard { padding: 16px; }
+  .filtros { flex-direction: column; align-items: stretch; }
+  .filtroSelect { width: 100%; }
+  .btnPrimary, .btnSecondary { min-height: 44px; width: 100%; text-align: center; justify-content: center; }
+  .importAcoes { flex-direction: column; }
+  .revisaoResumo { flex-wrap: wrap; gap: 12px; padding: 12px; }
+  .resumoDivider { display: none; }
+  .resumoItem { padding: 0; }
+  .vincularBox { padding: 10px; }
+  .acoes { flex-direction: column; }
+  .acoes > * { width: 100%; text-align: center; }
+  .dropZone { padding: 20px 12px; }
+}

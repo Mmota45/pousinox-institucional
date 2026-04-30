@@ -130,4 +130,14 @@
 @media (max-width: 600px) {
   .formGrid, .formGrid3 { grid-template-columns: 1fr; }
   .wrap { padding: 16px 12px 40px; }
+  .pixChave { flex-direction: column; word-break: break-all; }
+  .pixQr img { width: 180px; height: 180px; }
+  .card { padding: 18px 14px; }
+  .titulo { font-size: 1.2rem; }
+  .freteOpcao { flex-wrap: wrap; gap: 6px; }
+  .actions { flex-direction: column; }
+  .actions > * { width: 100%; text-align: center; justify-content: center; }
+  .btnPrimary, .btnSecondary { width: 100%; justify-content: center; }
+  .stepLabels { display: none; }
+  .produtoMiniImg { width: 48px; height: 48px; }
 }

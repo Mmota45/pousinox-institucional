@@ -169,7 +169,7 @@ const page: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: "'Inter', sans-serif",
 }
 const card: React.CSSProperties = {
-  background: '#fff', borderRadius: 16, padding: '40px 36px', width: 420, maxWidth: '95vw',
+  background: '#fff', borderRadius: 16, padding: '32px 20px', width: 420, maxWidth: '95vw',
   boxShadow: '0 20px 60px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: 20,
 }
 const logoArea: React.CSSProperties = { textAlign: 'center', borderBottom: '2px solid #1a3a5c', paddingBottom: 16 }
@@ -189,9 +189,10 @@ const viewerPage: React.CSSProperties = {
   display: 'flex', flexDirection: 'column', userSelect: 'none', WebkitUserSelect: 'none',
 }
 const viewerBanner: React.CSSProperties = {
-  background: '#1B3A5C', color: '#fff', padding: '10px 24px',
-  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
-  fontSize: '0.8rem', flexWrap: 'wrap', position: 'sticky', top: 0, zIndex: 100,
+  background: '#1B3A5C', color: '#fff', padding: '10px 16px',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+  fontSize: '0.75rem', flexWrap: 'wrap', position: 'sticky', top: 0, zIndex: 100,
+  textAlign: 'center',
 }
 const protecaoAviso: React.CSSProperties = {
   background: '#fef3c7', color: '#92400e', textAlign: 'center', padding: '8px 16px',
@@ -202,8 +203,9 @@ const viewerContainer: React.CSSProperties = {
   position: 'relative',
 }
 const viewerIframe: React.CSSProperties = {
-  width: '100%', maxWidth: 900, height: 'calc(100vh - 100px)',
+  width: '100%', maxWidth: 900, height: 'calc(100vh - 120px)',
   border: 'none', borderRadius: 4, background: '#fff',
+  minHeight: 400,
 }
 const antiSelectOverlay: React.CSSProperties = {
   position: 'fixed', top: 90, left: 0, right: 0, bottom: 0,

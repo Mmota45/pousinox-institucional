@@ -439,3 +439,22 @@
   transition: background 0.15s;
 }
 .btnAbrirNC:hover { background: #fee2e2; }
+
+/* ══ Mobile ══ */
+.navPrincipal { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tabela { min-width: 600px; }
+
+@media (max-width: 640px) {
+  .toolbar { flex-direction: column; align-items: stretch; }
+  .selectFiltro { width: 100%; }
+  .btnPrimary, .btnSecondary, .btnDanger { min-height: 44px; width: 100%; justify-content: center; }
+  .formCard { padding: 16px; }
+  .detalheCard { padding: 16px; }
+  .detalheGrid { grid-template-columns: 1fr !important; }
+  .formActions { flex-direction: column; }
+  .formActions > * { width: 100%; text-align: center; justify-content: center; }
+  .pageHeader { flex-direction: column; align-items: flex-start; }
+  .ncCard { padding: 12px; }
+  .ncFormBox { padding: 12px; }
+}
