@@ -79,15 +79,17 @@ export default function Blog() {
     if (!email) return
     setNewsletterStatus('sending')
     try {
-      await fetch('https://formsubmit.co/ajax/adm@pousinox.com.br', {
+      const resp = await fetch('https://vcektwtpofypsgdgdjlx.supabase.co/functions/v1/notificar-contato', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          _subject: 'Newsletter — novo cadastro',
+          nome: 'Newsletter',
           email,
-          _captcha: 'false',
+          mensagem: 'Cadastro na newsletter do blog',
+          origem: 'newsletter',
         }),
       })
+      if (!resp.ok) throw new Error('Erro ao cadastrar')
       setNewsletterStatus('sent')
       setEmail('')
     } catch {
