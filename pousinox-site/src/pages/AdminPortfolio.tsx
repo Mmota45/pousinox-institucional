@@ -63,7 +63,7 @@ export default function AdminPortfolio() {
   const [equipNormaPopover, setEquipNormaPopover] = useState<number | null>(null)
   const [equipFiltroTipo, setEquipFiltroTipo] = useState<string>('')
   const [equipFiltroMaterial, setEquipFiltroMaterial] = useState<string>('')
-  const [equipBusca, setEquipBusca] = useState('')
+  const [equipFiltroEquip, setEquipFiltroEquip] = useState('')
   const [equipSecaoAberta, setEquipSecaoAberta] = useState<Record<string, boolean>>({})
 
   // ── IA ──
@@ -335,10 +335,10 @@ Formato: texto corrido com negrito, pronto para copiar e colar. Máximo 400 pala
       if (equipFiltroTipo === 'obrigatorio' && !eq.obrigatorio) return false
       if (equipFiltroTipo === 'recomendado' && eq.obrigatorio) return false
       if (equipFiltroMaterial && eq.material !== equipFiltroMaterial) return false
-      if (equipBusca && !eq.equipamento.toLowerCase().includes(equipBusca.toLowerCase())) return false
+      if (equipFiltroEquip && eq.equipamento !== equipFiltroEquip) return false
       return true
     })
-  }, [equipamentos, equipFiltroTipo, equipFiltroMaterial, equipBusca])
+  }, [equipamentos, equipFiltroTipo, equipFiltroMaterial, equipFiltroEquip])
 
   const equipsPorSegmento = useMemo(() => {
     const map: Record<string, typeof equipsFiltrados> = {}
@@ -350,6 +350,7 @@ Formato: texto corrido com negrito, pronto para copiar e colar. Máximo 400 pala
   }, [equipsFiltrados])
 
   const materiaisUnicos = useMemo(() => [...new Set(equipamentos.map(e => e.material))].sort(), [equipamentos])
+  const equipamentosUnicos = useMemo(() => [...new Set(equipamentos.map(e => e.equipamento))].sort(), [equipamentos])
 
   const statusCor = (s: string) => {
     if (s === 'vigente') return { bg: '#dcfce7', color: '#15803d' }
@@ -639,7 +640,10 @@ Formato: texto corrido com negrito, pronto para copiar e colar. Máximo 400 pala
       {aba === 'equipamentos' && (
         <div className={styles.card}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
-            <input className={styles.inputBusca} placeholder="Buscar equipamento..." value={equipBusca} onChange={e => setEquipBusca(e.target.value)} style={{ minWidth: 160, flex: 1 }} />
+            <select className={styles.inputBusca} value={equipFiltroEquip} onChange={e => setEquipFiltroEquip(e.target.value)} style={{ minWidth: 180 }}>
+              <option value="">Todos equipamentos</option>
+              {equipamentosUnicos.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
             <select className={styles.inputBusca} value={equipFiltro} onChange={e => setEquipFiltro(e.target.value)} style={{ minWidth: 180 }}>
               <option value="">Todos os segmentos</option>
               {equipSegmentos.map(s => <option key={s} value={s}>{s}</option>)}
