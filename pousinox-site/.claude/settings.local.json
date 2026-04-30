@@ -56,7 +56,16 @@
       "Bash(npx vite:*)",
       "Bash(bash ../scripts/deploy.sh)",
       "Bash(npm test:*)",
-      "WebFetch(domain:pousinox.com.br)"
+      "WebFetch(domain:pousinox.com.br)",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)",
+      "Bash(npm ls:*)",
+      "Bash(netstat -ano)",
+      "Bash(npm uninstall:*)",
+      "Bash(git merge:*)",
+      "WebFetch(domain:www.pousinox.com.br)",
+      "Bash(npx wrangler:*)",
+      "Bash(PGPASSWORD='qpSSwIBG4Hp9MP4Q' psql:*)"
     ]
   }
 }
