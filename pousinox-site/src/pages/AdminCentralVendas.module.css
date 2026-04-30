@@ -344,6 +344,29 @@
 .normaPenalidade { font-size: 0.72rem; color: #b91c1c; margin: 0; line-height: 1.3; }
 .normaArgumento { font-size: 0.8rem; color: #1e40af; background: #eff6ff; border-radius: 8px; padding: 10px 12px; margin: 0; line-height: 1.5; }
 
+/* ── Argumento Regulatório ── */
+.regHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.regHeader h4 { margin: 0; font-size: 0.88rem; font-weight: 700; }
+.urgBadge { padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; white-space: nowrap; }
+.urgCritico { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+.urgAlto { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.urgTecnico { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+.urgDiferencial { background: #eff6ff; color: #1e40af; border: 1px solid #93c5fd; }
+
+.regSubtitle { font-size: 0.78rem; font-weight: 700; color: #475569; margin: 14px 0 8px; display: flex; align-items: center; gap: 6px; }
+
+.equipLista { display: flex; flex-direction: column; gap: 4px; }
+.equipItem { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: #f8fafc; border: 1px solid #f1f5f9; font-size: 0.78rem; }
+.equipItem span:first-child { width: 18px; text-align: center; flex-shrink: 0; }
+.equipNome { flex: 1; color: #334155; }
+.equipMaterial { padding: 1px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; background: #e2e8f0; color: #475569; white-space: nowrap; }
+.equipMaterial316 { background: #dbeafe; color: #1d4ed8; }
+.equipLegenda { font-size: 0.68rem; color: #94a3b8; margin-top: 6px; }
+
+.regMsgBox { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-top: 4px; }
+.regMsgText { font-size: 0.8rem; color: #334155; line-height: 1.5; white-space: pre-wrap; margin: 0 0 10px; }
+.regMsgActions { display: flex; gap: 8px; }
+
 .drawerAcoes { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 8px; border-top: 1px solid var(--color-border); }
 .btnSmall {
   padding: 3px 10px; font-size: 0.75rem; border: 1px solid var(--color-border);

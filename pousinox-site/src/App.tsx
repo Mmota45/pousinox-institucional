@@ -27,7 +27,6 @@ import AdminVendas from './pages/AdminVendas'
 import AdminCentralVendas from './pages/AdminCentralVendas'
 import AdminIA from './pages/AdminIA'
 import AdminRelatorios from './pages/AdminRelatorios'
-import AdminDashboardBI from './pages/AdminDashboardBI'
 import AdminCanvaCallback from './pages/AdminCanvaCallback'
 import AdminAnaliseNF from './pages/AdminAnaliseNF'
 import AdminOrcamento from './pages/AdminOrcamento'
@@ -44,7 +43,6 @@ import AdminConteudo from './pages/AdminConteudo'
 import AdminAnalytics from './pages/AdminAnalytics'
 import AdminProspeccao from './pages/AdminProspeccao'
 import AdminEstudoMercado from './pages/AdminEstudoMercado'
-import AdminLeads from './pages/AdminLeads'
 import AdminClientes from './pages/AdminClientes'
 import AdminProdutos from './pages/AdminProdutos'
 import AdminProjetos from './pages/AdminProjetos'
@@ -159,7 +157,6 @@ function App() {
             <Route path="central-vendas" element={<AdminCentralVendas />} />
             <Route path="ia" element={<AdminIA />} />
             <Route path="relatorios" element={<AdminRelatorios />} />
-            <Route path="dashboard-bi" element={<AdminDashboardBI />} />
             <Route path="configuracao-financeiro" element={<AdminConfiguracaoFinanceiro />} />
             <Route path="analise-nf" element={<AdminAnaliseNF />} />
             <Route path="cartoes" element={<AdminCartoes />} />
@@ -171,7 +168,6 @@ function App() {
             <Route path="analytics" element={<AdminAnalytics />} />
             <Route path="prospeccao" element={<AdminProspeccao />} />
             <Route path="estudo-mercado" element={<AdminEstudoMercado />} />
-            <Route path="leads" element={<AdminLeads />} />
             <Route path="clientes" element={<AdminClientes />} />
             <Route path="produtos" element={<AdminProdutos />} />
             <Route path="projetos" element={<AdminProjetos />} />

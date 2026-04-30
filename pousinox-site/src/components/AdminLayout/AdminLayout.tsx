@@ -56,7 +56,6 @@ const ROTA_PERMISSAO: Record<string, string> = {
   'feature-flags': 'feature-flags',
   assistente: 'assistente',
   site: 'site',
-  'dashboard-bi': 'relatorios',
   'central-vendas': 'central-vendas',
   ia: 'ia',
   uso: 'uso',
@@ -225,16 +224,6 @@ const NAV_ITEMS: NavItem[] = [
   // ── Marketing ────────────────────────────────────────────────────────────────
   {
     section: 'Marketing',
-    to: '/admin/leads',
-    label: 'Leads do Site',
-    permissao: 'prospeccao',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-      </svg>
-    ),
-  },
-  {
     to: '/admin/campanhas',
     label: 'Campanhas WPP',
     permissao: 'campanhas',
@@ -547,17 +536,6 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
 
-  {
-    to: '/admin/dashboard-bi',
-    label: 'Dashboard BI',
-    permissao: 'relatorios',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 21H4.6c-.56 0-.84 0-1.05-.11a1 1 0 0 1-.44-.44C3 20.24 3 19.96 3 19.4V3"/>
-        <path d="m7 14 4-4 4 4 6-6"/>
-      </svg>
-    ),
-  },
 
   // ── Configuração ─────────────────────────────────────────────────────────────
   {

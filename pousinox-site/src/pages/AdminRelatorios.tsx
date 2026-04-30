@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import { useAdmin } from '../contexts/AdminContext'
 import styles from './AdminVendas.module.css'
 import finStyles from './AdminFinanceiro.module.css'
+
+const DashboardBI = lazy(() => import('./AdminDashboardBI'))
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -31,7 +33,7 @@ interface DreGrupo {
   grupo: string; tipo: 'receita'|'despesa'; realizado: number; previsto: number; atrasado: number
 }
 
-type Aba = 'vendas' | 'budget' | 'dre'
+type Aba = 'vendas' | 'budget' | 'dre' | 'bi'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -252,7 +254,7 @@ export default function AdminRelatorios() {
 
       {/* Abas */}
       <div className={finStyles.abas}>
-        {([['vendas','📊 Vendas'],['budget','🎯 Budget'],['dre','📈 DRE']] as const).map(([k,l])=>(
+        {([['vendas','📊 Vendas'],['budget','🎯 Budget'],['dre','📈 DRE'],['bi','📉 Dashboard BI']] as [Aba,string][]).map(([k,l])=>(
           <button key={k} className={`${finStyles.aba} ${aba===k?finStyles.abaAtiva:''}`} onClick={()=>setAba(k)}>{l}</button>
         ))}
       </div>
@@ -580,6 +582,12 @@ export default function AdminRelatorios() {
           </>
         )
       })()}
+
+      {aba === 'bi' && (
+        <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Carregando Dashboard BI…</div>}>
+          <DashboardBI />
+        </Suspense>
+      )}
     </div>
   )
 }

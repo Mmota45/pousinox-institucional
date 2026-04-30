@@ -17,8 +17,11 @@ interface Exigencia {
   id: number; norma_id: number; artigo: string | null; texto_resumido: string; produto_id: number | null
   portfolio_produtos: { nome: string } | null
 }
+interface Equipamento {
+  id: number; segmento: string; equipamento: string; obrigatorio: boolean; norma_ref: string | null; material: string; observacao: string | null
+}
 
-type Aba = 'produtos' | 'segmentos' | 'normas'
+type Aba = 'produtos' | 'segmentos' | 'normas' | 'equipamentos'
 type Vista = 'lista' | 'form'
 
 export default function AdminPortfolio() {
@@ -44,6 +47,12 @@ export default function AdminPortfolio() {
   const [normaExpandida, setNormaExpandida] = useState<number | null>(null)
   const [normaExigencias, setNormaExigencias] = useState<Record<number, Exigencia[]>>({})
   const [normaBusca, setNormaBusca] = useState('')
+
+  // ── Equipamentos ──
+  const [equipamentos, setEquipamentos] = useState<Equipamento[]>([])
+  const [equipFiltro, setEquipFiltro] = useState('')
+  const [equipSegmentos, setEquipSegmentos] = useState<string[]>([])
+  const [equipEdit, setEquipEdit] = useState<Partial<Equipamento> & { _new?: boolean }>({})
 
   const showMsg = (tipo: 'ok' | 'erro', texto: string) => { setMsg({ tipo, texto }); setTimeout(() => setMsg(null), 3000) }
 
@@ -71,11 +80,31 @@ export default function AdminPortfolio() {
     setNormas(data ?? [])
   }, [])
 
+  const carregarEquipamentos = useCallback(async () => {
+    const q = supabaseAdmin.from('segmento_equipamentos').select('*').order('segmento').order('obrigatorio', { ascending: false })
+    if (equipFiltro) q.eq('segmento', equipFiltro)
+    const { data } = await q
+    setEquipamentos((data as any) ?? [])
+    const { data: allSegs } = await supabaseAdmin.from('segmento_equipamentos').select('segmento')
+    const uniq = [...new Set((allSegs ?? []).map((s: any) => s.segmento))].sort()
+    setEquipSegmentos(uniq as string[])
+  }, [equipFiltro])
+
+  // Carregar counts iniciais de todas as abas
+  useEffect(() => {
+    carregarProdutos()
+    carregarMapeamentos()
+    carregarNormas()
+    carregarEquipamentos()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     if (aba === 'produtos') carregarProdutos()
     if (aba === 'segmentos') { carregarProdutos(); carregarMapeamentos() }
     if (aba === 'normas') carregarNormas()
-  }, [aba, carregarProdutos, carregarMapeamentos, carregarNormas])
+    if (aba === 'equipamentos') carregarEquipamentos()
+  }, [aba, carregarProdutos, carregarMapeamentos, carregarNormas, carregarEquipamentos])
 
   // ── Produto CRUD ──
   async function salvarProduto() {
@@ -126,6 +155,33 @@ export default function AdminPortfolio() {
     carregarMapeamentos()
   }
 
+  // ── Equipamento CRUD ──
+  async function salvarEquipamento() {
+    if (!equipEdit.segmento?.trim() || !equipEdit.equipamento?.trim()) { showMsg('erro', 'Segmento e equipamento obrigatórios'); return }
+    const payload = {
+      segmento: equipEdit.segmento, equipamento: equipEdit.equipamento,
+      obrigatorio: equipEdit.obrigatorio ?? false, norma_ref: equipEdit.norma_ref || null,
+      material: equipEdit.material || '304', observacao: equipEdit.observacao || null,
+    }
+    if (equipEdit.id && !equipEdit._new) {
+      await supabaseAdmin.from('segmento_equipamentos').update(payload).eq('id', equipEdit.id)
+      showMsg('ok', 'Atualizado')
+    } else {
+      const { error } = await supabaseAdmin.from('segmento_equipamentos').insert(payload)
+      if (error) { showMsg('erro', error.message.includes('unique') ? 'Já existe' : error.message); return }
+      showMsg('ok', 'Criado')
+    }
+    setEquipEdit({})
+    carregarEquipamentos()
+  }
+
+  async function excluirEquipamento(id: number) {
+    if (!confirm('Excluir equipamento?')) return
+    await supabaseAdmin.from('segmento_equipamentos').delete().eq('id', id)
+    showMsg('ok', 'Excluído')
+    carregarEquipamentos()
+  }
+
   // ── Norma expand ──
   async function expandirNorma(id: number) {
     if (normaExpandida === id) { setNormaExpandida(null); return }
@@ -165,7 +221,7 @@ export default function AdminPortfolio() {
 
       {/* Abas */}
       <div className={styles.abas}>
-        {([['produtos', '📦 Produtos (' + produtos.length + ')'], ['segmentos', '🎯 Segmentos (' + segmentos.length + ')'], ['normas', '⚖️ Normas (' + normas.length + ')']] as [Aba, string][]).map(([k, label]) => (
+        {([['produtos', '📦 Produtos (' + produtos.length + ')'], ['segmentos', '🎯 Segmentos (' + segmentos.length + ')'], ['normas', '⚖️ Normas (' + normas.length + ')'], ['equipamentos', '🔧 Equipamentos (' + equipamentos.length + ')']] as [Aba, string][]).map(([k, label]) => (
           <button key={k} className={`${styles.aba} ${aba === k ? styles.abaAtiva : ''}`} onClick={() => setAba(k)}>{label}</button>
         ))}
       </div>
@@ -357,6 +413,81 @@ export default function AdminPortfolio() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ══════ ABA EQUIPAMENTOS ══════ */}
+      {aba === 'equipamentos' && (
+        <div className={styles.card}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+            <select className={styles.inputBusca} value={equipFiltro} onChange={e => setEquipFiltro(e.target.value)} style={{ minWidth: 200 }}>
+              <option value="">Todos os segmentos</option>
+              {equipSegmentos.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <button className={styles.btnPrimary} onClick={() => setEquipEdit({ _new: true, obrigatorio: false, material: '304' })}>+ Novo Equipamento</button>
+          </div>
+
+          {/* Form inline */}
+          {(equipEdit._new || equipEdit.id) && (
+            <div style={{ border: '2px dashed #cbd5e1', borderRadius: 10, padding: 16, marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <input className={styles.inputBusca} placeholder="Segmento *" value={equipEdit.segmento || ''} onChange={e => setEquipEdit(p => ({ ...p, segmento: e.target.value }))} style={{ flex: 1, minWidth: 150 }} list="eq-seg-list" />
+                <datalist id="eq-seg-list">{equipSegmentos.map(s => <option key={s} value={s} />)}</datalist>
+                <input className={styles.inputBusca} placeholder="Equipamento *" value={equipEdit.equipamento || ''} onChange={e => setEquipEdit(p => ({ ...p, equipamento: e.target.value }))} style={{ flex: 2, minWidth: 200 }} />
+                <select className={styles.inputBusca} value={equipEdit.material || '304'} onChange={e => setEquipEdit(p => ({ ...p, material: e.target.value }))} style={{ width: 90 }}>
+                  <option value="304">304</option>
+                  <option value="316">316</option>
+                  <option value="316L">316L</option>
+                  <option value="430">430</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
+                  <input type="checkbox" checked={equipEdit.obrigatorio || false} onChange={e => setEquipEdit(p => ({ ...p, obrigatorio: e.target.checked }))} /> Obrigatório
+                </label>
+                <input className={styles.inputBusca} placeholder="Norma ref (ex: RDC 216/2004)" value={equipEdit.norma_ref || ''} onChange={e => setEquipEdit(p => ({ ...p, norma_ref: e.target.value }))} style={{ flex: 1, minWidth: 150 }} />
+                <input className={styles.inputBusca} placeholder="Observação" value={equipEdit.observacao || ''} onChange={e => setEquipEdit(p => ({ ...p, observacao: e.target.value }))} style={{ flex: 2, minWidth: 200 }} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className={styles.btnPrimary} onClick={salvarEquipamento}>💾 Salvar</button>
+                <button className={styles.btnSecondary} onClick={() => setEquipEdit({})}>Cancelar</button>
+              </div>
+            </div>
+          )}
+
+          {/* Tabela */}
+          <div style={{ overflowX: 'auto' }}>
+            <table className={styles.tabela}>
+              <thead>
+                <tr>
+                  <th>Segmento</th>
+                  <th>Equipamento</th>
+                  <th>Tipo</th>
+                  <th>Material</th>
+                  <th>Norma Ref</th>
+                  <th>Observação</th>
+                  <th style={{ width: 90 }}>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {equipamentos.map(eq => (
+                  <tr key={eq.id}>
+                    <td>{eq.segmento}</td>
+                    <td>{eq.equipamento}</td>
+                    <td><span style={{ padding: '2px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: eq.obrigatorio ? '#dcfce7' : '#fef3c7', color: eq.obrigatorio ? '#15803d' : '#92400e' }}>{eq.obrigatorio ? '✅ Obrig.' : '⭐ Recom.'}</span></td>
+                    <td><span style={{ padding: '2px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: eq.material !== '304' ? '#ede9fe' : '#f1f5f9', color: eq.material !== '304' ? '#7c3aed' : '#64748b' }}>{eq.material}</span></td>
+                    <td style={{ fontSize: 12, color: '#64748b' }}>{eq.norma_ref || '—'}</td>
+                    <td style={{ fontSize: 12, color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eq.observacao || '—'}</td>
+                    <td>
+                      <button title="Editar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }} onClick={() => setEquipEdit(eq)}>✏️</button>
+                      <button title="Excluir" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }} onClick={() => excluirEquipamento(eq.id)}>🗑</button>
+                    </td>
+                  </tr>
+                ))}
+                {equipamentos.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#94a3b8', padding: 24 }}>Nenhum equipamento cadastrado</td></tr>}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

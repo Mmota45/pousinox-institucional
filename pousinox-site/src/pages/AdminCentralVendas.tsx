@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseAdmin } from '../lib/supabase'
 import { useAdmin } from '../contexts/AdminContext'
@@ -278,6 +278,8 @@ pousinox.com.br`
   const [drawerPortfolio, setDrawerPortfolio] = useState<any[]>([])
   const [drawerPortfolioLoading, setDrawerPortfolioLoading] = useState(false)
   const [drawerNormas, setDrawerNormas] = useState<any[]>([])
+  const [drawerEquipamentos, setDrawerEquipamentos] = useState<any[]>([])
+  const [msgRegulatoria, setMsgRegulatoria] = useState('')
   const [portfolioAddOpen, setPortfolioAddOpen] = useState(false)
   const [portfolioAddNome, setPortfolioAddNome] = useState('')
   const [portfolioAddDesc, setPortfolioAddDesc] = useState('')
@@ -321,8 +323,7 @@ pousinox.com.br`
         .in('cidade', cidadesUpper)
         .order('porte', { ascending: false })
         .limit(N_DIRETO)
-      if (filtroSegmentos.length === 1) q = q.ilike('segmento', `%${filtroSegmentos[0]}%`)
-      else if (filtroSegmentos.length > 1) q = q.in('segmento', filtroSegmentos)
+      // Filtro de segmento aplicado no frontend (hotlistFiltrada)
       const { data, error } = await q
       // Mapear para ProspectScore com scores simplificados
       const mapped = (data ?? []).map((p: any) => ({
@@ -363,8 +364,7 @@ pousinox.com.br`
           .limit(N_DIRETO)
         if (filtroUFs.length === 1) query = query.eq('uf', filtroUFs[0])
         else if (filtroUFs.length > 1) query = query.in('uf', filtroUFs)
-        if (filtroSegmentos.length === 1) query = query.ilike('segmento', `%${filtroSegmentos[0]}%`)
-        else if (filtroSegmentos.length > 1) query = query.in('segmento', filtroSegmentos)
+        // Filtro de segmento aplicado no frontend (hotlistFiltrada)
         const { data: fallback } = await query
         const mapped = (fallback ?? []).map((p: any) => ({
           prospect_id: p.id, razao_social: p.razao_social, nome_fantasia: p.nome_fantasia,
@@ -384,7 +384,7 @@ pousinox.com.br`
       }
     }
     setLoadingHot(false)
-  }, [filtroUFs, cidadesMeso, filtroSegmentos])
+  }, [filtroUFs, cidadesMeso])
 
   const carregarFollowups = useCallback(async () => {
     setLoadingFup(true)
@@ -540,6 +540,34 @@ pousinox.com.br`
     return raw.replace(/^[\d.\-\/]+\s*/, '').replace(/\s+/g, ' ').trim()
   }
 
+  function calcularUrgencia(normas: any[]): 'critico' | 'alto' | 'tecnico' | 'diferencial' {
+    if (normas.length === 0) return 'diferencial'
+    const pens = normas.map(n => (n.penalidade || '').toLowerCase()).join(' ')
+    if (/interdição|cancelamento|fecha|cassação|suspensão/.test(pens)) return 'critico'
+    if (/multa|apreensão|recolhimento/.test(pens)) return 'alto'
+    if (/certificação|acreditação|exportação/.test(pens)) return 'tecnico'
+    return 'diferencial'
+  }
+
+  function gerarMsgRegulatorio(prospect: ProspectScore, normas: any[], equipamentos: any[]): string {
+    const nomeClean = limparNome(prospect.nome_fantasia || prospect.razao_social || '')
+    const nomeFmt = nomeClean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+    const seg = prospect.segmento || 'seu segmento'
+
+    // Pegar a norma mais severa como gancho
+    const normaSevera = normas.find(n => /interdição|multa|fecha/i.test(n.penalidade || '')) || normas[0]
+    const orgao = normaSevera?.orgao || 'Vigilância Sanitária'
+    const penalidade = normaSevera?.penalidade || 'interdição do estabelecimento'
+
+    // Equipamentos obrigatórios
+    const obrig = equipamentos.filter(e => e.obrigatorio).slice(0, 3)
+    const listaEquip = obrig.length > 0
+      ? obrig.map(e => e.equipamento.toLowerCase()).join(', ')
+      : 'bancadas, pias e equipamentos'
+
+    return `Olá ${nomeFmt}! Tudo bem?\n\nVocê sabia que a ${orgao} pode aplicar *${penalidade}* em estabelecimentos de ${seg.toLowerCase()} que não utilizam equipamentos em aço inox?\n\nA *Pousinox* fabrica ${listaEquip} em aço inox sob medida, em conformidade com as normas sanitárias. Atendemos desde 2001, com fábrica própria em Pouso Alegre/MG.\n\nPosso enviar nosso catálogo e fazer um orçamento sem compromisso? 😊`
+  }
+
   function gerarMsgWpp(nome: string, segmento?: string, cidade?: string): string {
     const seg = (segmento || '').toLowerCase()
     const nomeClean = limparNome(nome)
@@ -646,8 +674,19 @@ pousinox.com.br`
         .select('id, norma, orgao, titulo, status, penalidade, observacao, segmentos')
         .contains('segmentos', [ps.segmento])
       setDrawerNormas(nData ?? [])
+      // Carregar equipamentos obrigatórios do segmento
+      const { data: eData } = await supabaseAdmin
+        .from('segmento_equipamentos')
+        .select('*')
+        .eq('segmento', ps.segmento)
+        .order('obrigatorio', { ascending: false })
+      setDrawerEquipamentos(eData ?? [])
+      // Gerar mensagem regulatória
+      setMsgRegulatoria(gerarMsgRegulatorio(ps, nData ?? [], eData ?? []))
     } else {
       setDrawerNormas([])
+      setDrawerEquipamentos([])
+      setMsgRegulatoria('')
     }
     setPortfolioAddOpen(false)
   }
@@ -779,17 +818,13 @@ pousinox.com.br`
 
   const UFS_DISPONIVEIS = ['MG','SP','RJ','ES','PR','SC','RS','GO','DF','BA','MT','MS','CE','PE','PA','AM','MA','RN','PB','PI','SE','AL','RO','AC','AP','TO','RR']
   // Segmentos extraídos dos dados reais carregados
-  const [segmentosReais, setSegmentosReais] = useState<string[]>([])
-  useEffect(() => {
-    supabaseAdmin.rpc('get_segmentos_distintos').then(({ data, error }) => {
-      if (data && !error) {
-        const raw = (data as any[]).map((r: any) => (r.segmento || '').trim()).filter(Boolean)
-        const limpos = raw.filter((s: string) => !/[�\uFFFD]/.test(s))
-        const uniq = [...new Set(limpos.map((s: string) => s.replace(/\s+/g, ' ')))]
-        setSegmentosReais(uniq.sort())
-      }
-    })
-  }, [])
+  const segmentosReais = useMemo(() => {
+    if (hotlist.length === 0) return []
+    const raw = hotlist.map(h => (h.segmento ?? '').trim()).filter(Boolean)
+    const limpos = raw.filter(s => !/[\uFFFD]/.test(s))
+    const uniq = [...new Set(limpos.map(s => s.replace(/\s+/g, ' ')))]
+    return uniq.sort()
+  }, [hotlist])
 
   const hotlistFiltrada = hotlist.filter(h => {
     if (filtroSoWa && !h.whatsapp) return false
@@ -1787,31 +1822,82 @@ pousinox.com.br`
                 )}
               </div>
 
-              {/* Normas Regulatórias */}
-              {drawerNormas.length > 0 && (
+              {/* ⚡ Argumento Regulatório */}
+              {(drawerNormas.length > 0 || drawerEquipamentos.length > 0) && (
                 <div className={styles.secaoColapsavel}>
-                  <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('normas')}>
-                    <span>{drawerSecoes.normas ? '▼' : '▶'}</span>
-                    <span>⚖️ Normas Regulatórias ({drawerNormas.length})</span>
+                  <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('regulatorio')}>
+                    <span>{drawerSecoes.regulatorio ? '▼' : '▶'}</span>
+                    <div className={styles.regHeader}>
+                      <span>⚡ Argumento Regulatório — {drawerPs.segmento}</span>
+                      {drawerNormas.length > 0 && (
+                        <span className={`${styles.urgBadge} ${styles[`urg${calcularUrgencia(drawerNormas).charAt(0).toUpperCase() + calcularUrgencia(drawerNormas).slice(1)}`]}`}>
+                          {calcularUrgencia(drawerNormas) === 'critico' ? '🔴 Crítico' :
+                           calcularUrgencia(drawerNormas) === 'alto' ? '🟡 Alto' :
+                           calcularUrgencia(drawerNormas) === 'tecnico' ? '🟢 Técnico' : '🔵 Diferencial'}
+                        </span>
+                      )}
+                    </div>
                   </button>
-                  {drawerSecoes.normas && (
-                    <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {drawerNormas.map((n: any) => (
-                        <div key={n.id} className={styles.normaItem}>
-                          <div className={styles.normaHead}>
-                            <span className={styles.normaBadge}>{n.orgao}</span>
-                            <strong>{n.norma}</strong>
-                            <span className={styles.normaStatus} data-status={n.status}>{n.status}</span>
+                  {drawerSecoes.regulatorio && (
+                    <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      {/* Sub-seção: Normas */}
+                      {drawerNormas.length > 0 && (
+                        <div>
+                          <h4 style={{ margin: '0 0 8px', fontSize: 13, color: '#64748b' }}>📋 NORMAS ({drawerNormas.length})</h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {drawerNormas.map((n: any) => (
+                              <div key={n.id} className={styles.normaItem}>
+                                <div className={styles.normaHead}>
+                                  <span className={styles.normaBadge}>{n.orgao}</span>
+                                  <strong>{n.norma}</strong>
+                                  <span className={styles.normaStatus} data-status={n.status}>{n.status}</span>
+                                </div>
+                                <p className={styles.normaTitulo}>{n.titulo}</p>
+                                {n.penalidade && <p className={styles.normaPenalidade}>⚠️ {n.penalidade}</p>}
+                              </div>
+                            ))}
                           </div>
-                          <p className={styles.normaTitulo}>{n.titulo}</p>
-                          {n.penalidade && (
-                            <p className={styles.normaPenalidade}>⚠️ {n.penalidade}</p>
-                          )}
                         </div>
-                      ))}
-                      <p className={styles.normaArgumento}>
-                        💡 <strong>Argumento:</strong> "Sua empresa está em conformidade? O aço inox AISI 304 é o único material que atende todos os requisitos: liso, impermeável, lavável, atóxico."
-                      </p>
+                      )}
+
+                      {/* Sub-seção: Equipamentos */}
+                      {drawerEquipamentos.length > 0 && (
+                        <div>
+                          <h4 style={{ margin: '0 0 8px', fontSize: 13, color: '#64748b' }}>🔧 EQUIPAMENTOS EM INOX ({drawerEquipamentos.length})</h4>
+                          <div className={styles.equipLista}>
+                            {drawerEquipamentos.map((eq: any) => (
+                              <div key={eq.id} className={styles.equipItem}>
+                                <span>{eq.obrigatorio ? '✅' : '⭐'}</span>
+                                <span className={styles.equipNome}>{eq.equipamento}</span>
+                                <span className={`${styles.equipMaterial} ${eq.material !== '304' ? styles.equipMaterial316 : ''}`}>
+                                  {eq.material}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                          <p className={styles.equipLegenda}>✅ = Obrigatório &nbsp; ⭐ = Recomendado</p>
+                        </div>
+                      )}
+
+                      {/* Sub-seção: Mensagem Regulatória */}
+                      {msgRegulatoria && (
+                        <div>
+                          <h4 style={{ margin: '0 0 8px', fontSize: 13, color: '#64748b' }}>📱 MENSAGEM REGULATÓRIA</h4>
+                          <div className={styles.regMsgBox}>
+                            <p className={styles.regMsgText}>{msgRegulatoria}</p>
+                            <div className={styles.regMsgActions}>
+                              <button onClick={() => { navigator.clipboard.writeText(msgRegulatoria); showMsg('ok', 'Mensagem copiada!') }}>📋 Copiar</button>
+                              <button onClick={() => {
+                                const tel = drawerPs.whatsapp || drawerPs.telefone1
+                                if (!tel) { showMsg('erro', 'Sem telefone'); return }
+                                const num = tel.replace(/\D/g, '')
+                                const numFull = num.length <= 11 ? `55${num}` : num
+                                window.open(`https://wa.me/${numFull}?text=${encodeURIComponent(msgRegulatoria)}`, '_blank')
+                              }}>📱 Enviar WhatsApp</button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
