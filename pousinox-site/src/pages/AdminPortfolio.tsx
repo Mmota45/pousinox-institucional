@@ -716,11 +716,15 @@ Formato: texto corrido com negrito, pronto para copiar e colar. Máximo 400 pala
                             <span style={{ position: 'relative' }}>
                               <button onClick={() => setEquipNormaPopover(equipNormaPopover === eq.id ? null : eq.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e40af', fontWeight: 600, fontSize: '0.78rem', textDecoration: 'underline', padding: 0 }}>{eq.norma_ref}</button>
                               {equipNormaPopover === eq.id && (() => {
-                                const norma = normas.find(n => n.norma === eq.norma_ref)
+                                const ref = (eq.norma_ref || '').trim().toLowerCase()
+                                const norma = normas.find(n => {
+                                  const nn = (n.norma || '').trim().toLowerCase()
+                                  return nn === ref || nn.includes(ref) || ref.includes(nn)
+                                })
                                 return norma ? (
                                   <>
                                     <div onClick={() => setEquipNormaPopover(null)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
-                                    <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 100, width: 340, maxWidth: '85vw', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.15)', padding: 14, fontSize: '0.82rem' }}>
+                                    <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 100, width: 380, maxWidth: '90vw', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, boxShadow: '0 12px 40px rgba(0,0,0,.2)', padding: 16, fontSize: '0.82rem' }}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                                         <span style={{ background: '#1e40af', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>{norma.orgao}</span>
                                         <strong>{norma.norma}</strong>
