@@ -1836,45 +1836,50 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
               <button className={styles.drawerFechar} onClick={() => setDrawerPs(null)}>✕</button>
             </div>
             <div className={styles.drawerBody}>
-              {/* Info básica + Status */}
-              <div className={styles.drawerInfo}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <strong>Status:</strong>
-                  <div ref={statusRef} style={{ position: 'relative' }}>
-                    {(() => {
-                      const atual = STATUS_OPTS.find(o => o.value === (drawerPs.status_contato ?? '')) ?? STATUS_OPTS[0]
-                      return (
-                        <>
-                          <button className={styles.statusBadge} style={{ background: atual.bg, color: atual.color }}
-                            onClick={() => setDrawerStatusOpen(!drawerStatusOpen)}>
-                            {atual.label} ▾
-                          </button>
-                          {drawerStatusOpen && (
-                            <>
-                              <div className={styles.backdrop} onClick={() => setDrawerStatusOpen(false)} />
-                              <div className={styles.statusDrop}>
-                                {STATUS_OPTS.map(o => (
-                                  <button key={o.value} className={styles.statusOpt}
-                                    style={{ background: o.value === (drawerPs.status_contato ?? '') ? o.bg : undefined }}
-                                    onClick={() => atualizarStatus(drawerPs, o.value)}>
-                                    {o.label}
-                                  </button>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </>
-                      )
-                    })()}
-                  </div>
+              {/* Info básica + Status + Score */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
+                {/* Status */}
+                <div ref={statusRef} style={{ position: 'relative' }}>
+                  {(() => {
+                    const atual = STATUS_OPTS.find(o => o.value === (drawerPs.status_contato ?? '')) ?? STATUS_OPTS[0]
+                    return (
+                      <>
+                        <button className={styles.statusBadge} style={{ background: atual.bg, color: atual.color, fontSize: '0.82rem', padding: '6px 14px' }}
+                          onClick={() => setDrawerStatusOpen(!drawerStatusOpen)}>
+                          {atual.label} ▾
+                        </button>
+                        {drawerStatusOpen && (
+                          <>
+                            <div className={styles.backdrop} onClick={() => setDrawerStatusOpen(false)} />
+                            <div className={styles.statusDrop}>
+                              {STATUS_OPTS.map(o => (
+                                <button key={o.value} className={styles.statusOpt}
+                                  style={{ background: o.value === (drawerPs.status_contato ?? '') ? o.bg : undefined }}
+                                  onClick={() => atualizarStatus(drawerPs, o.value)}>
+                                  {o.label}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </>
+                    )
+                  })()}
                 </div>
-                <div><strong>Razão Social:</strong> {drawerPs.razao_social}</div>
-                <div><strong>CNPJ:</strong> {drawerPs.cnpj}</div>
-                <div><strong>Cidade/UF:</strong> {drawerPs.cidade}/{drawerPs.uf}</div>
-                {drawerPs.segmento && <div><strong>Segmento:</strong> {drawerPs.segmento}</div>}
-                {drawerPs.porte && <div><strong>Porte:</strong> {drawerPs.porte}</div>}
-                <div><strong>Score:</strong> <span style={{ color: '#2563eb', fontWeight: 700 }}>{Number(drawerPs.score_total).toFixed(1)}</span></div>
-                {drawerPs.ultimo_contato && <div><strong>Último contato:</strong> {fmtData(drawerPs.ultimo_contato)}</div>}
+                {/* Score destaque */}
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '4px 14px' }}>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>SCORE</span>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#2563eb' }}>{Number(drawerPs.score_total).toFixed(1)}</span>
+                </div>
+              </div>
+
+              <div className={styles.drawerInfo}>
+                <div><strong>Razão Social</strong>{drawerPs.razao_social}</div>
+                <div><strong>CNPJ</strong>{drawerPs.cnpj}</div>
+                <div><strong>Cidade/UF</strong>{drawerPs.cidade}/{drawerPs.uf}</div>
+                {drawerPs.segmento && <div><strong>Segmento</strong>{drawerPs.segmento}</div>}
+                {drawerPs.porte && <div><strong>Porte</strong>{drawerPs.porte}</div>}
+                {drawerPs.ultimo_contato && <div><strong>Último contato</strong>{fmtData(drawerPs.ultimo_contato)}</div>}
               </div>
 
               {/* Contato (colapsável) */}
