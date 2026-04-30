@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminCompras.module.css'
 
@@ -47,6 +47,12 @@ export default function AdminPortfolio() {
   const [normaExpandida, setNormaExpandida] = useState<number | null>(null)
   const [normaExigencias, setNormaExigencias] = useState<Record<number, Exigencia[]>>({})
   const [normaBusca, setNormaBusca] = useState('')
+  const [normaFiltroOrgao, setNormaFiltroOrgao] = useState('')
+  const [normaFiltroStatus, setNormaFiltroStatus] = useState('')
+
+  // ── Produtos UX ──
+  const [catAberta, setCatAberta] = useState<Record<string, boolean>>({})
+  const [descExpandida, setDescExpandida] = useState<number | null>(null)
 
   // ── Equipamentos ──
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([])
@@ -103,7 +109,7 @@ export default function AdminPortfolio() {
     if (aba === 'produtos') carregarProdutos()
     if (aba === 'segmentos') { carregarProdutos(); carregarMapeamentos() }
     if (aba === 'normas') carregarNormas()
-    if (aba === 'equipamentos') carregarEquipamentos()
+    if (aba === 'equipamentos') { carregarEquipamentos(); carregarNormas() }
   }, [aba, carregarProdutos, carregarMapeamentos, carregarNormas, carregarEquipamentos])
 
   // ── Produto CRUD ──
@@ -199,9 +205,26 @@ export default function AdminPortfolio() {
     !prodBusca || p.nome.toLowerCase().includes(prodBusca.toLowerCase()) || (p.descricao || '').toLowerCase().includes(prodBusca.toLowerCase())
   )
 
-  const normasFiltradas = normas.filter(n =>
-    !normaBusca || n.norma.toLowerCase().includes(normaBusca.toLowerCase()) || (n.titulo || '').toLowerCase().includes(normaBusca.toLowerCase()) || n.orgao.toLowerCase().includes(normaBusca.toLowerCase())
-  )
+  // Agrupar produtos por categoria
+  const prodsPorCategoria = useMemo(() => {
+    const map: Record<string, typeof prodsFiltrados> = {}
+    prodsFiltrados.forEach(p => {
+      const cat = p.categoria || 'sem categoria'
+      if (!map[cat]) map[cat] = []
+      map[cat].push(p)
+    })
+    return Object.entries(map).sort(([a], [b]) => a.localeCompare(b))
+  }, [prodsFiltrados])
+
+  const normasFiltradas = normas.filter(n => {
+    if (normaBusca && !n.norma.toLowerCase().includes(normaBusca.toLowerCase()) && !(n.titulo || '').toLowerCase().includes(normaBusca.toLowerCase()) && !n.orgao.toLowerCase().includes(normaBusca.toLowerCase())) return false
+    if (normaFiltroOrgao && n.orgao !== normaFiltroOrgao) return false
+    if (normaFiltroStatus && n.status !== normaFiltroStatus) return false
+    return true
+  })
+
+  const orgaosUnicos = useMemo(() => [...new Set(normas.map(n => n.orgao))].sort(), [normas])
+  const statusUnicos = useMemo(() => [...new Set(normas.map(n => n.status))].sort(), [normas])
 
   const statusCor = (s: string) => {
     if (s === 'vigente') return { bg: '#dcfce7', color: '#15803d' }
@@ -235,33 +258,47 @@ export default function AdminPortfolio() {
                 <input className={styles.inputBusca} placeholder="Buscar produto..." value={prodBusca} onChange={e => setProdBusca(e.target.value)} style={{ flex: 1, minWidth: 200 }} />
                 <button className={styles.btnPrimary} onClick={() => { setProdEdit({}); setProdVista('form') }}>+ Novo Produto</button>
               </div>
-              <table className={styles.tabela}>
-                <thead>
-                  <tr>
-                    <th>Nome</th>
-                    <th>Descrição</th>
-                    <th>Categoria</th>
-                    <th>Ativo</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {prodsFiltrados.map(p => (
-                    <tr key={p.id}>
-                      <td style={{ fontWeight: 600 }}>{p.nome}</td>
-                      <td style={{ fontSize: '0.82rem', color: '#64748b', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.descricao || '—'}</td>
-                      <td><span style={{ background: p.categoria === 'fixadores' ? '#dbeafe' : '#f0fdf4', padding: '2px 8px', borderRadius: 4, fontSize: '0.75rem', fontWeight: 600 }}>{p.categoria}</span></td>
-                      <td>{p.ativo ? '✅' : '❌'}</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <button className={styles.btnSmall} onClick={() => { setProdEdit(p); setProdVista('form') }}>✏️</button>
-                          <button className={styles.btnSmallDanger} onClick={() => excluirProduto(p.id)}>🗑</button>
+              {/* Produtos agrupados por categoria — colapsável */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {prodsPorCategoria.map(([cat, prods]) => {
+                  const aberta = catAberta[cat] ?? false
+                  const catLabel: Record<string, string> = { fabricacao: '🔧 Fabricação', fixadores: '📌 Fixadores', acessorios: '🔩 Acessórios' }
+                  const catBg: Record<string, string> = { fabricacao: '#f0fdf4', fixadores: '#dbeafe', acessorios: '#fef3c7' }
+                  return (
+                    <div key={cat} style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                      <button onClick={() => setCatAberta(p => ({ ...p, [cat]: !p[cat] }))} style={{ width: '100%', padding: '10px 16px', background: catBg[cat] || '#f8fafc', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }}>
+                        <span>{aberta ? '▼' : '▶'}</span>
+                        <span>{catLabel[cat] || cat}</span>
+                        <span style={{ marginLeft: 'auto', background: '#e2e8f0', padding: '2px 8px', borderRadius: 10, fontSize: '0.75rem', fontWeight: 700, color: '#475569' }}>{prods.length}</span>
+                      </button>
+                      {aberta && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                          {prods.map(p => (
+                            <div key={p.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 16px', borderTop: '1px solid #f1f5f9', background: '#fff' }}>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <strong style={{ fontSize: '0.85rem' }}>{p.nome}</strong>
+                                  {!p.ativo && <span style={{ fontSize: '0.65rem', background: '#fee2e2', color: '#dc2626', padding: '1px 5px', borderRadius: 4, fontWeight: 600 }}>inativo</span>}
+                                </div>
+                                {p.descricao && (
+                                  <p onClick={() => setDescExpandida(descExpandida === p.id ? null : p.id)} style={{ fontSize: '0.8rem', color: '#64748b', margin: '4px 0 0', cursor: 'pointer', lineHeight: 1.4, ...(descExpandida !== p.id ? { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, maxWidth: '100%' } : {}) }}>
+                                    {p.descricao}
+                                  </p>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                                <button className={styles.btnSmall} onClick={() => { setProdEdit(p); setProdVista('form') }}>✏️</button>
+                                <button className={styles.btnSmallDanger} onClick={() => excluirProduto(p.id)}>🗑</button>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      )}
+                    </div>
+                  )
+                })}
+                {prodsFiltrados.length === 0 && <p style={{ textAlign: 'center', color: '#94a3b8', padding: 24 }}>Nenhum produto encontrado</p>}
+              </div>
             </>
           ) : (
             <>
@@ -309,6 +346,7 @@ export default function AdminPortfolio() {
               {segmentos.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <button className={styles.btnPrimary} onClick={() => setSegAddOpen(true)}>+ Vincular Produto</button>
+            {segFiltro && <span style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>🤖 <em>Dica: vincule equipamentos obrigatórios como produtos para argumentação completa</em></span>}
           </div>
 
           {segAddOpen && (
@@ -369,7 +407,18 @@ export default function AdminPortfolio() {
       {/* ══════ ABA NORMAS ══════ */}
       {aba === 'normas' && (
         <div className={styles.card}>
-          <input className={styles.inputBusca} placeholder="Buscar norma..." value={normaBusca} onChange={e => setNormaBusca(e.target.value)} />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <input className={styles.inputBusca} placeholder="Buscar norma..." value={normaBusca} onChange={e => setNormaBusca(e.target.value)} style={{ flex: 1, minWidth: 180 }} />
+            <select className={styles.inputBusca} value={normaFiltroOrgao} onChange={e => setNormaFiltroOrgao(e.target.value)} style={{ minWidth: 120 }}>
+              <option value="">Todos os órgãos</option>
+              {orgaosUnicos.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <select className={styles.inputBusca} value={normaFiltroStatus} onChange={e => setNormaFiltroStatus(e.target.value)} style={{ minWidth: 120 }}>
+              <option value="">Todos os status</option>
+              {statusUnicos.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>{normasFiltradas.length} norma{normasFiltradas.length !== 1 ? 's' : ''}</span>
+          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {normasFiltradas.map(n => {
@@ -446,7 +495,10 @@ export default function AdminPortfolio() {
                 <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
                   <input type="checkbox" checked={equipEdit.obrigatorio || false} onChange={e => setEquipEdit(p => ({ ...p, obrigatorio: e.target.checked }))} /> Obrigatório
                 </label>
-                <input className={styles.inputBusca} placeholder="Norma ref (ex: RDC 216/2004)" value={equipEdit.norma_ref || ''} onChange={e => setEquipEdit(p => ({ ...p, norma_ref: e.target.value }))} style={{ flex: 1, minWidth: 150 }} />
+                <select className={styles.inputBusca} value={equipEdit.norma_ref || ''} onChange={e => setEquipEdit(p => ({ ...p, norma_ref: e.target.value }))} style={{ flex: 1, minWidth: 150 }}>
+                  <option value="">Norma ref (opcional)</option>
+                  {normas.map(n => <option key={n.id} value={n.norma}>{n.norma} — {n.orgao}</option>)}
+                </select>
                 <input className={styles.inputBusca} placeholder="Observação" value={equipEdit.observacao || ''} onChange={e => setEquipEdit(p => ({ ...p, observacao: e.target.value }))} style={{ flex: 2, minWidth: 200 }} />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
