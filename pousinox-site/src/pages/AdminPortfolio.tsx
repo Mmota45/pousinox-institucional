@@ -60,6 +60,7 @@ export default function AdminPortfolio() {
   const [equipFiltro, setEquipFiltro] = useState('')
   const [equipSegmentos, setEquipSegmentos] = useState<string[]>([])
   const [equipEdit, setEquipEdit] = useState<Partial<Equipamento> & { _new?: boolean }>({})
+  const [equipNormaPopover, setEquipNormaPopover] = useState<number | null>(null)
 
   // ── IA ──
   const [iaLoading, setIaLoading] = useState<string | null>(null) // 'desc'|'sugestao'|'resumo'
@@ -671,7 +672,35 @@ Formato: texto corrido com negrito, pronto para copiar e colar. Máximo 400 pala
                     <td>{eq.equipamento}</td>
                     <td><span style={{ padding: '2px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: eq.obrigatorio ? '#dcfce7' : '#fef3c7', color: eq.obrigatorio ? '#15803d' : '#92400e' }}>{eq.obrigatorio ? '✅ Obrig.' : '⭐ Recom.'}</span></td>
                     <td><span style={{ padding: '2px 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, background: eq.material !== '304' ? '#ede9fe' : '#f1f5f9', color: eq.material !== '304' ? '#7c3aed' : '#64748b' }}>{eq.material}</span></td>
-                    <td style={{ fontSize: 12, color: '#64748b' }}>{eq.norma_ref || '—'}</td>
+                    <td style={{ fontSize: 12, position: 'relative' }}>
+                      {eq.norma_ref ? (
+                        <>
+                          <button onClick={() => setEquipNormaPopover(equipNormaPopover === eq.id ? null : eq.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e40af', fontWeight: 600, fontSize: 12, textDecoration: 'underline', padding: 0 }}>{eq.norma_ref}</button>
+                          {equipNormaPopover === eq.id && (() => {
+                            const norma = normas.find(n => n.norma === eq.norma_ref)
+                            return norma ? (
+                              <>
+                                <div onClick={() => setEquipNormaPopover(null)} style={{ position: 'fixed', inset: 0, zIndex: 99 }} />
+                                <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 100, width: 340, maxWidth: '80vw', background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,.12)', padding: 14, fontSize: '0.82rem' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                                    <span style={{ background: '#1e40af', color: '#fff', fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>{norma.orgao}</span>
+                                    <strong>{norma.norma}</strong>
+                                  </div>
+                                  {norma.titulo && <p style={{ margin: '0 0 6px', fontWeight: 600, color: '#1e293b', lineHeight: 1.3 }}>{norma.titulo}</p>}
+                                  {norma.penalidade && <p style={{ margin: '0 0 6px', color: '#b91c1c', fontSize: '0.78rem' }}>⚠️ <strong>Penalidade:</strong> {norma.penalidade}</p>}
+                                  {norma.observacao && <p style={{ margin: '0 0 6px', color: '#64748b', fontSize: '0.78rem', lineHeight: 1.4 }}>{norma.observacao}</p>}
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 6 }}>
+                                    {(norma.segmentos || []).map((s: string) => (
+                                      <span key={s} style={{ background: s === eq.segmento ? '#dbeafe' : '#f1f5f9', color: s === eq.segmento ? '#1e40af' : '#64748b', fontSize: '0.68rem', padding: '1px 5px', borderRadius: 4, fontWeight: s === eq.segmento ? 700 : 400 }}>{s}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                              </>
+                            ) : null
+                          })()}
+                        </>
+                      ) : <span style={{ color: '#94a3b8' }}>—</span>}
+                    </td>
                     <td style={{ fontSize: 12, color: '#64748b', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{eq.observacao || '—'}</td>
                     <td>
                       <button title="Editar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14 }} onClick={() => setEquipEdit(eq)}>✏️</button>
