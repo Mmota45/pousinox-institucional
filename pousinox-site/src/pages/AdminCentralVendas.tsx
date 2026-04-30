@@ -2427,23 +2427,28 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
 
               {/* Ações */}
               <div className={styles.drawerAcoes}>
-                <button className={styles.btnContactar} onClick={() => { marcarContactado(drawerPs); setDrawerPs(null) }}>✅ Contactei</button>
-                <button className={styles.btnPrimary} onClick={() => { criarDealDoDrawer(drawerPs); setDrawerPs(null) }}>➡ Criar Deal</button>
-                <button className={styles.btnPrimary} onClick={() => {
+                {/* CTA protagonista */}
+                <button className={styles.btnWpp} style={{ flex: '1 1 100%', padding: '10px 18px', fontSize: '0.9rem', borderRadius: 10, fontWeight: 700 }}
+                  onClick={() => abrirWhatsApp(drawerPs.whatsapp || drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento, drawerPs.cidade)}>
+                  📱 Abrir WhatsApp
+                </button>
+                {/* Ações secundárias */}
+                <button className={styles.btnContactar} style={{ fontSize: '0.78rem', padding: '6px 12px' }}
+                  onClick={() => { marcarContactado(drawerPs); setDrawerPs(null) }}>✅ Contactei</button>
+                <button className={styles.btnSecondary} style={{ fontSize: '0.78rem', padding: '6px 12px' }}
+                  onClick={() => { criarDealDoDrawer(drawerPs); setDrawerPs(null) }}>➡ Deal</button>
+                <button className={styles.btnSecondary} style={{ fontSize: '0.78rem', padding: '6px 12px' }} onClick={() => {
                   navigate('/admin/orcamento', { state: { prospect: {
-                    razao_social: drawerPs.razao_social,
-                    nome_fantasia: drawerPs.nome_fantasia,
-                    cnpj: drawerPs.cnpj,
-                    telefone: drawerPs.whatsapp || drawerPs.telefone1,
-                    email: drawerPs.email,
-                    cidade: drawerPs.cidade,
-                    uf: drawerPs.uf,
+                    razao_social: drawerPs.razao_social, nome_fantasia: drawerPs.nome_fantasia,
+                    cnpj: drawerPs.cnpj, telefone: drawerPs.whatsapp || drawerPs.telefone1,
+                    email: drawerPs.email, cidade: drawerPs.cidade, uf: drawerPs.uf,
                     segmento: drawerPs.segmento,
                   }}})
                 }}>📄 Orçamento</button>
-                <button className={styles.btnWpp} onClick={() => abrirWhatsApp(drawerPs.whatsapp || drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento, drawerPs.cidade)}>WhatsApp</button>
-                <button className={styles.btnSecondary} onClick={() => setHistoricoAberto({ id: drawerPs.prospect_id, nome: drawerPs.nome_fantasia || drawerPs.razao_social })}>📋 Histórico</button>
-                <button className={styles.btnPrimary} style={{ background: '#7c3aed' }} disabled={iaLoadingTipo !== null} onClick={iaGerarProposta}>
+                <button className={styles.btnSecondary} style={{ fontSize: '0.78rem', padding: '6px 12px' }}
+                  onClick={() => setHistoricoAberto({ id: drawerPs.prospect_id, nome: drawerPs.nome_fantasia || drawerPs.razao_social })}>📋 Histórico</button>
+                <button className={styles.btnSecondary} style={{ fontSize: '0.78rem', padding: '6px 12px', color: '#7c3aed', borderColor: '#ddd6fe' }}
+                  disabled={iaLoadingTipo !== null} onClick={iaGerarProposta}>
                   {iaLoadingTipo === 'proposta' ? '⏳...' : '📝 Proposta IA'}
                 </button>
               </div>
