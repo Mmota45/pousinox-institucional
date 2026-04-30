@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import { aiHubChat } from '../lib/aiHelper'
-import styles from './AdminCompras.module.css'
+import styles from './AdminPortfolio.module.css'
 
 interface Produto {
   id: number; nome: string; descricao: string | null; categoria: string; ativo: boolean

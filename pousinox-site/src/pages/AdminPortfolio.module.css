@@ -1,0 +1,146 @@
+/* ═══════════════════════════════════════════════════
+   AdminPortfolio — CSS dedicado
+   ═══════════════════════════════════════════════════ */
+
+.wrap { display: flex; flex-direction: column; gap: 20px; }
+
+/* ── Header ── */
+.header {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.titulo {
+  font-size: 1.4rem; font-weight: 800; color: var(--color-text); margin: 0;
+  display: flex; align-items: center; gap: 10px;
+}
+.subtitulo {
+  font-size: 0.88rem; color: var(--color-text-light); margin: 0;
+}
+
+/* ── Mensagens ── */
+.msgOk {
+  padding: 12px 16px; border-radius: 10px; font-size: 0.88rem; font-weight: 600;
+  background: #dcfce7; color: #166534; border: 1px solid #86efac;
+}
+.msgErro {
+  padding: 12px 16px; border-radius: 10px; font-size: 0.88rem; font-weight: 600;
+  background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;
+}
+
+/* ── Abas ── */
+.abas {
+  display: flex; gap: 4px; background: #f1f5f9; padding: 4px;
+  border-radius: 12px; overflow-x: auto; scrollbar-width: none;
+}
+.abas::-webkit-scrollbar { display: none; }
+.aba {
+  padding: 10px 18px; border: none; background: transparent; border-radius: 8px;
+  font-size: 0.86rem; font-weight: 600; cursor: pointer; color: var(--color-text-light);
+  white-space: nowrap; transition: all 0.15s;
+}
+.aba:hover { background: #e2e8f0; color: var(--color-text); }
+.abaAtiva {
+  background: #fff; color: var(--color-primary);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+/* ── Card container ── */
+.card {
+  background: #fff; border: 1px solid var(--color-border);
+  border-radius: 14px; padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+/* ── Input / Select ── */
+.inputBusca {
+  padding: 9px 14px; border: 1px solid var(--color-border); border-radius: 8px;
+  font-size: 0.86rem; font-family: var(--font-family); color: var(--color-text);
+  background: #fff; transition: border-color 0.15s;
+}
+.inputBusca:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(27,58,92,0.08); }
+
+/* ── Campo (label + input) ── */
+.campo {
+  display: flex; flex-direction: column; gap: 5px;
+}
+.campo label {
+  font-size: 0.78rem; font-weight: 700; color: var(--color-text-light);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.campo input, .campo select, .campo textarea {
+  padding: 9px 12px; border: 1px solid var(--color-border); border-radius: 8px;
+  font-size: 0.88rem; font-family: var(--font-family); color: var(--color-text);
+  background: #fff; transition: border-color 0.15s;
+}
+.campo input:focus, .campo select:focus, .campo textarea:focus {
+  outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px rgba(27,58,92,0.08);
+}
+.campo textarea { resize: vertical; min-height: 60px; }
+
+/* ── Botões ── */
+.btnPrimary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; background: var(--color-primary); color: #fff;
+  border: none; border-radius: 10px; font-size: 0.88rem; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
+  box-shadow: 0 1px 3px rgba(27,58,92,0.15);
+}
+.btnPrimary:hover { background: var(--color-primary-dark, #142d4a); transform: translateY(-1px); box-shadow: 0 2px 6px rgba(27,58,92,0.2); }
+.btnPrimary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btnSecondary {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; background: #fff; color: var(--color-text);
+  border: 1px solid var(--color-border); border-radius: 10px;
+  font-size: 0.86rem; font-weight: 500; cursor: pointer;
+  white-space: nowrap; transition: all 0.15s;
+}
+.btnSecondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+.btnSmall {
+  padding: 5px 10px; background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 7px; font-size: 0.8rem; cursor: pointer;
+  transition: all 0.12s; color: var(--color-text); line-height: 1;
+}
+.btnSmall:hover { background: #e8f0fe; border-color: #93c5fd; }
+
+.btnSmallDanger {
+  padding: 5px 10px; background: #fff; border: 1px solid #fecaca;
+  border-radius: 7px; font-size: 0.8rem; cursor: pointer;
+  transition: all 0.12s; color: #dc2626; line-height: 1;
+}
+.btnSmallDanger:hover { background: #fef2f2; border-color: #fca5a5; }
+
+/* ── Tabela ── */
+.tabela {
+  width: 100%; border-collapse: collapse; font-size: 0.86rem;
+}
+.tabela thead th {
+  background: #f8fafc; padding: 10px 14px; text-align: left;
+  font-size: 0.76rem; font-weight: 700; color: var(--color-text-light);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 2px solid #e2e8f0;
+}
+.tabela tbody td {
+  padding: 10px 14px; border-bottom: 1px solid #f1f5f9;
+  color: var(--color-text);
+}
+.tabela tbody tr { transition: background 0.1s; }
+.tabela tbody tr:hover td { background: #f8fafc; }
+.tabela tbody tr:last-child td { border-bottom: none; }
+
+/* ── Responsivo ── */
+@media (max-width: 768px) {
+  .abas { gap: 2px; padding: 3px; }
+  .aba { padding: 8px 12px; font-size: 0.78rem; }
+  .card { padding: 14px; gap: 12px; }
+  .titulo { font-size: 1.15rem; }
+  .campo input, .campo select, .campo textarea { font-size: 16px; } /* evita zoom iOS */
+}
+
+@media (max-width: 480px) {
+  .aba { padding: 7px 10px; font-size: 0.74rem; }
+  .card { padding: 12px; }
+  .btnPrimary, .btnSecondary { padding: 10px 14px; font-size: 0.84rem; width: 100%; justify-content: center; }
+  .tabela thead th, .tabela tbody td { padding: 8px 8px; font-size: 0.78rem; }
+}
