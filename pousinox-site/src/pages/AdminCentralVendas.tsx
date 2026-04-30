@@ -274,7 +274,7 @@ pousinox.com.br`
   const [drawerNfItens, setDrawerNfItens] = useState<Record<number, any[]>>({})
   const [drawerStatusOpen, setDrawerStatusOpen] = useState(false)
   const [historicoAberto, setHistoricoAberto] = useState<{ id: number; nome: string } | null>(null)
-  const [drawerSecoes, setDrawerSecoes] = useState<Record<string, boolean>>({ contato: true, scores: false, nfs: false, portfolio: true, normas: false })
+  const [drawerSecoes, setDrawerSecoes] = useState<Record<string, boolean>>({ contato: true, scores: false, nfs: false, portfolio: true, regulatorio: false, estoque: false, orcamentos: false, producao: false, deals: false, ia: false })
   const [drawerPortfolio, setDrawerPortfolio] = useState<any[]>([])
   const [drawerPortfolioLoading, setDrawerPortfolioLoading] = useState(false)
   const [drawerNormas, setDrawerNormas] = useState<any[]>([])
@@ -285,6 +285,18 @@ pousinox.com.br`
   const [portfolioAddDesc, setPortfolioAddDesc] = useState('')
   const [todosPortfolioProdutos, setTodosPortfolioProdutos] = useState<any[]>([])
   const [portfolioAddExistente, setPortfolioAddExistente] = useState<number | null>(null)
+  // ── Novas integrações drawer ──
+  const [drawerEstoque, setDrawerEstoque] = useState<any[]>([])
+  const [drawerOrcamentos, setDrawerOrcamentos] = useState<any[]>([])
+  const [drawerProducao, setDrawerProducao] = useState<any[]>([])
+  const [drawerDeals, setDrawerDeals] = useState<any[]>([])
+  const [drawerNfResumo, setDrawerNfResumo] = useState<{ total: number; qtd: number; ultima: string | null; media: number } | null>(null)
+  // ── IA Agentes ──
+  const [iaAnalise, setIaAnalise] = useState('')
+  const [iaResumo, setIaResumo] = useState('')
+  const [iaObjecao, setIaObjecao] = useState('')
+  const [iaObjecaoInput, setIaObjecaoInput] = useState('')
+  const [iaLoadingTipo, setIaLoadingTipo] = useState<string | null>(null)
   const statusRef = useRef<HTMLDivElement>(null)
 
   // ── Dashboard ──
@@ -688,7 +700,125 @@ pousinox.com.br`
       setDrawerEquipamentos([])
       setMsgRegulatoria('')
     }
+    // Carregar deals do prospect
+    const { data: dealsData } = await supabaseAdmin
+      .from('pipeline_deals')
+      .select('id, titulo, estagio, valor_estimado, created_at, updated_at')
+      .eq('prospect_id', ps.prospect_id)
+      .order('created_at', { ascending: false })
+    setDrawerDeals(dealsData ?? [])
+
+    // Carregar orçamentos pelo CNPJ
+    if (cnpjLimpo) {
+      const { data: orcData } = await supabaseAdmin
+        .from('orcamentos')
+        .select('id, numero, status, valor_total, created_at, cliente_razao')
+        .or(`cliente_cnpj.eq.${cnpjLimpo},cliente_cnpj.eq.${ps.cnpj}`)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      setDrawerOrcamentos(orcData ?? [])
+    } else {
+      setDrawerOrcamentos([])
+    }
+
+    // Carregar estoque relevante (produtos do segmento com saldo)
+    if (ps.segmento) {
+      const { data: estData } = await supabaseAdmin
+        .from('estoque_itens')
+        .select('id, codigo, nome, saldo_atual, unidade, estoque_minimo')
+        .gt('saldo_atual', 0)
+        .eq('ativo', true)
+        .order('saldo_atual', { ascending: false })
+        .limit(20)
+      setDrawerEstoque(estData ?? [])
+    } else {
+      setDrawerEstoque([])
+    }
+
+    // Carregar produção ativa
+    const { data: opData } = await supabaseAdmin
+      .from('ordens_producao')
+      .select('id, numero, titulo, status, data_prevista, projeto_id')
+      .in('status', ['planejada', 'liberada', 'em_producao'])
+      .order('data_prevista', { ascending: true })
+      .limit(10)
+    setDrawerProducao(opData ?? [])
+
+    // Resumo NFs
+    if (drawerNfs && drawerNfs.length > 0) {
+      // será calculado após setDrawerNfs
+    }
+
     setPortfolioAddOpen(false)
+    setIaAnalise('')
+    setIaResumo('')
+    setIaObjecao('')
+  }
+
+  // Calcular resumo NFs quando mudam
+  useEffect(() => {
+    if (drawerNfs.length > 0) {
+      const total = drawerNfs.reduce((s: number, n: any) => s + (n.valor_total || 0), 0)
+      const ultima = drawerNfs[0]?.data_emissao || null
+      setDrawerNfResumo({ total, qtd: drawerNfs.length, ultima, media: total / drawerNfs.length })
+    } else {
+      setDrawerNfResumo(null)
+    }
+  }, [drawerNfs])
+
+  // ── Agentes IA ──
+  async function iaAnalisarProspect() {
+    if (!drawerPs) return
+    setIaLoadingTipo('analise')
+    const ctx = `Prospect: ${drawerPs.nome_fantasia || drawerPs.razao_social}
+CNPJ: ${drawerPs.cnpj || 'N/I'} | Segmento: ${drawerPs.segmento || 'N/I'} | Porte: ${drawerPs.porte || 'N/I'}
+Cidade/UF: ${drawerPs.cidade}/${drawerPs.uf} | Score: ${Number(drawerPs.score_total).toFixed(1)}
+Status: ${drawerPs.status_contato || 'Novo'} | Último contato: ${drawerPs.ultimo_contato || 'nunca'}
+Deals: ${drawerDeals.length} | Orçamentos: ${drawerOrcamentos.length} | NFs: ${drawerNfs.length}
+Total comprado: ${drawerNfResumo ? fmtBRL(drawerNfResumo.total) : 'R$ 0'}
+Normas aplicáveis: ${drawerNormas.map((n: any) => n.norma).join(', ') || 'nenhuma'}
+Equipamentos obrigatórios: ${drawerEquipamentos.filter((e: any) => e.obrigatorio).map((e: any) => e.equipamento).join(', ') || 'nenhum'}
+Produtos em estoque: ${drawerEstoque.slice(0, 5).map((e: any) => `${e.nome} (${e.saldo_atual} ${e.unidade})`).join(', ') || 'nenhum'}`
+    const system = 'Analista comercial B2B da Pousinox (aço inox). Analise o prospect e sugira a melhor estratégia de abordagem. Seja direto e prático. Máx 200 palavras. Português brasileiro.'
+    try {
+      const res = await aiChat(`Analise este prospect e sugira estratégia de abordagem:\n\n${ctx}`, system)
+      setIaAnalise(res)
+    } catch { setIaAnalise('Erro ao gerar análise') }
+    setIaLoadingTipo(null)
+  }
+
+  async function iaGerarResumoExecutivo() {
+    if (!drawerPs) return
+    setIaLoadingTipo('resumo')
+    const produtos = drawerPortfolio.slice(0, 10).map((sp: any) => sp.portfolio_produtos?.nome).filter(Boolean).join(', ')
+    const ctx = `Empresa: ${drawerPs.nome_fantasia || drawerPs.razao_social}
+Segmento: ${drawerPs.segmento || 'N/I'} | Porte: ${drawerPs.porte || 'N/I'} | ${drawerPs.cidade}/${drawerPs.uf}
+Histórico: ${drawerNfResumo ? `${drawerNfResumo.qtd} NFs, total ${fmtBRL(drawerNfResumo.total)}, última em ${fmtData(drawerNfResumo.ultima || '')}` : 'Sem histórico de compras'}
+Deals: ${drawerDeals.map((d: any) => `${d.titulo} (${d.estagio})`).join(', ') || 'nenhum'}
+Portfólio recomendado: ${produtos || 'não mapeado'}
+Normas: ${drawerNormas.map((n: any) => `${n.norma} — ${n.penalidade || 'sem penalidade'}`).join('; ') || 'nenhuma'}
+Equipamentos obrigatórios: ${drawerEquipamentos.filter((e: any) => e.obrigatorio).length} | Recomendados: ${drawerEquipamentos.filter((e: any) => !e.obrigatorio).length}
+Produção ativa: ${drawerProducao.length} OPs`
+    const system = 'Gere um briefing executivo comercial para reunião de vendas da Pousinox (aço inox). Estrutura: 1) Perfil da empresa, 2) Oportunidade, 3) Produtos prioritários, 4) Argumentos regulatórios, 5) Próximos passos. Máx 250 palavras. Português brasileiro.'
+    try {
+      const res = await aiChat(`Gere briefing executivo para este prospect:\n\n${ctx}`, system)
+      setIaResumo(res)
+    } catch { setIaResumo('Erro ao gerar resumo') }
+    setIaLoadingTipo(null)
+  }
+
+  async function iaResponderObjecao() {
+    if (!drawerPs || !iaObjecaoInput.trim()) return
+    setIaLoadingTipo('objecao')
+    const ctx = `Prospect: ${drawerPs.nome_fantasia || drawerPs.razao_social} | Segmento: ${drawerPs.segmento || 'N/I'}
+Normas aplicáveis: ${drawerNormas.map((n: any) => `${n.norma}: ${n.penalidade || ''}`).join('; ') || 'nenhuma'}
+Portfólio: ${drawerPortfolio.slice(0, 5).map((sp: any) => sp.portfolio_produtos?.nome).filter(Boolean).join(', ')}`
+    const system = 'Consultor de vendas B2B da Pousinox (fabricante de equipamentos em aço inox). Responda objeções comerciais com argumentos técnicos, regulatórios e de custo-benefício. Seja persuasivo mas honesto. Nunca invente dados ou certificações. Máx 150 palavras. Português brasileiro.'
+    try {
+      const res = await aiChat(`O prospect disse: "${iaObjecaoInput}"\n\nContexto:\n${ctx}\n\nComo responder esta objeção?`, system)
+      setIaObjecao(res)
+    } catch { setIaObjecao('Erro ao gerar resposta') }
+    setIaLoadingTipo(null)
   }
 
   async function removerPortfolioItem(mapId: number) {
@@ -1731,9 +1861,22 @@ pousinox.com.br`
                 <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('nfs')}>
                   <span>{drawerSecoes.nfs ? '▼' : '▶'}</span>
                   <span>📦 Histórico de Compras {drawerNfs.length > 0 ? `(${drawerNfs.length})` : ''}</span>
+                  {drawerNfResumo && drawerNfResumo.total > 0 && (
+                    <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#15803d', fontWeight: 600 }}>
+                      Total: {fmtBRL(drawerNfResumo.total)}
+                    </span>
+                  )}
                 </button>
                 {drawerSecoes.nfs && (
                   <div style={{ padding: '12px 20px' }}>
+                {drawerNfResumo && drawerNfResumo.total > 0 && (
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 10, padding: '8px 12px', background: '#f0fdf4', borderRadius: 8, fontSize: '0.78rem' }}>
+                    <span><strong>{drawerNfResumo.qtd}</strong> NFs</span>
+                    <span>Total: <strong>{fmtBRL(drawerNfResumo.total)}</strong></span>
+                    <span>Média: <strong>{fmtBRL(drawerNfResumo.media)}</strong></span>
+                    {drawerNfResumo.ultima && <span>Última: <strong>{fmtData(drawerNfResumo.ultima)}</strong></span>}
+                  </div>
+                )}
                 {drawerNfsLoading ? (
                   <p className={styles.vazio}>Carregando NFs...</p>
                 ) : drawerNfs.length === 0 ? (
@@ -1902,6 +2045,171 @@ pousinox.com.br`
                   )}
                 </div>
               )}
+
+              {/* 📊 Deals & Orçamentos */}
+              {(drawerDeals.length > 0 || drawerOrcamentos.length > 0) && (
+                <div className={styles.secaoColapsavel}>
+                  <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('deals')}>
+                    <span>{drawerSecoes.deals ? '▼' : '▶'}</span>
+                    <span>📊 Deals & Orçamentos ({drawerDeals.length + drawerOrcamentos.length})</span>
+                  </button>
+                  {drawerSecoes.deals && (
+                    <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {drawerDeals.length > 0 && (
+                        <div>
+                          <h4 style={{ margin: '0 0 6px', fontSize: 12, color: '#64748b', textTransform: 'uppercase' }}>Pipeline ({drawerDeals.length})</h4>
+                          {drawerDeals.map((d: any) => (
+                            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.82rem' }}>
+                              <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                                background: d.estagio === 'ganho' ? '#dcfce7' : d.estagio === 'perdido' ? '#fee2e2' : '#dbeafe',
+                                color: d.estagio === 'ganho' ? '#15803d' : d.estagio === 'perdido' ? '#991b1b' : '#1e40af'
+                              }}>{d.estagio}</span>
+                              <span style={{ flex: 1 }}>{d.titulo}</span>
+                              {d.valor_estimado > 0 && <strong>{fmtBRL(d.valor_estimado)}</strong>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {drawerOrcamentos.length > 0 && (
+                        <div>
+                          <h4 style={{ margin: '0 0 6px', fontSize: 12, color: '#64748b', textTransform: 'uppercase' }}>Orçamentos ({drawerOrcamentos.length})</h4>
+                          {drawerOrcamentos.map((o: any) => (
+                            <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.82rem' }}>
+                              <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, background: '#f1f5f9', color: '#64748b' }}>
+                                {o.status || 'rascunho'}
+                              </span>
+                              <span style={{ flex: 1 }}>#{o.numero || o.id}</span>
+                              {o.valor_total > 0 && <strong>{fmtBRL(o.valor_total)}</strong>}
+                              <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{fmtData(o.created_at)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 📦 Estoque Disponível */}
+              {drawerEstoque.length > 0 && (
+                <div className={styles.secaoColapsavel}>
+                  <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('estoque')}>
+                    <span>{drawerSecoes.estoque ? '▼' : '▶'}</span>
+                    <span>📦 Estoque Disponível ({drawerEstoque.length})</span>
+                  </button>
+                  {drawerSecoes.estoque && (
+                    <div style={{ padding: '12px 20px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {drawerEstoque.map((item: any) => (
+                          <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid #f8fafc', fontSize: '0.82rem' }}>
+                            <span style={{ flex: 1 }}>{item.nome}</span>
+                            <span style={{ fontWeight: 700, color: item.saldo_atual <= (item.estoque_minimo || 0) ? '#dc2626' : '#15803d' }}>
+                              {item.saldo_atual} {item.unidade}
+                            </span>
+                            {item.codigo && <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{item.codigo}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 🏭 Produção Ativa */}
+              {drawerProducao.length > 0 && (
+                <div className={styles.secaoColapsavel}>
+                  <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('producao')}>
+                    <span>{drawerSecoes.producao ? '▼' : '▶'}</span>
+                    <span>🏭 Produção Ativa ({drawerProducao.length} OPs)</span>
+                  </button>
+                  {drawerSecoes.producao && (
+                    <div style={{ padding: '12px 20px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {drawerProducao.map((op: any) => (
+                          <div key={op.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderBottom: '1px solid #f8fafc', fontSize: '0.82rem' }}>
+                            <span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                              background: op.status === 'em_producao' ? '#fef3c7' : op.status === 'liberada' ? '#dbeafe' : '#f1f5f9',
+                              color: op.status === 'em_producao' ? '#92400e' : op.status === 'liberada' ? '#1e40af' : '#64748b'
+                            }}>{op.status?.replace('_', ' ')}</span>
+                            <strong style={{ fontSize: '0.78rem' }}>{op.numero}</strong>
+                            <span style={{ flex: 1 }}>{op.titulo}</span>
+                            {op.data_prevista && <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{fmtData(op.data_prevista)}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 🤖 Agentes IA */}
+              <div className={styles.secaoColapsavel}>
+                <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('ia')}>
+                  <span>{drawerSecoes.ia ? '▼' : '▶'}</span>
+                  <span>🤖 Inteligência Comercial</span>
+                </button>
+                {drawerSecoes.ia && (
+                  <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {/* Agente 1: Análise */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button className={styles.btnPrimary} style={{ fontSize: '0.78rem', padding: '6px 14px' }}
+                          disabled={iaLoadingTipo !== null} onClick={iaAnalisarProspect}>
+                          {iaLoadingTipo === 'analise' ? '⏳ Analisando...' : '🔍 Analisar Prospect'}
+                        </button>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Estratégia de abordagem personalizada</span>
+                      </div>
+                      {iaAnalise && (
+                        <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 10, padding: 12, fontSize: '0.82rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                          {iaAnalise}
+                          <button style={{ display: 'block', marginTop: 8, background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '0.78rem' }}
+                            onClick={() => { navigator.clipboard.writeText(iaAnalise); showMsg('ok', 'Copiado!') }}>📋 Copiar</button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Agente 2: Resumo Executivo */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button className={styles.btnPrimary} style={{ fontSize: '0.78rem', padding: '6px 14px' }}
+                          disabled={iaLoadingTipo !== null} onClick={iaGerarResumoExecutivo}>
+                          {iaLoadingTipo === 'resumo' ? '⏳ Gerando...' : '📋 Briefing Executivo'}
+                        </button>
+                        <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Resumo completo para reunião</span>
+                      </div>
+                      {iaResumo && (
+                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: 12, fontSize: '0.82rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                          {iaResumo}
+                          <button style={{ display: 'block', marginTop: 8, background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: '0.78rem' }}
+                            onClick={() => { navigator.clipboard.writeText(iaResumo); showMsg('ok', 'Copiado!') }}>📋 Copiar</button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Agente 3: Objeção Handler */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <h4 style={{ margin: 0, fontSize: 12, color: '#64748b' }}>💬 Responder Objeção</h4>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input style={{ flex: 1, padding: '7px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: '0.82rem' }}
+                          placeholder='Ex: "Tá muito caro", "Já tenho fornecedor"...'
+                          value={iaObjecaoInput} onChange={e => setIaObjecaoInput(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && iaResponderObjecao()} />
+                        <button className={styles.btnPrimary} style={{ fontSize: '0.78rem', padding: '6px 14px' }}
+                          disabled={iaLoadingTipo !== null || !iaObjecaoInput.trim()} onClick={iaResponderObjecao}>
+                          {iaLoadingTipo === 'objecao' ? '⏳...' : '💡'}
+                        </button>
+                      </div>
+                      {iaObjecao && (
+                        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 12, fontSize: '0.82rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                          {iaObjecao}
+                          <button style={{ display: 'block', marginTop: 8, background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: '0.78rem' }}
+                            onClick={() => { navigator.clipboard.writeText(iaObjecao); showMsg('ok', 'Copiado!') }}>📋 Copiar</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Ações */}
               <div className={styles.drawerAcoes}>
