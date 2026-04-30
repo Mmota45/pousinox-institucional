@@ -4,6 +4,7 @@ import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminProjetos.module.css'
 import UploadMemorial from '../components/UploadMemorial/UploadMemorial'
 import AiActionButton from '../components/assistente/AiActionButton'
+import ModalIframe from '../components/ModalIframe/ModalIframe'
 import { aiVision, fileToBase64 } from '../lib/aiHelper'
 import * as pdfjsLib from 'pdfjs-dist'
 
@@ -430,6 +431,7 @@ export default function AdminProjetos() {
   // ── Vista ──────────────────────────────────────────────────────────────────
   const [vista, setVista] = useState<Vista>('lista')
   const [abaForm, setAbaForm] = useState<AbaForm>('dados')
+  const [orcamentoModal, setOrcamentoModal] = useState(false)
 
   // ── Lista ──────────────────────────────────────────────────────────────────
   const [projetos, setProjetos] = useState<Projeto[]>([])
@@ -1367,17 +1369,11 @@ export default function AdminProjetos() {
               supabaseAdmin.from('projeto_componentes').select('*').eq('projeto_id', projetoAtual.id).order('ordem'),
               supabaseAdmin.from('projeto_atributos').select('chave,valor,unidade').eq('projeto_id', projetoAtual.id).order('chave'),
             ])
-            navigate('/admin/orcamento', { state: {
-              projeto: {
-                titulo:       projetoAtual.titulo,
-                codigo:       projetoAtual.codigo,
-                cliente_nome: projetoAtual.cliente_nome,
-                cliente_cnpj: projetoAtual.cliente_cnpj,
-                observacoes:  projetoAtual.observacoes,
-              },
-              atributos: (attrs ?? []) as { chave: string; valor: string; unidade: string | null }[],
-              componentes: (comps ?? []) as { nome: string; quantidade: number | null }[],
-            }})
+            sessionStorage.setItem('orcamento_prospect', JSON.stringify({
+              razao_social: projetoAtual.cliente_nome || projetoAtual.titulo,
+              cnpj: projetoAtual.cliente_cnpj || '',
+            }))
+            setOrcamentoModal(true)
           }}>📄 Gerar Orçamento</button>
           {projetoAtual.valor_total && !projetoAtual.fin_lancamento_id && (
             <button className={styles.btnSuccess} onClick={() => gerarRecebivel(projetoAtual)}>
@@ -2653,6 +2649,13 @@ export default function AdminProjetos() {
         </div>
       </div>
     </div>
+    {orcamentoModal && (
+      <ModalIframe
+        url="/admin/orcamento"
+        titulo={`📄 Orçamento — ${projetoAtual?.titulo || ''}`}
+        onClose={() => setOrcamentoModal(false)}
+      />
+    )}
     </>
   )
 }

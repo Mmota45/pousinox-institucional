@@ -53,7 +53,7 @@ const PRODUCT_SCHEMA = {
 }
 
 const WA_LINK =
-  'https://wa.me/553534238994?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20Fixador%20de%20Porcelanato%20Pousinox.%20Pode%20me%20ajudar%3F'
+  'https://wa.me/5535999619463?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20Fixador%20de%20Porcelanato%20Pousinox.%20Pode%20me%20ajudar%3F'
 
 const stats = [
   { value: '25+', label: 'Anos fabricando em aço inox' },
@@ -262,7 +262,7 @@ export default function FixadorPorcelanato() {
   const empSubtitulo = c.fixador_empreiteiras_subtitulo || 'Além da segurança técnica, oferecemos a infraestrutura comercial que grandes obras precisam para especificar com confiança.'
   const ctaTitulo = c.fixador_cta_titulo || 'Especifique o Fixador Pousinox® no seu próximo projeto'
   const ctaSubtitulo = c.fixador_cta_subtitulo || 'Atendemos construtoras, empreiteiras e instaladores em todo o Brasil. Solicite orçamento ou fale diretamente com nossa equipe técnica.'
-  const waNum = c.whatsapp_numero || '553534238994'
+  const waNum = c.whatsapp_numero || '5535999619463'
   const waMsgFixador = c.fixador_wa_mensagem || 'Olá, tenho interesse no Fixador de Porcelanato Pousinox. Pode me ajudar?'
   const waLinkDynamic = `https://wa.me/${waNum}?text=${encodeURIComponent(waMsgFixador)}`
   const activeFaqs = dbFaqs.length > 0 ? dbFaqs.map(f => ({ q: f.pergunta, a: f.resposta })) : faqs

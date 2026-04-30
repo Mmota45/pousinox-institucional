@@ -220,15 +220,21 @@
 .thSort:hover { color: var(--color-primary); }
 
 /* ── Seção Colapsável ── */
-.secaoColapsavel { background: #fff; border: 1px solid #e8ecf1; border-radius: 10px; overflow: hidden; }
+.secaoColapsavel {
+  background: #fff; border: 1px solid #e4e8ee; border-radius: 12px;
+  overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
 .secaoToggle {
-  width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px 16px;
-  background: transparent; border: none; cursor: pointer; font-size: 0.82rem;
+  width: 100%; display: flex; align-items: center; gap: 8px; padding: 11px 16px;
+  background: linear-gradient(180deg, #fafbfd 0%, #f7f8fb 100%); border: none;
+  cursor: pointer; font-size: 0.82rem;
   font-weight: 600; color: #475569; text-align: left; transition: all 0.12s;
   font-family: inherit; letter-spacing: -0.005em;
+  border-bottom: 1px solid transparent;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
-.secaoToggle:hover { background: #f8fafc; color: #1e293b; }
-.secaoToggle span:first-child { font-size: 0.6rem; color: #cbd5e1; width: 12px; }
+.secaoToggle:hover { background: #f0f2f6; color: #1e293b; }
+.secaoToggle span:first-child { font-size: 0.6rem; color: #94a3b8; width: 12px; }
 
 /* ── Dicas Didáticas ── */
 .dicasGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; padding: 16px 20px; }
@@ -301,38 +307,39 @@
 .drawerOverlay { position: fixed; inset: 0; background: rgba(15,23,42,0.5); z-index: 900; backdrop-filter: blur(3px); }
 .drawer {
   position: fixed; top: 0; right: 0; width: min(780px, 95vw); height: 100vh;
-  background: #f1f5f9; z-index: 901; box-shadow: -12px 0 48px rgba(0,0,0,0.1);
+  background: #f4f6f9; z-index: 901;
+  box-shadow: -6px 0 24px rgba(15,23,42,0.08), -1px 0 0 #e2e8f0;
   display: flex; flex-direction: column; overflow: hidden;
-  border-left: 1px solid #e2e8f0;
 }
 .drawerHead {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 24px 14px; background: linear-gradient(135deg, var(--color-primary, #1b3a5c) 0%, #1e3a5f 100%);
-  flex-shrink: 0; border-bottom: 3px solid rgba(255,255,255,0.08);
+  padding: 20px 24px 18px; flex-shrink: 0;
+  background: linear-gradient(160deg, #1b3a5c 0%, #243b55 50%, #1a2f45 100%);
 }
 .drawerHead h3 {
-  margin: 0; font-size: 1.05rem; color: #fff; overflow: hidden; text-overflow: ellipsis;
-  white-space: nowrap; font-weight: 700; letter-spacing: -0.01em; opacity: 0.95;
+  margin: 0; font-size: 1.08rem; color: #fff; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font-weight: 700; letter-spacing: -0.01em;
 }
 .drawerFechar {
-  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
-  font-size: 1rem; cursor: pointer; color: rgba(255,255,255,0.8); padding: 3px 9px;
-  border-radius: 6px; transition: all 0.15s; line-height: 1;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+  font-size: 1rem; cursor: pointer; color: rgba(255,255,255,0.7); padding: 4px 10px;
+  border-radius: 8px; transition: all 0.15s; line-height: 1;
 }
-.drawerFechar:hover { background: rgba(255,255,255,0.2); color: #fff; }
-.drawerBody { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.drawerFechar:hover { background: rgba(255,255,255,0.18); color: #fff; }
+.drawerBody { flex: 1; overflow-y: auto; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
 .drawerInfo {
-  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1px;
   font-size: 0.82rem; color: var(--color-text);
-  background: #e2e8f0; border-radius: 10px; overflow: hidden;
+  background: #e9ecf0; border-radius: 12px; overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 .drawerInfo > div {
-  display: flex; flex-direction: column; gap: 1px;
-  background: #fff; padding: 10px 14px;
+  display: flex; flex-direction: column; gap: 3px;
+  background: #fff; padding: 12px 14px;
 }
 .drawerInfo > div > strong {
-  font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em;
-  color: #94a3b8; font-weight: 700; line-height: 1;
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: #a0aec0; font-weight: 700; line-height: 1; margin-bottom: 1px;
 }
 .drawerSecao { display: flex; flex-direction: column; gap: 8px; }
 .drawerSecao h4 { margin: 0; font-size: 0.88rem; color: var(--color-heading); padding-bottom: 4px; border-bottom: 1px solid #f1f5f9; }
@@ -345,8 +352,8 @@
 .drawerLinks { display: flex; gap: 8px; flex-wrap: wrap; }
 /* Portfólio */
 .portfolioLista { display: flex; flex-direction: column; gap: 2px; }
-.portfolioItem { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: transparent; border: none; border-radius: 6px; transition: background 0.1s; }
-.portfolioItem:hover { background: #f1f5f9; }
+.portfolioItem { display: flex; align-items: center; gap: 10px; padding: 9px 14px; background: transparent; border: none; border-radius: 8px; transition: all 0.12s; }
+.portfolioItem:hover { background: #f0f4f8; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
 .portfolioInfo { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .portfolioInfo strong { font-size: 0.85rem; color: var(--color-text); }
 .portfolioDesc { font-size: 0.75rem; color: #64748b; }
@@ -365,7 +372,7 @@
 .normaStatus[data-status="atualizada"] { color: #d97706; background: #fef3c7; }
 .normaTitulo { font-size: 0.78rem; color: #57534e; margin: 0; line-height: 1.3; }
 .normaPenalidade { font-size: 0.72rem; color: #b91c1c; margin: 0; line-height: 1.3; }
-.normaArgumento { font-size: 0.8rem; color: #1e40af; background: #eff6ff; border-radius: 8px; padding: 10px 12px; margin: 0; line-height: 1.5; }
+.normaArgumento { font-size: 0.8rem; color: #1e40af; background: linear-gradient(135deg, #eff6ff 0%, #e8f0fe 100%); border-radius: 8px; padding: 10px 12px; margin: 0; line-height: 1.5; border: 1px solid #dbeafe; }
 
 /* ── Argumento Regulatório ── */
 .regHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -379,28 +386,32 @@
 .regSubtitle { font-size: 0.78rem; font-weight: 700; color: #475569; margin: 14px 0 8px; display: flex; align-items: center; gap: 6px; }
 
 .equipLista { display: flex; flex-direction: column; gap: 4px; }
-.equipItem { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; background: #f8fafc; border: 1px solid #f1f5f9; font-size: 0.78rem; }
+.equipItem { display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 8px; background: linear-gradient(135deg, #f8fafc 0%, #f3f6f9 100%); border: 1px solid #edf0f4; font-size: 0.78rem; transition: border-color 0.1s; }
+.equipItem:hover { border-color: #dde2e8; }
 .equipItem span:first-child { width: 18px; text-align: center; flex-shrink: 0; }
 .equipNome { flex: 1; color: #334155; }
 .equipMaterial { padding: 1px 7px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; background: #e2e8f0; color: #475569; white-space: nowrap; }
 .equipMaterial316 { background: #dbeafe; color: #1d4ed8; }
 .equipLegenda { font-size: 0.68rem; color: #94a3b8; margin-top: 6px; }
 
-.regMsgBox { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-top: 4px; }
+.regMsgBox { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-top: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.03); }
 .regMsgText { font-size: 0.8rem; color: #334155; line-height: 1.5; white-space: pre-wrap; margin: 0 0 10px; }
 .regMsgActions { display: flex; gap: 8px; }
 
 .drawerAcoes {
-  display: flex; gap: 6px; flex-wrap: wrap; padding: 14px 16px;
-  background: #fff; border: 1px solid #e8ecf1; border-radius: 10px;
+  display: flex; gap: 8px; flex-wrap: wrap; padding: 16px 18px;
+  background: linear-gradient(135deg, #fafbfd 0%, #f5f7fa 100%);
+  border: 1px solid #e4e8ee; border-radius: 12px;
   align-items: center;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
 }
 .btnSmall {
-  padding: 3px 10px; font-size: 0.75rem; border: 1px solid var(--color-border);
-  border-radius: var(--radius); background: #fff; cursor: pointer; color: var(--color-text);
-  text-decoration: none;
+  padding: 6px 14px; font-size: 0.76rem; border: 1px solid #dde2e8;
+  border-radius: 8px; background: #fff; cursor: pointer; color: #475569;
+  text-decoration: none; font-weight: 500; transition: all 0.12s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
-.btnSmall:hover { background: #f1f5f9; }
+.btnSmall:hover { background: #f1f5f9; border-color: #c7cdd4; box-shadow: 0 2px 4px rgba(0,0,0,0.06); }
 .btnDetalhe {
   padding: 6px 10px; border: 1px solid #bfdbfe; border-radius: var(--radius);
   background: #eff6ff; cursor: pointer; font-size: 0.85rem;
@@ -409,11 +420,12 @@
 .drawerNfs { display: flex; flex-direction: column; gap: 2px; }
 .drawerNfItem { border: none; border-radius: 6px; overflow: hidden; }
 .drawerNfHead {
-  width: 100%; display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  width: 100%; display: flex; align-items: center; gap: 8px; padding: 8px 12px;
   background: transparent; border: none; cursor: pointer; font-size: 0.8rem;
-  color: var(--color-text); text-align: left; font-family: inherit; border-radius: 6px;
+  color: var(--color-text); text-align: left; font-family: inherit; border-radius: 8px;
+  transition: background 0.1s;
 }
-.drawerNfHead:hover { background: #f1f5f9; }
+.drawerNfHead:hover { background: #f0f4f8; }
 .drawerNfHead span:first-child { font-size: 0.7rem; color: var(--color-text-light); width: 12px; }
 .drawerNfItens { padding: 8px 12px 8px 28px; display: flex; flex-direction: column; gap: 4px; background: #fff; }
 .drawerNfItemRow { display: flex; justify-content: space-between; font-size: 0.78rem; color: #57534e; gap: 8px; }
@@ -430,9 +442,10 @@
 .statusBadge {
   padding: 5px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 700;
   border: none; cursor: pointer; font-family: inherit; letter-spacing: 0.01em;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: transform 0.12s, box-shadow 0.12s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
-.statusBadge:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.statusBadge:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.12); }
 .statusDrop {
   position: absolute; top: 100%; left: 0; z-index: 910;
   background: #fff; border: 1px solid var(--color-border); border-radius: var(--radius-lg);
@@ -475,9 +488,49 @@
   .btnPrimary, .btnSecondary { min-height: auto; }
 }
 
+/* ── Prospect Page (full page) ── */
+.prospectPage {
+  display: flex; flex-direction: column; gap: 0;
+  animation: fadeInPage 0.2s ease-out;
+}
+@keyframes fadeInPage {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.prospectPageHead {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 24px;
+  background: linear-gradient(160deg, #1b3a5c 0%, #243b55 50%, #1a2f45 100%);
+  border-radius: 12px 12px 0 0;
+}
+.prospectPageHead h2 {
+  margin: 0; font-size: 1.1rem; color: #fff; font-weight: 700;
+  letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.prospectPageVoltar {
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.85); padding: 6px 14px; border-radius: 8px;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: all 0.12s; font-family: inherit; white-space: nowrap;
+}
+.prospectPageVoltar:hover { background: rgba(255,255,255,0.2); color: #fff; }
+.prospectPageBody {
+  display: flex; flex-direction: column;
+  gap: 14px; padding: 20px 24px;
+  background: #f4f6f9; border-radius: 0 0 12px 12px;
+  width: 100%;
+}
+.prospectPageRow {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px;
+  align-items: start;
+}
+.prospectPageRow > * { min-width: 0; }
+
 /* ── Mobile ── */
 @media (max-width: 768px) {
-  .drawer { width: 100vw !important; }
+  .prospectPageBody { padding: 14px 16px; gap: 12px; }
+  .prospectPageRow { grid-template-columns: 1fr; }
+  .prospectPageHead { padding: 14px 16px; border-radius: 0; }
   .drawerHead { padding: 14px 16px; }
   .drawerHead h3 { font-size: 0.95rem; }
   .drawerBody { padding: 14px 16px; gap: 12px; }

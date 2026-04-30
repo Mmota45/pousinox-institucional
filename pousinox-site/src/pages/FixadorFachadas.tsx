@@ -31,7 +31,7 @@ const passos = [
 ]
 
 const WA_LINK =
-  'https://wa.me/553534238994?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20Fixador%20de%20Porcelanato%20para%20fachada.%20Pode%20me%20ajudar%3F'
+  'https://wa.me/5535999619463?text=Ol%C3%A1%2C%20tenho%20interesse%20no%20Fixador%20de%20Porcelanato%20para%20fachada.%20Pode%20me%20ajudar%3F'
 
 const aplicacoes = [
   {

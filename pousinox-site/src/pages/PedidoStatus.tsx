@@ -244,7 +244,7 @@ function PedidoStatus() {
       {/* Footer */}
       <div className={styles.footerNote}>
         Dúvidas? Entre em contato pelo{' '}
-        <a href={`https://wa.me/5535999709878?text=Olá! Gostaria de informações sobre o pedido ${pedido.codigo}`}
+        <a href={`https://wa.me/5535999619463?text=Olá! Gostaria de informações sobre o pedido ${pedido.codigo}`}
           target="_blank" rel="noopener noreferrer">
           WhatsApp
         </a>

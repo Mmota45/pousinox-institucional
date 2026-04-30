@@ -14,7 +14,7 @@ import { calcularEspecificacao, REGRAS_PADRAO, CONSUMIVEIS_PADRAO } from '../lib
 import type { ResultadoEspecificacao, StatusAnalise } from '../components/Orcamento/especificacaoTypes'
 import s from './CalculadoraFixador.module.css'
 
-const WA_NUMERO = '5535999610111'
+const WA_NUMERO = '5535999619463'
 
 const MODELOS_PUBLICOS = [
   { id: 1, nome: 'Fixador Padrão Inox 304', material: 'Aço Inox 304', espessura: '0.43mm', laudo: true, desc: 'Para porcelanatos de piso e parede — áreas internas e externas' },

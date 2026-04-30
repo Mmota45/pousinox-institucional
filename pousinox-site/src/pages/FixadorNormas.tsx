@@ -3,7 +3,7 @@ import SEO from '../components/SEO/SEO'
 import styles from './FixadorNormas.module.css'
 
 const WA_LINK =
-  'https://wa.me/553534238994?text=Ol%C3%A1%2C%20preciso%20de%20suporte%20t%C3%A9cnico%20para%20especificar%20o%20Fixador%20Pousinox%20em%20projeto.'
+  'https://wa.me/5535999619463?text=Ol%C3%A1%2C%20preciso%20de%20suporte%20t%C3%A9cnico%20para%20especificar%20o%20Fixador%20Pousinox%20em%20projeto.'
 
 const normas = [
   {

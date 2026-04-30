@@ -50,9 +50,9 @@ const heroSlides = [heroConstrucao, heroRestaurantes, heroPanificacao, heroHospi
 const WA_LINK = 'https://wa.me/553534238994?text=Olá%2C%20gostaria%20de%20solicitar%20um%20orçamento.'
 
 const heroStats = [
-  { target: 25, suffix: '+', label: 'Anos de mercado' },
-  { target: 11, suffix: '+', label: 'Segmentos atendidos' },
-  { target: 100, suffix: '%', label: 'Fabricação própria' },
+  { target: 25, suffix: '+', label: 'Anos de experiência' },
+  { target: 19, suffix: '', label: 'Segmentos atendidos' },
+  { target: 500, suffix: '+', label: 'Projetos entregues' },
 ]
 
 const categories = [

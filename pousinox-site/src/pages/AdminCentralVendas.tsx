@@ -5,6 +5,7 @@ import { useAdmin } from '../contexts/AdminContext'
 import { aiChat, aiParallel, type MultiResult } from '../lib/aiHelper'
 import AiActionButton from '../components/assistente/AiActionButton'
 import HistoricoModal from '../components/HistoricoModal/HistoricoModal'
+import ModalIframe from '../components/ModalIframe/ModalIframe'
 import styles from './AdminCentralVendas.module.css'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -145,11 +146,13 @@ function DrawerMultiIA({ prospect }: { prospect: ProspectScore }) {
   }
 
   return (
-    <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
+    <div style={{ paddingTop: 8 }}>
       <button
         onClick={gerar}
         disabled={loading}
-        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, width: '100%', opacity: loading ? 0.7 : 1 }}
+        style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', cursor: 'pointer', fontWeight: 700, width: '100%', opacity: loading ? 0.7 : 1, fontSize: '0.85rem', letterSpacing: '-0.01em', boxShadow: '0 2px 8px rgba(99,102,241,0.25)', transition: 'box-shadow 0.15s, transform 0.15s' }}
+        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.25)'; e.currentTarget.style.transform = 'none' }}
       >
         {loading ? '⏳ Gerando 3 variações...' : '🧠 Gerar 3 variações IA'}
       </button>
@@ -267,6 +270,7 @@ pousinox.com.br`
 
   // ── Drawer prospect ──
   const [drawerPs, setDrawerPs] = useState<ProspectScore | null>(null)
+  const [orcamentoModal, setOrcamentoModal] = useState(false)
   const [validandoWa, setValidandoWa] = useState(false)
   const [drawerNfs, setDrawerNfs] = useState<any[]>([])
   const [drawerNfsLoading, setDrawerNfsLoading] = useState(false)
@@ -567,23 +571,66 @@ pousinox.com.br`
     return 'diferencial'
   }
 
-  function gerarMsgRegulatorio(prospect: ProspectScore, normas: any[], equipamentos: any[]): string {
+  async function gerarMsgRegulatorioIA(prospect: ProspectScore, normas: any[], equipamentos: any[], portfolio: any[]): Promise<string> {
     const nomeClean = limparNome(prospect.nome_fantasia || prospect.razao_social || '')
     const nomeFmt = nomeClean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
     const seg = prospect.segmento || 'seu segmento'
 
-    // Pegar a norma mais severa como gancho
-    const normaSevera = normas.find(n => /interdição|multa|fecha/i.test(n.penalidade || '')) || normas[0]
-    const orgao = normaSevera?.orgao || 'Vigilância Sanitária'
-    const penalidade = normaSevera?.penalidade || 'interdição do estabelecimento'
+    // Montar contexto de produtos com material correto
+    const produtosCtx = portfolio.map((sp: any) => {
+      const p = sp.portfolio_produtos
+      if (!p) return null
+      const material = p.material || (p.norma_aplicavel?.includes('316') ? 'Aço Inox AISI 316' : p.norma_aplicavel?.includes('304') ? 'Aço Inox AISI 304' : 'Aço Inox AISI 430')
+      const normaRef = p.norma_aplicavel || ''
+      return `- ${p.nome}: ${material}${normaRef ? ` (${normaRef})` : ''}${p.descricao ? ` — ${p.descricao}` : ''}`
+    }).filter(Boolean).join('\n')
 
-    // Equipamentos obrigatórios
-    const obrig = equipamentos.filter(e => e.obrigatorio).slice(0, 3)
-    const listaEquip = obrig.length > 0
-      ? obrig.map(e => e.equipamento.toLowerCase()).join(', ')
-      : 'bancadas, pias e equipamentos'
+    // Normas com links
+    const normasCtx = normas.map((n: any) => {
+      const link = `https://pousinox.com.br/segmentos/${seg.toLowerCase().replace(/\s+/g, '-')}`
+      return `- ${n.norma} (${n.orgao}): ${n.titulo}${n.penalidade ? ` | Penalidade: ${n.penalidade}` : ''}\n  Link: ${link}`
+    }).join('\n')
 
-    return `Olá ${nomeFmt}! Tudo bem?\n\nVocê sabia que a ${orgao} pode aplicar *${penalidade}* em estabelecimentos de ${seg.toLowerCase()} que não utilizam equipamentos em aço inox?\n\nA *Pousinox* fabrica ${listaEquip} em aço inox sob medida, em conformidade com as normas sanitárias. Atendemos desde 2001, com fábrica própria em Pouso Alegre/MG.\n\nPosso enviar nosso catálogo e fazer um orçamento sem compromisso? 😊`
+    // Equipamentos
+    const equipCtx = equipamentos.map((e: any) => {
+      return `- ${e.equipamento}${e.obrigatorio ? ' ✅ OBRIGATÓRIO' : ' ⭐ Recomendado'}`
+    }).join('\n')
+
+    const prompt = `Você é um especialista comercial da Pousinox, fabricante de produtos em aço inox desde 2001 em Pouso Alegre/MG.
+
+Gere uma mensagem de WhatsApp profissional para o prospect "${nomeFmt}" do segmento "${seg}".
+
+PRODUTOS POUSINOX PARA ESTE SEGMENTO:
+${produtosCtx || 'Produtos sob medida em aço inox'}
+
+NORMAS REGULATÓRIAS APLICÁVEIS:
+${normasCtx || 'Normas gerais de segurança'}
+
+EQUIPAMENTOS POR NORMA:
+${equipCtx || 'Equipamentos em aço inox'}
+
+REGRAS OBRIGATÓRIAS:
+1. Liste TODOS os produtos disponíveis para o segmento, sem destacar um sobre outro
+2. Na frente de cada produto, coloque a norma aplicável entre parênteses
+3. Use o material CORRETO de cada produto (304, 430 ou 316) — NÃO assuma que todos são 304. O 430 é ideal para muitos casos
+4. Marque ✅ Obrigatório ou ⭐ Recomendado conforme a norma
+5. Inclua link do site após as normas: https://pousinox.com.br/segmentos/${seg.toLowerCase().replace(/\s+/g, '-')}
+6. Tom: profissional mas acessível, sem ser invasivo
+7. Formato WhatsApp: use *negrito*, _itálico_, emojis moderados
+8. Máximo 400 palavras
+9. NÃO invente dados, normas, certificações ou produtos que não estejam na lista acima
+10. NÃO mencione catálogo (não temos ainda) — convide para orçamento sem compromisso ou visita técnica
+11. Finalize com convite para orçamento sem compromisso ou visita técnica`
+
+    try {
+      const res = await aiChat([{ role: 'user', content: prompt }])
+      return typeof res === 'string' ? res : (res as any).text || ''
+    } catch {
+      // Fallback template simples
+      const obrig = equipamentos.filter((e: any) => e.obrigatorio).slice(0, 3)
+      const listaEquip = obrig.length > 0 ? obrig.map((e: any) => e.equipamento.toLowerCase()).join(', ') : 'equipamentos em aço inox'
+      return `Olá ${nomeFmt}! Tudo bem?\n\nA *Pousinox* fabrica ${listaEquip} sob medida para ${seg.toLowerCase()}, em conformidade com as normas regulatórias.\n\nAtendemos desde 2001, com fábrica própria em Pouso Alegre/MG.\n\nPosso fazer um orçamento sem compromisso? 😊`
+    }
   }
 
   function gerarMsgWpp(nome: string, segmento?: string, cidade?: string): string {
@@ -663,9 +710,9 @@ pousinox.com.br`
       setDrawerNfsLoading(true)
       const { data } = await supabaseAdmin
         .from('nf_cabecalho')
-        .select('id,numero,serie,data_emissao,valor_total,emitente_razao')
-        .or(`destinatario_cnpj.eq.${cnpjLimpo},emitente_cnpj.eq.${cnpjLimpo}`)
-        .order('data_emissao', { ascending: false })
+        .select('id,destinatario,emissao,total,cnpj')
+        .or(`cnpj.eq.${cnpjLimpo}`)
+        .order('emissao', { ascending: false })
         .limit(20)
       setDrawerNfs(data ?? [])
       setDrawerNfsLoading(false)
@@ -673,6 +720,7 @@ pousinox.com.br`
       setDrawerNfs([])
     }
     // Carregar portfólio do segmento
+    let portfolioData: any[] = []
     if (ps.segmento) {
       setDrawerPortfolioLoading(true)
       const { data: pData } = await supabaseAdmin
@@ -680,7 +728,8 @@ pousinox.com.br`
         .select('id, relevancia, destaque, portfolio_produtos(id, nome, descricao, categoria, material, dimensoes, peso_kg, norma_aplicavel, laudo_url, laudo_descricao, ficha_tecnica, vantagens, aplicacoes)')
         .eq('segmento', ps.segmento)
         .order('relevancia', { ascending: false })
-      setDrawerPortfolio(pData ?? [])
+      portfolioData = pData ?? []
+      setDrawerPortfolio(portfolioData)
       setDrawerPortfolioLoading(false)
     } else {
       setDrawerPortfolio([])
@@ -699,8 +748,9 @@ pousinox.com.br`
         .eq('segmento', ps.segmento)
         .order('obrigatorio', { ascending: false })
       setDrawerEquipamentos(eData ?? [])
-      // Gerar mensagem regulatória
-      setMsgRegulatoria(gerarMsgRegulatorio(ps, nData ?? [], eData ?? []))
+      // Gerar mensagem regulatória via IA (usa pData do portfolio já carregado acima)
+      setMsgRegulatoria('⏳ Gerando mensagem...')
+      gerarMsgRegulatorioIA(ps, nData ?? [], eData ?? [], portfolioData).then(msg => setMsgRegulatoria(msg))
     } else {
       setDrawerNormas([])
       setDrawerEquipamentos([])
@@ -724,7 +774,7 @@ pousinox.com.br`
     if (cnpjLimpo) {
       const { data: orcData } = await supabaseAdmin
         .from('orcamentos')
-        .select('id, numero, status, valor_total, created_at, cliente_razao')
+        .select('id, numero, status, valor_total, created_at')
         .or(`cliente_cnpj.eq.${cnpjLimpo},cliente_cnpj.eq.${ps.cnpj}`)
         .order('created_at', { ascending: false })
         .limit(10)
@@ -750,7 +800,7 @@ pousinox.com.br`
     // Carregar produção ativa
     const { data: opData } = await supabaseAdmin
       .from('ordens_producao')
-      .select('id, numero, titulo, status, data_prevista, projeto_id')
+      .select('id, numero, status, data_prevista, projetos(titulo)')
       .in('status', ['planejada', 'liberada', 'em_producao'])
       .order('data_prevista', { ascending: true })
       .limit(10)
@@ -774,8 +824,8 @@ pousinox.com.br`
   // Calcular resumo NFs quando mudam
   useEffect(() => {
     if (drawerNfs.length > 0) {
-      const total = drawerNfs.reduce((s: number, n: any) => s + (n.valor_total || 0), 0)
-      const ultima = drawerNfs[0]?.data_emissao || null
+      const total = drawerNfs.reduce((s: number, n: any) => s + (n.total || 0), 0)
+      const ultima = drawerNfs[0]?.emissao || null
       setDrawerNfResumo({ total, qtd: drawerNfs.length, ultima, media: total / drawerNfs.length })
     } else {
       setDrawerNfResumo(null)
@@ -1110,6 +1160,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
     <div className={styles.wrap}>
       {msg && <div className={`${styles.msg} ${msg.tipo === 'ok' ? styles.msgOk : styles.msgErro}`}>{msg.texto}</div>}
 
+      {!drawerPs && <>
       {/* Abas */}
       <div className={styles.tabs}>
         {ABAS.map(a => (
@@ -1826,18 +1877,18 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
           </div>
         </div>
       )}
-      {/* ── Drawer Prospect ── */}
+      </>}
+      {/* ── Detalhe Prospect (página inteira) ── */}
       {drawerPs && (
         <>
-          <div className={styles.drawerOverlay} onClick={() => setDrawerPs(null)} />
-          <div className={styles.drawer}>
-            <div className={styles.drawerHead}>
-              <h3>{drawerPs.nome_fantasia || drawerPs.razao_social}</h3>
-              <button className={styles.drawerFechar} onClick={() => setDrawerPs(null)}>✕</button>
+          <div className={styles.prospectPage}>
+            <div className={styles.prospectPageHead}>
+              <button className={styles.prospectPageVoltar} onClick={() => setDrawerPs(null)}>← Voltar</button>
+              <h2>{drawerPs.nome_fantasia || drawerPs.razao_social}</h2>
             </div>
-            <div className={styles.drawerBody}>
+            <div className={styles.prospectPageBody}>
               {/* Info básica + Status + Score */}
-              <div style={{ display: 'flex', gap: 10, marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#fff', borderRadius: 12, border: '1px solid #e4e8ee', boxShadow: '0 1px 3px rgba(0,0,0,0.03)' }}>
                 {/* Status */}
                 <div ref={statusRef} style={{ position: 'relative' }}>
                   {(() => {
@@ -1866,10 +1917,12 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                     )
                   })()}
                 </div>
+                {drawerPs.segmento && <span style={{ fontSize: '0.72rem', color: '#64748b', background: '#f1f5f9', padding: '3px 10px', borderRadius: 6, fontWeight: 600 }}>{drawerPs.segmento}</span>}
+                {drawerPs.porte && <span style={{ fontSize: '0.72rem', color: '#64748b', background: '#f1f5f9', padding: '3px 10px', borderRadius: 6, fontWeight: 600 }}>{drawerPs.porte}</span>}
                 {/* Score destaque */}
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '4px 14px' }}>
-                  <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600 }}>SCORE</span>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#2563eb' }}>{Number(drawerPs.score_total).toFixed(1)}</span>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, background: 'linear-gradient(135deg, #eff6ff, #e0ecff)', border: '1px solid #bfdbfe', borderRadius: 10, padding: '6px 16px' }}>
+                  <span style={{ fontSize: '0.65rem', color: '#6b7fa3', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.04em' }}>Score</span>
+                  <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#2563eb', lineHeight: 1 }}>{Number(drawerPs.score_total).toFixed(1)}</span>
                 </div>
               </div>
 
@@ -1877,12 +1930,12 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 <div><strong>Razão Social</strong>{drawerPs.razao_social}</div>
                 <div><strong>CNPJ</strong>{drawerPs.cnpj}</div>
                 <div><strong>Cidade/UF</strong>{drawerPs.cidade}/{drawerPs.uf}</div>
-                {drawerPs.segmento && <div><strong>Segmento</strong>{drawerPs.segmento}</div>}
-                {drawerPs.porte && <div><strong>Porte</strong>{drawerPs.porte}</div>}
+                {drawerPs.email && <div><strong>E-mail</strong>{drawerPs.email}</div>}
                 {drawerPs.ultimo_contato && <div><strong>Último contato</strong>{fmtData(drawerPs.ultimo_contato)}</div>}
               </div>
 
-              {/* Contato (colapsável) */}
+              {/* Row: Contato + Scores */}
+              <div className={styles.prospectPageRow}>
               <div className={styles.secaoColapsavel}>
                 <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('contato')}>
                   <span>{drawerSecoes.contato ? '▼' : '▶'}</span>
@@ -1984,8 +2037,10 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   </div>
                 )}
               </div>
+              </div>{/* /Row Contato+Scores */}
 
-              {/* Histórico NFs (colapsável) */}
+              {/* Row: Histórico + Portfólio */}
+              <div className={styles.prospectPageRow}>
               <div className={styles.secaoColapsavel}>
                 <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('nfs')}>
                   <span>{drawerSecoes.nfs ? '▼' : '▶'}</span>
@@ -2016,9 +2071,9 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                       <div key={nf.id} className={styles.drawerNfItem}>
                         <button className={styles.drawerNfHead} onClick={() => expandirNf(nf.id)}>
                           <span>{drawerNfExpandida === nf.id ? '▼' : '▶'}</span>
-                          <span>NF {nf.numero}{nf.serie ? `/${nf.serie}` : ''}</span>
-                          <span>{fmtData(nf.data_emissao)}</span>
-                          <span style={{ marginLeft: 'auto', fontWeight: 600 }}>{fmtBRL(nf.valor_total ?? 0)}</span>
+                          <span>{nf.destinatario || 'NF'}</span>
+                          <span>{fmtData(nf.emissao)}</span>
+                          <span style={{ marginLeft: 'auto', fontWeight: 600 }}>{fmtBRL(nf.total ?? 0)}</span>
                         </button>
                         {drawerNfExpandida === nf.id && drawerNfItens[nf.id] && (
                           <div className={styles.drawerNfItens}>
@@ -2119,22 +2174,23 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   </div>
                 )}
               </div>
+              </div>{/* /Row Histórico+Portfólio */}
 
+              {/* Row: Regulatório + Deals+Estoque + IA */}
+              <div className={styles.prospectPageRow}>
               {/* ⚡ Argumento Regulatório */}
               {(drawerNormas.length > 0 || drawerEquipamentos.length > 0) && (
                 <div className={styles.secaoColapsavel}>
                   <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('regulatorio')}>
                     <span>{drawerSecoes.regulatorio ? '▼' : '▶'}</span>
-                    <div className={styles.regHeader}>
-                      <span>⚡ Argumento Regulatório — {drawerPs.segmento}</span>
-                      {drawerNormas.length > 0 && (
-                        <span className={`${styles.urgBadge} ${styles[`urg${calcularUrgencia(drawerNormas).charAt(0).toUpperCase() + calcularUrgencia(drawerNormas).slice(1)}`]}`}>
-                          {calcularUrgencia(drawerNormas) === 'critico' ? '🔴 Crítico' :
-                           calcularUrgencia(drawerNormas) === 'alto' ? '🟡 Alto' :
-                           calcularUrgencia(drawerNormas) === 'tecnico' ? '🟢 Técnico' : '🔵 Diferencial'}
-                        </span>
-                      )}
-                    </div>
+                    <span>⚡ Regulatório — {drawerPs.segmento}</span>
+                    {drawerNormas.length > 0 && (
+                      <span className={`${styles.urgBadge} ${styles[`urg${calcularUrgencia(drawerNormas).charAt(0).toUpperCase() + calcularUrgencia(drawerNormas).slice(1)}`]}`} style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                        {calcularUrgencia(drawerNormas) === 'critico' ? '🔴 Crítico' :
+                         calcularUrgencia(drawerNormas) === 'alto' ? '🟡 Alto' :
+                         calcularUrgencia(drawerNormas) === 'tecnico' ? '🟢 Técnico' : '🔵 Diferencial'}
+                      </span>
+                    )}
                   </button>
                   {drawerSecoes.regulatorio && (
                     <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -2167,9 +2223,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                               <div key={eq.id} className={styles.equipItem}>
                                 <span>{eq.obrigatorio ? '✅' : '⭐'}</span>
                                 <span className={styles.equipNome}>{eq.equipamento}</span>
-                                <span className={`${styles.equipMaterial} ${eq.material !== '304' ? styles.equipMaterial316 : ''}`}>
-                                  {eq.material}
-                                </span>
+                                <a href="/blog/acos-inoxidaveis-304-430-316" target="_blank" rel="noopener" style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}>Saiba mais →</a>
                               </div>
                             ))}
                           </div>
@@ -2269,7 +2323,6 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   )}
                 </div>
               )}
-
               {/* 🏭 Produção Ativa */}
               {drawerProducao.length > 0 && (
                 <div className={styles.secaoColapsavel}>
@@ -2287,7 +2340,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                               color: op.status === 'em_producao' ? '#92400e' : op.status === 'liberada' ? '#1e40af' : '#64748b'
                             }}>{op.status?.replace('_', ' ')}</span>
                             <strong style={{ fontSize: '0.78rem' }}>{op.numero}</strong>
-                            <span style={{ flex: 1 }}>{op.titulo}</span>
+                            <span style={{ flex: 1 }}>{op.projetos?.titulo || op.numero}</span>
                             {op.data_prevista && <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{fmtData(op.data_prevista)}</span>}
                           </div>
                         ))}
@@ -2424,33 +2477,37 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   </div>
                 )}
               </div>
+              </div>{/* /Row Regulatório+Deals+Estoque+Produção+IA */}
 
               {/* Ações */}
-              <div className={styles.drawerAcoes}>
+              <div className={styles.drawerAcoes} style={{ flexDirection: 'column', gap: 10 }}>
                 {/* CTA protagonista */}
-                <button className={styles.btnWpp} style={{ flex: '1 1 100%', padding: '10px 18px', fontSize: '0.9rem', borderRadius: 10, fontWeight: 700 }}
+                <button className={styles.btnWpp} style={{ width: '100%', padding: '12px 18px', fontSize: '0.92rem', borderRadius: 10, fontWeight: 700, letterSpacing: '-0.01em' }}
                   onClick={() => abrirWhatsApp(drawerPs.whatsapp || drawerPs.telefone1, drawerPs.razao_social, drawerPs.segmento, drawerPs.cidade)}>
                   📱 Abrir WhatsApp
                 </button>
-                {/* Ações secundárias */}
-                <button className={styles.btnContactar} style={{ fontSize: '0.78rem', padding: '6px 12px' }}
-                  onClick={() => { marcarContactado(drawerPs); setDrawerPs(null) }}>✅ Contactei</button>
-                <button className={styles.btnSecondary} style={{ fontSize: '0.78rem', padding: '6px 12px' }}
-                  onClick={() => { criarDealDoDrawer(drawerPs); setDrawerPs(null) }}>➡ Deal</button>
-                <button className={styles.btnSecondary} style={{ fontSize: '0.78rem', padding: '6px 12px' }} onClick={() => {
-                  navigate('/admin/orcamento', { state: { prospect: {
-                    razao_social: drawerPs.razao_social, nome_fantasia: drawerPs.nome_fantasia,
-                    cnpj: drawerPs.cnpj, telefone: drawerPs.whatsapp || drawerPs.telefone1,
-                    email: drawerPs.email, cidade: drawerPs.cidade, uf: drawerPs.uf,
-                    segmento: drawerPs.segmento,
-                  }}})
-                }}>📄 Orçamento</button>
-                <button className={styles.btnSecondary} style={{ fontSize: '0.78rem', padding: '6px 12px' }}
-                  onClick={() => setHistoricoAberto({ id: drawerPs.prospect_id, nome: drawerPs.nome_fantasia || drawerPs.razao_social })}>📋 Histórico</button>
-                <button className={styles.btnSecondary} style={{ fontSize: '0.78rem', padding: '6px 12px', color: '#7c3aed', borderColor: '#ddd6fe' }}
-                  disabled={iaLoadingTipo !== null} onClick={iaGerarProposta}>
-                  {iaLoadingTipo === 'proposta' ? '⏳...' : '📝 Proposta IA'}
-                </button>
+                {/* Ações secundárias — grid uniforme */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8, width: '100%' }}>
+                  <button className={styles.btnContactar} style={{ fontSize: '0.78rem', padding: '8px 10px', borderRadius: 8, textAlign: 'center' }}
+                    onClick={() => { marcarContactado(drawerPs); setDrawerPs(null) }}>✅ Contactei</button>
+                  <button className={styles.btnSmall} style={{ padding: '8px 10px', textAlign: 'center' }}
+                    onClick={() => { criarDealDoDrawer(drawerPs); setDrawerPs(null) }}>➡ Deal</button>
+                  <button className={styles.btnSmall} style={{ padding: '8px 10px', textAlign: 'center' }} onClick={() => {
+                    sessionStorage.setItem('orcamento_prospect', JSON.stringify({
+                      razao_social: drawerPs.razao_social, nome_fantasia: drawerPs.nome_fantasia,
+                      cnpj: drawerPs.cnpj, telefone: drawerPs.whatsapp || drawerPs.telefone1,
+                      email: drawerPs.email, cidade: drawerPs.cidade, uf: drawerPs.uf,
+                      segmento: drawerPs.segmento,
+                    }))
+                    setOrcamentoModal(true)
+                  }}>📄 Orçamento</button>
+                  <button className={styles.btnSmall} style={{ padding: '8px 10px', textAlign: 'center' }}
+                    onClick={() => setHistoricoAberto({ id: drawerPs.prospect_id, nome: drawerPs.nome_fantasia || drawerPs.razao_social })}>📋 Histórico</button>
+                  <button className={styles.btnSmall} style={{ padding: '8px 10px', textAlign: 'center', color: '#7c3aed', borderColor: '#ddd6fe' }}
+                    disabled={iaLoadingTipo !== null} onClick={iaGerarProposta}>
+                    {iaLoadingTipo === 'proposta' ? '⏳...' : '📝 Proposta IA'}
+                  </button>
+                </div>
               </div>
               {iaProposta && (
                 <div style={{ padding: '12px 20px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 10, fontSize: '0.82rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
@@ -2489,6 +2546,15 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
           prospectNome={historicoAberto.nome}
           onClose={() => setHistoricoAberto(null)}
           onInteracaoSalva={() => carregarHotList()}
+        />
+      )}
+
+      {/* Modal Orçamento (iframe) */}
+      {orcamentoModal && (
+        <ModalIframe
+          url="/admin/orcamento"
+          titulo={`📄 Orçamento — ${drawerPs?.nome_fantasia || drawerPs?.razao_social || ''}`}
+          onClose={() => setOrcamentoModal(false)}
         />
       )}
     </div>

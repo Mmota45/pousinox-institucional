@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import styles from './AdminConteudo.module.css'
 import { supabaseAdmin } from '../lib/supabase'
 import { aiHubChat } from '../lib/aiHelper'
@@ -8,17 +8,11 @@ import AgentConteudo from '../components/assistente/AgentConteudo'
 const EDGE_URL = 'https://vcektwtpofypsgdgdjlx.supabase.co/functions/v1/gerar-conteudo'
 const ARTIGO_URL = 'https://vcektwtpofypsgdgdjlx.supabase.co/functions/v1/gerar-artigo'
 
-const CATEGORIAS = [
-  'Restaurantes e Food Service',
-  'Hospitalar e Clínicas',
-  'Arquitetura e Projetos Residenciais',
-  'Construção Civil',
+const CATEGORIAS_EDITORIAIS = [
   'Nossa Fábrica',
   'Projetos Entregues',
   'Corte a Laser',
-  'Panificação e Confeitaria',
-  'Hotelaria',
-  'Indústria',
+  'Materiais e Guias Técnicos',
 ]
 
 function gerarSlug(titulo: string): string {
@@ -196,7 +190,8 @@ export default function AdminConteudo() {
   const [publicando, setPublicando] = useState(false)
   const [publicado, setPublicado] = useState(false)
   const [erroPublicar, setErroPublicar] = useState('')
-  const [categoriasArtigo, setCategoriasArtigo] = useState<string[]>(['Restaurantes e Food Service'])
+  const [categoriasArtigo, setCategoriasArtigo] = useState<string[]>([])
+  const [categoriasDinamicas, setCategoriasDinamicas] = useState<string[]>([])
   const [imagemDestaque, setImagemDestaque] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   // Campos editoriais blog
@@ -233,6 +228,83 @@ export default function AdminConteudo() {
   const [abaRedeAtiva, setAbaRedeAtiva] = useState<'editor' | 'preview'>('editor')
   const [guiaRedeAberto, setGuiaRedeAberto] = useState(false)
   const [modeloRedeAplicado, setModeloRedeAplicado] = useState(false)
+  const [draftSalvo, setDraftSalvo] = useState(false)
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // ── Unsaved changes warning ──
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      const hasUnsaved = corpoEditado.trim() || tituloArtigo.trim() || textoRede.trim()
+      if (hasUnsaved) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [corpoEditado, tituloArtigo, textoRede])
+
+  // ── Draft persistence (localStorage) ──
+  const DRAFT_KEY = 'conteudo_draft'
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const d = JSON.parse(raw)
+      if (d.tituloArtigo) setTituloArtigo(d.tituloArtigo)
+      if (d.corpoEditado) setCorpoEditado(d.corpoEditado)
+      if (d.resumoEditado) setResumoEditado(d.resumoEditado)
+      if (d.metaArtigo) setMetaArtigo(d.metaArtigo)
+      if (d.subtitulo) setSubtitulo(d.subtitulo)
+      if (d.tipoPost) setTipoPost(d.tipoPost)
+      if (d.origemOferta) setOrigemOferta(d.origemOferta)
+      if (d.ctaTipo) setCtaTipo(d.ctaTipo)
+      if (d.tema) setTema(d.tema)
+      if (d.categoriasArtigo?.length) setCategoriasArtigo(d.categoriasArtigo)
+      if (d.kwSelecionadas?.length) setKwSelecionadas(d.kwSelecionadas)
+    } catch { /* ignore */ }
+  }, [])
+
+  // Auto-save draft debounced 5s
+  const saveDraft = useCallback(() => {
+    if (draftTimer.current) clearTimeout(draftTimer.current)
+    draftTimer.current = setTimeout(() => {
+      const hasContent = tituloArtigo.trim() || corpoEditado.trim() || resumoEditado.trim() || tema.trim()
+      if (!hasContent) return
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          tituloArtigo, corpoEditado, resumoEditado, metaArtigo, subtitulo,
+          tipoPost, origemOferta, ctaTipo, tema, categoriasArtigo, kwSelecionadas,
+        }))
+        setDraftSalvo(true)
+        setTimeout(() => setDraftSalvo(false), 3000)
+      } catch { /* quota */ }
+    }, 5000)
+  }, [tituloArtigo, corpoEditado, resumoEditado, metaArtigo, subtitulo, tipoPost, origemOferta, ctaTipo, tema, categoriasArtigo, kwSelecionadas])
+
+  useEffect(() => {
+    saveDraft()
+    return () => { if (draftTimer.current) clearTimeout(draftTimer.current) }
+  }, [saveDraft])
+
+  // ── Carregar segmentos dinamicamente ──
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabaseAdmin.from('segmento_portfolio').select('segmento')
+      const segs = [...new Set((data ?? []).map((s: any) => s.segmento as string))].sort()
+      setCategoriasDinamicas([...segs, ...CATEGORIAS_EDITORIAIS])
+    })()
+  }, [])
+
+  const CATEGORIAS = categoriasDinamicas.length > 0 ? categoriasDinamicas : CATEGORIAS_EDITORIAIS
+
+  function limparDraft() {
+    localStorage.removeItem(DRAFT_KEY)
+    setTituloArtigo(''); setCorpoEditado(''); setResumoEditado(''); setMetaArtigo('')
+    setSubtitulo(''); setTema(''); setDraftSalvo(false)
+  }
 
   async function listarImagens() {
     const { data } = await supabaseAdmin.storage.from('artigos-imagens').list('', { limit: 100, sortBy: { column: 'created_at', order: 'desc' } })
@@ -731,8 +803,17 @@ export default function AdminConteudo() {
     <div className={styles.wrap}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <h1 className={styles.titulo} style={{ margin: 0 }}>Conteúdo</h1>
-        <button style={{ padding: '6px 14px', background: 'linear-gradient(135deg,#1e1b4b,#312e81)', color: '#fff', border: 'none', borderRadius: 6, fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'inherit' }}
-          onClick={() => setAgentConteudo(true)}>✍️ Gerador IA</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {draftSalvo && <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 500 }}>Rascunho salvo</span>}
+          {localStorage.getItem(DRAFT_KEY) && (
+            <button type="button" onClick={limparDraft}
+              style={{ padding: '4px 10px', fontSize: '0.72rem', fontWeight: 600, border: '1px solid #fca5a5', borderRadius: 6, background: '#fef2f2', color: '#dc2626', cursor: 'pointer', fontFamily: 'inherit' }}>
+              Limpar rascunho
+            </button>
+          )}
+          <button style={{ padding: '6px 14px', background: 'linear-gradient(135deg,#1e1b4b,#312e81)', color: '#fff', border: 'none', borderRadius: 6, fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'inherit' }}
+            onClick={() => setAgentConteudo(true)}>✍️ Gerador IA</button>
+        </div>
       </div>
 
       {/* Seletor de canal */}

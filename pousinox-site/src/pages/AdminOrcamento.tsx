@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase, supabaseAdmin } from '../lib/supabase'
 import styles from './AdminOrcamento.module.css'
 import CollapsibleSection from '../components/CollapsibleSection/CollapsibleSection'
@@ -37,12 +37,26 @@ import {
 export default function AdminOrcamento() {
   const { ocultarValores } = useAdmin()
   const fmt = (v: number) => ocultarValores ? '••••' : fmtBRL(v)
+  const navigate = useNavigate()
   const location = useLocation()
-  const fromState = location.state as {
-    projeto?: { titulo: string; cliente_nome: string | null; cliente_cnpj: string | null; observacoes: string | null }
-    componentes?: { nome: string; quantidade: number | null }[]
-    prospect?: { razao_social: string; nome_fantasia?: string; cnpj?: string; telefone?: string; email?: string; cidade?: string; uf?: string; segmento?: string }
-  } | null
+  const fromState = (() => {
+    const s = location.state as {
+      projeto?: { titulo: string; cliente_nome: string | null; cliente_cnpj: string | null; observacoes: string | null }
+      componentes?: { nome: string; quantidade: number | null }[]
+      prospect?: { razao_social: string; nome_fantasia?: string; cnpj?: string; telefone?: string; email?: string; cidade?: string; uf?: string; segmento?: string }
+      returnTo?: string
+    } | null
+    if (s) return s
+    // Fallback: ler prospect do sessionStorage (quando aberto em nova aba)
+    try {
+      const stored = sessionStorage.getItem('orcamento_prospect')
+      if (stored) {
+        sessionStorage.removeItem('orcamento_prospect')
+        return { prospect: JSON.parse(stored) } as typeof s
+      }
+    } catch { /* ignore */ }
+    return null
+  })()
 
   const [vista, setVista]           = useState<Vista>('lista')
   const [lista, setLista]           = useState<OrcamentoResumo[]>([])
@@ -810,6 +824,11 @@ export default function AdminOrcamento() {
         </div>
       )}
 
+      {fromState?.returnTo && (
+        <button onClick={() => navigate(fromState.returnTo!)} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', color: '#475569', marginBottom: 8, fontFamily: 'inherit' }}>
+          ← Voltar para {fromState.returnTo.includes('central') ? 'Central de Vendas' : fromState.returnTo.includes('projetos') ? 'Projetos' : 'módulo anterior'}
+        </button>
+      )}
       <div className={styles.navHeader}>
         <nav className={styles.breadcrumb}>
           <button className={styles.breadcrumbLink} onClick={() => setVista('lista')}>Orçamentos</button>

@@ -12,7 +12,7 @@ import styles from './FixadorOrcamento.module.css'
 const N8N_WEBHOOK_URL = 'https://n8n.pousinox.com.br/webhook/orcamento-fixador'
 
 const WA_LINK =
-  'https://wa.me/553534238994?text=Ol%C3%A1%2C%20preciso%20de%20um%20or%C3%A7amento%20do%20Fixador%20de%20Porcelanato%20Pousinox.'
+  'https://wa.me/5535999619463?text=Ol%C3%A1%2C%20preciso%20de%20um%20or%C3%A7amento%20do%20Fixador%20de%20Porcelanato%20Pousinox.'
 
 const tiposObra = [
   'Edifício residencial',
