@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, supabaseAdmin } from '../lib/supabase'
-import styles from './AdminCompras.module.css'
+import styles from './AdminBase.module.css'
 import AiActionButton from '../components/assistente/AiActionButton'
 import { aiVision, fileToBase64 } from '../lib/aiHelper'
 

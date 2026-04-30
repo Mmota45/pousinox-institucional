@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
-import styles from './AdminCompras.module.css'
+import styles from './AdminBase.module.css'
 
 interface Flag {
   flag: string

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabaseAdmin, supabase } from '../lib/supabase'
-import styles from './AdminCompras.module.css'
+import styles from './AdminBase.module.css'
 
 interface Pedido {
   id: number; codigo: string; status: string

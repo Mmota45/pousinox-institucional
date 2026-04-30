@@ -1,4 +1,7 @@
-/* AdminPortfolio — CSS dedicado (baseado em AdminBase) */
+/* ═══════════════════════════════════════════════════
+   AdminBase — CSS padrão compartilhado para módulos admin
+   Baseado no visual do AdminPortfolio
+   ═══════════════════════════════════════════════════ */
 
 .wrap { display: flex; flex-direction: column; gap: 20px; }
 
