@@ -71,6 +71,7 @@ import AdminFeatureFlags from './pages/AdminFeatureFlags'
 import AdminFixadores from './pages/AdminFixadores'
 import AdminAssistente from './pages/AdminAssistente'
 import AdminUso from './pages/AdminUso'
+import AdminPortfolio from './pages/AdminPortfolio'
 import AdminSite from './pages/AdminSite'
 import Privacidade from './pages/Privacidade'
 import LgpdBanner from './components/LgpdBanner/LgpdBanner'
@@ -194,6 +195,7 @@ function App() {
             <Route path="docs-emitidos"        element={<AdminDocsEmitidos />} />
             <Route path="feature-flags"       element={<AdminFeatureFlags />} />
             <Route path="fixadores"           element={<AdminFixadores />} />
+            <Route path="portfolio"          element={<AdminPortfolio />} />
             <Route path="assistente"          element={<AdminAssistente />} />
             <Route path="uso"                element={<AdminUso />} />
             <Route path="site"               element={<AdminSite />} />
