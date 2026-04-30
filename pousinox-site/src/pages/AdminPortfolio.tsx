@@ -503,7 +503,9 @@ Formato: texto corrido com negrito, pronto para copiar e colar. Máximo 400 pala
                     <strong style={{ fontSize: '0.85rem' }}>{m.portfolio_produtos?.nome || '?'}</strong>
                     {m.portfolio_produtos?.descricao && <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>{m.portfolio_produtos.descricao}</span>}
                   </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#2563eb' }}>Rel: {m.relevancia}</span>
+                  <select value={m.relevancia} onChange={async e => { const v = Number(e.target.value); await supabaseAdmin.from('segmento_portfolio').update({ relevancia: v }).eq('id', m.id); carregarMapeamentos() }} title="Relevância (1-10)" style={{ width: 48, padding: '2px 4px', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: '0.72rem', fontWeight: 600, color: '#2563eb', background: '#f0f7ff', cursor: 'pointer' }}>
+                    {[1,2,3,4,5,6,7,8,9,10].map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
                   <button className={styles.btnSmallDanger} onClick={() => removerMapeamento(m.id)}>✕</button>
                 </div>
               ))}
