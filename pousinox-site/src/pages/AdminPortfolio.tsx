@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
+import { aiHubChat } from '../lib/aiHelper'
 import styles from './AdminCompras.module.css'
 
 interface Produto {
@@ -59,6 +60,11 @@ export default function AdminPortfolio() {
   const [equipFiltro, setEquipFiltro] = useState('')
   const [equipSegmentos, setEquipSegmentos] = useState<string[]>([])
   const [equipEdit, setEquipEdit] = useState<Partial<Equipamento> & { _new?: boolean }>({})
+
+  // ── IA ──
+  const [iaLoading, setIaLoading] = useState<string | null>(null) // 'desc'|'sugestao'|'resumo'
+  const [iaResultado, setIaResultado] = useState<{ tipo: string; texto: string } | null>(null)
+  const [iaDescProdId, setIaDescProdId] = useState<number | null>(null)
 
   const showMsg = (tipo: 'ok' | 'erro', texto: string) => { setMsg({ tipo, texto }); setTimeout(() => setMsg(null), 3000) }
 
@@ -188,6 +194,98 @@ export default function AdminPortfolio() {
     carregarEquipamentos()
   }
 
+  // ── IA: Gerar Descrição ──
+  async function iaGerarDescricao(prod: Produto) {
+    setIaLoading('desc')
+    setIaDescProdId(prod.id)
+    setIaResultado(null)
+    // Buscar segmentos onde o produto é usado
+    const { data: segs } = await supabaseAdmin.from('segmento_portfolio').select('segmento').eq('produto_id', prod.id)
+    const segmentosList = (segs ?? []).map((s: any) => s.segmento).join(', ') || 'diversos segmentos'
+
+    const prompt = `Gere uma descrição comercial curta (2-3 frases, máximo 200 caracteres) para o produto de aço inox "${prod.nome}" da Pousinox.
+Segmentos de uso: ${segmentosList}.
+Categoria: ${prod.categoria}.
+A descrição deve destacar: material (aço inox AISI 304/316), durabilidade, conformidade sanitária, e aplicação prática.
+Responda APENAS com a descrição, sem aspas nem prefixo.`
+
+    const result = await aiHubChat(prompt, { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+      'Você é redator técnico-comercial da Pousinox, fabricante de equipamentos em aço inox. Seja direto e profissional.')
+    setIaLoading(null)
+    if (result.error) { showMsg('erro', `Erro IA: ${result.error}`); return }
+    setIaResultado({ tipo: 'desc', texto: result.response.trim() })
+  }
+
+  async function iaAplicarDescricao(prodId: number, descricao: string) {
+    await supabaseAdmin.from('portfolio_produtos').update({ descricao }).eq('id', prodId)
+    showMsg('ok', 'Descrição atualizada!')
+    setIaResultado(null)
+    setIaDescProdId(null)
+    carregarProdutos()
+  }
+
+  // ── IA: Sugerir Produtos para Segmento ──
+  async function iaSugerirProdutos(segmento: string) {
+    setIaLoading('sugestao')
+    setIaResultado(null)
+    // Buscar equipamentos e produtos já vinculados
+    const { data: equips } = await supabaseAdmin.from('segmento_equipamentos').select('equipamento, obrigatorio, material').eq('segmento', segmento)
+    const { data: maps } = await supabaseAdmin.from('segmento_portfolio').select('portfolio_produtos(nome)').eq('segmento', segmento)
+    const prodsVinculados = (maps ?? []).map((m: any) => m.portfolio_produtos?.nome).filter(Boolean)
+    const todosProds = produtos.map(p => p.nome)
+
+    const prompt = `Analise o segmento "${segmento}" e sugira melhorias no portfólio da Pousinox.
+
+EQUIPAMENTOS OBRIGATÓRIOS/RECOMENDADOS para este segmento:
+${(equips ?? []).map((e: any) => `- ${e.equipamento} (${e.obrigatorio ? 'OBRIGATÓRIO' : 'recomendado'}, Inox ${e.material})`).join('\n') || 'Nenhum cadastrado'}
+
+PRODUTOS JÁ VINCULADOS ao segmento:
+${prodsVinculados.join(', ') || 'Nenhum'}
+
+CATÁLOGO COMPLETO Pousinox (todos os produtos disponíveis):
+${todosProds.join(', ')}
+
+Responda em formato:
+1. **GAPS**: Equipamentos obrigatórios que NÃO têm produto correspondente vinculado
+2. **SUGESTÕES**: Produtos do catálogo que deveriam ser vinculados a este segmento mas não estão
+3. **NOVOS**: Produtos que a Pousinox deveria fabricar para atender este segmento (não existem no catálogo)
+
+Seja direto, use bullets. Máximo 300 palavras.`
+
+    const result = await aiHubChat(prompt, { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+      'Você é consultor comercial especialista em equipamentos de aço inox para indústria. Analise gaps no portfólio e sugira ações concretas.')
+    setIaLoading(null)
+    if (result.error) { showMsg('erro', `Erro IA: ${result.error}`); return }
+    setIaResultado({ tipo: 'sugestao', texto: result.response.trim() })
+  }
+
+  // ── IA: Resumo Executivo Regulatório ──
+  async function iaResumoRegulatorio() {
+    setIaLoading('resumo')
+    setIaResultado(null)
+    const normasTexto = normas.map(n =>
+      `${n.norma} (${n.orgao}) — ${n.titulo || ''} | Penalidade: ${n.penalidade || 'N/A'} | Segmentos: ${(n.segmentos || []).join(', ')}`
+    ).join('\n')
+
+    const prompt = `Com base nestas normas regulatórias que exigem aço inox, gere um RESUMO EXECUTIVO para o vendedor da Pousinox:
+
+${normasTexto}
+
+O resumo deve:
+1. **Argumento principal** (1 frase impactante para abrir conversa com cliente)
+2. **Por segmento** — para cada segmento relevante, listar: norma mais severa + penalidade + frase de venda
+3. **Dados de impacto** — valores de multas, riscos de interdição
+4. **Frase de fechamento** — CTA para o vendedor usar
+
+Formato: texto corrido com negrito, pronto para copiar e colar. Máximo 400 palavras. Em português.`
+
+    const result = await aiHubChat(prompt, { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+      'Você é especialista em vendas B2B de equipamentos em aço inox. Crie argumentos de venda baseados em compliance regulatório. Nunca invente normas ou valores — use apenas os dados fornecidos.')
+    setIaLoading(null)
+    if (result.error) { showMsg('erro', `Erro IA: ${result.error}`); return }
+    setIaResultado({ tipo: 'resumo', texto: result.response.trim() })
+  }
+
   // ── Norma expand ──
   async function expandirNorma(id: number) {
     if (normaExpandida === id) { setNormaExpandida(null); return }
@@ -287,9 +385,24 @@ export default function AdminPortfolio() {
                                 )}
                               </div>
                               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                                <button className={styles.btnSmall} onClick={() => iaGerarDescricao(p)} disabled={iaLoading === 'desc'} title="Gerar descrição com IA">🤖</button>
                                 <button className={styles.btnSmall} onClick={() => { setProdEdit(p); setProdVista('form') }}>✏️</button>
                                 <button className={styles.btnSmallDanger} onClick={() => excluirProduto(p.id)}>🗑</button>
                               </div>
+                              {/* IA: resultado da descrição gerada */}
+                              {iaDescProdId === p.id && iaLoading === 'desc' && (
+                                <div style={{ marginTop: 6, padding: 8, background: '#f0f7ff', borderRadius: 6, fontSize: '0.8rem', color: '#1e40af' }}>⏳ Gerando descrição...</div>
+                              )}
+                              {iaDescProdId === p.id && iaResultado?.tipo === 'desc' && (
+                                <div style={{ marginTop: 6, padding: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
+                                  <p style={{ fontSize: '0.82rem', margin: '0 0 8px', lineHeight: 1.4, color: '#1e293b' }}>🤖 {iaResultado.texto}</p>
+                                  <div style={{ display: 'flex', gap: 6 }}>
+                                    <button className={styles.btnSmall} onClick={() => iaAplicarDescricao(p.id, iaResultado.texto)} style={{ background: '#16a34a', color: '#fff', border: 'none' }}>✅ Aplicar</button>
+                                    <button className={styles.btnSmall} onClick={() => iaGerarDescricao(p)}>🔄 Outra</button>
+                                    <button className={styles.btnSmall} onClick={() => { setIaResultado(null); setIaDescProdId(null) }}>✕</button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -346,7 +459,7 @@ export default function AdminPortfolio() {
               {segmentos.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <button className={styles.btnPrimary} onClick={() => setSegAddOpen(true)}>+ Vincular Produto</button>
-            {segFiltro && <span style={{ fontSize: '0.78rem', color: '#7c3aed', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>🤖 <em>Dica: vincule equipamentos obrigatórios como produtos para argumentação completa</em></span>}
+            {segFiltro && <button className={styles.btnSmall} onClick={() => iaSugerirProdutos(segFiltro)} disabled={iaLoading === 'sugestao'} style={{ background: '#7c3aed', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: '0.82rem', fontWeight: 600 }}>{iaLoading === 'sugestao' ? '⏳ Analisando...' : '🤖 Sugerir Produtos'}</button>}
           </div>
 
           {segAddOpen && (
@@ -371,6 +484,18 @@ export default function AdminPortfolio() {
           {segFiltro ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
               <h3 style={{ fontSize: '1rem', color: '#1e40af' }}>{segFiltro} — {mapeamentos.length} produtos</h3>
+              {iaResultado?.tipo === 'sugestao' && (
+                <div style={{ padding: 14, background: '#faf5ff', border: '1px solid #d8b4fe', borderRadius: 10, fontSize: '0.84rem', lineHeight: 1.6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <strong style={{ color: '#7c3aed' }}>🤖 Análise IA — {segFiltro}</strong>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button className={styles.btnSmall} onClick={() => { navigator.clipboard.writeText(iaResultado.texto); showMsg('ok', 'Copiado!') }}>📋</button>
+                      <button className={styles.btnSmall} onClick={() => setIaResultado(null)}>✕</button>
+                    </div>
+                  </div>
+                  <div style={{ whiteSpace: 'pre-wrap', color: '#1e293b' }}>{iaResultado.texto}</div>
+                </div>
+              )}
               {mapeamentos.map(m => (
                 <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
                   <button onClick={() => toggleDestaque(m)} title="Destaque" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem' }}>{m.destaque ? '⭐' : '☆'}</button>
@@ -418,7 +543,22 @@ export default function AdminPortfolio() {
               {statusUnicos.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>{normasFiltradas.length} norma{normasFiltradas.length !== 1 ? 's' : ''}</span>
+            <button className={styles.btnSmall} onClick={iaResumoRegulatorio} disabled={iaLoading === 'resumo' || normas.length === 0} style={{ background: '#dc2626', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: '0.82rem', fontWeight: 600 }}>{iaLoading === 'resumo' ? '⏳ Gerando...' : '🤖 Resumo Executivo'}</button>
           </div>
+
+          {/* Resultado IA — Resumo Executivo */}
+          {iaResultado?.tipo === 'resumo' && (
+            <div style={{ padding: 14, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, fontSize: '0.84rem', lineHeight: 1.6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <strong style={{ color: '#dc2626' }}>🤖 Resumo Executivo — Argumento Regulatório</strong>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button className={styles.btnSmall} onClick={() => { navigator.clipboard.writeText(iaResultado.texto); showMsg('ok', 'Resumo copiado!') }}>📋 Copiar</button>
+                  <button className={styles.btnSmall} onClick={() => setIaResultado(null)}>✕</button>
+                </div>
+              </div>
+              <div style={{ whiteSpace: 'pre-wrap', color: '#1e293b' }}>{iaResultado.texto}</div>
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {normasFiltradas.map(n => {
