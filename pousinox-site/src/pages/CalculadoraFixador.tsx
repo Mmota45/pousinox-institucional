@@ -5,7 +5,7 @@
  * Feature flag: calculadora_fixador
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import SEO from '../components/SEO/SEO'
 import { usePublicFlag } from '../hooks/useFeatureFlags'
@@ -16,10 +16,16 @@ import s from './CalculadoraFixador.module.css'
 
 const WA_NUMERO = '5535999619463'
 
-const MODELOS_PUBLICOS = [
-  { id: 1, nome: 'Fixador Padrão Inox 304', material: 'Aço Inox 304', espessura: '0.43mm', laudo: true, desc: 'Para porcelanatos de piso e parede — áreas internas e externas' },
-  { id: 2, nome: 'Fixador Reforçado Inox 304', material: 'Aço Inox 304', espessura: '0.50mm', laudo: true, desc: 'Para porcelanatos de grande formato ou maior solicitação' },
-  { id: 3, nome: 'Fixador Inox 430', material: 'Aço Inox 430', espessura: '0.43mm', laudo: false, desc: 'Modelo econômico para áreas internas sem umidade' },
+type ModeloCalc = {
+  id: number; nome: string; material: string; espessura: string
+  laudo: boolean; desc: string; imagem_url: string | null; abertura_mm: number | null
+}
+
+const MODELOS_FALLBACK: ModeloCalc[] = [
+  { id: 1, nome: 'Fixador Inox 304 — 5mm', material: 'Aço Inox 304', espessura: '0.8mm', laudo: true, desc: 'Para revestimentos até 10mm de espessura', imagem_url: null, abertura_mm: 5 },
+  { id: 2, nome: 'Fixador Inox 304 — 11mm', material: 'Aço Inox 304', espessura: '0.8mm', laudo: true, desc: 'Para revestimentos acima de 10mm de espessura', imagem_url: null, abertura_mm: 11 },
+  { id: 3, nome: 'Fixador Inox 430 — 5mm', material: 'Aço Inox 430', espessura: '0.8mm', laudo: false, desc: 'Modelo econômico para revestimentos até 10mm', imagem_url: null, abertura_mm: 5 },
+  { id: 4, nome: 'Fixador Inox 430 — 11mm', material: 'Aço Inox 430', espessura: '0.8mm', laudo: false, desc: 'Modelo econômico para revestimentos acima de 10mm', imagem_url: null, abertura_mm: 11 },
 ]
 
 const STATUS_VISUAL: Record<StatusAnalise, { bg: string; border: string; color: string; icon: string; label: string }> = {
@@ -85,6 +91,40 @@ export default function CalculadoraFixador() {
   const [authErro, setAuthErro] = useState<string | null>(null)
   const [reenvioTimer, setReenvioTimer] = useState(0)
 
+  // Modelos dinâmicos do banco
+  const [modelos, setModelos] = useState<ModeloCalc[]>(MODELOS_FALLBACK)
+  useEffect(() => {
+    supabase.from('fixador_modelos').select('id, nome, material, espessura_mm, obs_tecnica, possui_laudo, imagem_url, abertura_aba_mm').eq('ativo', true).order('id')
+      .then(({ data }) => {
+        if (data?.length) {
+          setModelos(data.map(m => ({
+            id: m.id,
+            nome: m.nome,
+            material: m.material,
+            espessura: m.espessura_mm + 'mm',
+            laudo: m.possui_laudo,
+            desc: m.obs_tecnica || '',
+            imagem_url: m.imagem_url,
+            abertura_mm: m.abertura_aba_mm,
+          })))
+        }
+      })
+  }, [])
+
+  // Agrupar modelos por material para UI de cards
+  const grupos = useMemo(() => {
+    const map = new Map<string, { material: string; imagem_url: string | null; laudo: boolean; aberturas: { mm: number; idx: number; desc: string }[] }>()
+    modelos.forEach((m, i) => {
+      const key = m.material
+      if (!map.has(key)) map.set(key, { material: key, imagem_url: m.imagem_url, laudo: m.laudo, aberturas: [] })
+      const g = map.get(key)!
+      if (!g.imagem_url && m.imagem_url) g.imagem_url = m.imagem_url
+      if (m.laudo) g.laudo = true
+      g.aberturas.push({ mm: m.abertura_mm || 0, idx: i, desc: m.desc })
+    })
+    return Array.from(map.values())
+  }, [modelos])
+
   // Collapsible form
   const [formOpen, setFormOpen] = useState(true)
 
@@ -123,7 +163,7 @@ export default function CalculadoraFixador() {
         espessura_mm: parseFloat(espessura) || undefined,
         peso_peca_kg: parseFloat(pesoPeca.replace(',', '.')) || undefined,
         perda_pct: 10,
-        modelo_id: MODELOS_PUBLICOS[modeloIdx].id,
+        modelo_id: modelos[modeloIdx].id,
       },
       REGRAS_PADRAO,
       CONSUMIVEIS_PADRAO,
@@ -235,7 +275,7 @@ export default function CalculadoraFixador() {
 
   function gerarMsgWa() {
     if (!resultado) return ''
-    const modelo = MODELOS_PUBLICOS[modeloIdx]
+    const modelo = modelos[modeloIdx]
     return encodeURIComponent(
       `Olá! Fiz uma simulação na calculadora de materiais do site:\n\n` +
       `• Área: ${areaTotal} m²\n` +
@@ -248,7 +288,7 @@ export default function CalculadoraFixador() {
     )
   }
 
-  const modelo = MODELOS_PUBLICOS[modeloIdx]
+  const modelo = modelos[modeloIdx]
 
   return (
     <>
@@ -316,18 +356,37 @@ export default function CalculadoraFixador() {
               <div className={s.sectionContent}>
                 <h2 className={s.sectionTitle}>Modelo do Fixador</h2>
                 <div className={s.modelGrid}>
-                  {MODELOS_PUBLICOS.map((m, i) => (
-                    <button
-                      key={i} type="button"
-                      className={`${s.modelCard} ${modeloIdx === i ? s.modelActive : ''}`}
-                      onClick={() => setModeloIdx(i)}
-                    >
-                      <div className={s.modelName}>{m.nome}</div>
-                      <div className={s.modelMeta}>{m.material} · {m.espessura}</div>
-                      <div className={s.modelDesc}>{m.desc}</div>
-                      {m.laudo && <div className={s.modelSelo}>🔬 Ensaio técnico rastreável</div>}
-                    </button>
-                  ))}
+                  {grupos.map(g => {
+                    const isActive = g.aberturas.some(a => a.idx === modeloIdx)
+                    const selectedAb = isActive ? g.aberturas.find(a => a.idx === modeloIdx) : null
+                    return (
+                      <div key={g.material} className={`${s.modelCard} ${isActive ? s.modelActive : ''}`}>
+                        {g.imagem_url && <img src={g.imagem_url} alt={g.material} className={s.modelImg} loading="lazy" />}
+                        <div className={s.modelName}>{modelos[g.aberturas[0].idx].nome.replace(/\s*—\s*\d+\s*mm$/i, '')}</div>
+                        <div className={s.modelMeta}>{modelos[g.aberturas[0].idx].espessura} · {g.laudo ? 'Ensaio LAMAT/SENAI' : 'Econômico'}</div>
+                        <div className={s.aberturaGroup}>
+                          <span className={s.aberturaLabel}>Abertura da aba:</span>
+                          <div className={s.aberturaBadges}>
+                            {g.aberturas.map(a => (
+                              <button
+                                key={a.mm} type="button"
+                                className={`${s.aberturaBadge} ${a.idx === modeloIdx ? s.aberturaBadgeActive : ''}`}
+                                onClick={() => setModeloIdx(a.idx)}
+                              >
+                                {a.mm} mm
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {isActive && selectedAb?.desc && (
+                          <details className={s.modelDetails}>
+                            <summary className={s.modelDetailsSummary}>Ver descrição</summary>
+                            <div className={s.modelDetailInline}>{selectedAb.desc}</div>
+                          </details>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>

@@ -166,11 +166,11 @@ export default function FixadorEnsaios() {
       <section className={`section ${styles.linksSection}`}>
         <div className="container">
           <div className={styles.linksGrid}>
-            <Link to="/fixador-porcelanato/fachadas" className={styles.linkCard}>
+            <Link to="/fixador-porcelanato" className={styles.linkCard}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="3" width="20" height="18" rx="2" /><line x1="8" y1="21" x2="8" y2="3" /><line x1="16" y1="21" x2="16" y2="3" />
               </svg>
-              Aplicações em fachadas e grandes formatos
+              Visão geral do produto
             </Link>
             <Link to="/fixador-porcelanato/normas" className={styles.linkCard}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -68,14 +68,14 @@ export default function Header() {
           <Link to="/fixador-porcelanato" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
             Visão Geral
           </Link>
-          <Link to="/fixador-porcelanato/fachadas" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
-            Fachadas e Grandes Formatos
-          </Link>
           <Link to="/fixador-porcelanato/ensaios" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
             Ensaios LAMAT/SENAI
           </Link>
           <Link to="/fixador-porcelanato/normas" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
             Normas Técnicas
+          </Link>
+          <Link to="/fixador-porcelanato/calculadora" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
+            Calculadora de Materiais
           </Link>
           <Link to="/fixador-porcelanato/orcamento" className={styles.dropdownItem} onClick={() => { setMenuOpen(false); closeAll() }}>
             Solicitar Orçamento

@@ -15,8 +15,12 @@ interface Modelo {
   nome: string
   material: string
   espessura_mm: number
-  descricao: string | null
-  laudo: boolean
+  largura_mm: number | null
+  comprimento_mm: number | null
+  abertura_aba_mm: number | null
+  obs_tecnica: string | null
+  imagem_url: string | null
+  possui_laudo: boolean
   ativo: boolean
 }
 
@@ -43,7 +47,7 @@ interface Consumivel {
 
 type Aba = 'modelos' | 'regras' | 'consumiveis'
 
-const MODELO_VAZIO: Omit<Modelo, 'id'> = { nome: '', material: 'Aço Inox 304', espessura_mm: 0.43, descricao: '', laudo: false, ativo: true }
+const MODELO_VAZIO: Omit<Modelo, 'id'> = { nome: '', material: 'Aço Inox 304', espessura_mm: 0.43, largura_mm: null, comprimento_mm: null, abertura_aba_mm: null, obs_tecnica: '', imagem_url: null, possui_laudo: false, ativo: true }
 const REGRA_VAZIA: Omit<Regra, 'id'> = { modelo_id: null, nome: '', lado_max_cm: null, area_max_cm2: null, peso_max_kg: null, fixadores_por_peca: 2, exige_revisao: false, prioridade: 10 }
 const CONSUMIVEL_VAZIO: Omit<Consumivel, 'id'> = { nome: '', tipo: 'consumivel', unidade: 'UN', proporcao_por: 1, ordem: 1 }
 
@@ -59,8 +63,89 @@ export default function AdminFixadores() {
   const [editRegra, setEditRegra] = useState<Partial<Regra> | null>(null)
   const [editConsumivel, setEditConsumivel] = useState<Partial<Consumivel> | null>(null)
   const [saving, setSaving] = useState(false)
+  const [gerandoDesc, setGerandoDesc] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => { carregarTudo() }, [])
+
+  async function gerarDescricaoIA() {
+    if (!editModelo) return
+    setGerandoDesc(true)
+    try {
+      const prompt = `Gere um título SEO e uma descrição técnica-comercial para este fixador de porcelanato:
+- Nome atual: ${editModelo.nome || '(não definido)'}
+- Material: ${editModelo.material || 'Aço Inox'}
+- Espessura: ${editModelo.espessura_mm || '—'} mm
+- Largura: ${editModelo.largura_mm || '—'} mm
+- Comprimento: ${editModelo.comprimento_mm || '—'} mm
+- Abertura da aba: ${editModelo.abertura_aba_mm || '—'} mm
+
+Regras:
+1. TÍTULO: COMEÇAR com "Fixador de Porcelanato" + diferencial técnico (abertura, material, aplicação). Máximo 60 caracteres. Formato: "Fixador de Porcelanato [Diferencial] — [Aplicação]"
+2. DESCRIÇÃO: máximo 3 frases, incluir palavras-chave: "ancoragem mecânica", "aço inox", "fachada"
+3. Use APENAS as dimensões informadas acima. Se um campo estiver "—" NÃO invente valor. Cite somente os valores preenchidos.
+4. Destacar benefício principal (segurança, durabilidade, resistência à corrosão)
+5. Tom profissional para engenheiros, arquitetos e construtoras
+6. Fabricante: Pousinox®
+7. NUNCA invente dados, certificações, normas ou números que não foram fornecidos
+
+Responda EXATAMENTE neste formato (sem aspas):
+TITULO: ...
+DESCRICAO: ...`
+      const { data, error } = await supabaseAdmin.functions.invoke('ai-hub', {
+        body: {
+          action: 'chat',
+          provider: 'groq',
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            { role: 'system', content: `Você é um redator técnico-comercial especializado em SEO para produtos industriais.
+CONTEXTO TÉCNICO DO PRODUTO:
+- Fixador = insert metálico de ancoragem mecânica complementar à argamassa colante
+- NÃO substitui argamassa — é segunda linha de segurança contra desprendimento
+- "Abertura da aba" = espessura da placa cerâmica compatível (5mm = placas de 5-8mm, 11mm = placas de 9-14mm). NÃO é sobre facilidade de instalação
+- Aplicação: fachadas externas, revestimentos de grande formato, áreas sujeitas a variação térmica
+- Fixado com bucha prego na alvenaria, oculto após instalação
+Responda exatamente no formato solicitado.` },
+            { role: 'user', content: prompt },
+          ],
+        },
+      })
+      if (error || !data?.ok) {
+        alert('Erro IA: ' + (data?.error || error?.message || 'Erro desconhecido'))
+      } else if (data?.response) {
+        const resp = data.response.trim()
+        const tituloMatch = resp.match(/TITULO:\s*(.+)/i)
+        const descMatch = resp.match(/DESCRICAO:\s*(.+)/i)
+        setEditModelo(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            nome: tituloMatch?.[1]?.trim() || prev.nome,
+            obs_tecnica: descMatch?.[1]?.trim() || prev.obs_tecnica,
+          }
+        })
+      }
+    } catch (e) {
+      console.error('Erro IA:', e)
+      alert('Erro ao chamar IA: ' + (e as Error).message)
+    }
+    setGerandoDesc(false)
+  }
+
+  async function uploadImagem(file: File) {
+    setUploading(true)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `modelos/${Date.now()}.${ext}`
+      const { error } = await supabaseAdmin.storage.from('fixadores').upload(path, file, { upsert: true })
+      if (error) { alert('Erro upload: ' + error.message); return }
+      const { data: urlData } = supabaseAdmin.storage.from('fixadores').getPublicUrl(path)
+      setEditModelo(prev => prev ? { ...prev, imagem_url: urlData.publicUrl } : prev)
+    } catch (e) {
+      alert('Erro: ' + (e as Error).message)
+    }
+    setUploading(false)
+  }
 
   async function carregarTudo() {
     setLoading(true)
@@ -80,17 +165,20 @@ export default function AdminFixadores() {
   async function salvarModelo() {
     if (!editModelo?.nome?.trim()) return
     setSaving(true)
+    const payload = {
+      nome: editModelo.nome, material: editModelo.material ?? 'Aço Inox 304',
+      espessura_mm: editModelo.espessura_mm ?? 0.43,
+      largura_mm: editModelo.largura_mm || null,
+      comprimento_mm: editModelo.comprimento_mm || null,
+      abertura_aba_mm: editModelo.abertura_aba_mm || null,
+      obs_tecnica: editModelo.obs_tecnica || null,
+      imagem_url: editModelo.imagem_url || null,
+      possui_laudo: editModelo.possui_laudo ?? false, ativo: editModelo.ativo ?? true,
+    }
     if (editModelo.id) {
-      await supabaseAdmin.from('fixador_modelos').update({
-        nome: editModelo.nome, material: editModelo.material, espessura_mm: editModelo.espessura_mm,
-        descricao: editModelo.descricao || null, laudo: editModelo.laudo ?? false, ativo: editModelo.ativo ?? true,
-      }).eq('id', editModelo.id)
+      await supabaseAdmin.from('fixador_modelos').update(payload).eq('id', editModelo.id)
     } else {
-      await supabaseAdmin.from('fixador_modelos').insert({
-        nome: editModelo.nome, material: editModelo.material ?? 'Aço Inox 304',
-        espessura_mm: editModelo.espessura_mm ?? 0.43, descricao: editModelo.descricao || null,
-        laudo: editModelo.laudo ?? false, ativo: editModelo.ativo ?? true,
-      })
+      await supabaseAdmin.from('fixador_modelos').insert(payload)
     }
     setEditModelo(null)
     setSaving(false)
@@ -216,13 +304,53 @@ export default function AdminFixadores() {
                   <input style={inputStyle} type="number" step="0.01" value={editModelo.espessura_mm ?? ''} onChange={e => setEditModelo({ ...editModelo, espessura_mm: parseFloat(e.target.value) || 0 })} />
                 </div>
               </div>
+              <div className={fx.formGrid3} style={{ marginTop: 12 }}>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Largura (mm)</label>
+                  <input style={inputStyle} type="number" step="0.1" value={editModelo.largura_mm ?? ''} onChange={e => setEditModelo({ ...editModelo, largura_mm: e.target.value ? parseFloat(e.target.value) : null })} placeholder="Ex: 40" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Comprimento (mm)</label>
+                  <input style={inputStyle} type="number" step="0.1" value={editModelo.comprimento_mm ?? ''} onChange={e => setEditModelo({ ...editModelo, comprimento_mm: e.target.value ? parseFloat(e.target.value) : null })} placeholder="Ex: 120" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Abertura da aba (mm)</label>
+                  <input style={inputStyle} type="number" step="0.1" value={editModelo.abertura_aba_mm ?? ''} onChange={e => setEditModelo({ ...editModelo, abertura_aba_mm: e.target.value ? parseFloat(e.target.value) : null })} placeholder="Ex: 5 ou 11" />
+                </div>
+              </div>
               <div style={{ marginTop: 12 }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Descrição</label>
-                <input style={inputStyle} value={editModelo.descricao ?? ''} onChange={e => setEditModelo({ ...editModelo, descricao: e.target.value })} placeholder="Descrição curta" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Descrição</label>
+                  <button
+                    onClick={gerarDescricaoIA}
+                    disabled={gerandoDesc}
+                    style={{ ...btnSm, background: '#7c3aed', color: '#fff', fontSize: '0.7rem', padding: '3px 10px' }}
+                  >
+                    {gerandoDesc ? '⏳ Gerando…' : '✨ Gerar com IA'}
+                  </button>
+                </div>
+                <textarea style={{ ...inputStyle, minHeight: 72, resize: 'vertical' }} value={editModelo.obs_tecnica ?? ''} onChange={e => setEditModelo({ ...editModelo, obs_tecnica: e.target.value })} placeholder="Descrição técnica comercial" />
+              </div>
+              <div style={{ marginTop: 12 }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Imagem do produto</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 4 }}>
+                  {editModelo.imagem_url && (
+                    <img src={editModelo.imagem_url} alt="Preview" style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={{ ...btnSm, background: '#f1f5f9', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                      {uploading ? '⏳ Enviando…' : '📷 Upload'}
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) uploadImagem(e.target.files[0]) }} />
+                    </label>
+                    {editModelo.imagem_url && (
+                      <button onClick={() => setEditModelo({ ...editModelo, imagem_url: null })} style={{ ...btnSm, background: '#fef2f2', color: '#dc2626', fontSize: '0.7rem' }}>✕ Remover</button>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className={fx.formRow}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={editModelo.laudo ?? false} onChange={e => setEditModelo({ ...editModelo, laudo: e.target.checked })} /> Possui laudo/ensaio
+                  <input type="checkbox" checked={editModelo.possui_laudo ?? false} onChange={e => setEditModelo({ ...editModelo, possui_laudo: e.target.checked })} /> Possui laudo/ensaio
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={editModelo.ativo ?? true} onChange={e => setEditModelo({ ...editModelo, ativo: e.target.checked })} /> Ativo
@@ -243,7 +371,8 @@ export default function AdminFixadores() {
               <tr style={{ background: '#f8fafc' }}>
                 <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Nome</th>
                 <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Material</th>
-                <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Esp. (mm)</th>
+                <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Dimensões (mm)</th>
+                <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Abertura</th>
                 <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Laudo</th>
                 <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Ativo</th>
                 <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Ações</th>
@@ -252,10 +381,23 @@ export default function AdminFixadores() {
             <tbody>
               {modelos.map(m => (
                 <tr key={m.id} style={{ borderTop: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '10px 16px', fontWeight: 600 }}>{m.nome}</td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      {m.imagem_url && <img src={m.imagem_url} alt="" style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 6, border: '1px solid #e2e8f0', flexShrink: 0 }} />}
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{m.nome}</div>
+                        {m.obs_tecnica && <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400, marginTop: 2, maxWidth: 360, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const }}>{m.obs_tecnica}</div>}
+                      </div>
+                    </div>
+                  </td>
                   <td style={{ padding: '10px 16px', color: '#475569' }}>{m.material}</td>
-                  <td style={{ padding: '10px 16px', textAlign: 'center' }}>{m.espessura_mm}</td>
-                  <td style={{ padding: '10px 16px', textAlign: 'center' }}>{m.laudo ? '✅' : '—'}</td>
+                  <td style={{ padding: '10px 16px', textAlign: 'center', fontSize: '0.78rem' }}>
+                    {m.comprimento_mm && m.largura_mm ? `${m.comprimento_mm}×${m.largura_mm}×${m.espessura_mm}` : m.espessura_mm + ' esp.'}
+                  </td>
+                  <td style={{ padding: '10px 16px', textAlign: 'center' }}>
+                    {m.abertura_aba_mm ? `${m.abertura_aba_mm} mm` : '—'}
+                  </td>
+                  <td style={{ padding: '10px 16px', textAlign: 'center' }}>{m.possui_laudo ? '✅' : '—'}</td>
                   <td style={{ padding: '10px 16px', textAlign: 'center' }}>{m.ativo ? '🟢' : '🔴'}</td>
                   <td style={{ padding: '10px 16px', textAlign: 'right' }}>
                     <button onClick={() => setEditModelo({ ...m })} style={{ ...btnSm, background: '#eff6ff', color: '#1d4ed8', marginRight: 6 }}>✏️</button>
@@ -263,7 +405,7 @@ export default function AdminFixadores() {
                   </td>
                 </tr>
               ))}
-              {modelos.length === 0 && <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Nenhum modelo cadastrado</td></tr>}
+              {modelos.length === 0 && <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Nenhum modelo cadastrado</td></tr>}
             </tbody>
           </table>
           </div>

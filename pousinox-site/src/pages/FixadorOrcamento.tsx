@@ -290,8 +290,8 @@ export default function FixadorOrcamento() {
                   <Link to="/fixador-porcelanato/normas" className={styles.sideLink}>
                     Normas técnicas
                   </Link>
-                  <Link to="/fixador-porcelanato/fachadas" className={styles.sideLink}>
-                    Aplicações em fachadas
+                  <Link to="/fixador-porcelanato/calculadora" className={styles.sideLink}>
+                    Calculadora de materiais
                   </Link>
                   <Link to="/fixador-porcelanato" className={styles.sideLink}>
                     Visão geral do produto
