@@ -214,6 +214,22 @@
   box-shadow: 0 0 10px rgba(255,255,255,0.06);
 }
 
+/* ── Degradê de transição hero → conteúdo ── */
+.heroFade {
+  height: 120px;
+  margin-top: -120px;
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(180deg,
+    rgba(24,61,90,0.95) 0%,
+    rgba(20,52,78,0.7) 20%,
+    rgba(15,40,60,0.4) 45%,
+    rgba(238,241,245,0.6) 70%,
+    #eef1f5 100%
+  );
+  pointer-events: none;
+}
+
 /* ══════════════════════════════════════════════════════════════════════════════
    Container — calculadora sobreposta
    ══════════════════════════════════════════════════════════════════════════════ */

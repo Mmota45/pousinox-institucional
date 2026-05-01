@@ -367,11 +367,11 @@ export default function CalculadoraFixador() {
         {/* Hero — orientado a acao */}
         <section className={s.hero}>
           <div className={s.heroInner}>
-            <div className={s.heroBadge}>Ferramenta gratuita · Direto do fabricante · POUSINOX</div>
-            <h1 className={s.heroTitle}>Especificacao tecnica<br />de fixadores de porcelanato</h1>
+            <div className={s.heroBadge}>Ferramenta gratuita · Direto do fabricante · POUSINOX®</div>
+            <h1 className={s.heroTitle}>Especificação técnica<br />de fixadores de porcelanato</h1>
             <p className={s.heroSub}>
-              Calcule a quantidade exata de fixadores, parafusos e consumiveis
-              para fachada e revestimento. Orcamento na hora, direto do fabricante.
+              Calcule a quantidade exata de fixadores, parafusos e consumíveis
+              para fachada e revestimento. Orçamento na hora, direto do fabricante.
             </p>
             <button type="button" className={s.heroCta} onClick={() => {
               document.getElementById('calc-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -384,7 +384,7 @@ export default function CalculadoraFixador() {
             <div className={s.trustBar}>
               <div className={s.trustItem}>
                 <span className={s.trustIcon}>🔬</span>
-                Ensaio tecnico SENAI
+                Ensaio técnico SENAI
               </div>
               <div className={s.trustItem}>
                 <span className={s.trustIcon}>🏭</span>
@@ -392,7 +392,7 @@ export default function CalculadoraFixador() {
               </div>
               <div className={s.trustItem}>
                 <span className={s.trustIcon}>⚡</span>
-                Pix instantaneo
+                Pix instantâneo
               </div>
               <div className={s.trustItem}>
                 <span className={s.trustIcon}>🚚</span>
@@ -404,7 +404,7 @@ export default function CalculadoraFixador() {
               {[
                 { icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>, label: 'Dados da obra' },
                 { icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>, label: 'Resultado' },
-                { icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>, label: 'Orcamento' },
+                { icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>, label: 'Orçamento' },
               ].map((st, i) => {
                 const stepIdx = etapa === 'form' ? 0 : session?.verificado ? 2 : 1
                 const done = i < stepIdx
@@ -418,6 +418,9 @@ export default function CalculadoraFixador() {
             </div>
           </div>
         </section>
+
+        {/* Degradê de transição hero → conteúdo */}
+        <div className={s.heroFade} />
 
         <div className={s.container}>
           {/* ── Formulário ── */}
@@ -567,7 +570,7 @@ export default function CalculadoraFixador() {
                 <div className={s.proofCard}>
                   <span className={s.proofIcon}>🔬</span>
                   <div>
-                    <div className={s.proofLabel}>Ensaio tecnico</div>
+                    <div className={s.proofLabel}>Ensaio técnico</div>
                     <div className={s.proofSub}>Validado SENAI LAMAT</div>
                   </div>
                 </div>
@@ -575,23 +578,23 @@ export default function CalculadoraFixador() {
                   <span className={s.proofIcon}>🏭</span>
                   <div>
                     <div className={s.proofLabel}>Fabricante direto</div>
-                    <div className={s.proofSub}>Sem intermediario</div>
+                    <div className={s.proofSub}>Sem intermediário</div>
                   </div>
                 </div>
                 <div className={s.proofCard}>
                   <span className={s.proofIcon}>🛡️</span>
                   <div>
-                    <div className={s.proofLabel}>Garantia de fabrica</div>
-                    <div className={s.proofSub}>Aco inox 304 ou 430</div>
+                    <div className={s.proofLabel}>Garantia de fábrica</div>
+                    <div className={s.proofSub}>Aço inox 304 ou 430</div>
                   </div>
                 </div>
               </div>
 
               {/* Disclaimer — aberto */}
               <div className={s.disclaimer}>
-                <strong>Nota tecnica:</strong> Especificacao com carater estimativo.
-                A validacao final depende das condicoes da obra e do responsavel tecnico.
-                Perda de 10% ja inclusa.
+                <strong>Nota técnica:</strong> Especificação com caráter estimativo.
+                A validação final depende das condições da obra e do responsável técnico.
+                Perda de 10% já inclusa.
               </div>
 
               {/* ══ GATE — detalhamento protegido ══ */}
@@ -623,6 +626,7 @@ export default function CalculadoraFixador() {
                     <div className={s.gateBox} id="login-gate">
                       <div className={s.gateTitle}>Identifique-se para continuar</div>
 
+
                       <div className={s.grid2}>
                         <div className={s.field}>
                           <label>Seu nome <span className={s.req}>*</span></label>
@@ -636,30 +640,30 @@ export default function CalculadoraFixador() {
 
                       <div className={s.tipoPessoaToggle}>
                         <button type="button" className={`${s.tipoPessoaBtn} ${tipoPessoa === 'pf' ? s.tipoPessoaAtivo : ''}`} onClick={() => setTipoPessoa('pf')}>
-                          Pessoa Fisica
+                          Pessoa Física
                         </button>
                         <button type="button" className={`${s.tipoPessoaBtn} ${tipoPessoa === 'pj' ? s.tipoPessoaAtivo : ''}`} onClick={() => setTipoPessoa('pj')}>
-                          Pessoa Juridica
+                          Pessoa Jurídica
                         </button>
                       </div>
 
                       {authErro && <div className={s.erro}>{authErro}</div>}
 
                       <button type="button" onClick={enviarOtp} disabled={authLoading} className={s.btnLogin}>
-                        {authLoading ? 'Enviando...' : 'Enviar codigo via WhatsApp'}
+                        {authLoading ? 'Enviando...' : 'Enviar código via WhatsApp'}
                       </button>
 
                       <div className={s.loginHint}>
-                        Voce recebera um codigo de 6 digitos no WhatsApp informado.
+                        Você receberá um código de 6 dígitos no WhatsApp informado.
                       </div>
                     </div>
                   )}
 
                   {showGate === 'otp' && (
                     <div className={s.gateBox} id="login-gate">
-                      <div className={s.gateTitle}>Digite o codigo</div>
+                      <div className={s.gateTitle}>Digite o código</div>
                       <p style={{ fontSize: '0.82rem', color: '#64748b', textAlign: 'center', margin: '0 0 16px' }}>
-                        Enviamos um codigo de 6 digitos para {waMasked || 'seu WhatsApp'}.
+                        Enviamos um código de 6 dígitos para {waMasked || 'seu WhatsApp'}.
                       </p>
 
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
@@ -682,10 +686,10 @@ export default function CalculadoraFixador() {
 
                         <div className={s.otpActions}>
                           <button type="button" onClick={enviarOtp} disabled={reenvioTimer > 0 || authLoading} className={s.otpReenviar}>
-                            {reenvioTimer > 0 ? `Reenviar em ${reenvioTimer}s` : 'Reenviar codigo'}
+                            {reenvioTimer > 0 ? `Reenviar em ${reenvioTimer}s` : 'Reenviar código'}
                           </button>
                           <button type="button" onClick={() => setShowGate('login')} className={s.otpVoltar}>
-                            Alterar numero
+                            Alterar número
                           </button>
                         </div>
                       </div>
@@ -698,7 +702,7 @@ export default function CalculadoraFixador() {
                   {/* Confirmação */}
                   {showConfirmacao && (
                     <div className={s.confirmacao}>
-                      Verificacao concluida. Detalhamento liberado.
+                      Verificação concluída. Detalhamento liberado.
                     </div>
                   )}
 
@@ -706,7 +710,7 @@ export default function CalculadoraFixador() {
                   {showGate === 'complemento' && (
                     <div className={s.gateBox}>
                       <div className={s.gateTitle}>Complete seu perfil (opcional)</div>
-                      <div className={s.gateText}>Dados adicionais para um orcamento mais preciso.</div>
+                      <div className={s.gateText}>Dados adicionais para um orçamento mais preciso.</div>
 
                       <div className={s.grid2}>
                         <div className={s.field}>
@@ -738,7 +742,7 @@ export default function CalculadoraFixador() {
                               }} />
                             </div>
                             <div className={s.field}>
-                              <label>Razao Social</label>
+                              <label>Razão Social</label>
                               <input className={s.input} type="text" placeholder="Nome da empresa" value={loginRazaoSocial} onChange={e => setLoginRazaoSocial(e.target.value)} />
                             </div>
                           </div>
@@ -746,14 +750,14 @@ export default function CalculadoraFixador() {
                             <label>Segmento</label>
                             <select className={s.input} value={loginSegmento} onChange={e => setLoginSegmento(e.target.value)}>
                               <option value="">Selecione...</option>
-                              <option value="construcao">Construcao Civil</option>
+                              <option value="construcao">Construção Civil</option>
                               <option value="revestimentos">Revestimentos</option>
                               <option value="arquitetura">Arquitetura / Engenharia</option>
-                              <option value="alimenticio">Alimenticio</option>
+                              <option value="alimenticio">Alimentício</option>
                               <option value="hospitalar">Hospitalar</option>
                               <option value="hotelaria">Hotelaria</option>
                               <option value="supermercado">Supermercado</option>
-                              <option value="laboratorio">Laboratorio</option>
+                              <option value="laboratorio">Laboratório</option>
                               <option value="outro">Outro</option>
                             </select>
                           </div>
@@ -809,8 +813,8 @@ export default function CalculadoraFixador() {
                     <div className={s.seloBox}>
                       <div className={s.seloIcon}>🔬</div>
                       <div>
-                        <div className={s.seloTitle}>Rastreabilidade tecnica</div>
-                        <div className={s.seloText}>Material com ensaio tecnico rastreavel — POUSINOX.</div>
+                        <div className={s.seloTitle}>Rastreabilidade técnica</div>
+                        <div className={s.seloText}>Material com ensaio técnico rastreável — POUSINOX®.</div>
                       </div>
                     </div>
                   )}
@@ -848,7 +852,7 @@ export default function CalculadoraFixador() {
                           )}
                         </div>
                         <div className={s.orcamentoNota}>
-                          Valores estimados para referencia. O orcamento final pode variar conforme volume e condicoes de pagamento.
+                          Valores estimados para referência. O orçamento final pode variar conforme volume e condições de pagamento.
                         </div>
                       </div>
                     )
@@ -856,9 +860,9 @@ export default function CalculadoraFixador() {
 
                   {/* CTA */}
                   <div className={s.ctaBox}>
-                    <div className={s.ctaTitle}>Solicite um orcamento completo</div>
+                    <div className={s.ctaTitle}>Solicite um orçamento completo</div>
                     <div className={s.ctaText}>
-                      Nossa equipe tecnica retorna com proposta comercial incluindo fixadores, consumiveis e frete.
+                      Nossa equipe técnica retorna com proposta comercial incluindo fixadores, consumíveis e frete.
                     </div>
                     <div className={s.ctaActions}>
                       <a href={`https://wa.me/${WA_NUMERO}?text=${gerarMsgWa()}`} target="_blank" rel="noopener noreferrer" className={s.ctaBtnWa}>
@@ -866,7 +870,7 @@ export default function CalculadoraFixador() {
                         Solicitar via WhatsApp
                       </a>
                       <Link to="/contato" className={s.ctaBtnForm}>
-                        Formulario de Orcamento
+                        Formulário de Orçamento
                       </Link>
                     </div>
                   </div>
@@ -882,9 +886,9 @@ export default function CalculadoraFixador() {
                 <div className={s.feedbackSucesso}>Obrigado pelo seu feedback!</div>
               ) : (
                 <>
-                  <div className={s.feedbackTitle}>Sugestao ou problema?</div>
+                  <div className={s.feedbackTitle}>Sugestão ou problema?</div>
                   <div className={s.feedbackTipos}>
-                    {([['sugestao', 'Sugestao'], ['problema', 'Problema'], ['elogio', 'Elogio']] as const).map(([t, label]) => (
+                    {([['sugestao', 'Sugestão'], ['problema', 'Problema'], ['elogio', 'Elogio']] as const).map(([t, label]) => (
                       <button key={t} type="button" className={`${s.feedbackTipoBtn} ${feedbackTipo === t ? s.feedbackTipoAtivo : ''}`} onClick={() => setFeedbackTipo(t)}>
                         {label}
                       </button>
