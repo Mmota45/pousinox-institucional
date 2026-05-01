@@ -278,9 +278,10 @@ pousinox.com.br`
   const [waPendentes, setWaPendentes] = useState<ProspectScore[]>([])
   const [waStats, setWaStats] = useState({ total: 0, validados: 0, pendentes: 0 })
   const [waLoadingTab, setWaLoadingTab] = useState(false)
-  const [cronConfig, setCronConfig] = useState<{ uf: string; mesorregiao: string; segmento: string }>({ uf: '', mesorregiao: '', segmento: '' })
+  const [cronConfig, setCronConfig] = useState<{ uf: string; mesorregiao: string; cidade: string; segmento: string }>({ uf: '', mesorregiao: '', cidade: '', segmento: '' })
   const [cronMesos, setCronMesos] = useState<string[]>([])
   const [cronSegmentos, setCronSegmentos] = useState<string[]>([])
+  const [cronCidades, setCronCidades] = useState<string[]>([])
   const [cronSaving, setCronSaving] = useState(false)
   const [waAutoStats, setWaAutoStats] = useState<{ hoje: number; semana: number; total: number; respondidos: number; ultimos: any[] }>({ hoje: 0, semana: 0, total: 0, respondidos: 0, ultimos: [] })
   const [drawerNfs, setDrawerNfs] = useState<any[]>([])
@@ -521,10 +522,14 @@ pousinox.com.br`
     setWaStats({ total: t, validados: v, pendentes: t - v })
     if (cfgData?.config) {
       const c = typeof cfgData.config === 'string' ? JSON.parse(cfgData.config) : cfgData.config
-      setCronConfig({ uf: c.uf || '', mesorregiao: c.mesorregiao || '', segmento: c.segmento || '' })
+      setCronConfig({ uf: c.uf || '', mesorregiao: c.mesorregiao || '', cidade: c.cidade || '', segmento: c.segmento || '' })
       if (c.uf) {
         const { data: mData } = await supabaseAdmin.rpc('fn_distinct_mesorregiao', { p_uf: c.uf })
         setCronMesos((mData ?? []).map((r: any) => r.mesorregiao).filter(Boolean))
+        if (c.mesorregiao) {
+          const { data: cData } = await supabaseAdmin.from('prospeccao').select('cidade').eq('uf', c.uf).eq('mesorregiao', c.mesorregiao).not('cidade', 'is', null).limit(10000)
+          setCronCidades([...new Set((cData ?? []).map((r: any) => r.cidade).filter(Boolean))].sort())
+        }
       }
     }
     // Carregar segmentos distintos
@@ -1638,7 +1643,8 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   <SearchableSelect
                     value={cronConfig.uf}
                     onChange={async (uf) => {
-                      setCronConfig(p => ({ ...p, uf, mesorregiao: '' }))
+                      setCronConfig(p => ({ ...p, uf, mesorregiao: '', cidade: '' }))
+                      setCronCidades([])
                       if (uf) {
                         const { data } = await supabaseAdmin.rpc('fn_distinct_mesorregiao', { p_uf: uf })
                         setCronMesos((data ?? []).map((r: any) => r.mesorregiao).filter(Boolean))
@@ -1654,11 +1660,28 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Mesorregião</span>
                   <SearchableSelect
                     value={cronConfig.mesorregiao}
-                    onChange={(v) => setCronConfig(p => ({ ...p, mesorregiao: v }))}
+                    onChange={async (v) => {
+                      setCronConfig(p => ({ ...p, mesorregiao: v, cidade: '' }))
+                      if (v && cronConfig.uf) {
+                        const { data } = await supabaseAdmin.from('prospeccao').select('cidade').eq('uf', cronConfig.uf).eq('mesorregiao', v).not('cidade', 'is', null).limit(10000)
+                        setCronCidades([...new Set((data ?? []).map((r: any) => r.cidade).filter(Boolean))].sort())
+                      } else { setCronCidades([]) }
+                    }}
                     options={cronMesos.map(m => ({ value: m, label: m }))}
                     placeholder="Todas"
                     searchPlaceholder="Buscar mesorregião..."
                     minWidth={220}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Cidade</span>
+                  <SearchableSelect
+                    value={cronConfig.cidade}
+                    onChange={(v) => setCronConfig(p => ({ ...p, cidade: v }))}
+                    options={cronCidades.map(c => ({ value: c, label: c }))}
+                    placeholder="Todas"
+                    searchPlaceholder="Buscar cidade..."
+                    minWidth={180}
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1674,7 +1697,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 </div>
                 <button className={styles.btnPrimary} disabled={cronSaving} onClick={async () => {
                   setCronSaving(true)
-                  const valor = { uf: cronConfig.uf || null, mesorregiao: cronConfig.mesorregiao || null, segmento: cronConfig.segmento || null }
+                  const valor = { uf: cronConfig.uf || null, mesorregiao: cronConfig.mesorregiao || null, cidade: cronConfig.cidade || null, segmento: cronConfig.segmento || null }
                   await supabaseAdmin.from('feature_flags').upsert({
                     flag: 'prospectar_whatsapp_config',
                     config: valor,
