@@ -280,6 +280,7 @@ pousinox.com.br`
   const [cronConfig, setCronConfig] = useState<{ uf: string; mesorregiao: string; segmento: string }>({ uf: '', mesorregiao: '', segmento: '' })
   const [cronMesos, setCronMesos] = useState<string[]>([])
   const [cronSaving, setCronSaving] = useState(false)
+  const [waAutoStats, setWaAutoStats] = useState<{ hoje: number; semana: number; total: number; respondidos: number; ultimos: any[] }>({ hoje: 0, semana: 0, total: 0, respondidos: 0, ultimos: [] })
   const [drawerNfs, setDrawerNfs] = useState<any[]>([])
   const [drawerNfsLoading, setDrawerNfsLoading] = useState(false)
   const [drawerNfExpandida, setDrawerNfExpandida] = useState<number | null>(null)
@@ -511,19 +512,39 @@ pousinox.com.br`
     const [{ count: totalCount }, { count: validCount }, { data: cfgData }] = await Promise.all([
       supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }).not('telefone1', 'is', null),
       supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }).eq('whatsapp_validado', true),
-      supabaseAdmin.from('feature_flags').select('valor').eq('nome', 'prospectar_whatsapp_config').single(),
+      supabaseAdmin.from('feature_flags').select('config').eq('flag', 'prospectar_whatsapp_config').single(),
     ])
     const t = totalCount ?? 0
     const v = validCount ?? 0
     setWaStats({ total: t, validados: v, pendentes: t - v })
-    if (cfgData?.valor) {
-      const c = typeof cfgData.valor === 'string' ? JSON.parse(cfgData.valor) : cfgData.valor
+    if (cfgData?.config) {
+      const c = typeof cfgData.config === 'string' ? JSON.parse(cfgData.config) : cfgData.config
       setCronConfig({ uf: c.uf || '', mesorregiao: c.mesorregiao || '', segmento: c.segmento || '' })
       if (c.uf) {
-        const { data: mData } = await supabaseAdmin.from('prospeccao').select('mesorregiao').eq('uf', c.uf).not('mesorregiao', 'is', null).limit(500)
-        setCronMesos([...new Set((mData ?? []).map((r: any) => r.mesorregiao).filter(Boolean))].sort())
+        const { data: mData } = await supabaseAdmin.rpc('fn_distinct_mesorregiao', { p_uf: c.uf })
+        setCronMesos((mData ?? []).map((r: any) => r.mesorregiao).filter(Boolean))
       }
     }
+    // Stats de prospecção automática
+    const hojeISO = new Date().toISOString().slice(0, 10)
+    const inicioSemana = new Date()
+    inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay())
+    const semanaISO = inicioSemana.toISOString().slice(0, 10)
+    const [{ count: hojeCount }, { count: semanaCount }, { count: totalAuto }, { count: respondidos }, { data: ultimos }] = await Promise.all([
+      supabaseAdmin.from('activity_log').select('*', { count: 'exact', head: true }).eq('tipo', 'whatsapp_auto').gte('created_at', hojeISO),
+      supabaseAdmin.from('activity_log').select('*', { count: 'exact', head: true }).eq('tipo', 'whatsapp_auto').gte('created_at', semanaISO),
+      supabaseAdmin.from('activity_log').select('*', { count: 'exact', head: true }).eq('tipo', 'whatsapp_auto'),
+      supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }).eq('whatsapp_validado', true).not('status_contato', 'is', null).neq('status_contato', 'Aguardando'),
+      supabaseAdmin.from('activity_log').select('prospect_id, created_at, detalhes, prospeccao(nome_fantasia, razao_social, segmento, uf)').eq('tipo', 'whatsapp_auto').order('created_at', { ascending: false }).limit(10),
+    ])
+    setWaAutoStats({
+      hoje: hojeCount ?? 0,
+      semana: semanaCount ?? 0,
+      total: totalAuto ?? 0,
+      respondidos: respondidos ?? 0,
+      ultimos: ultimos ?? [],
+    })
+
     // Buscar pendentes com telefone, limit 200
     const { data } = await supabaseAdmin
       .from('prospeccao')
@@ -1527,6 +1548,70 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
             </div>
           )}
 
+          {/* Painel de acompanhamento */}
+          <details className={styles.waSegmento} open>
+            <summary className={styles.waSegmentoHeader}>
+              <span>📊 Prospecção Automática</span>
+              <span className={styles.waSegmentoBadge}>{waAutoStats.hoje} hoje</span>
+            </summary>
+            <div style={{ padding: '16px 20px' }}>
+              <div className={styles.waProgressCards}>
+                <div className={styles.waCard}>
+                  <span className={styles.waCardNum} style={{ color: '#1a3a5c' }}>{waAutoStats.hoje}</span>
+                  <span className={styles.waCardLabel}>Hoje</span>
+                </div>
+                <div className={styles.waCard}>
+                  <span className={styles.waCardNum} style={{ color: '#2563eb' }}>{waAutoStats.semana}</span>
+                  <span className={styles.waCardLabel}>Esta semana</span>
+                </div>
+                <div className={styles.waCard}>
+                  <span className={styles.waCardNum} style={{ color: '#16a34a' }}>{waAutoStats.total}</span>
+                  <span className={styles.waCardLabel}>Total enviados</span>
+                </div>
+                <div className={styles.waCard}>
+                  <span className={styles.waCardNum} style={{ color: '#f59e0b' }}>{waAutoStats.respondidos}</span>
+                  <span className={styles.waCardLabel}>Responderam</span>
+                </div>
+              </div>
+              {waAutoStats.total > 0 && (
+                <div className={styles.waBarTrack} style={{ marginTop: 12 }}>
+                  <div className={styles.waBarFill} style={{ width: `${Math.round((waAutoStats.respondidos / waAutoStats.total) * 100)}%`, background: 'linear-gradient(90deg, #f59e0b, #fbbf24)' }} />
+                </div>
+              )}
+              {waAutoStats.total > 0 && (
+                <p className={styles.waBarLabel}>{Math.round((waAutoStats.respondidos / waAutoStats.total) * 100)}% taxa de resposta</p>
+              )}
+              {waAutoStats.ultimos.length > 0 && (
+                <details className={styles.waSegmento} style={{ marginTop: 16 }}>
+                  <summary className={styles.waSegmentoHeader}>
+                    <span>Últimos envios</span>
+                    <span className={styles.waSegmentoBadge}>{waAutoStats.ultimos.length}</span>
+                  </summary>
+                  <div className={styles.tabelaWrap}>
+                    <table className={styles.tabela}>
+                      <thead><tr><th>Empresa</th><th>Segmento</th><th>UF</th><th>Quando</th></tr></thead>
+                      <tbody>
+                        {waAutoStats.ultimos.map((u: any, i: number) => {
+                          const p = u.prospeccao
+                          const dt = new Date(u.created_at)
+                          const quando = `${dt.toLocaleDateString('pt-BR')} ${dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                          return (
+                            <tr key={i}>
+                              <td>{p?.nome_fantasia || p?.razao_social || '—'}</td>
+                              <td>{p?.segmento || u.detalhes?.segmento || '—'}</td>
+                              <td>{p?.uf || '—'}</td>
+                              <td>{quando}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              )}
+            </div>
+          </details>
+
           {/* Config do cron de prospecção */}
           <details className={styles.waSegmento}>
             <summary className={styles.waSegmentoHeader}>
@@ -1548,8 +1633,8 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                     const uf = e.target.value
                     setCronConfig(p => ({ ...p, uf, mesorregiao: '' }))
                     if (uf) {
-                      const { data } = await supabaseAdmin.from('prospeccao').select('mesorregiao').eq('uf', uf).not('mesorregiao', 'is', null).limit(500)
-                      setCronMesos([...new Set((data ?? []).map((r: any) => r.mesorregiao).filter(Boolean))].sort())
+                      const { data } = await supabaseAdmin.rpc('fn_distinct_mesorregiao', { p_uf: uf })
+                      setCronMesos((data ?? []).map((r: any) => r.mesorregiao).filter(Boolean))
                     } else { setCronMesos([]) }
                   }} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
                     <option value="">Todos</option>
@@ -1575,11 +1660,11 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   setCronSaving(true)
                   const valor = { uf: cronConfig.uf || null, mesorregiao: cronConfig.mesorregiao || null, segmento: cronConfig.segmento || null }
                   await supabaseAdmin.from('feature_flags').upsert({
-                    nome: 'prospectar_whatsapp_config',
-                    valor,
+                    flag: 'prospectar_whatsapp_config',
+                    config: valor,
                     descricao: 'Config cron prospecção WhatsApp automática',
-                    ativo: true,
-                  }, { onConflict: 'nome' })
+                    habilitado: true,
+                  }, { onConflict: 'flag' })
                   setCronSaving(false)
                   showMsg('ok', '✅ Config salva — próximo cron usará esses filtros')
                 }} style={{ height: 34 }}>
