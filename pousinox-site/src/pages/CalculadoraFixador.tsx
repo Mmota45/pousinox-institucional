@@ -370,8 +370,8 @@ export default function CalculadoraFixador() {
             <div className={s.heroBadge}>Ferramenta gratuita · Direto do fabricante · POUSINOX®</div>
             <h1 className={s.heroTitle}>Especificação técnica<br />de fixadores de porcelanato</h1>
             <p className={s.heroSub}>
-              Calcule a quantidade exata de fixadores, parafusos e consumíveis
-              para fachada e revestimento. Orçamento na hora, direto do fabricante.
+              Descubra a quantidade ideal de fixadores, parafusos e consumíveis
+              para paredes e fachadas. Orçamento na hora, direto da fábrica.
             </p>
             <button type="button" className={s.heroCta} onClick={() => {
               document.getElementById('calc-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
