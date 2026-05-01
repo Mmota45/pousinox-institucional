@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminKnowledge.module.css'
 
 type Categoria = 'sql' | 'frontend' | 'backend' | 'deploy' | 'git' | 'sites' | 'apps' | 'lgpd'
@@ -15,6 +16,12 @@ interface Guia {
   comoFazer: string
   ondeFazer: string
   porQue: string
+  rascunho?: boolean
+}
+
+interface GuiaDinamico extends Guia {
+  rascunho: boolean
+  criadoEm: string
 }
 
 const CATEGORIAS: { value: Categoria | 'todos'; label: string }[] = [
@@ -976,13 +983,193 @@ function GuiaSection({ titulo, conteudo }: { titulo: string; conteudo: string })
   )
 }
 
+function SugerirGuiaModal({ onClose, onSave }: { onClose: () => void; onSave: (g: GuiaDinamico) => void }) {
+  const [tema, setTema] = useState('')
+  const [categoria, setCategoria] = useState<Categoria>('frontend')
+  const [nivel, setNivel] = useState<Nivel>('iniciante')
+  const [gerando, setGerando] = useState(false)
+  const [rascunho, setRascunho] = useState<GuiaDinamico | null>(null)
+  const [erro, setErro] = useState('')
+
+  const gerarRascunho = async () => {
+    if (!tema.trim()) return
+    setGerando(true)
+    setErro('')
+    try {
+      const prompt = `Gere um guia técnico prático em português brasileiro sobre: "${tema}".
+Categoria: ${categoria}. Nível: ${nivel}.
+Responda EXATAMENTE neste formato JSON (sem markdown, só JSON puro):
+{"titulo":"...","oQueE":"...","quandoUsar":"...","comoFazer":"...","ondeFazer":"...","porQue":"...","tags":["tag1","tag2","tag3"]}
+O campo comoFazer deve ter exemplos de código quando aplicável.
+Inclua seções de CUIDADO (o que pode quebrar) e COMO REVERTER no comoFazer.
+Nunca invente nomes de funções, APIs ou comandos que não existam.`
+
+      const { data } = await supabaseAdmin.functions.invoke('ai-hub', {
+        body: { messages: [{ role: 'user', content: prompt }], provider: 'gemini' },
+      })
+
+      const text = data?.reply || data?.content || ''
+      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) throw new Error('IA não retornou formato válido')
+
+      const parsed = JSON.parse(jsonMatch[0])
+      const guia: GuiaDinamico = {
+        id: 'user-' + Date.now(),
+        titulo: parsed.titulo || tema,
+        categoria,
+        nivel,
+        tags: parsed.tags || [tema.toLowerCase()],
+        oQueE: parsed.oQueE || '',
+        quandoUsar: parsed.quandoUsar || '',
+        comoFazer: parsed.comoFazer || '',
+        ondeFazer: parsed.ondeFazer || '',
+        porQue: parsed.porQue || '',
+        rascunho: true,
+        criadoEm: new Date().toISOString(),
+      }
+      setRascunho(guia)
+    } catch (e) {
+      setErro('Erro ao gerar: ' + (e as Error).message)
+    } finally {
+      setGerando(false)
+    }
+  }
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h3>Sugerir novo guia</h3>
+          <button className={styles.modalClose} onClick={onClose}>x</button>
+        </div>
+
+        {!rascunho ? (
+          <div className={styles.modalBody}>
+            <label className={styles.modalLabel}>
+              Tema do guia
+              <input
+                className={styles.searchBox}
+                placeholder="Ex: como criar webhooks, como usar CSS Grid..."
+                value={tema}
+                onChange={e => setTema(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && gerarRascunho()}
+              />
+            </label>
+            <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+              <label className={styles.modalLabel} style={{ flex: 1 }}>
+                Categoria
+                <select className={styles.searchBox} value={categoria} onChange={e => setCategoria(e.target.value as Categoria)}>
+                  {CATEGORIAS.filter(c => c.value !== 'todos').map(c => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className={styles.modalLabel} style={{ flex: 1 }}>
+                Nível
+                <select className={styles.searchBox} value={nivel} onChange={e => setNivel(e.target.value as Nivel)}>
+                  <option value="iniciante">Iniciante</option>
+                  <option value="intermediario">Intermediário</option>
+                  <option value="avancado">Avançado</option>
+                </select>
+              </label>
+            </div>
+            {erro && <p style={{ color: '#dc2626', fontSize: '0.85rem' }}>{erro}</p>}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className={styles.btnPrimary} onClick={gerarRascunho} disabled={gerando || !tema.trim()}>
+                {gerando ? 'Gerando...' : 'Gerar rascunho com IA'}
+              </button>
+              <a
+                className={styles.btnPerplexity}
+                href={`https://www.perplexity.ai/search?q=${encodeURIComponent(tema + ' tutorial prático')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Pesquisar no Perplexity
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className={styles.modalBody}>
+            <div style={{ background: '#fef3c7', padding: '8px 12px', borderRadius: 8, marginBottom: 12, fontSize: '0.82rem', color: '#92400e' }}>
+              Rascunho gerado por IA — revise antes de aprovar. Informações podem conter erros.
+            </div>
+            <div className={styles.cardBody}>
+              <GuiaSection titulo="Título" conteudo={rascunho.titulo} />
+              <GuiaSection titulo="O que é" conteudo={rascunho.oQueE} />
+              <GuiaSection titulo="Quando usar" conteudo={rascunho.quandoUsar} />
+              <GuiaSection titulo="Como fazer" conteudo={rascunho.comoFazer} />
+              <GuiaSection titulo="Onde fazer" conteudo={rascunho.ondeFazer} />
+              <GuiaSection titulo="Por quê" conteudo={rascunho.porQue} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button className={styles.btnPrimary} onClick={() => { onSave(rascunho); onClose() }}>
+                Aprovar e publicar
+              </button>
+              <button className={styles.btnDraft} onClick={() => { onSave({ ...rascunho, rascunho: true }); onClose() }}>
+                Salvar como rascunho
+              </button>
+              <button className={styles.btnSecondary} onClick={() => setRascunho(null)}>
+                Descartar
+              </button>
+              <a
+                className={styles.btnPerplexity}
+                href={`https://www.perplexity.ai/search?q=${encodeURIComponent(rascunho.titulo)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Verificar no Perplexity
+              </a>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const STORAGE_KEY = 'pousinox_knowledge_guias'
+
+function loadGuiasDinamicos(): GuiaDinamico[] {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+  } catch { return [] }
+}
+
+function saveGuiasDinamicos(guias: GuiaDinamico[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(guias))
+}
+
 export default function AdminKnowledge() {
   const [busca, setBusca] = useState('')
   const [catAtiva, setCatAtiva] = useState<Categoria | 'todos'>('todos')
+  const [modalAberto, setModalAberto] = useState(false)
+  const [guiasDinamicos, setGuiasDinamicos] = useState<GuiaDinamico[]>([])
+
+  useEffect(() => { setGuiasDinamicos(loadGuiasDinamicos()) }, [])
+
+  const todasGuias: Guia[] = [...GUIAS, ...guiasDinamicos]
+
+  const salvarGuia = (g: GuiaDinamico) => {
+    const atualizados = [...guiasDinamicos, g]
+    setGuiasDinamicos(atualizados)
+    saveGuiasDinamicos(atualizados)
+  }
+
+  const aprovarGuia = (id: string) => {
+    const atualizados = guiasDinamicos.map(g => g.id === id ? { ...g, rascunho: false } : g)
+    setGuiasDinamicos(atualizados)
+    saveGuiasDinamicos(atualizados)
+  }
+
+  const excluirGuia = (id: string) => {
+    const atualizados = guiasDinamicos.filter(g => g.id !== id)
+    setGuiasDinamicos(atualizados)
+    saveGuiasDinamicos(atualizados)
+  }
 
   const buscaLower = busca.toLowerCase()
 
-  const filtradas = GUIAS.filter(g => {
+  const filtradas = todasGuias.filter(g => {
     if (catAtiva !== 'todos' && g.categoria !== catAtiva) return false
     if (!busca) return true
     return (
@@ -995,22 +1182,32 @@ export default function AdminKnowledge() {
 
   const contagemPorCat = CATEGORIAS.reduce<Record<string, number>>((acc, c) => {
     acc[c.value] = c.value === 'todos'
-      ? GUIAS.length
-      : GUIAS.filter(g => g.categoria === c.value).length
+      ? todasGuias.length
+      : todasGuias.filter(g => g.categoria === c.value).length
     return acc
   }, {})
+
+  const perplexityUrl = (titulo: string) =>
+    `https://www.perplexity.ai/search?q=${encodeURIComponent(titulo + ' tutorial prático')}`
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2>Base de Conhecimento</h2>
-        <p>Guias práticos para desenvolvimento — busque por tema ou filtre por categoria.</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <div>
+            <h2>Base de Conhecimento</h2>
+            <p>Guias práticos para desenvolvimento — busque por tema ou filtre por categoria.</p>
+          </div>
+          <button className={styles.btnPrimary} onClick={() => setModalAberto(true)}>
+            + Sugerir guia
+          </button>
+        </div>
       </div>
 
       <input
         className={styles.searchBox}
         type="text"
-        placeholder="Buscar guia... (ex: tabela, deploy, componente)"
+        placeholder="Buscar guia... (ex: tabela, deploy, componente, lgpd)"
         value={busca}
         onChange={e => setBusca(e.target.value)}
       />
@@ -1034,23 +1231,49 @@ export default function AdminKnowledge() {
       {filtradas.length === 0 ? (
         <div className={styles.empty}>Nenhuma guia encontrada para "{busca}"</div>
       ) : (
-        filtradas.map(g => (
-          <details key={g.id} className={styles.card}>
-            <summary>
-              <span>{g.titulo}</span>
-              <span className={styles[NIVEL_CLASS[g.nivel]]}>{NIVEL_LABEL[g.nivel]}</span>
-              <span className={styles.badgeCat}>{CATEGORIAS.find(c => c.value === g.categoria)?.label}</span>
-            </summary>
-            <div className={styles.cardBody}>
-              <GuiaSection titulo="O que é" conteudo={g.oQueE} />
-              <GuiaSection titulo="Quando usar" conteudo={g.quandoUsar} />
-              <GuiaSection titulo="Como fazer" conteudo={g.comoFazer} />
-              <GuiaSection titulo="Onde fazer" conteudo={g.ondeFazer} />
-              <GuiaSection titulo="Por quê" conteudo={g.porQue} />
-            </div>
-          </details>
-        ))
+        filtradas.map(g => {
+          const isDinamico = g.id.startsWith('user-')
+          return (
+            <details key={g.id} className={`${styles.card} ${g.rascunho ? styles.cardRascunho : ''}`}>
+              <summary>
+                <span>{g.titulo}</span>
+                <span className={styles[NIVEL_CLASS[g.nivel]]}>{NIVEL_LABEL[g.nivel]}</span>
+                <span className={styles.badgeCat}>{CATEGORIAS.find(c => c.value === g.categoria)?.label}</span>
+                {g.rascunho && <span className={styles.badgeRascunho}>Rascunho</span>}
+              </summary>
+              <div className={styles.cardBody}>
+                <GuiaSection titulo="O que é" conteudo={g.oQueE} />
+                <GuiaSection titulo="Quando usar" conteudo={g.quandoUsar} />
+                <GuiaSection titulo="Como fazer" conteudo={g.comoFazer} />
+                <GuiaSection titulo="Onde fazer" conteudo={g.ondeFazer} />
+                <GuiaSection titulo="Por quê" conteudo={g.porQue} />
+                <div className={styles.guiaActions}>
+                  <a
+                    className={styles.btnPerplexity}
+                    href={perplexityUrl(g.titulo)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Aprofundar no Perplexity
+                  </a>
+                  {isDinamico && g.rascunho && (
+                    <button className={styles.btnPrimary} onClick={() => aprovarGuia(g.id)} style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
+                      Aprovar
+                    </button>
+                  )}
+                  {isDinamico && (
+                    <button className={styles.btnDanger} onClick={() => excluirGuia(g.id)} style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
+                      Excluir
+                    </button>
+                  )}
+                </div>
+              </div>
+            </details>
+          )
+        })
       )}
+
+      {modalAberto && <SugerirGuiaModal onClose={() => setModalAberto(false)} onSave={salvarGuia} />}
     </div>
   )
 }
