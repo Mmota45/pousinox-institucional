@@ -192,6 +192,7 @@ export default function AdminCentralVendas() {
   const fmt = (v: number) => ocultarValores ? '••••' : fmtBRL(v)
 
   const [aba, setAba] = useState<Aba>('hotlist')
+  const tabLoaded = useRef<Partial<Record<Aba, boolean>>>({})
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const showMsg = useCallback((tipo: 'ok' | 'erro', texto: string) => {
     setMsg({ tipo, texto }); setTimeout(() => setMsg(null), 3500)
@@ -584,11 +585,11 @@ pousinox.com.br`
 
   useEffect(() => {
     if (aba === 'hotlist' && hotlist.length > 0) return // já tem dados, não recarregar
-    if (aba === 'followups') carregarFollowups()
-    if (aba === 'whatsapp') carregarWaTab()
-    if (aba === 'materiais') carregarMateriais()
-    if (aba === 'dashboard') carregarDashboard()
-    if (aba === 'radar') carregarGsc()
+    if (aba === 'followups') { if (tabLoaded.current.followups) return; tabLoaded.current.followups = true; carregarFollowups() }
+    if (aba === 'whatsapp') { if (tabLoaded.current.whatsapp) return; tabLoaded.current.whatsapp = true; carregarWaTab() }
+    if (aba === 'materiais') { if (tabLoaded.current.materiais) return; tabLoaded.current.materiais = true; carregarMateriais() }
+    if (aba === 'dashboard') { if (tabLoaded.current.dashboard) return; tabLoaded.current.dashboard = true; carregarDashboard() }
+    if (aba === 'radar') { if (tabLoaded.current.radar) return; tabLoaded.current.radar = true; carregarGsc() }
   }, [aba, carregarHotList, carregarFollowups, carregarMateriais, carregarDashboard, carregarGsc, carregarWaTab])
 
   // Carregar mesorregiões quando UF muda (sem recarregar hot list)
@@ -1517,6 +1518,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Validação WhatsApp</h2>
+            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.whatsapp = false; carregarWaTab() }} title="Atualizar">🔄 Atualizar</button>
             <button className={styles.btnPrimary} disabled={validandoWa || waPendentes.length === 0} onClick={async () => {
               const celulares = waPendentes.filter(h => { const n = (h.telefone1 ?? '').replace(/\D/g, ''); return n.length >= 10 && (n.length === 11 || (n.length === 10 && n[2] === '9') || (n.length >= 12 && n[4] === '9')) })
               const fila = celulares.length > 0 ? celulares : waPendentes
@@ -1808,7 +1810,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Follow-ups</h2>
-            <button className={styles.btnSecondary} onClick={carregarFollowups} disabled={loadingFup}>Atualizar</button>
+            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.followups = false; carregarFollowups() }} disabled={loadingFup}>Atualizar</button>
           </div>
 
           {loadingFup ? (
@@ -1871,6 +1873,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Materiais de Venda</h2>
+            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.materiais = false; carregarMateriais() }} title="Atualizar">🔄 Atualizar</button>
             <button className={styles.btnPrimary} onClick={() => setShowFormMat(!showFormMat)}>
               {showFormMat ? 'Cancelar' : '+ Novo Material'}
             </button>
@@ -1994,6 +1997,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Dashboard Comercial</h2>
+            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.dashboard = false; carregarDashboard() }} title="Atualizar">🔄 Atualizar</button>
             <span className={styles.countLabel}>Últimos 7 dias</span>
           </div>
 
@@ -2071,6 +2075,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Radar de Demanda — Google Search Console</h2>
+            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.radar = false; carregarGsc() }} title="Atualizar">🔄 Atualizar</button>
             <div className={styles.filtros}>
               <select className={styles.input} value={gscDias} onChange={e => setGscDias(Number(e.target.value))}>
                 <option value={7}>Últimos 7 dias</option>
