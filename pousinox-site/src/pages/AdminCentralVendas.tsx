@@ -277,6 +277,9 @@ pousinox.com.br`
   const [waPendentes, setWaPendentes] = useState<ProspectScore[]>([])
   const [waStats, setWaStats] = useState({ total: 0, validados: 0, pendentes: 0 })
   const [waLoadingTab, setWaLoadingTab] = useState(false)
+  const [cronConfig, setCronConfig] = useState<{ uf: string; mesorregiao: string; segmento: string }>({ uf: '', mesorregiao: '', segmento: '' })
+  const [cronMesos, setCronMesos] = useState<string[]>([])
+  const [cronSaving, setCronSaving] = useState(false)
   const [drawerNfs, setDrawerNfs] = useState<any[]>([])
   const [drawerNfsLoading, setDrawerNfsLoading] = useState(false)
   const [drawerNfExpandida, setDrawerNfExpandida] = useState<number | null>(null)
@@ -504,15 +507,24 @@ pousinox.com.br`
 
   const carregarWaTab = useCallback(async () => {
     setWaLoadingTab(true)
-    // Buscar contagens
-    const [{ count: totalCount }, { count: validCount }] = await Promise.all([
+    // Buscar contagens + config do cron
+    const [{ count: totalCount }, { count: validCount }, { data: cfgData }] = await Promise.all([
       supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }).not('telefone1', 'is', null),
       supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }).eq('whatsapp_validado', true),
+      supabaseAdmin.from('feature_flags').select('valor').eq('nome', 'prospectar_whatsapp_config').single(),
     ])
     const t = totalCount ?? 0
     const v = validCount ?? 0
     setWaStats({ total: t, validados: v, pendentes: t - v })
-    // Buscar pendentes com telefone (celulares primeiro), limit 200
+    if (cfgData?.valor) {
+      const c = typeof cfgData.valor === 'string' ? JSON.parse(cfgData.valor) : cfgData.valor
+      setCronConfig({ uf: c.uf || '', mesorregiao: c.mesorregiao || '', segmento: c.segmento || '' })
+      if (c.uf) {
+        const { data: mData } = await supabaseAdmin.from('prospeccao').select('mesorregiao').eq('uf', c.uf).not('mesorregiao', 'is', null).limit(500)
+        setCronMesos([...new Set((mData ?? []).map((r: any) => r.mesorregiao).filter(Boolean))].sort())
+      }
+    }
+    // Buscar pendentes com telefone, limit 200
     const { data } = await supabaseAdmin
       .from('prospeccao')
       .select('id,razao_social,nome_fantasia,cnpj,uf,cidade,segmento,porte,telefone1,telefone2,email,status_contato,whatsapp,whatsapp_validado')
@@ -1514,6 +1526,68 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
               <p className={styles.waBarLabel}>{Math.round((waStats.validados / waStats.total) * 100)}% validados</p>
             </div>
           )}
+
+          {/* Config do cron de prospecção */}
+          <details className={styles.waSegmento}>
+            <summary className={styles.waSegmentoHeader}>
+              <span>⚙️ Prospecção Automática (cron)</span>
+              <span className={styles.waSegmentoBadge}>
+                {cronConfig.uf || cronConfig.mesorregiao || cronConfig.segmento
+                  ? [cronConfig.uf, cronConfig.mesorregiao, cronConfig.segmento].filter(Boolean).join(' · ')
+                  : 'Todos'}
+              </span>
+            </summary>
+            <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: '#64748b' }}>
+                Roda seg-sex 8h-18h, 20 mensagens a cada 30min. Filtre por região para focar a prospecção.
+              </p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'end' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', fontWeight: 600 }}>
+                  UF
+                  <select value={cronConfig.uf} onChange={async e => {
+                    const uf = e.target.value
+                    setCronConfig(p => ({ ...p, uf, mesorregiao: '' }))
+                    if (uf) {
+                      const { data } = await supabaseAdmin.from('prospeccao').select('mesorregiao').eq('uf', uf).not('mesorregiao', 'is', null).limit(500)
+                      setCronMesos([...new Set((data ?? []).map((r: any) => r.mesorregiao).filter(Boolean))].sort())
+                    } else { setCronMesos([]) }
+                  }} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
+                    <option value="">Todos</option>
+                    {['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'].map(u =>
+                      <option key={u} value={u}>{u}</option>
+                    )}
+                  </select>
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', fontWeight: 600 }}>
+                  Mesorregião
+                  <select value={cronConfig.mesorregiao} onChange={e => setCronConfig(p => ({ ...p, mesorregiao: e.target.value }))}
+                    disabled={!cronConfig.uf} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: 200 }}>
+                    <option value="">Todas</option>
+                    {cronMesos.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', fontWeight: 600 }}>
+                  Segmento
+                  <input value={cronConfig.segmento} onChange={e => setCronConfig(p => ({ ...p, segmento: e.target.value }))}
+                    placeholder="Ex: Restaurante" style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem', width: 160 }} />
+                </label>
+                <button className={styles.btnPrimary} disabled={cronSaving} onClick={async () => {
+                  setCronSaving(true)
+                  const valor = { uf: cronConfig.uf || null, mesorregiao: cronConfig.mesorregiao || null, segmento: cronConfig.segmento || null }
+                  await supabaseAdmin.from('feature_flags').upsert({
+                    nome: 'prospectar_whatsapp_config',
+                    valor,
+                    descricao: 'Config cron prospecção WhatsApp automática',
+                    ativo: true,
+                  }, { onConflict: 'nome' })
+                  setCronSaving(false)
+                  showMsg('ok', '✅ Config salva — próximo cron usará esses filtros')
+                }} style={{ height: 34 }}>
+                  {cronSaving ? '⏳' : '💾 Salvar'}
+                </button>
+              </div>
+            </div>
+          </details>
 
           {waLoadingTab ? <p style={{ textAlign: 'center', padding: 32, color: '#64748b' }}>Carregando...</p> : (() => {
             const porSegmento = new Map<string, ProspectScore[]>()
