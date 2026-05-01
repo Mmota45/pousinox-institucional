@@ -766,18 +766,32 @@ CRON JOBS RECOMENDADOS:
   Prospecção: 1x/dia, lote de 10-15
     '0 9 * * 1-5' (9h da manhã, seg-sex)
 
+BOAS PRÁTICAS OFICIAIS Z-API:
+  ✅ Usar o número no celular de vez em quando (conversas reais)
+  ✅ Participar de grupos no WhatsApp
+  ✅ Variar o texto das mensagens (não copiar/colar igual)
+  ✅ Simular digitação (delay antes de enviar)
+  ✅ Incentivar respostas (fazer perguntas, usar botões)
+  ✅ Manter proporção saudável entre envios e recebimentos
+  ✅ Usar número SEPARADO para disparos (protege o principal)
+  ✅ Oferecer opt-out em toda mensagem ("responda SAIR")
+
 O QUE CAUSA BAN:
   ⛔ Muitas mensagens para números novos em curto período
   ⛔ Validação em massa (centenas por hora)
-  ⛔ Mensagens não respondidas em alta taxa
+  ⛔ Mensagens não respondidas em alta taxa (envio unidirecional)
   ⛔ Denúncias de spam por destinatários
-  ⛔ Múltiplas sessões/dispositivos simultâneos
+  ⛔ Texto idêntico repetido para múltiplos contatos
+  ⛔ Envios muito rápidos e contínuos sem intervalo
+  ⛔ Comportamento identificado como automação pura
 
-SE FOR BANIDO:
-  1. NÃO tente reconectar a instância Z-API
-  2. Aguarde a análise do WhatsApp (24-72h)
-  3. Clique "Solicitar revisão" no app
-  4. Depois de liberado, espere 1 semana antes de reativar automação`,
+WARM-UP APÓS DESBAN (documentação Z-API):
+  1. NÃO reconecte a Z-API imediatamente
+  2. Aguarde análise do WhatsApp (24-72h)
+  3. Solicite revisão no app
+  4. Após liberado: 3-5 dias de maturação manual
+  5. Simule uso humano: grupos, mensagens, contatos
+  6. Só depois reative automação gradualmente (5/dia)`,
     ondeFazer: 'Cron jobs no SQL Editor do Supabase (pg_cron). Edge functions em supabase/supabase/functions/. Config no feature_flags (flag prospectar_whatsapp_config).',
     porQue: 'A Pousinox foi banida do WhatsApp em 01/05/2026 por validação a cada 5 minutos (~288/dia) + prospecção automática. O número ficou em análise. Recuperação levou dias e causou perda de comunicação com clientes reais.',
   },
