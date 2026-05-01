@@ -24,6 +24,7 @@ interface Modelo {
   imagem_url: string | null
   possui_laudo: boolean
   ativo: boolean
+  preco_unitario: number | null
 }
 
 interface Regra {
@@ -45,6 +46,7 @@ interface Consumivel {
   unidade: string
   proporcao_por: number
   ordem: number
+  preco_unitario: number | null
 }
 
 type Aba = 'modelos' | 'regras' | 'consumiveis' | 'leads'
@@ -63,9 +65,9 @@ interface Lead {
   criado_em: string
 }
 
-const MODELO_VAZIO: Omit<Modelo, 'id'> = { nome: '', material: 'Aço Inox 304', espessura_mm: 0.8, largura_mm: 40, comprimento_mm: 120, abertura_aba_mm: 5, obs_tecnica: '', imagem_url: null, possui_laudo: false, ativo: true }
+const MODELO_VAZIO: Omit<Modelo, 'id'> = { nome: '', material: 'Aço Inox 304', espessura_mm: 0.8, largura_mm: 40, comprimento_mm: 120, abertura_aba_mm: 5, obs_tecnica: '', imagem_url: null, possui_laudo: false, ativo: true, preco_unitario: null }
 const REGRA_VAZIA: Omit<Regra, 'id'> = { modelo_id: null, nome: '', lado_max_cm: null, area_max_cm2: null, peso_max_kg: null, fixadores_por_peca: 2, exige_revisao: false, prioridade: 10 }
-const CONSUMIVEL_VAZIO: Omit<Consumivel, 'id'> = { nome: '', tipo: 'consumivel', unidade: 'UN', proporcao_por: 1, ordem: 1 }
+const CONSUMIVEL_VAZIO: Omit<Consumivel, 'id'> = { nome: '', tipo: 'consumivel', unidade: 'UN', proporcao_por: 1, ordem: 1, preco_unitario: null }
 
 export default function AdminFixadores() {
   const [aba, setAba] = useState<Aba>('modelos')
@@ -198,6 +200,7 @@ Responda exatamente no formato solicitado.` },
       obs_tecnica: editModelo.obs_tecnica || null,
       imagem_url: editModelo.imagem_url || null,
       possui_laudo: editModelo.possui_laudo ?? false, ativo: editModelo.ativo ?? true,
+      preco_unitario: editModelo.preco_unitario || null,
     }
     if (editModelo.id) {
       await supabaseAdmin.from('fixador_modelos').update(payload).eq('id', editModelo.id)
@@ -250,7 +253,7 @@ Responda exatamente no formato solicitado.` },
     const payload = {
       nome: editConsumivel.nome, tipo: editConsumivel.tipo ?? 'consumivel',
       unidade: editConsumivel.unidade ?? 'UN', proporcao_por: editConsumivel.proporcao_por ?? 1,
-      ordem: editConsumivel.ordem ?? 1,
+      ordem: editConsumivel.ordem ?? 1, preco_unitario: editConsumivel.preco_unitario || null,
     }
     if (editConsumivel.id) {
       await supabaseAdmin.from('fixador_consumiveis').update(payload).eq('id', editConsumivel.id)
@@ -375,6 +378,10 @@ Responda exatamente no formato solicitado.` },
                 </div>
               </div>
               <div className={fx.formRow}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151', whiteSpace: 'nowrap' }}>Preço unitário (R$)</label>
+                  <input style={{ ...inputStyle, width: 120 }} type="number" step="0.01" min="0" value={editModelo.preco_unitario ?? ''} onChange={e => setEditModelo({ ...editModelo, preco_unitario: e.target.value ? parseFloat(e.target.value) : null })} placeholder="0,00" />
+                </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.82rem', cursor: 'pointer' }}>
                   <input type="checkbox" checked={editModelo.possui_laudo ?? false} onChange={e => setEditModelo({ ...editModelo, possui_laudo: e.target.checked })} /> Possui laudo/ensaio
                 </label>
@@ -399,6 +406,7 @@ Responda exatamente no formato solicitado.` },
                 <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Material</th>
                 <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Dimensões (mm)</th>
                 <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Abertura</th>
+                <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Preço</th>
                 <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Laudo</th>
                 <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Ativo</th>
                 <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Ações</th>
@@ -423,6 +431,7 @@ Responda exatamente no formato solicitado.` },
                   <td style={{ padding: '10px 16px', textAlign: 'center' }}>
                     {m.abertura_aba_mm ? `${m.abertura_aba_mm} mm` : '—'}
                   </td>
+                  <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: m.preco_unitario ? '#16a34a' : '#94a3b8' }}>{m.preco_unitario ? `R$ ${m.preco_unitario.toFixed(2).replace('.', ',')}` : '—'}</td>
                   <td style={{ padding: '10px 16px', textAlign: 'center' }}>{m.possui_laudo ? '✅' : '—'}</td>
                   <td style={{ padding: '10px 16px', textAlign: 'center' }}>{m.ativo ? '🟢' : '🔴'}</td>
                   <td style={{ padding: '10px 16px', textAlign: 'right' }}>
@@ -431,7 +440,7 @@ Responda exatamente no formato solicitado.` },
                   </td>
                 </tr>
               ))}
-              {modelos.length === 0 && <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Nenhum modelo cadastrado</td></tr>}
+              {modelos.length === 0 && <tr><td colSpan={8} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Nenhum modelo cadastrado</td></tr>}
             </tbody>
           </table>
           </div>
@@ -569,6 +578,10 @@ Responda exatamente no formato solicitado.` },
                   <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Ordem</label>
                   <input style={inputStyle} type="number" value={editConsumivel.ordem ?? 1} onChange={e => setEditConsumivel({ ...editConsumivel, ordem: parseInt(e.target.value) || 1 })} />
                 </div>
+                <div>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#374151' }}>Preço (R$)</label>
+                  <input style={inputStyle} type="number" step="0.01" min="0" value={editConsumivel.preco_unitario ?? ''} onChange={e => setEditConsumivel({ ...editConsumivel, preco_unitario: e.target.value ? parseFloat(e.target.value) : null })} placeholder="0,00" />
+                </div>
               </div>
               <div className={fx.formActions}>
                 <button onClick={() => setEditConsumivel(null)} style={{ ...btnSm, background: '#f1f5f9', color: '#475569' }}>Cancelar</button>
@@ -588,6 +601,7 @@ Responda exatamente no formato solicitado.` },
                 <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Unidade</th>
                 <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Proporção</th>
                 <th style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Ordem</th>
+                <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Preço</th>
                 <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }}>Ações</th>
               </tr>
             </thead>
@@ -603,13 +617,14 @@ Responda exatamente no formato solicitado.` },
                   <td style={{ padding: '10px 16px', textAlign: 'center' }}>{c.unidade}</td>
                   <td style={{ padding: '10px 16px', textAlign: 'center' }}>{c.proporcao_por === 1 ? '1:1' : `1:${c.proporcao_por}`}</td>
                   <td style={{ padding: '10px 16px', textAlign: 'center' }}>{c.ordem}</td>
+                  <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: c.preco_unitario ? '#16a34a' : '#94a3b8' }}>{c.preco_unitario ? `R$ ${c.preco_unitario.toFixed(2).replace('.', ',')}` : '—'}</td>
                   <td style={{ padding: '10px 16px', textAlign: 'right' }}>
                     <button onClick={() => setEditConsumivel({ ...c })} style={{ ...btnSm, background: '#eff6ff', color: '#1d4ed8', marginRight: 6 }}>✏️</button>
                     <button onClick={() => excluirConsumivel(c.id)} style={{ ...btnSm, background: '#fef2f2', color: '#dc2626' }}>🗑</button>
                   </td>
                 </tr>
               ))}
-              {consumiveis.length === 0 && <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Nenhum consumível cadastrado</td></tr>}
+              {consumiveis.length === 0 && <tr><td colSpan={7} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Nenhum consumível cadastrado</td></tr>}
             </tbody>
           </table>
           </div>
