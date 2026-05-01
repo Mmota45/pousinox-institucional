@@ -383,16 +383,16 @@ export default function CalculadoraFixador() {
             {/* Trust bar */}
             <div className={s.trustBar}>
               <div className={s.trustItem}>
-                <span className={s.trustIcon}>🏭</span>
+                <span className={s.trustIcon}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
                 Direto do fabricante
               </div>
               <div className={s.trustItem}>
-                <span className={s.trustIcon}>⚡</span>
-                Pix instantâneo
+                <span className={s.trustIcon}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg></span>
+                Envio para todo Brasil
               </div>
               <div className={s.trustItem}>
-                <span className={s.trustIcon}>🚚</span>
-                Frete calculado
+                <span className={s.trustIcon}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+                Pix instantâneo
               </div>
             </div>
 
