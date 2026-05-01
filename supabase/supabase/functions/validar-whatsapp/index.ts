@@ -89,6 +89,40 @@ serve(async (req) => {
       })
     }
 
+    // Auto-validate — cron picks 50 unvalidated prospects with mobile numbers
+    if (action === "auto") {
+      const { data: pendentes } = await supabase
+        .from("prospeccao")
+        .select("id, telefone1")
+        .not("telefone1", "is", null)
+        .or("whatsapp_validado.is.null,whatsapp_validado.eq.false")
+        .limit(200)
+
+      if (!pendentes || pendentes.length === 0) {
+        return new Response(JSON.stringify({ total: 0, validated: 0, message: "Nenhum pendente" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        })
+      }
+
+      const results: { id: number; exists: boolean }[] = []
+      for (const p of pendentes) {
+        try {
+          const r = await checkWhatsApp(p.telefone1)
+          results.push({ id: p.id, exists: r.exists })
+          await supabase.from("prospeccao").update({
+            whatsapp: r.exists ? p.telefone1 : null,
+            whatsapp_validado: r.exists,
+          }).eq("id", p.id)
+          await new Promise(ok => setTimeout(ok, 600))
+        } catch { results.push({ id: p.id, exists: false }) }
+      }
+      const validated = results.filter(r => r.exists).length
+      console.log(`[auto] Validados: ${validated}/${pendentes.length}`)
+      return new Response(JSON.stringify({ total: pendentes.length, validated, results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
     return new Response(JSON.stringify({ error: "action inválida" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     })

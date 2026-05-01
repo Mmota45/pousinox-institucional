@@ -2,28 +2,75 @@ import { useState } from 'react'
 
 interface Option { value: string; label: string }
 
-interface Props {
+interface SingleProps {
   value: string
   onChange: (val: string) => void
+  multiple?: false
   options: Option[]
   placeholder?: string
   searchPlaceholder?: string
   minWidth?: number
 }
 
-export function SearchableSelect({
-  value, onChange, options,
-  placeholder = 'Todos',
-  searchPlaceholder = 'Buscar…',
-  minWidth = 120,
-}: Props) {
+interface MultiProps {
+  value: string[]
+  onChange: (val: string[]) => void
+  multiple: true
+  options: Option[]
+  placeholder?: string
+  searchPlaceholder?: string
+  minWidth?: number
+}
+
+type Props = SingleProps | MultiProps
+
+export function SearchableSelect(props: Props) {
+  const {
+    options, placeholder = 'Todos',
+    searchPlaceholder = 'Buscar…', minWidth = 120,
+  } = props
+  const multi = props.multiple === true
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
 
-  const selected = options.find(o => o.value === value)
   const filtered = options.filter(o =>
     !search || o.label.toLowerCase().includes(search.toLowerCase())
   )
+
+  // Multi helpers
+  const selectedArr = multi ? (props.value as string[]) : []
+  const isSelected = (v: string) => multi ? selectedArr.includes(v) : (props.value as string) === v
+  const hasValue = multi ? selectedArr.length > 0 : !!(props.value as string)
+
+  const displayLabel = () => {
+    if (multi) {
+      if (selectedArr.length === 0) return placeholder
+      if (selectedArr.length <= 2) return selectedArr.join(', ')
+      return `${selectedArr.slice(0, 2).join(', ')} +${selectedArr.length - 2}`
+    }
+    const sel = options.find(o => o.value === (props.value as string))
+    return sel ? sel.label : placeholder
+  }
+
+  const handleSelect = (val: string) => {
+    if (multi) {
+      const cb = props.onChange as (v: string[]) => void
+      if (selectedArr.includes(val)) {
+        cb(selectedArr.filter(v => v !== val))
+      } else {
+        cb([...selectedArr, val])
+      }
+    } else {
+      ;(props.onChange as (v: string) => void)(val)
+      setOpen(false)
+    }
+  }
+
+  const handleClear = () => {
+    if (multi) (props.onChange as (v: string[]) => void)([])
+    else (props.onChange as (v: string) => void)('')
+    setOpen(false)
+  }
 
   return (
     <div style={{ position: 'relative' }}>
@@ -37,11 +84,11 @@ export function SearchableSelect({
         }}
       >
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {selected ? selected.label : placeholder}
+          {displayLabel()}
         </span>
-        {value && (
+        {hasValue && (
           <span
-            onClick={e => { e.stopPropagation(); onChange('') }}
+            onClick={e => { e.stopPropagation(); handleClear() }}
             style={{ color: '#aaa', fontSize: '0.75rem', lineHeight: 1, cursor: 'pointer', padding: '0 2px' }}
             title="Limpar"
           >✕</span>
@@ -70,32 +117,40 @@ export function SearchableSelect({
               />
             </div>
             <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-              {/* Opção "todos/nenhum" */}
               <div
-                onClick={() => { onChange(''); setOpen(false) }}
+                onClick={handleClear}
                 style={{
                   padding: '7px 14px', cursor: 'pointer', fontSize: '0.83rem',
-                  background: !value ? '#e8f0f8' : 'transparent',
-                  fontWeight: !value ? 700 : 400, color: '#1a1a2e',
+                  background: !hasValue ? '#e8f0f8' : 'transparent',
+                  fontWeight: !hasValue ? 700 : 400, color: '#1a1a2e',
                   borderBottom: '1px solid #f5f7fa',
                 }}
-                onMouseEnter={e => { if (value) e.currentTarget.style.background = '#f5f7fa' }}
-                onMouseLeave={e => { if (value) e.currentTarget.style.background = 'transparent' }}
+                onMouseEnter={e => { if (hasValue) e.currentTarget.style.background = '#f5f7fa' }}
+                onMouseLeave={e => { if (hasValue) e.currentTarget.style.background = 'transparent' }}
               >
                 {placeholder}
               </div>
               {filtered.map(opt => (
                 <div
                   key={opt.value}
-                  onClick={() => { onChange(opt.value); setOpen(false) }}
+                  onClick={() => handleSelect(opt.value)}
                   style={{
                     padding: '7px 14px', cursor: 'pointer', fontSize: '0.83rem',
-                    background: value === opt.value ? '#e8f0f8' : 'transparent',
-                    fontWeight: value === opt.value ? 700 : 400, color: '#1a1a2e',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    background: isSelected(opt.value) ? '#e8f0f8' : 'transparent',
+                    fontWeight: isSelected(opt.value) ? 700 : 400, color: '#1a1a2e',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = value === opt.value ? '#e8f0f8' : '#f5f7fa')}
-                  onMouseLeave={e => (e.currentTarget.style.background = value === opt.value ? '#e8f0f8' : 'transparent')}
+                  onMouseEnter={e => (e.currentTarget.style.background = isSelected(opt.value) ? '#e8f0f8' : '#f5f7fa')}
+                  onMouseLeave={e => (e.currentTarget.style.background = isSelected(opt.value) ? '#e8f0f8' : 'transparent')}
                 >
+                  {multi && (
+                    <span style={{
+                      width: 16, height: 16, borderRadius: 3, border: '1.5px solid #94a3b8',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      background: isSelected(opt.value) ? '#1a3a5c' : '#fff',
+                      color: '#fff', fontSize: '0.7rem', lineHeight: 1,
+                    }}>{isSelected(opt.value) ? '✓' : ''}</span>
+                  )}
                   {opt.label}
                 </div>
               ))}

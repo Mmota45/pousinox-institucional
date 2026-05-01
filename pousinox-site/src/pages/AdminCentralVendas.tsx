@@ -6,7 +6,7 @@ import { aiChat, aiParallel, type MultiResult } from '../lib/aiHelper'
 import AiActionButton from '../components/assistente/AiActionButton'
 import HistoricoModal from '../components/HistoricoModal/HistoricoModal'
 import ModalIframe from '../components/ModalIframe/ModalIframe'
-import SearchableSelect from '../components/SearchableSelect/SearchableSelect'
+import { SearchableSelect } from '../components/SearchableSelect/SearchableSelect'
 import styles from './AdminCentralVendas.module.css'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -278,7 +278,7 @@ pousinox.com.br`
   const [waPendentes, setWaPendentes] = useState<ProspectScore[]>([])
   const [waStats, setWaStats] = useState({ total: 0, validados: 0, pendentes: 0 })
   const [waLoadingTab, setWaLoadingTab] = useState(false)
-  const [cronConfig, setCronConfig] = useState<{ uf: string; mesorregiao: string; cidade: string; segmento: string }>({ uf: '', mesorregiao: '', cidade: '', segmento: '' })
+  const [cronConfig, setCronConfig] = useState<{ uf: string[]; mesorregiao: string[]; cidade: string[]; segmento: string[] }>({ uf: [], mesorregiao: [], cidade: [], segmento: [] })
   const [cronMesos, setCronMesos] = useState<string[]>([])
   const [cronSegmentos, setCronSegmentos] = useState<string[]>([])
   const [cronCidades, setCronCidades] = useState<string[]>([])
@@ -522,13 +522,26 @@ pousinox.com.br`
     setWaStats({ total: t, validados: v, pendentes: t - v })
     if (cfgData?.config) {
       const c = typeof cfgData.config === 'string' ? JSON.parse(cfgData.config) : cfgData.config
-      setCronConfig({ uf: c.uf || '', mesorregiao: c.mesorregiao || '', cidade: c.cidade || '', segmento: c.segmento || '' })
-      if (c.uf) {
-        const { data: mData } = await supabaseAdmin.rpc('fn_distinct_mesorregiao', { p_uf: c.uf })
-        setCronMesos((mData ?? []).map((r: any) => r.mesorregiao).filter(Boolean))
-        if (c.mesorregiao) {
-          const { data: cData } = await supabaseAdmin.from('prospeccao').select('cidade').eq('uf', c.uf).eq('mesorregiao', c.mesorregiao).not('cidade', 'is', null).limit(10000)
-          setCronCidades([...new Set((cData ?? []).map((r: any) => r.cidade).filter(Boolean))].sort())
+      const toArr = (v: any) => Array.isArray(v) ? v : (v ? [v] : [])
+      setCronConfig({ uf: toArr(c.uf), mesorregiao: toArr(c.mesorregiao), cidade: toArr(c.cidade), segmento: toArr(c.segmento) })
+      const ufs = toArr(c.uf)
+      const mesos = toArr(c.mesorregiao)
+      if (ufs.length > 0) {
+        const allMesos: string[] = []
+        for (const u of ufs) {
+          const { data: mData } = await supabaseAdmin.rpc('fn_distinct_mesorregiao', { p_uf: u })
+          allMesos.push(...(mData ?? []).map((r: any) => r.mesorregiao).filter(Boolean))
+        }
+        setCronMesos([...new Set(allMesos)].sort())
+        if (mesos.length > 0) {
+          const allCidades: string[] = []
+          for (const u of ufs) {
+            for (const m of mesos) {
+              const { data: cData } = await supabaseAdmin.rpc('fn_distinct_cidade', { p_uf: u, p_meso: m })
+              allCidades.push(...(cData ?? []).map((r: any) => r.cidade).filter(Boolean))
+            }
+          }
+          setCronCidades([...new Set(allCidades)].sort())
         }
       }
     }
@@ -1628,8 +1641,8 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
             <summary className={styles.waSegmentoHeader}>
               <span>⚙️ Prospecção Automática (cron)</span>
               <span className={styles.waSegmentoBadge}>
-                {cronConfig.uf || cronConfig.mesorregiao || cronConfig.segmento
-                  ? [cronConfig.uf, cronConfig.mesorregiao, cronConfig.segmento].filter(Boolean).join(' · ')
+                {cronConfig.uf.length || cronConfig.mesorregiao.length || cronConfig.segmento.length
+                  ? [cronConfig.uf.join(','), cronConfig.mesorregiao.join(','), cronConfig.segmento.join(',')].filter(Boolean).join(' · ')
                   : 'Todos'}
               </span>
             </summary>
@@ -1641,13 +1654,18 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>UF</span>
                   <SearchableSelect
+                    multiple
                     value={cronConfig.uf}
-                    onChange={async (uf) => {
-                      setCronConfig(p => ({ ...p, uf, mesorregiao: '', cidade: '' }))
+                    onChange={async (ufs) => {
+                      setCronConfig(p => ({ ...p, uf: ufs, mesorregiao: [], cidade: [] }))
                       setCronCidades([])
-                      if (uf) {
-                        const { data } = await supabaseAdmin.rpc('fn_distinct_mesorregiao', { p_uf: uf })
-                        setCronMesos((data ?? []).map((r: any) => r.mesorregiao).filter(Boolean))
+                      if (ufs.length > 0) {
+                        const allMesos: string[] = []
+                        for (const u of ufs) {
+                          const { data } = await supabaseAdmin.rpc('fn_distinct_mesorregiao', { p_uf: u })
+                          allMesos.push(...(data ?? []).map((r: any) => r.mesorregiao).filter(Boolean))
+                        }
+                        setCronMesos([...new Set(allMesos)].sort())
                       } else { setCronMesos([]) }
                     }}
                     options={['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'].map(u => ({ value: u, label: u }))}
@@ -1659,12 +1677,19 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Mesorregião</span>
                   <SearchableSelect
+                    multiple
                     value={cronConfig.mesorregiao}
-                    onChange={async (v) => {
-                      setCronConfig(p => ({ ...p, mesorregiao: v, cidade: '' }))
-                      if (v && cronConfig.uf) {
-                        const { data } = await supabaseAdmin.from('prospeccao').select('cidade').eq('uf', cronConfig.uf).eq('mesorregiao', v).not('cidade', 'is', null).limit(10000)
-                        setCronCidades([...new Set((data ?? []).map((r: any) => r.cidade).filter(Boolean))].sort())
+                    onChange={async (mesos) => {
+                      setCronConfig(p => ({ ...p, mesorregiao: mesos, cidade: [] }))
+                      if (mesos.length > 0 && cronConfig.uf.length > 0) {
+                        const allCidades: string[] = []
+                        for (const u of cronConfig.uf) {
+                          for (const m of mesos) {
+                            const { data } = await supabaseAdmin.rpc('fn_distinct_cidade', { p_uf: u, p_meso: m })
+                            allCidades.push(...(data ?? []).map((r: any) => r.cidade).filter(Boolean))
+                          }
+                        }
+                        setCronCidades([...new Set(allCidades)].sort())
                       } else { setCronCidades([]) }
                     }}
                     options={cronMesos.map(m => ({ value: m, label: m }))}
@@ -1676,6 +1701,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Cidade</span>
                   <SearchableSelect
+                    multiple
                     value={cronConfig.cidade}
                     onChange={(v) => setCronConfig(p => ({ ...p, cidade: v }))}
                     options={cronCidades.map(c => ({ value: c, label: c }))}
@@ -1687,6 +1713,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Segmento</span>
                   <SearchableSelect
+                    multiple
                     value={cronConfig.segmento}
                     onChange={(v) => setCronConfig(p => ({ ...p, segmento: v }))}
                     options={cronSegmentos.map(s => ({ value: s, label: s }))}
@@ -1697,7 +1724,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 </div>
                 <button className={styles.btnPrimary} disabled={cronSaving} onClick={async () => {
                   setCronSaving(true)
-                  const valor = { uf: cronConfig.uf || null, mesorregiao: cronConfig.mesorregiao || null, cidade: cronConfig.cidade || null, segmento: cronConfig.segmento || null }
+                  const valor = { uf: cronConfig.uf.length ? cronConfig.uf : null, mesorregiao: cronConfig.mesorregiao.length ? cronConfig.mesorregiao : null, cidade: cronConfig.cidade.length ? cronConfig.cidade : null, segmento: cronConfig.segmento.length ? cronConfig.segmento : null }
                   await supabaseAdmin.from('feature_flags').upsert({
                     flag: 'prospectar_whatsapp_config',
                     config: valor,

@@ -619,7 +619,6 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   margin-bottom: 12px;
-  overflow: hidden;
 }
 .waSegmentoHeader {
   display: flex;
