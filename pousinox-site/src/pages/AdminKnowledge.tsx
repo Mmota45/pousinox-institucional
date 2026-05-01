@@ -1155,12 +1155,15 @@ function registrarAcesso(id: string): Record<string, number> {
 
 type Vista = 'lista' | 'mapa'
 
-function MapaMental({ guias, onSelect }: { guias: Guia[]; onSelect: (id: string) => void }) {
+function MapaMental({ guias, onAcesso, perplexityUrl }: { guias: Guia[]; onAcesso: (id: string) => void; perplexityUrl: (t: string) => string }) {
+  const [aberto, setAberto] = useState<string | null>(null)
   const cats = CATEGORIAS.filter(c => c.value !== 'todos')
   const guiasPorCat = cats.map(c => ({
     ...c,
     guias: guias.filter(g => g.categoria === c.value),
   })).filter(c => c.guias.length > 0)
+
+  const guiaAtivo = aberto ? guias.find(g => g.id === aberto) : null
 
   return (
     <div className={styles.mapaContainer}>
@@ -1176,8 +1179,12 @@ function MapaMental({ guias, onSelect }: { guias: Guia[]; onSelect: (id: string)
               {cat.guias.map(g => (
                 <button
                   key={g.id}
-                  className={`${styles.mapaGuiaNode} ${g.rascunho ? styles.mapaGuiaRascunho : ''}`}
-                  onClick={() => onSelect(g.id)}
+                  className={`${styles.mapaGuiaNode} ${g.rascunho ? styles.mapaGuiaRascunho : ''} ${aberto === g.id ? styles.mapaGuiaAtivo : ''}`}
+                  onClick={() => {
+                    const next = aberto === g.id ? null : g.id
+                    setAberto(next)
+                    if (next) onAcesso(g.id)
+                  }}
                   title={g.oQueE.slice(0, 120)}
                 >
                   <span className={styles.mapaGuiaTitulo}>{g.titulo}</span>
@@ -1187,6 +1194,26 @@ function MapaMental({ guias, onSelect }: { guias: Guia[]; onSelect: (id: string)
                 </button>
               ))}
             </div>
+            {guiaAtivo && cat.guias.some(g => g.id === aberto) && (
+              <div className={styles.mapaDetalhe}>
+                <div className={styles.mapaDetalheHeader}>
+                  <h3>{guiaAtivo.titulo}</h3>
+                  <button className={styles.modalClose} onClick={() => setAberto(null)}>x</button>
+                </div>
+                <div className={styles.cardBody}>
+                  <GuiaSection titulo="O que é" conteudo={guiaAtivo.oQueE} />
+                  <GuiaSection titulo="Quando usar" conteudo={guiaAtivo.quandoUsar} />
+                  <GuiaSection titulo="Como fazer" conteudo={guiaAtivo.comoFazer} />
+                  <GuiaSection titulo="Onde fazer" conteudo={guiaAtivo.ondeFazer} />
+                  <GuiaSection titulo="Por quê" conteudo={guiaAtivo.porQue} />
+                  <div className={styles.guiaActions}>
+                    <a className={styles.btnPerplexity} href={perplexityUrl(guiaAtivo.titulo)} target="_blank" rel="noopener noreferrer">
+                      Aprofundar no Perplexity
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -1298,7 +1325,7 @@ export default function AdminKnowledge() {
       </div>
 
       {vista === 'mapa' ? (
-        <MapaMental guias={filtradas} onSelect={id => { setVista('lista'); abrirGuia(id) }} />
+        <MapaMental guias={filtradas} onAcesso={id => setAcessos(registrarAcesso(id))} perplexityUrl={perplexityUrl} />
       ) : (
         <>
           <div className={styles.count}>
