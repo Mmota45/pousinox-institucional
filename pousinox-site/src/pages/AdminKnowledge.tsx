@@ -995,17 +995,26 @@ function RichContent({ text }: { text: string }) {
       continue
     }
 
-    // HEADER LINE: ALL CAPS or ends with : (section headers like "COMPARATIVO:", "O QUE CAUSA BAN:")
-    if (/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/\-\(\)0-9,.:]+:?\s*$/.test(trimmed) && trimmed.length > 3) {
-      // Collect sub-items under this header
+    // HEADER LINE: mostly uppercase words ending with optional :
+    // Matches: "COMPARATIVO:", "API NÃO OFICIAL (Z-API):", "COMO MIGRAR (Z-API → Interakt):", "BSPs MAIS ACESSÍVEIS NO BRASIL:"
+    const isHeader = (s: string) => {
+      const clean = s.replace(/[:]\s*$/, '').replace(/[^a-záéíóúâêôãõçA-ZÁÉÍÓÚÂÊÔÃÕÇ\s]/g, ' ').trim()
+      if (clean.length < 3) return false
+      const words = clean.split(/\s+/).filter(w => w.length > 1)
+      if (words.length === 0) return false
+      const upperWords = words.filter(w => w === w.toUpperCase())
+      return upperWords.length / words.length >= 0.6
+    }
+
+    if (isHeader(trimmed)) {
       const header = trimmed.replace(/:$/, '')
       const items: string[] = []
       i++
       while (i < lines.length) {
         const next = lines[i].trim()
         if (!next) { i++; continue }
-        // Stop if next ALL CAPS header
-        if (/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/\-\(\)0-9,.:]+:?\s*$/.test(next) && next.length > 3) break
+        // Stop if next header at same level (not indented)
+        if (!lines[i].startsWith('  ') && isHeader(next)) break
         items.push(lines[i])
         i++
       }
