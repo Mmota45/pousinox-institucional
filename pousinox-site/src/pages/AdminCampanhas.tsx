@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminCampanhas.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -68,6 +70,7 @@ function fmtCnpj(v: string) {
 export default function AdminCampanhas() {
   const [campanhas, setCampanhas]       = useState<Campanha[]>([])
   const [loading, setLoading]           = useState(true)
+  const lp = useLoadingProgress(1)
   const [salvando, setSalvando]         = useState(false)
   const [msg, setMsg]                   = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
 
@@ -88,11 +91,13 @@ export default function AdminCampanhas() {
 
   const carregarCampanhas = useCallback(async () => {
     setLoading(true)
+    lp.reset()
     const { data } = await supabaseAdmin
       .from('wpp_campanhas')
       .select('*')
       .order('criado_em', { ascending: false })
       .limit(50)
+    lp.step()
     setCampanhas((data ?? []) as Campanha[])
     setLoading(false)
   }, [])
@@ -351,7 +356,7 @@ export default function AdminCampanhas() {
 
       {/* ── Lista de campanhas ── */}
       {loading ? (
-        <div className={styles.loading}>Carregando campanhas...</div>
+        <AdminLoading total={lp.total} current={lp.current} label="Carregando campanhas..." />
       ) : campanhas.length === 0 ? (
         <div className={styles.vazio}>Nenhuma campanha criada ainda.</div>
       ) : (

@@ -3,6 +3,8 @@ import { supabaseAdmin } from '../lib/supabase'
 import { useAdmin } from '../contexts/AdminContext'
 import CollapsibleSection from '../components/CollapsibleSection/CollapsibleSection'
 import styles from './AdminVendas.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -66,6 +68,7 @@ export default function AdminVendas() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [vendas,   setVendas]   = useState<Venda[]>([])
   const [loading,  setLoading]  = useState(true)
+  const lp = useLoadingProgress(2)
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const [form, setForm] = useState(FORM_VAZIO)
@@ -103,6 +106,7 @@ export default function AdminVendas() {
   async function fetchProdutos() {
     const { data } = await supabaseAdmin.from('produtos').select('id, titulo, preco').order('titulo')
     setProdutos(data ?? [])
+    lp.step()
   }
 
   async function fetchVendas() {
@@ -113,6 +117,7 @@ export default function AdminVendas() {
       .order('data_venda', { ascending: false })
       .limit(200)
     setVendas((data ?? []) as Venda[])
+    lp.step()
     setLoading(false)
   }
 
@@ -498,7 +503,7 @@ export default function AdminVendas() {
 
         {/* ── Tabela ── */}
         {loading ? (
-          <p className={styles.vazio}>Carregando...</p>
+          <AdminLoading total={lp.total} current={lp.current} label="Carregando vendas..." />
         ) : vendasFiltradas.length === 0 ? (
           <p className={styles.vazio}>{temFiltro ? 'Nenhuma venda com esses filtros.' : 'Nenhuma venda registrada.'}</p>
         ) : (

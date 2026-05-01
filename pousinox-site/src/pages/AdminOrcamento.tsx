@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase, supabaseAdmin } from '../lib/supabase'
 import styles from './AdminOrcamento.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 import CollapsibleSection from '../components/CollapsibleSection/CollapsibleSection'
 import { useAdmin } from '../contexts/AdminContext'
 import ClienteForm from '../components/ClienteForm/ClienteForm'
@@ -61,6 +63,7 @@ export default function AdminOrcamento() {
   const [vista, setVista]           = useState<Vista>('lista')
   const [lista, setLista]           = useState<OrcamentoResumo[]>([])
   const [loadingLista, setLoadingLista] = useState(false)
+  const lp = useLoadingProgress(4)
   const [filtroStatus, setFiltroStatus] = useState<Status | 'todos'>('todos')
   const [ordenCol, setOrdenCol] = useState<string>('criado_em')
   const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('desc')
@@ -177,6 +180,7 @@ export default function AdminOrcamento() {
       const { data, error } = await (filtroStatus !== 'todos' ? base.eq('status', filtroStatus) : base)
       if (error) throw error
       setLista((data ?? []) as OrcamentoResumo[])
+      lp.step()
     } catch (err) {
       console.error('Erro ao carregar lista:', err)
       showMsg('erro', 'Erro ao carregar orçamentos.')
@@ -192,6 +196,7 @@ export default function AdminOrcamento() {
       const list = (data ?? []) as EmpresaEmissora[]
       setEmpresas(list)
       if (!empresaId && list.length > 0) setEmpresaId(list[0].id)
+      lp.step()
     } catch (err) { console.error('Erro ao carregar empresas:', err) }
   }, [])
 
@@ -200,6 +205,7 @@ export default function AdminOrcamento() {
       const { data, error } = await supabaseAdmin.from('vendedores').select('*').eq('ativo', true).order('nome')
       if (error) throw error
       setVendedores((data ?? []) as Vendedor[])
+      lp.step()
     } catch (err) { console.error('Erro ao carregar vendedores:', err) }
   }, [])
 
@@ -208,6 +214,7 @@ export default function AdminOrcamento() {
       const { data, error } = await supabaseAdmin.from('dados_bancarios').select('*').eq('ativo', true).order('ordem')
       if (error) throw error
       setDadosBancarios((data ?? []) as DadoBancario[])
+      lp.step()
     } catch (err) { console.error('Erro ao carregar dados bancários:', err) }
   }, [])
 
@@ -867,7 +874,7 @@ export default function AdminOrcamento() {
             )}
           </div>
           {loadingLista ? (
-            <div className={styles.loading}>Carregando...</div>
+            <AdminLoading total={lp.total} current={lp.current} label="Carregando orçamentos..." />
           ) : lista.length === 0 ? (
             <div className={styles.vazio}>
               <p>Nenhum orçamento encontrado.</p>

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminEstoqueIndustrial.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 import AiActionButton from '../components/assistente/AiActionButton'
 import { aiChat } from '../lib/aiHelper'
 
@@ -97,6 +99,7 @@ export default function AdminEstoqueBase({ tipo, titulo, subtitulo }: Props) {
   const [vista, setVista] = useState<Vista>('lista')
   const [lista, setLista] = useState<EstoqueItem[]>([])
   const [loading, setLoading] = useState(true)
+  const lp = useLoadingProgress(1)
   const [filtroStatus, setFiltroStatus] = useState('todos')
   const [editando, setEditando] = useState<EstoqueItem | null>(null)
   const [detalhe, setDetalhe] = useState<EstoqueItem | null>(null)
@@ -126,11 +129,13 @@ export default function AdminEstoqueBase({ tipo, titulo, subtitulo }: Props) {
 
   const carregar = useCallback(async () => {
     setLoading(true)
+    lp.reset()
     const { data } = await supabaseAdmin
       .from('estoque_itens')
       .select('*')
       .eq('tipo', tipo)
       .order('nome')
+    lp.step()
     setLista(data ?? [])
     setLoading(false)
   }, [tipo])
@@ -340,7 +345,7 @@ export default function AdminEstoqueBase({ tipo, titulo, subtitulo }: Props) {
 
       <div className={styles.card}>
         {loading ? (
-          <div className={styles.loading}>Carregando…</div>
+          <AdminLoading total={lp.total} current={lp.current} label="Carregando…" />
         ) : listaFiltrada.length === 0 ? (
           <div className={styles.vazio}>Nenhum item encontrado.</div>
         ) : (

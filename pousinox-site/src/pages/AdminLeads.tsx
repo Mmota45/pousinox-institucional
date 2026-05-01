@@ -3,6 +3,8 @@ import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminLeads.module.css'
 import AiActionButton from '../components/assistente/AiActionButton'
 import { aiChat } from '../lib/aiHelper'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 interface Lead {
   id: number
@@ -41,6 +43,7 @@ export default function AdminLeads() {
   const [total, setTotal]         = useState(0)
   const [pagina, setPagina]       = useState(0)
   const [loading, setLoading]     = useState(true)
+  const lp = useLoadingProgress(1)
   const [busca, setBusca]               = useState('')
   const [filtroStatus, setFiltroStatus] = useState<string>('todos')
   const [dataInicio, setDataInicio]     = useState('')
@@ -66,6 +69,7 @@ export default function AdminLeads() {
     setLeads(data ?? [])
     setTotal(count ?? 0)
     setPagina(pag)
+    lp.step()
     setLoading(false)
   }
 
@@ -170,7 +174,7 @@ export default function AdminLeads() {
         </div>
 
         {loading ? (
-          <div className={styles.vazio}>Carregando...</div>
+          <AdminLoading total={lp.total} current={lp.current} label="Carregando leads..." />
         ) : leads.length === 0 ? (
           <div className={styles.vazio}>Nenhum lead encontrado.</div>
         ) : (

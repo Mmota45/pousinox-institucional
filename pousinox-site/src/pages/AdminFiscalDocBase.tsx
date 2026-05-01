@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, supabaseAdmin } from '../lib/supabase'
 import styles from './AdminBase.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 import AiActionButton from '../components/assistente/AiActionButton'
 import { aiVision, fileToBase64 } from '../lib/aiHelper'
 
@@ -150,6 +152,7 @@ export default function AdminFiscalDocBase({ tipo, titulo, subtitulo }: Props) {
   const [vista,        setVista]        = useState<Vista>('lista')
   const [lista,        setLista]        = useState<Doc[]>([])
   const [loading,      setLoading]      = useState(true)
+  const lp = useLoadingProgress(1)
   const [isAdmin,      setIsAdmin]      = useState(false)
   const [filtroStatus, setFiltroStatus] = useState('todos')
   const [editando,     setEditando]     = useState<Doc | null>(null)
@@ -188,11 +191,13 @@ export default function AdminFiscalDocBase({ tipo, titulo, subtitulo }: Props) {
   // ── Carregar ──────────────────────────────────────────────────────
   const carregar = useCallback(async () => {
     setLoading(true)
+    lp.reset()
     const { data } = await supabaseAdmin
       .from('docs_fiscais')
       .select('*')
       .eq('tipo', tipo)
       .order('created_at', { ascending: false })
+    lp.step()
     setLista((data as Doc[]) ?? [])
     setLoading(false)
   }, [tipo])
@@ -698,7 +703,7 @@ export default function AdminFiscalDocBase({ tipo, titulo, subtitulo }: Props) {
 
       <div className={styles.card}>
         {loading
-          ? <div className={styles.loading}>Carregando…</div>
+          ? <AdminLoading total={lp.total} current={lp.current} label="Carregando…" />
           : listaFiltrada.length === 0
             ? <div className={styles.vazio}>Nenhum documento encontrado.</div>
             : (

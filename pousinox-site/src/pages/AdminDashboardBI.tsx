@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 import {
   BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -157,6 +159,7 @@ function periodoLabel(f: DashboardFilters): string {
 
 export default function AdminDashboardBI() {
   const [loading, setLoading] = useState(true)
+  const lp = useLoadingProgress(2)
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [nfs, setNfs] = useState<NF[]>([])
   const [filters, setFilters] = useState<DashboardFilters>(EMPTY_FILTERS)
@@ -165,9 +168,10 @@ export default function AdminDashboardBI() {
   useEffect(() => {
     async function load() {
       setLoading(true)
+      lp.reset()
       const [resCli, resNf] = await Promise.all([
-        supabaseAdmin.from('clientes').select('*').gt('total_gasto', 0).order('total_gasto', { ascending: false }),
-        supabaseAdmin.from('nf_cabecalho').select('emissao, total, cnpj').gt('total', 0),
+        lp.wrap(supabaseAdmin.from('clientes').select('*').gt('total_gasto', 0).order('total_gasto', { ascending: false })),
+        lp.wrap(supabaseAdmin.from('nf_cabecalho').select('emissao, total, cnpj').gt('total', 0)),
       ])
       setClientes((resCli.data || []) as Cliente[])
       setNfs((resNf.data || []) as NF[])
@@ -336,7 +340,7 @@ export default function AdminDashboardBI() {
     setFilters(f => ({ ...f, cliente: f.cliente === nome ? null : nome, segmento: null, cidade: null }))
   }, [topClientes])
 
-  if (loading) return <div className={s.loading}>Carregando dados...</div>
+  if (loading) return <AdminLoading total={lp.total} current={lp.current} label="Carregando dados..." />
 
   return (
     <div className={s.page}>

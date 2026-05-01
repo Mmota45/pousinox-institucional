@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminProducao.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -81,6 +83,7 @@ export default function AdminProducao() {
   const [vista,      setVista]      = useState<Vista>('lista')
   const [ordens,     setOrdens]     = useState<OrdemProducao[]>([])
   const [carregando, setCarregando] = useState(false)
+  const lp = useLoadingProgress(1)
   const [filtroStatus, setFiltroStatus] = useState<string>('todas')
 
   const [ordemAtual, setOrdemAtual] = useState<OrdemProducao | null>(null)
@@ -101,12 +104,14 @@ export default function AdminProducao() {
 
   const carregarOrdens = useCallback(async () => {
     setCarregando(true)
+    lp.reset()
     let q = supabaseAdmin
       .from('ordens_producao')
       .select('*, projetos(titulo)')
       .order('created_at', { ascending: false })
     if (filtroStatus !== 'todas') q = q.eq('status', filtroStatus)
     const { data } = await q
+    lp.step()
     setOrdens((data as OrdemProducao[]) ?? [])
     setCarregando(false)
   }, [filtroStatus])
@@ -256,7 +261,7 @@ export default function AdminProducao() {
 
           <div className={styles.card}>
             {carregando ? (
-              <div className={styles.loading}>Carregando ordens…</div>
+              <AdminLoading total={lp.total} current={lp.current} label="Carregando ordens…" />
             ) : ordens.length === 0 ? (
               <div className={styles.vazio}>Nenhuma ordem de produção encontrada.</div>
             ) : (

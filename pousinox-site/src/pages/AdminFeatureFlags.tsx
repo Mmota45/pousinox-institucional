@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminBase.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 interface Flag {
   flag: string
@@ -12,6 +14,7 @@ interface Flag {
 export default function AdminFeatureFlags() {
   const [flags, setFlags] = useState<Flag[]>([])
   const [loading, setLoading] = useState(true)
+  const lp = useLoadingProgress(1)
   const [saving, setSaving] = useState<string | null>(null)
 
   async function load() {
@@ -20,6 +23,7 @@ export default function AdminFeatureFlags() {
       .select('flag, habilitado, descricao, publica')
       .order('flag')
     setFlags(data ?? [])
+    lp.step()
     setLoading(false)
   }
 
@@ -35,7 +39,7 @@ export default function AdminFeatureFlags() {
     setSaving(null)
   }
 
-  if (loading) return <p style={{ padding: 24 }}>Carregando…</p>
+  if (loading) return <AdminLoading total={lp.total} current={lp.current} label="Carregando flags..." />
 
   return (
     <div style={{ padding: 24, maxWidth: 700 }}>

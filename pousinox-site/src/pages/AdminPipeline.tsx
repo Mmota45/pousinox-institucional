@@ -4,6 +4,8 @@ import styles from './AdminPipeline.module.css'
 import AiActionButton from '../components/assistente/AiActionButton'
 import { aiChat } from '../lib/aiHelper'
 import AgentFollowUp from '../components/assistente/AgentFollowUp'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -84,6 +86,7 @@ type Vista = 'tabela' | 'lista' | 'kanban'
 export default function AdminPipeline() {
   const [deals,      setDeals]      = useState<Deal[]>([])
   const [loading,    setLoading]    = useState(true)
+  const lp = useLoadingProgress(1)
   const [filtro,     setFiltro]     = useState<Estagio | 'todos'>('todos')
   const [formAberto, setFormAberto] = useState(false)
   const [agentFollowUp, setAgentFollowUp] = useState(false)
@@ -120,6 +123,7 @@ export default function AdminPipeline() {
         .order('updated_at', { ascending: false })
       if (error) throw error
       setDeals((data ?? []) as Deal[])
+      lp.step()
     } catch (err: unknown) {
       console.error(err)
       setMsg({ tipo: 'erro', texto: 'Erro ao carregar deals.' })
@@ -697,9 +701,7 @@ export default function AdminPipeline() {
 
       {/* Conteúdo */}
       {loading ? (
-        <div className={styles.skeletonWrap}>
-          {[1,2,3,4,5].map(i => <div key={i} className={styles.skeleton} />)}
-        </div>
+        <AdminLoading total={lp.total} current={lp.current} label="Carregando pipeline..." />
       ) : dealsFiltrados.length === 0 ? (
         <div className={styles.vazio}>
           {filtro === 'todos' && !busca

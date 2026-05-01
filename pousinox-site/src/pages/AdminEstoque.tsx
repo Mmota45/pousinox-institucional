@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminVendas.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 interface Produto { id: string; titulo: string; quantidade: number; disponivel: boolean }
 interface Movimentacao {
@@ -18,6 +20,7 @@ export default function AdminEstoque() {
   const [produtos, setProdutos] = useState<Produto[]>([])
   const [movimentacoes, setMovimentacoes] = useState<Movimentacao[]>([])
   const [loading, setLoading] = useState(true)
+  const lp = useLoadingProgress(2)
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
 
@@ -44,12 +47,14 @@ export default function AdminEstoque() {
   async function fetchProdutos() {
     const { data } = await supabaseAdmin.from('produtos').select('id, titulo, quantidade, disponivel').order('titulo')
     setProdutos(data ?? [])
+    lp.step()
   }
 
   async function fetchMovimentacoes() {
     setLoading(true)
     const { data } = await supabaseAdmin.from('movimentacoes_estoque').select('*').order('created_at', { ascending: false }).limit(50)
     setMovimentacoes(data ?? [])
+    lp.step()
     setLoading(false)
   }
 
@@ -196,7 +201,7 @@ export default function AdminEstoque() {
       <div className={styles.lista}>
         <h2 className={styles.formTitle}>Histórico de movimentações</h2>
         {loading ? (
-          <p className={styles.vazio}>Carregando...</p>
+          <AdminLoading total={lp.total} current={lp.current} label="Carregando estoque..." />
         ) : movimentacoes.length === 0 ? (
           <p className={styles.vazio}>Nenhuma movimentação registrada.</p>
         ) : (

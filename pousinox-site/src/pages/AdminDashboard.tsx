@@ -6,6 +6,8 @@ import styles from './AdminDashboard.module.css'
 import MetaSemanal from '../components/MetaSemanal/MetaSemanal'
 import AiActionButton from '../components/assistente/AiActionButton'
 import { aiChat } from '../lib/aiHelper'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 interface DashData {
   // Outlet
@@ -54,11 +56,13 @@ export default function AdminDashboard() {
   const [data, setData] = useState<DashData | null>(null)
   const [loading, setLoading] = useState(true)
   const [dbInfo, setDbInfo] = useState<DbInfo | null>(null)
+  const lp = useLoadingProgress(12)
 
   useEffect(() => { fetchData(); fetchDbInfo() }, [])
 
   async function fetchData() {
     setLoading(true)
+    lp.reset()
     const agora = new Date()
     const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1).toISOString()
 
@@ -72,25 +76,25 @@ export default function AdminDashboard() {
       estItens,
     ] = await Promise.all([
       // Outlet
-      supabaseAdmin.from('produtos').select('titulo, preco, quantidade, disponivel'),
-      supabaseAdmin.from('vendas').select('produto_titulo, valor_recebido'),
-      supabaseAdmin.from('vendas').select('valor_recebido').gte('data_venda', inicioMes),
-      supabaseAdmin.from('interesses').select('id').gte('created_at', inicioMes),
+      lp.wrap(supabaseAdmin.from('produtos').select('titulo, preco, quantidade, disponivel')),
+      lp.wrap(supabaseAdmin.from('vendas').select('produto_titulo, valor_recebido')),
+      lp.wrap(supabaseAdmin.from('vendas').select('valor_recebido').gte('data_venda', inicioMes)),
+      lp.wrap(supabaseAdmin.from('interesses').select('id').gte('created_at', inicioMes)),
       // Financeiro
-      supabaseAdmin.from('fin_lancamentos').select('*').gte('data_vencimento', inicioMes),
-      supabaseAdmin.from('fin_lancamentos').select('*').eq('status', 'pendente').lt('data_vencimento', new Date().toISOString()),
+      lp.wrap(supabaseAdmin.from('fin_lancamentos').select('*').gte('data_vencimento', inicioMes)),
+      lp.wrap(supabaseAdmin.from('fin_lancamentos').select('*').eq('status', 'pendente').lt('data_vencimento', new Date().toISOString())),
       // Pipeline
-      supabaseAdmin.from('pipeline_deals').select('*').neq('estagio', 'ganho').neq('estagio', 'perdido'),
+      lp.wrap(supabaseAdmin.from('pipeline_deals').select('*').neq('estagio', 'ganho').neq('estagio', 'perdido')),
       // Orçamentos
-      supabaseAdmin.from('orcamentos').select('*').eq('status', 'enviado'),
+      lp.wrap(supabaseAdmin.from('orcamentos').select('*').eq('status', 'enviado')),
       // Produção
-      supabaseAdmin.from('ordens_producao').select('*'),
+      lp.wrap(supabaseAdmin.from('ordens_producao').select('*')),
       // Qualidade
-      supabaseAdmin.from('nao_conformidades').select('*').in('status', ['aberta', 'em_analise']),
+      lp.wrap(supabaseAdmin.from('nao_conformidades').select('*').in('status', ['aberta', 'em_analise'])),
       // Manutenção
-      supabaseAdmin.from('ordens_manutencao').select('*').in('status', ['aberta', 'em_execucao']),
+      lp.wrap(supabaseAdmin.from('ordens_manutencao').select('*').in('status', ['aberta', 'em_execucao'])),
       // Estoque industrial
-      supabaseAdmin.from('estoque_itens').select('*').eq('ativo', true),
+      lp.wrap(supabaseAdmin.from('estoque_itens').select('*').eq('ativo', true)),
     ])
 
     const prods = produtos.data ?? []
@@ -185,7 +189,7 @@ Gere um resumo executivo de 5-8 linhas com: situação geral, alertas importante
     return r.error ? `Erro: ${r.error}` : r.content
   }, [data])
 
-  if (loading) return <div className={styles.loading}>Carregando dashboard...</div>
+  if (loading) return <AdminLoading total={lp.total} current={lp.current} label="Carregando dashboard..." />
   if (!data) return null
 
   return (

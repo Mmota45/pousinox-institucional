@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, Fragment } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import { useAdmin } from '../contexts/AdminContext'
 import styles from './AdminFinanceiro.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 import CollapsibleSection from '../components/CollapsibleSection/CollapsibleSection'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -174,6 +176,7 @@ export default function AdminFinanceiro() {
   const [contas, setContas]             = useState<ContaBancaria[]>([])
 
   const [loading, setLoading]   = useState(true)
+  const lp = useLoadingProgress(4)
   const [salvando, setSalvando] = useState(false)
   const [msg, setMsg]           = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
 
@@ -251,11 +254,12 @@ export default function AdminFinanceiro() {
 
   const carregarTudo = useCallback(async () => {
     setLoading(true)
+    lp.reset()
     const [{ data: cats }, { data: cts }, { data: cts2 }, { count: pendCat }] = await Promise.all([
-      supabaseAdmin.from('fin_categorias').select('*').eq('ativo', true).order('grupo').order('nome'),
-      supabaseAdmin.from('fin_centros_custo').select('*').eq('ativo', true).order('nome'),
-      supabaseAdmin.from('fin_contas').select('*').eq('ativo', true).order('nome'),
-      supabaseAdmin.from('fin_lancamentos').select('id', { count: 'exact', head: true }).eq('aguarda_categorizacao', true).eq('status', 'pendente'),
+      lp.wrap(supabaseAdmin.from('fin_categorias').select('*').eq('ativo', true).order('grupo').order('nome')),
+      lp.wrap(supabaseAdmin.from('fin_centros_custo').select('*').eq('ativo', true).order('nome')),
+      lp.wrap(supabaseAdmin.from('fin_contas').select('*').eq('ativo', true).order('nome')),
+      lp.wrap(supabaseAdmin.from('fin_lancamentos').select('id', { count: 'exact', head: true }).eq('aguarda_categorizacao', true).eq('status', 'pendente')),
     ])
     setPendCatCount(pendCat ?? 0)
     setCategorias(cats ?? [])
@@ -726,7 +730,7 @@ export default function AdminFinanceiro() {
 
   const catsPorTipo = (tipo: 'receita' | 'despesa') => categorias.filter(c => c.tipo === tipo)
 
-  if (loading) return <div className={styles.loading}>Carregando...</div>
+  if (loading) return <AdminLoading total={lp.total} current={lp.current} label="Carregando..." />
 
   // ── Render ─────────────────────────────────────────────────────────────────
 

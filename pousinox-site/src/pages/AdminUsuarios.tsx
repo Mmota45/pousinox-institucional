@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase, supabaseAdmin } from '../lib/supabase'
 import styles from './AdminUsuarios.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 async function contarInteressados(): Promise<number> {
   const { count } = await supabaseAdmin
@@ -33,6 +35,7 @@ const PERMISSOES_LISTA = [
 export default function AdminUsuarios() {
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([])
   const [loading, setLoading] = useState(true)
+  const lp = useLoadingProgress(2)
   const [meuUserId, setMeuUserId] = useState<string | null>(null)
   const [totalInteressados, setTotalInteressados] = useState<number | null>(null)
   const [limpando, setLimpando] = useState(false)
@@ -54,7 +57,7 @@ export default function AdminUsuarios() {
       if (user) setMeuUserId(user.id)
     })
     fetchUsuarios()
-    contarInteressados().then(setTotalInteressados)
+    contarInteressados().then(n => { setTotalInteressados(n); lp.step() })
   }, [])
 
   useEffect(() => {
@@ -80,6 +83,7 @@ export default function AdminUsuarios() {
       ativo: p.ativo,
     }))
     setUsuarios(lista)
+    lp.step()
     setLoading(false)
   }
 
@@ -194,7 +198,7 @@ export default function AdminUsuarios() {
       )}
 
       {loading ? (
-        <p className={styles.loadingMsg}>Carregando...</p>
+        <AdminLoading total={lp.total} current={lp.current} label="Carregando usuários..." />
       ) : (
         <div className={styles.lista}>
           {usuarios.map(u => (

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminClientes.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 import AiActionButton from '../components/assistente/AiActionButton'
 import { aiChat } from '../lib/aiHelper'
 
@@ -103,6 +105,7 @@ export default function AdminClientes() {
   const [clientes, setClientes]   = useState<Cliente[]>([])
   const [busca, setBusca]         = useState('')
   const [loadingCli, setLoadingCli] = useState(false)
+  const lpCli = useLoadingProgress(1)
   const [buscado, setBuscado]     = useState(false)
   const [sortCol, setSortCol]     = useState<keyof Cliente>('total_gasto')
   const [sortDir, setSortDir]     = useState<'asc' | 'desc'>('desc')
@@ -649,6 +652,7 @@ export default function AdminClientes() {
 
   async function buscarClientes() {
     setLoadingCli(true)
+    lpCli.reset()
     setBuscado(true)
     let q = supabaseAdmin
       .from('clientes')
@@ -657,6 +661,7 @@ export default function AdminClientes() {
       .limit(200)
     if (busca.trim()) q = q.ilike('razao_social', `%${busca.trim()}%`)
     const { data } = await q
+    lpCli.step()
     setClientes((data ?? []) as Cliente[])
     setLoadingCli(false)
   }
@@ -894,7 +899,7 @@ export default function AdminClientes() {
             </div>
           )}
 
-          {loadingCli && <div className={styles.loading}>Carregando clientes...</div>}
+          {loadingCli && <AdminLoading total={lpCli.total} current={lpCli.current} label="Carregando clientes..." />}
 
           {!loadingCli && buscado && clientes.length === 0 && (
             <div className={styles.vazio}>Nenhum cliente encontrado. Importe os arquivos primeiro.</div>

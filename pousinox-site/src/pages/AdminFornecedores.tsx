@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminFornecedores.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 import type { Fornecedor, ContatoFornecedor, Material, FornecedorMaterial } from '../types/fornecedores'
 import {
   FORNECEDOR_VAZIO, CONTATO_VAZIO,
@@ -116,6 +118,7 @@ export default function AdminFornecedores() {
 
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([])
   const [loading, setLoading] = useState(true)
+  const lp = useLoadingProgress(1)
   const [atual, setAtual] = useState<Fornecedor | null>(null)
   const [contatos, setContatos] = useState<ContatoFornecedor[]>([])
 
@@ -334,6 +337,7 @@ export default function AdminFornecedores() {
       ...f,
       qtd_contatos: f.qtd_contatos?.[0]?.count ?? 0,
     })))
+    lp.step()
     setLoading(false)
   }, [])
 
@@ -703,7 +707,7 @@ export default function AdminFornecedores() {
 
       <div className={styles.card}>
         {loading ? (
-          <div className={styles.loading}>Carregando…</div>
+          <AdminLoading total={lp.total} current={lp.current} label="Carregando fornecedores..." />
         ) : lista.length === 0 ? (
           <div className={styles.vazio}>Nenhum fornecedor encontrado.</div>
         ) : (

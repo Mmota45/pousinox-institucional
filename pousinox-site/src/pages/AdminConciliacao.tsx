@@ -1,6 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminConciliacao.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 import AiActionButton from '../components/assistente/AiActionButton'
 import { aiChat } from '../lib/aiHelper'
 
@@ -178,6 +180,7 @@ export default function AdminConciliacao() {
   const [contas, setContas] = useState<Conta[]>([])
   const [contaSelecionada, setContaSelecionada] = useState('')
   const [loading, setLoading] = useState(true)
+  const lp = useLoadingProgress(1)
   const [msg, setMsg] = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
 
   // Importar
@@ -205,7 +208,9 @@ export default function AdminConciliacao() {
   }, [msg])
 
   const carregarContas = useCallback(async () => {
+    lp.reset()
     const { data } = await supabaseAdmin.from('fin_contas').select('*').eq('ativo', true).order('nome')
+    lp.step()
     setContas((data ?? []) as Conta[])
     setLoading(false)
   }, [])
@@ -393,7 +398,7 @@ export default function AdminConciliacao() {
   const pendentesCount = extratoRows.filter(r => r.status === 'pendente').length
   const autoMatchCount = extratoRows.filter(r => r.status === 'pendente' && r.movimentacao_id).length
 
-  if (loading) return <div className={styles.loading}>Carregando...</div>
+  if (loading) return <AdminLoading total={lp.total} current={lp.current} label="Carregando..." />
 
   return (
     <div className={styles.wrap}>

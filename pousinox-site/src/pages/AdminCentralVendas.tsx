@@ -58,7 +58,7 @@ interface DashData {
   dealsAbertos: number; dealsGanhos: number; receitaPipeline: number
 }
 
-type Aba = 'radar' | 'hotlist' | 'followups' | 'materiais' | 'dashboard'
+type Aba = 'radar' | 'hotlist' | 'followups' | 'whatsapp' | 'materiais' | 'dashboard'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -106,6 +106,7 @@ function scoreFrontend(p: any): number {
 const ABAS: { key: Aba; label: string; icon: string }[] = [
   { key: 'hotlist', label: 'Hot List', icon: '🔥' },
   { key: 'followups', label: 'Follow-ups', icon: '📅' },
+  { key: 'whatsapp', label: 'WhatsApp', icon: '📱' },
   { key: 'materiais', label: 'Materiais', icon: '📎' },
   { key: 'dashboard', label: 'Dashboard', icon: '📊' },
   { key: 'radar', label: 'Radar', icon: '📡' },
@@ -272,6 +273,10 @@ pousinox.com.br`
   const [drawerPs, setDrawerPs] = useState<ProspectScore | null>(null)
   const [orcamentoModal, setOrcamentoModal] = useState(false)
   const [validandoWa, setValidandoWa] = useState(false)
+  const [waProg, setWaProg] = useState({ done: 0, total: 0, validos: 0 })
+  const [waPendentes, setWaPendentes] = useState<ProspectScore[]>([])
+  const [waStats, setWaStats] = useState({ total: 0, validados: 0, pendentes: 0 })
+  const [waLoadingTab, setWaLoadingTab] = useState(false)
   const [drawerNfs, setDrawerNfs] = useState<any[]>([])
   const [drawerNfsLoading, setDrawerNfsLoading] = useState(false)
   const [drawerNfExpandida, setDrawerNfExpandida] = useState<number | null>(null)
@@ -497,13 +502,36 @@ pousinox.com.br`
     setGscSort(prev => ({ col, asc: prev.col === col ? !prev.asc : false }))
   }
 
+  const carregarWaTab = useCallback(async () => {
+    setWaLoadingTab(true)
+    // Buscar contagens
+    const [{ count: totalCount }, { count: validCount }] = await Promise.all([
+      supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }).not('telefone1', 'is', null),
+      supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }).eq('whatsapp_validado', true),
+    ])
+    const t = totalCount ?? 0
+    const v = validCount ?? 0
+    setWaStats({ total: t, validados: v, pendentes: t - v })
+    // Buscar pendentes com telefone (celulares primeiro), limit 200
+    const { data } = await supabaseAdmin
+      .from('prospeccao')
+      .select('id,razao_social,nome_fantasia,cnpj,uf,cidade,segmento,porte,telefone1,telefone2,email,status_contato,whatsapp,whatsapp_validado')
+      .not('telefone1', 'is', null)
+      .or('whatsapp_validado.is.null,whatsapp_validado.eq.false')
+      .order('id', { ascending: false })
+      .limit(200)
+    setWaPendentes((data ?? []).map(d => ({ ...d, prospect_id: d.id, score_total: 0, score_demanda: 0, score_segmento: 0, score_porte: 0, score_distancia: 0 })) as any)
+    setWaLoadingTab(false)
+  }, [])
+
   useEffect(() => {
     if (aba === 'hotlist' && hotlist.length > 0) return // já tem dados, não recarregar
     if (aba === 'followups') carregarFollowups()
+    if (aba === 'whatsapp') carregarWaTab()
     if (aba === 'materiais') carregarMateriais()
     if (aba === 'dashboard') carregarDashboard()
     if (aba === 'radar') carregarGsc()
-  }, [aba, carregarHotList, carregarFollowups, carregarMateriais, carregarDashboard, carregarGsc])
+  }, [aba, carregarHotList, carregarFollowups, carregarMateriais, carregarDashboard, carregarGsc, carregarWaTab])
 
   // Carregar mesorregiões quando UF muda (sem recarregar hot list)
   useEffect(() => {
@@ -1170,6 +1198,9 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
             {a.key === 'followups' && fupAtrasados.length > 0 && (
               <span className={styles.badgeAlerta}>{fupAtrasados.length}</span>
             )}
+            {a.key === 'whatsapp' && waStats.pendentes > 0 && (
+              <span className={styles.badgeAlerta}>{waStats.pendentes > 999 ? `${Math.round(waStats.pendentes / 1000)}K` : waStats.pendentes}</span>
+            )}
           </button>
         ))}
       </div>
@@ -1186,29 +1217,34 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
             </button>
             <button className={styles.btnSecondary} disabled={validandoWa} onClick={async () => {
               const semWaTodos = hotlistFiltrada.filter(h => !h.whatsapp && h.telefone1)
-              // Prioriza celulares (9 dígitos após DDD) sobre fixos
               const celulares = semWaTodos.filter(h => { const n = (h.telefone1 ?? '').replace(/\D/g, ''); return n.length >= 10 && (n.length === 11 || (n.length === 10 && n[2] === '9') || (n.length >= 12 && n[4] === '9')) })
-              const semWa = (celulares.length > 0 ? celulares : semWaTodos).slice(0, 50)
-              if (!semWa.length) { showMsg('erro', 'Todos já têm WhatsApp ou sem telefone'); return }
+              const fila = celulares.length > 0 ? celulares : semWaTodos
+              if (!fila.length) { showMsg('erro', 'Todos já têm WhatsApp ou sem telefone'); return }
               setValidandoWa(true)
-              showMsg('ok', `Validando ${semWa.length} telefones...`)
-              try {
-                const { data, error } = await supabaseAdmin.functions.invoke('validar-whatsapp', {
-                  body: { action: 'batch', phones: semWa.map(h => ({ id: h.prospect_id, phone: h.telefone1 })) }
-                })
-                if (error) throw error
-                const validados = data.validated || 0
-                showMsg('ok', `✅ ${validados} de ${data.total} têm WhatsApp`)
-                // Atualizar hotlist local
-                if (validados > 0) {
-                  const validSet = new Set(data.results.filter((r: any) => r.exists).map((r: any) => r.id))
-                  setHotlist(prev => prev.map(h => validSet.has(h.prospect_id)
-                    ? { ...h, whatsapp: h.telefone1, whatsapp_validado: true } : h))
-                }
-              } catch (e: any) { showMsg('erro', e.message || 'Erro na validação em lote') }
+              const BATCH = 50
+              let totalValidos = 0
+              setWaProg({ done: 0, total: fila.length, validos: 0 })
+              for (let i = 0; i < fila.length; i += BATCH) {
+                const lote = fila.slice(i, i + BATCH)
+                try {
+                  const { data, error } = await supabaseAdmin.functions.invoke('validar-whatsapp', {
+                    body: { action: 'batch', phones: lote.map(h => ({ id: h.prospect_id, phone: h.telefone1 })) }
+                  })
+                  if (!error && data?.results) {
+                    const validSet = new Set(data.results.filter((r: any) => r.exists).map((r: any) => r.id))
+                    totalValidos += validSet.size
+                    if (validSet.size > 0) {
+                      setHotlist(prev => prev.map(h => validSet.has(h.prospect_id)
+                        ? { ...h, whatsapp: h.telefone1, whatsapp_validado: true } : h))
+                    }
+                  }
+                } catch {}
+                setWaProg({ done: Math.min(i + BATCH, fila.length), total: fila.length, validos: totalValidos })
+              }
+              showMsg('ok', `✅ ${totalValidos} de ${fila.length} têm WhatsApp`)
               setValidandoWa(false)
             }}>
-              {validandoWa ? '⏳ Validando...' : '📱 Validar WhatsApp'}
+              {validandoWa ? `⏳ ${waProg.done}/${waProg.total} (${waProg.validos} ✓)` : '📱 Validar WhatsApp'}
             </button>
           </div>
 
@@ -1413,6 +1449,129 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* WHATSAPP — Validação */}
+      {/* ══════════════════════════════════════════════════════════════════════ */}
+      {aba === 'whatsapp' && (
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2>Validação WhatsApp</h2>
+            <button className={styles.btnPrimary} disabled={validandoWa || waPendentes.length === 0} onClick={async () => {
+              const celulares = waPendentes.filter(h => { const n = (h.telefone1 ?? '').replace(/\D/g, ''); return n.length >= 10 && (n.length === 11 || (n.length === 10 && n[2] === '9') || (n.length >= 12 && n[4] === '9')) })
+              const fila = celulares.length > 0 ? celulares : waPendentes
+              if (!fila.length) { showMsg('erro', 'Nenhum pendente'); return }
+              setValidandoWa(true)
+              const BATCH = 50
+              let totalValidos = 0
+              setWaProg({ done: 0, total: fila.length, validos: 0 })
+              for (let i = 0; i < fila.length; i += BATCH) {
+                const lote = fila.slice(i, i + BATCH)
+                try {
+                  const { data, error } = await supabaseAdmin.functions.invoke('validar-whatsapp', {
+                    body: { action: 'batch', phones: lote.map(h => ({ id: h.prospect_id, phone: h.telefone1 })) }
+                  })
+                  if (!error && data?.results) {
+                    const validSet = new Set(data.results.filter((r: any) => r.exists).map((r: any) => r.id))
+                    totalValidos += validSet.size
+                    if (validSet.size > 0) {
+                      setWaPendentes(prev => prev.filter(p => !validSet.has(p.prospect_id)))
+                    }
+                  }
+                } catch {}
+                setWaProg({ done: Math.min(i + BATCH, fila.length), total: fila.length, validos: totalValidos })
+              }
+              setWaStats(prev => ({ ...prev, validados: prev.validados + totalValidos, pendentes: prev.pendentes - totalValidos }))
+              showMsg('ok', `✅ ${totalValidos} de ${fila.length} têm WhatsApp`)
+              setValidandoWa(false)
+            }}>
+              {validandoWa ? `⏳ ${waProg.done}/${waProg.total} (${waProg.validos} ✓)` : '📱 Validar Pendentes'}
+            </button>
+          </div>
+
+          {/* Barra de progresso geral */}
+          {waStats.total > 0 && (
+            <div className={styles.waProgressWrap}>
+              <div className={styles.waProgressCards}>
+                <div className={styles.waCard}>
+                  <span className={styles.waCardNum} style={{ color: '#16a34a' }}>{waStats.validados.toLocaleString('pt-BR')}</span>
+                  <span className={styles.waCardLabel}>Validados</span>
+                </div>
+                <div className={styles.waCard}>
+                  <span className={styles.waCardNum} style={{ color: '#dc2626' }}>{waStats.pendentes.toLocaleString('pt-BR')}</span>
+                  <span className={styles.waCardLabel}>Pendentes</span>
+                </div>
+                <div className={styles.waCard}>
+                  <span className={styles.waCardNum} style={{ color: '#1a3a5c' }}>{waStats.total.toLocaleString('pt-BR')}</span>
+                  <span className={styles.waCardLabel}>Total c/ telefone</span>
+                </div>
+              </div>
+              <div className={styles.waBarTrack}>
+                <div className={styles.waBarFill} style={{ width: `${Math.round((waStats.validados / waStats.total) * 100)}%` }} />
+              </div>
+              <p className={styles.waBarLabel}>{Math.round((waStats.validados / waStats.total) * 100)}% validados</p>
+            </div>
+          )}
+
+          {waLoadingTab ? <p style={{ textAlign: 'center', padding: 32, color: '#64748b' }}>Carregando...</p> : (() => {
+            const porSegmento = new Map<string, ProspectScore[]>()
+            waPendentes.forEach(p => {
+              const seg = p.segmento || 'Sem segmento'
+              if (!porSegmento.has(seg)) porSegmento.set(seg, [])
+              porSegmento.get(seg)!.push(p)
+            })
+            const segmentos = Array.from(porSegmento.entries()).sort((a, b) => b[1].length - a[1].length)
+            return segmentos.length === 0
+              ? <p style={{ textAlign: 'center', padding: 32, color: '#94a3b8' }}>Todos validados!</p>
+              : segmentos.map(([seg, lista]) => (
+                <details key={seg} className={styles.waSegmento}>
+                  <summary className={styles.waSegmentoHeader}>
+                    <span>{seg}</span>
+                    <span className={styles.waSegmentoBadge}>{lista.length}</span>
+                  </summary>
+                  <div className={styles.tabelaWrap}>
+                    <table className={styles.tabela}>
+                      <thead>
+                        <tr>
+                          <th>Empresa</th>
+                          <th>UF</th>
+                          <th>Telefone</th>
+                          <th>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lista.map(p => (
+                          <tr key={p.prospect_id}>
+                            <td>{p.nome_fantasia || p.razao_social}</td>
+                            <td>{p.uf}</td>
+                            <td>{p.telefone1}</td>
+                            <td>
+                              <button className={styles.btnSm} onClick={async () => {
+                                try {
+                                  const { data, error } = await supabaseAdmin.functions.invoke('validar-whatsapp', {
+                                    body: { action: 'check', phone: p.telefone1, prospect_id: p.prospect_id }
+                                  })
+                                  if (error) throw error
+                                  if (data?.exists) {
+                                    showMsg('ok', `✅ ${p.nome_fantasia || p.razao_social} tem WhatsApp`)
+                                    setWaPendentes(prev => prev.filter(x => x.prospect_id !== p.prospect_id))
+                                    setWaStats(prev => ({ ...prev, validados: prev.validados + 1, pendentes: prev.pendentes - 1 }))
+                                  } else {
+                                    showMsg('erro', `❌ ${p.telefone1} não tem WhatsApp`)
+                                  }
+                                } catch (e: any) { showMsg('erro', e.message) }
+                              }}>✓ Validar</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </details>
+              ))
+          })()}
         </div>
       )}
 
@@ -1974,8 +2133,10 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                       <button className={styles.btnWppSmall} onClick={async () => {
                         const wa = drawerPs.whatsapp?.replace(/\D/g, '')
                         if (!wa) { showMsg('erro', 'Preencha o WhatsApp primeiro'); return }
-                        await supabaseAdmin.from('prospeccao').update({ whatsapp: drawerPs.whatsapp }).eq('id', drawerPs.prospect_id)
-                        showMsg('ok', 'WhatsApp salvo')
+                        await supabaseAdmin.from('prospeccao').update({ whatsapp: drawerPs.whatsapp, whatsapp_validado: false }).eq('id', drawerPs.prospect_id)
+                        setHotlist(prev => prev.map(h => h.prospect_id === drawerPs.prospect_id
+                          ? { ...h, whatsapp: drawerPs.whatsapp, whatsapp_validado: false } : h))
+                        showMsg('ok', 'WhatsApp salvo — valide para confirmar')
                       }}>Salvar</button>
                       {drawerPs.whatsapp && (
                         <>
@@ -1989,9 +2150,13 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                               if (error) throw error
                               if (data.exists) {
                                 setDrawerPs({ ...drawerPs, whatsapp_validado: true })
+                                setHotlist(prev => prev.map(h => h.prospect_id === drawerPs.prospect_id
+                                  ? { ...h, whatsapp: drawerPs.whatsapp, whatsapp_validado: true } : h))
                                 showMsg('ok', '✅ WhatsApp confirmado!')
                               } else {
                                 setDrawerPs({ ...drawerPs, whatsapp_validado: false, whatsapp: null })
+                                setHotlist(prev => prev.map(h => h.prospect_id === drawerPs.prospect_id
+                                  ? { ...h, whatsapp: null, whatsapp_validado: false } : h))
                                 showMsg('erro', '❌ Número não tem WhatsApp')
                               }
                             } catch (e: any) { showMsg('erro', e.message || 'Erro ao validar') }

@@ -1,0 +1,34 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 64px 24px;
+  min-height: 300px;
+}
+.ring {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ring svg {
+  transform: rotate(-90deg);
+}
+.progress {
+  transition: stroke-dashoffset 0.4s ease;
+}
+.pct {
+  position: absolute;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1a3a5c;
+  font-variant-numeric: tabular-nums;
+}
+.label {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: 0;
+  font-weight: 500;
+}

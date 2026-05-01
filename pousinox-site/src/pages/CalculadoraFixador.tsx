@@ -22,10 +22,10 @@ type ModeloCalc = {
 }
 
 const MODELOS_FALLBACK: ModeloCalc[] = [
-  { id: 1, nome: 'Fixador Inox 304 — 5mm', material: 'Aço Inox 304', espessura: '0.8mm', laudo: true, desc: 'Para revestimentos até 10mm de espessura', imagem_url: null, abertura_mm: 5 },
-  { id: 2, nome: 'Fixador Inox 304 — 11mm', material: 'Aço Inox 304', espessura: '0.8mm', laudo: true, desc: 'Para revestimentos acima de 10mm de espessura', imagem_url: null, abertura_mm: 11 },
-  { id: 3, nome: 'Fixador Inox 430 — 5mm', material: 'Aço Inox 430', espessura: '0.8mm', laudo: false, desc: 'Modelo econômico para revestimentos até 10mm', imagem_url: null, abertura_mm: 5 },
-  { id: 4, nome: 'Fixador Inox 430 — 11mm', material: 'Aço Inox 430', espessura: '0.8mm', laudo: false, desc: 'Modelo econômico para revestimentos acima de 10mm', imagem_url: null, abertura_mm: 11 },
+  { id: 1, nome: 'Fixador de Porcelanato Aço Inox 304', material: 'Aço Inox 304', espessura: '0.8mm', laudo: true, desc: 'Ideal para fachadas, áreas externas e ambientes sujeitos a variação térmica. Compatível com revestimentos de 5 a 8 mm de espessura.', imagem_url: null, abertura_mm: 5 },
+  { id: 2, nome: 'Fixador de Porcelanato Aço Inox 304', material: 'Aço Inox 304', espessura: '0.8mm', laudo: true, desc: 'Ideal para fachadas, áreas externas e ambientes sujeitos a variação térmica. Compatível com revestimentos de 9 a 14 mm de espessura.', imagem_url: null, abertura_mm: 11 },
+  { id: 3, nome: 'Fixador de Porcelanato Aço Inox 430', material: 'Aço Inox 430', espessura: '0.8mm', laudo: false, desc: 'Indicado para áreas internas e ambientes sem exposição direta à umidade. Compatível com revestimentos de 5 a 8 mm de espessura.', imagem_url: null, abertura_mm: 5 },
+  { id: 4, nome: 'Fixador de Porcelanato Aço Inox 430', material: 'Aço Inox 430', espessura: '0.8mm', laudo: false, desc: 'Indicado para áreas internas e ambientes sem exposição direta à umidade. Compatível com revestimentos de 9 a 14 mm de espessura.', imagem_url: null, abertura_mm: 11 },
 ]
 
 const STATUS_VISUAL: Record<StatusAnalise, { bg: string; border: string; color: string; icon: string; label: string }> = {
@@ -327,19 +327,16 @@ export default function CalculadoraFixador() {
           </div>
         </section>
 
-        {/* Sessão ativa */}
-        {session?.verificado && (
-          <div className={s.container} style={{ paddingBottom: 0 }}>
-            <div className={s.sessionBar}>
-              <span>Logado como <strong>{session.nome}</strong> · {session.whatsapp.slice(0, 4)}****{session.whatsapp.slice(-4)}</span>
-              <button onClick={logout} className={s.sessionLogout}>Sair</button>
-            </div>
-          </div>
-        )}
-
         <div className={s.container}>
           {/* ── Formulário ── */}
           <form className={s.card} onSubmit={handleCalcular}>
+            {/* Sessão ativa */}
+            {session?.verificado && (
+              <div className={s.sessionBar}>
+                <span>👤 Logado como <strong>{session.nome}</strong> · {session.whatsapp.slice(0, 4)}****{session.whatsapp.slice(-4)}</span>
+                <button type="button" onClick={logout} className={s.sessionLogout}>Sair</button>
+              </div>
+            )}
             {/* Toggle do form colapsado */}
             {!formOpen && (
               <button type="button" className={s.formToggle} onClick={() => setFormOpen(true)}>
@@ -363,14 +360,14 @@ export default function CalculadoraFixador() {
                       <div key={g.material} className={`${s.modelCard} ${isActive ? s.modelActive : ''}`}>
                         {g.imagem_url && <img src={g.imagem_url} alt={g.material} className={s.modelImg} loading="lazy" />}
                         <div className={s.modelName}>{modelos[g.aberturas[0].idx].nome.replace(/\s*—\s*\d+\s*mm$/i, '')}</div>
-                        <div className={s.modelMeta}>{modelos[g.aberturas[0].idx].espessura} · {g.laudo ? 'Ensaio LAMAT/SENAI' : 'Econômico'}</div>
+                        <div className={g.laudo ? s.modelSeloLaudo : s.modelSeloEcon}>{g.laudo ? '🔬 Possui laudo/ensaios' : '💰 Econômico'}</div>
                         <div className={s.aberturaGroup}>
                           <span className={s.aberturaLabel}>Abertura da aba:</span>
                           <div className={s.aberturaBadges}>
                             {g.aberturas.map(a => (
                               <button
                                 key={a.mm} type="button"
-                                className={`${s.aberturaBadge} ${a.idx === modeloIdx ? s.aberturaBadgeActive : ''}`}
+                                className={`${s.aberturaBadge} ${a.idx === modeloIdx ? (a.mm <= 5 ? s.aberturaBadgeBlue : s.aberturaBadgeOrange) : ''}`}
                                 onClick={() => setModeloIdx(a.idx)}
                               >
                                 {a.mm} mm
@@ -388,6 +385,7 @@ export default function CalculadoraFixador() {
                     )
                   })}
                 </div>
+                <p className={s.modelNota}>Precisa de dimensões sob medida? <a href="https://wa.me/5535999619463?text=Ol%C3%A1%2C%20preciso%20de%20um%20fixador%20sob%20medida." target="_blank" rel="noopener noreferrer">Fale conosco</a></p>
               </div>
             </div>
 

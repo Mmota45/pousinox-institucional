@@ -3,6 +3,8 @@ import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminOutlet.module.css'
 import AiActionButton from '../components/assistente/AiActionButton'
 import { aiVision, fileToBase64 } from '../lib/aiHelper'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 const BUCKET = 'outlet-fotos'
 const SUPABASE_URL = 'https://vcektwtpofypsgdgdjlx.supabase.co'
@@ -101,6 +103,7 @@ export default function AdminOutlet() {
   const [marcasExtras, setMarcasExtras] = useState<string[]>([])
   const [novaMarca, setNovaMarca] = useState('')
   const [loading, setLoading] = useState(false)
+  const lp = useLoadingProgress(2)
   const [form, setForm] = useState({ ...FORM_VAZIO })
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [salvando, setSalvando] = useState(false)
@@ -195,12 +198,13 @@ export default function AdminOutlet() {
       (data ?? []).map(p => p.marca).filter((m): m is string => !!m && !fixasLower.includes(m.toLowerCase()))
     ))
     setMarcasExtras(extras)
+    lp.step()
   }
 
   async function fetchProdutos() {
     setLoading(true)
     const { data } = await supabaseAdmin.from('produtos').select('*').order('created_at', { ascending: false })
-    setProdutos(data ?? []); setLoading(false)
+    setProdutos(data ?? []); lp.step(); setLoading(false)
   }
 
   function removerFoto(url: string) { setForm(f => ({ ...f, fotos: f.fotos.filter(u => u !== url) })) }
@@ -577,7 +581,7 @@ export default function AdminOutlet() {
 
       {/* Lista */}
       {loading ? (
-        <p className={styles.loadingMsg}>Carregando...</p>
+        <AdminLoading total={lp.total} current={lp.current} label="Carregando produtos..." />
       ) : produtosPagina.length === 0 ? (
         <p className={styles.loadingMsg}>{produtos.length === 0 ? 'Nenhum produto cadastrado.' : 'Nenhum produto encontrado.'}</p>
       ) : (

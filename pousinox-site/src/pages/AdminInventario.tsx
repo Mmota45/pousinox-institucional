@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminEstoqueIndustrial.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 // ── Types ─────────────────────────────────────────────────────────
 type StatusInv = 'aberto' | 'em_contagem' | 'finalizado' | 'cancelado'
@@ -58,6 +60,7 @@ export default function AdminInventario() {
   const [vista, setVista] = useState<Vista>('lista')
   const [lista, setLista] = useState<Inventario[]>([])
   const [loading, setLoading] = useState(true)
+  const lp = useLoadingProgress(1)
   const [detalhe, setDetalhe] = useState<Inventario | null>(null)
   const [invItens, setInvItens] = useState<InvItem[]>([])
   const [salvando, setSalvando] = useState(false)
@@ -77,6 +80,7 @@ export default function AdminInventario() {
       .select('*')
       .order('created_at', { ascending: false })
     setLista(data ?? [])
+    lp.step()
     setLoading(false)
   }, [])
 
@@ -343,7 +347,7 @@ export default function AdminInventario() {
 
       <div className={styles.card}>
         {loading ? (
-          <div className={styles.loading}>Carregando…</div>
+          <AdminLoading total={lp.total} current={lp.current} label="Carregando inventário..." />
         ) : lista.length === 0 ? (
           <div className={styles.vazio}>Nenhum inventário realizado.</div>
         ) : (

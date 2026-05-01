@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminProjetos.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 import UploadMemorial from '../components/UploadMemorial/UploadMemorial'
 import AiActionButton from '../components/assistente/AiActionButton'
 import ModalIframe from '../components/ModalIframe/ModalIframe'
@@ -436,6 +438,7 @@ export default function AdminProjetos() {
   // ── Lista ──────────────────────────────────────────────────────────────────
   const [projetos, setProjetos] = useState<Projeto[]>([])
   const [loadingLista, setLoadingLista] = useState(false)
+  const lpLista = useLoadingProgress(1)
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('')
   const [filtroSegmento, setFiltroSegmento] = useState('')
@@ -597,10 +600,12 @@ export default function AdminProjetos() {
   // ── Carregar lista ─────────────────────────────────────────────────────────
   const carregarLista = useCallback(async () => {
     setLoadingLista(true)
+    lpLista.reset()
     const { data } = await supabaseAdmin
       .from('vw_projetos_resumo')
       .select('*')
       .order('updated_at', { ascending: false })
+    lpLista.step()
     setProjetos((data ?? []) as Projeto[])
     setLoadingLista(false)
   }, [])
@@ -1287,7 +1292,7 @@ export default function AdminProjetos() {
       </div>
 
       {loadingLista ? (
-        <div className={styles.loading}>Carregando projetos…</div>
+        <AdminLoading total={lpLista.total} current={lpLista.current} label="Carregando projetos…" />
       ) : (
         <div className={styles.tableWrap}>
           {projetosFiltrados.length === 0 ? (

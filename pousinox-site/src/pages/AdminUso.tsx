@@ -3,6 +3,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } fro
 import { supabaseAdmin, supabase } from '../lib/supabase'
 import { getModelInfo } from '../lib/modelInfo'
 import s from './AdminUso.module.css'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 /* ═══════════════════════════════════════════════════════════
    Tipos e constantes
@@ -213,6 +215,7 @@ export default function AdminUso() {
   const [prevRows, setPrevRows] = useState<UsageRow[]>([])
   const [period, setPeriod] = useState(30)
   const [loading, setLoading] = useState(true)
+  const lp = useLoadingProgress(1)
   const [sortKey, setSortKey] = useState<SortKey>('custo_usd')
   const [sortAsc, setSortAsc] = useState(false)
   const [groupBy, setGroupBy] = useState<'function' | 'model'>('function')
@@ -243,12 +246,13 @@ export default function AdminUso() {
     ])
     setRows((d1 as UsageRow[]) ?? [])
     setPrevRows((d2 as UsageRow[]) ?? [])
+    lp.step()
     setLoading(false)
   }, [period])
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  if (loading) return <div className={s.loading}>Carregando dados de uso...</div>
+  if (loading) return <AdminLoading total={lp.total} current={lp.current} label="Carregando dados de uso..." />
 
   // ── KPIs ──
   const totalUsd = rows.reduce((a, r) => a + Number(r.custo_usd), 0)

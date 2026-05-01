@@ -5,6 +5,8 @@
 
 import { useState, useEffect } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
 import styles from './AdminOrcamento.module.css'
 import fx from './AdminFixadores.module.css'
 
@@ -45,9 +47,23 @@ interface Consumivel {
   ordem: number
 }
 
-type Aba = 'modelos' | 'regras' | 'consumiveis'
+type Aba = 'modelos' | 'regras' | 'consumiveis' | 'leads'
 
-const MODELO_VAZIO: Omit<Modelo, 'id'> = { nome: '', material: 'Aço Inox 304', espessura_mm: 0.43, largura_mm: null, comprimento_mm: null, abertura_aba_mm: null, obs_tecnica: '', imagem_url: null, possui_laudo: false, ativo: true }
+interface Lead {
+  id: number
+  nome: string
+  whatsapp: string
+  email: string | null
+  empresa: string | null
+  cep: string | null
+  endereco: string | null
+  verificado: boolean
+  calculos: number
+  ultimo_calculo: string | null
+  criado_em: string
+}
+
+const MODELO_VAZIO: Omit<Modelo, 'id'> = { nome: '', material: 'Aço Inox 304', espessura_mm: 0.8, largura_mm: 40, comprimento_mm: 120, abertura_aba_mm: 5, obs_tecnica: '', imagem_url: null, possui_laudo: false, ativo: true }
 const REGRA_VAZIA: Omit<Regra, 'id'> = { modelo_id: null, nome: '', lado_max_cm: null, area_max_cm2: null, peso_max_kg: null, fixadores_por_peca: 2, exige_revisao: false, prioridade: 10 }
 const CONSUMIVEL_VAZIO: Omit<Consumivel, 'id'> = { nome: '', tipo: 'consumivel', unidade: 'UN', proporcao_por: 1, ordem: 1 }
 
@@ -56,7 +72,9 @@ export default function AdminFixadores() {
   const [modelos, setModelos] = useState<Modelo[]>([])
   const [regras, setRegras] = useState<Regra[]>([])
   const [consumiveis, setConsumiveis] = useState<Consumivel[]>([])
+  const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
+  const lp = useLoadingProgress(4)
 
   // Form state
   const [editModelo, setEditModelo] = useState<Partial<Modelo> | null>(null)
@@ -81,13 +99,12 @@ export default function AdminFixadores() {
 - Abertura da aba: ${editModelo.abertura_aba_mm || '—'} mm
 
 Regras:
-1. TÍTULO: COMEÇAR com "Fixador de Porcelanato" + diferencial técnico (abertura, material, aplicação). Máximo 60 caracteres. Formato: "Fixador de Porcelanato [Diferencial] — [Aplicação]"
-2. DESCRIÇÃO: máximo 3 frases, incluir palavras-chave: "ancoragem mecânica", "aço inox", "fachada"
-3. Use APENAS as dimensões informadas acima. Se um campo estiver "—" NÃO invente valor. Cite somente os valores preenchidos.
-4. Destacar benefício principal (segurança, durabilidade, resistência à corrosão)
-5. Tom profissional para engenheiros, arquitetos e construtoras
-6. Fabricante: Pousinox®
-7. NUNCA invente dados, certificações, normas ou números que não foram fornecidos
+1. TÍTULO: COMEÇAR com "Fixador de Porcelanato" + diferencial técnico (material, aplicação). Máximo 60 caracteres. Formato: "Fixador de Porcelanato [Diferencial] — [Aplicação]". O título NÃO deve mencionar a abertura da aba — o mesmo título serve para variantes 5mm e 11mm do mesmo material.
+2. DESCRIÇÃO: máximo 2 frases curtas. NÃO repetir informações que já aparecem no card (material, abertura, laudo). Focar APENAS em: (a) aplicação recomendada e (b) faixa de espessura de revestimento compatível (5mm = placas de 5-8mm, 11mm = placas de 9-14mm). NÃO usar palavras como "ancoragem mecânica", "aço inox" ou mencionar o fabricante — essas informações já estão visíveis no card.
+3. Use APENAS as dimensões informadas acima. Se um campo estiver "—" NÃO invente valor.
+4. Tom direto e objetivo — sem marketing excessivo
+5. NUNCA invente dados, certificações, normas ou números que não foram fornecidos
+6. Exemplo de descrição ideal: "Ideal para fachadas, áreas externas e ambientes sujeitos a variação térmica. Compatível com revestimentos de 5 a 8 mm de espessura."
 
 Responda EXATAMENTE neste formato (sem aspas):
 TITULO: ...
@@ -114,8 +131,9 @@ Responda exatamente no formato solicitado.` },
         alert('Erro IA: ' + (data?.error || error?.message || 'Erro desconhecido'))
       } else if (data?.response) {
         const resp = data.response.trim()
-        const tituloMatch = resp.match(/TITULO:\s*(.+)/i)
-        const descMatch = resp.match(/DESCRICAO:\s*(.+)/i)
+        console.log('IA resp bruta:', resp)
+        const tituloMatch = resp.match(/T[IÍ]TULO:\s*(.+)/i)
+        const descMatch = resp.match(/DESCRI[CÇ][AÃ]O:\s*(.+)/i)
         setEditModelo(prev => {
           if (!prev) return prev
           return {
@@ -149,14 +167,20 @@ Responda exatamente no formato solicitado.` },
 
   async function carregarTudo() {
     setLoading(true)
-    const [m, r, c] = await Promise.all([
-      supabaseAdmin.from('fixador_modelos').select('*').order('id'),
-      supabaseAdmin.from('fixador_regras_calculo').select('*').order('prioridade'),
-      supabaseAdmin.from('fixador_consumiveis').select('*').order('ordem'),
-    ])
-    setModelos(m.data ?? [])
-    setRegras(r.data ?? [])
-    setConsumiveis(c.data ?? [])
+    lp.reset()
+
+    const m = await supabaseAdmin.from('fixador_modelos').select('*').order('id')
+    setModelos(m.data ?? []); lp.step()
+
+    const r = await supabaseAdmin.from('fixador_regras_calculo').select('*').order('prioridade')
+    setRegras(r.data ?? []); lp.step()
+
+    const c = await supabaseAdmin.from('fixador_consumiveis').select('*').order('ordem')
+    setConsumiveis(c.data ?? []); lp.step()
+
+    const l = await supabaseAdmin.from('calculadora_leads').select('*').order('criado_em', { ascending: false }).limit(100)
+    setLeads(l.data ?? []); lp.step()
+
     setLoading(false)
   }
 
@@ -254,8 +278,10 @@ Responda exatamente no formato solicitado.` },
     padding: '6px 14px', borderRadius: 8, border: 'none', fontSize: '0.78rem',
     fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
   }
+  const thStyle: React.CSSProperties = { padding: '10px 12px', fontWeight: 600, color: '#64748b', fontSize: '0.72rem', textTransform: 'uppercase' }
+  const tdStyle: React.CSSProperties = { padding: '10px 12px', color: '#334155' }
 
-  if (loading) return <div className={styles.wrap}><p style={{ padding: 24, color: '#64748b' }}>Carregando…</p></div>
+  if (loading) return <div className={styles.wrap}><AdminLoading total={lp.total} current={lp.current} label="Carregando fixadores..." /></div>
 
   return (
     <div className={styles.wrap}>
@@ -265,14 +291,14 @@ Responda exatamente no formato solicitado.` },
           <span className={styles.breadcrumbCurrent}>⚙️ Fixadores — Configuração</span>
         </div>
         <div className={styles.navActions}>
-          {(['modelos', 'regras', 'consumiveis'] as Aba[]).map(a => (
+          {(['modelos', 'regras', 'consumiveis', 'leads'] as Aba[]).map(a => (
             <button key={a} onClick={() => setAba(a)}
               className={styles.navLink}
               style={aba === a ? { background: '#0a1628', color: '#fff', borderColor: '#0a1628' } : {}}
             >
-              {a === 'modelos' ? '🔩 Modelos' : a === 'regras' ? '📏 Regras' : '🔧 Consumíveis'}
+              {a === 'modelos' ? '🔩 Modelos' : a === 'regras' ? '📏 Regras' : a === 'consumiveis' ? '🔧 Consumíveis' : '📋 Leads'}
               <span style={{ marginLeft: 6, fontSize: '0.72rem', opacity: 0.7 }}>
-                ({a === 'modelos' ? modelos.length : a === 'regras' ? regras.length : consumiveis.length})
+                ({a === 'modelos' ? modelos.length : a === 'regras' ? regras.length : a === 'consumiveis' ? consumiveis.length : leads.length})
               </span>
             </button>
           ))}
@@ -584,6 +610,57 @@ Responda exatamente no formato solicitado.` },
                 </tr>
               ))}
               {consumiveis.length === 0 && <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Nenhum consumível cadastrado</td></tr>}
+            </tbody>
+          </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── ABA LEADS ── */}
+      {aba === 'leads' && (
+        <div className={fx.secao}>
+          <div className={fx.secaoHeader}>
+            <h3>Leads da Calculadora</h3>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Últimos 100 leads</span>
+          </div>
+          <div className={fx.tableWrap}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.84rem' }}>
+            <thead>
+              <tr style={{ background: '#f1f5f9', textAlign: 'left' }}>
+                <th style={thStyle}>Nome</th>
+                <th style={thStyle}>WhatsApp</th>
+                <th style={thStyle}>Empresa</th>
+                <th style={thStyle}>E-mail</th>
+                <th style={thStyle}>CEP</th>
+                <th style={thStyle}>Cálculos</th>
+                <th style={thStyle}>Verificado</th>
+                <th style={thStyle}>Data</th>
+                <th style={thStyle}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leads.map(l => (
+                <tr key={l.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                  <td style={tdStyle}>{l.nome}</td>
+                  <td style={tdStyle}>
+                    <a href={`https://wa.me/55${l.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" style={{ color: '#16a34a', fontWeight: 600, textDecoration: 'none' }}>
+                      {l.whatsapp}
+                    </a>
+                  </td>
+                  <td style={tdStyle}>{l.empresa || '—'}</td>
+                  <td style={tdStyle}>{l.email || '—'}</td>
+                  <td style={tdStyle}>{l.cep || '—'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{l.calculos || 0}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>{l.verificado ? '✅' : '⏳'}</td>
+                  <td style={tdStyle}>{new Date(l.criado_em).toLocaleDateString('pt-BR')}</td>
+                  <td style={tdStyle}>
+                    <a href={`https://wa.me/55${l.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${l.nome}, tudo bem? Vi que você usou nossa calculadora de materiais. Posso ajudar com o orçamento?`)}`} target="_blank" rel="noopener noreferrer" style={{ ...btnSm, background: '#16a34a', color: '#fff', textDecoration: 'none', display: 'inline-block' }}>
+                      💬 WhatsApp
+                    </a>
+                  </td>
+                </tr>
+              ))}
+              {leads.length === 0 && <tr><td colSpan={9} style={{ padding: 24, textAlign: 'center', color: '#94a3b8' }}>Nenhum lead registrado ainda</td></tr>}
             </tbody>
           </table>
           </div>
