@@ -1,0 +1,218 @@
+.container {
+  padding: 24px;
+  max-width: 960px;
+}
+
+.header h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #1a3a5c;
+}
+
+.header p {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+.searchBox {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  margin-bottom: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.searchBox:focus {
+  border-color: #1a3a5c;
+  box-shadow: 0 0 0 2px rgba(26, 58, 92, 0.1);
+}
+
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.catPill {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #374151;
+}
+
+.catPill:hover {
+  border-color: #1a3a5c;
+  color: #1a3a5c;
+}
+
+.catPillActive {
+  composes: catPill;
+  background: #1a3a5c;
+  color: #fff;
+  border-color: #1a3a5c;
+}
+
+.catPillActive:hover {
+  background: #1e4a6e;
+}
+
+.count {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-bottom: 16px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+
+.card summary {
+  padding: 14px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #1a3a5c;
+  list-style: none;
+  user-select: none;
+}
+
+.card summary::-webkit-details-marker {
+  display: none;
+}
+
+.card summary::before {
+  content: '\25B6';
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+  color: #9ca3af;
+}
+
+.card[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.cardBody {
+  padding: 0 16px 16px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.badge {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badgeIniciante {
+  composes: badge;
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badgeIntermediario {
+  composes: badge;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badgeAvancado {
+  composes: badge;
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badgeCat {
+  composes: badge;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.section {
+  margin-bottom: 14px;
+}
+
+.section h4 {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1a3a5c;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.codeWrapper {
+  position: relative;
+  margin: 8px 0;
+}
+
+.codeBlock {
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 14px 16px;
+  border-radius: 8px;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 0.82rem;
+  overflow-x: auto;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.copyBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(255,255,255,0.12);
+  border: none;
+  color: #94a3b8;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.copyBtn:hover {
+  background: rgba(255,255,255,0.22);
+  color: #fff;
+}
+
+.empty {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 16px;
+  }
+  .categories {
+    gap: 4px;
+  }
+  .catPill, .catPillActive {
+    font-size: 0.76rem;
+    padding: 4px 10px;
+  }
+}

@@ -68,6 +68,7 @@ import AdminFeatureFlags from './pages/AdminFeatureFlags'
 import AdminFixadores from './pages/AdminFixadores'
 import AdminAssistente from './pages/AdminAssistente'
 import AdminUso from './pages/AdminUso'
+import AdminKnowledge from './pages/AdminKnowledge'
 import AdminPortfolio from './pages/AdminPortfolio'
 import AdminSite from './pages/AdminSite'
 import Privacidade from './pages/Privacidade'
@@ -193,6 +194,7 @@ function App() {
             <Route path="portfolio"          element={<AdminPortfolio />} />
             <Route path="assistente"          element={<AdminAssistente />} />
             <Route path="uso"                element={<AdminUso />} />
+            <Route path="knowledge"          element={<AdminKnowledge />} />
             <Route path="site"               element={<AdminSite />} />
             <Route path="canva-callback"    element={<AdminCanvaCallback />} />
           </Route>

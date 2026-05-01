@@ -7,6 +7,7 @@ import AiActionButton from '../components/assistente/AiActionButton'
 import HistoricoModal from '../components/HistoricoModal/HistoricoModal'
 import ModalIframe from '../components/ModalIframe/ModalIframe'
 import { SearchableSelect } from '../components/SearchableSelect/SearchableSelect'
+import AdminLoading from '../components/AdminLoading/AdminLoading'
 import styles from './AdminCentralVendas.module.css'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -1399,7 +1400,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                       <button className={styles.multiOptClear} onClick={() => { setFiltroSegmentos([]); setShowSegDrop(false); setBuscaSegmento('') }}>✕ Limpar</button>
                     )}
                     {segmentosReais.length === 0 ? (
-                      <span style={{ padding: '8px 12px', fontSize: '0.8rem', color: '#94a3b8' }}>Carregando segmentos...</span>
+                      <AdminLoading />
                     ) : segmentosReais.filter(s => !buscaSegmento || s.toLowerCase().includes(buscaSegmento.toLowerCase())).map(s => (
                       <label key={s} className={styles.multiOpt}>
                         <input type="checkbox" checked={filtroSegmentos.includes(s)}
@@ -1445,7 +1446,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
           )}
 
           {loadingHot ? (
-            <p className={styles.vazio}>Carregando...</p>
+            <AdminLoading />
           ) : hotlistFiltrada.length === 0 ? (
             <p className={styles.vazio}>
               {hotlist.length === 0
@@ -1566,9 +1567,9 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 </div>
               </div>
               <div className={styles.waBarTrack}>
-                <div className={styles.waBarFill} style={{ width: `${Math.round((waStats.validados / waStats.total) * 100)}%` }} />
+                <div className={styles.waBarFill} style={{ width: `${Math.max(((waStats.validados / waStats.total) * 100), 0.5)}%` }} />
               </div>
-              <p className={styles.waBarLabel}>{Math.round((waStats.validados / waStats.total) * 100)}% validados</p>
+              <p className={styles.waBarLabel}>{((waStats.validados / waStats.total) * 100).toFixed(2)}% validados</p>
             </div>
           )}
 
@@ -1740,7 +1741,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
             </div>
           </details>
 
-          {waLoadingTab ? <p style={{ textAlign: 'center', padding: 32, color: '#64748b' }}>Carregando...</p> : (() => {
+          {waLoadingTab ? <AdminLoading /> : (() => {
             const porSegmento = new Map<string, ProspectScore[]>()
             waPendentes.forEach(p => {
               const seg = p.segmento || 'Sem segmento'
@@ -1811,7 +1812,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
           </div>
 
           {loadingFup ? (
-            <p className={styles.vazio}>Carregando...</p>
+            <AdminLoading />
           ) : followups.length === 0 ? (
             <p className={styles.vazio}>Nenhum follow-up pendente. Comece contactando prospects na Hot List!</p>
           ) : (
@@ -1954,7 +1955,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
           </div>
 
           {loadingMat ? (
-            <p className={styles.vazio}>Carregando...</p>
+            <AdminLoading />
           ) : materiais.length === 0 ? (
             <p className={styles.vazio}>Nenhum material cadastrado. Adicione apresentações, fichas técnicas e laudos.</p>
           ) : (
@@ -1997,7 +1998,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
           </div>
 
           {loadingDash ? (
-            <p className={styles.vazio}>Carregando...</p>
+            <AdminLoading />
           ) : dash ? (
             <>
               <div className={styles.kpiGrid}>

@@ -96,7 +96,7 @@ serve(async (req) => {
         .select("id, telefone1")
         .not("telefone1", "is", null)
         .or("whatsapp_validado.is.null,whatsapp_validado.eq.false")
-        .limit(200)
+        .limit(100)
 
       if (!pendentes || pendentes.length === 0) {
         return new Response(JSON.stringify({ total: 0, validated: 0, message: "Nenhum pendente" }), {
