@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminKnowledge.module.css'
 
-type Categoria = 'sql' | 'frontend' | 'backend' | 'deploy' | 'git' | 'sites' | 'apps' | 'lgpd'
+type Categoria = 'sql' | 'frontend' | 'backend' | 'deploy' | 'git' | 'sites' | 'apps' | 'lgpd' | 'comercial'
 type Nivel = 'iniciante' | 'intermediario' | 'avancado'
 
 interface Guia {
@@ -34,6 +34,7 @@ const CATEGORIAS: { value: Categoria | 'todos'; label: string }[] = [
   { value: 'sites', label: 'Criação de Sites' },
   { value: 'apps', label: 'Apps' },
   { value: 'lgpd', label: 'LGPD/Compliance' },
+  { value: 'comercial', label: 'Comercial/Negócio' },
 ]
 
 const NIVEL_LABEL: Record<Nivel, string> = {
@@ -932,6 +933,293 @@ O QUE VOCÊ FAZ:
     ondeFazer: 'Edge functions em supabase/supabase/functions/. Secrets no Supabase Dashboard > Edge Functions > Secrets. Admin em src/pages/AdminCentralVendas.tsx.',
     porQue: 'A Pousinox foi banida do WhatsApp usando Z-API (API não oficial). A migração para API oficial (Interakt) custa ~R$79/mês a mais, mas elimina 100% o risco de ban e garante conformidade com termos do WhatsApp e LGPD. Decisão tomada em 01/05/2026.',
   },
+
+  // Comercial/Negócio
+  {
+    id: 'plano-negocio-pousinox',
+    titulo: 'Plano de Negócio — Monetização Imediata',
+    categoria: 'comercial',
+    nivel: 'avancado',
+    tags: ['plano de negócio', 'monetização', 'receita', 'roi', 'estratégia', 'vendas'],
+    oQueE: `Plano de ação para gerar receita IMEDIATA com os ativos já construídos da Pousinox.
+
+SITUAÇÃO ATUAL (Maio/2026):
+  Investimento mensal: ~R$977/mês (Claude Max R$687 + Supabase R$155 + Z-API R$99 + domínios R$36)
+  Receita digital: R$0
+  Ativos construídos: ERP completo, 800K prospects, IA, site institucional, outlet
+
+O PROBLEMA:
+  ⛔ Sistema robusto sem retorno financeiro
+  ⛔ Base de 800K prospects parada
+  ⛔ Módulos prontos sem uso comercial ativo
+  ⛔ Investimento mensal sem ROI`,
+    quandoUsar: `Consultar este plano TODA SEMANA para acompanhar execução e ajustar prioridades.
+
+QUANDO REVISAR:
+  → Segunda-feira: planejar ações da semana
+  → Sexta-feira: medir resultados e ajustar
+  → Ao tomar decisão de investimento (novo tool, serviço, etc.)`,
+    comoFazer: `FASE 1 — RECEITA IMEDIATA (Semanas 1-2):
+
+  1. PROSPECÇÃO ATIVA (custo: R$0):
+    → Usar Hot List do AdminCentralVendas (top 50 prospects por scoring)
+    → Filtrar por UF com maior demanda (MG, SP, RJ)
+    → Meta: 10-15 contatos/dia via canais diversos (ver guia "Canais de Prospecção")
+    → Follow-up sistemático via aba Follow-ups
+
+  2. OUTLET / PRONTA-ENTREGA (custo: R$0):
+    → Publicar produtos no outlet com Pix QR
+    → Checkout já funciona (implementado 24/04)
+    → Divulgar link direto nos contatos comerciais
+
+  3. ORÇAMENTOS RÁPIDOS (custo: R$0):
+    → AdminOrcamento com templates prontos
+    → Responder em <2h toda solicitação
+    → Usar Ficha Técnica Comercial (PDF automático)
+
+FASE 2 — ESCALA (Semanas 3-6):
+
+  4. E-MAIL MARKETING (custo: ~R$0-50/mês):
+    → Extrair e-mails da base de 800K (prospects com email)
+    → Ferramenta: Brevo (grátis até 300/dia) ou Mailchimp (grátis até 500 contatos)
+    → Campanha segmentada por segmento/UF
+    → Template: apresentação + catálogo + link outlet
+
+  5. GOOGLE MEU NEGÓCIO (custo: R$0):
+    → Otimizar perfil GBP com fotos, posts semanais
+    → Responder avaliações
+    → Publicar ofertas outlet
+
+  6. WHATSAPP OFICIAL via Interakt (custo: ~R$178/mês):
+    → Migrar para API oficial (sem risco de ban)
+    → Templates aprovados pela Meta
+    → Prospecção automatizada segura
+
+FASE 3 — INTELIGÊNCIA (Meses 2-3):
+
+  7. RELATÓRIOS DE MERCADO (custo: R$0):
+    → AdminEstudoMercado já tem dados cruzados
+    → Gerar PDF com insights por UF/segmento
+    → Oferecer como valor agregado para clientes
+
+  8. PROPOSTAS COMERCIAIS (custo: R$0):
+    → PropostaAcesso já funciona com link público
+    → Personalizar por segmento do prospect
+    → Incluir dados de mercado como diferencial
+
+MÉTRICAS DE SUCESSO:
+  Semana 1: ≥50 contatos realizados
+  Semana 2: ≥3 orçamentos enviados
+  Mês 1: ≥1 venda fechada (break-even parcial)
+  Mês 2: receita ≥ R$977 (break-even total)
+  Mês 3: margem positiva + reinvestimento`,
+    ondeFazer: `AdminCentralVendas (Hot List + Follow-ups), AdminOrcamento, AdminPipeline, Outlet (/pronta-entrega), AdminEstudoMercado.`,
+    porQue: `O sistema está pronto — falta USAR. Cada semana sem prospecção ativa é R$244 jogado fora (R$977/4). A base de 800K prospects é o maior ativo: segmentada, scorada, com telefone e endereço. O ROI vem da ação, não de mais features.`,
+  },
+  {
+    id: 'canais-prospeccao',
+    titulo: 'Canais de Prospecção — B2B e B2C com Prós, Contras e Riscos',
+    categoria: 'comercial',
+    nivel: 'intermediario',
+    tags: ['prospecção', 'whatsapp', 'email', 'telefone', 'linkedin', 'b2b', 'b2c', 'canais', 'riscos'],
+    oQueE: `Guia completo de TODOS os canais disponíveis para prospectar clientes — empresas (B2B) e pessoas físicas (B2C).
+
+A Pousinox vende para:
+  → B2B: construtoras, marmorarias, revendas, arquitetos, engenheiros
+  → B2C: proprietários fazendo reforma, decoradores, DIY
+
+Cada canal tem perfil de risco, custo e efetividade diferentes.`,
+    quandoUsar: `Antes de iniciar qualquer campanha de prospecção. Consultar para escolher o MIX certo de canais para cada público-alvo.
+
+REGRA DE OURO: nunca depender de um único canal — diversificar sempre.`,
+    comoFazer: `CANAIS B2B (EMPRESAS):
+
+  1. WHATSAPP (API Oficial — Interakt):
+    ✅ Prós: taxa de abertura 90%+, resposta rápida, mídia rica
+    ⛔ Contras: custo por conversa (~R$0,25-0,50), templates precisam aprovação Meta
+    ⚠️ Riscos: BAIXO com API oficial / ALTO com API não oficial (ban permanente)
+    → Volume seguro: 50-100 msgs/dia com API oficial
+    → Obrigatório: opt-out em toda mensagem (LGPD)
+    → Base legal: legítimo interesse (B2B, Art. 7º IX)
+
+  2. E-MAIL MARKETING:
+    ✅ Prós: custo quase zero, escalável (300/dia grátis no Brevo), rastreável, profissional
+    ⛔ Contras: taxa de abertura 15-25% B2B, vai para spam se mal configurado
+    ⚠️ Riscos: BAIXO se tiver opt-out + SPF/DKIM configurados
+    → Ferramentas: Brevo (grátis 300/dia), Mailchimp (grátis 500 contatos)
+    → Obrigatório: link de descadastro, remetente real, SPF/DKIM
+    → Dica: assunto curto e personalizado (nome da empresa)
+
+  3. TELEFONE / LIGAÇÃO:
+    ✅ Prós: contato direto, gera confiança, fecha negócio mais rápido
+    ⛔ Contras: trabalhoso, 1 a 1, taxa de atendimento ~30%
+    ⚠️ Riscos: MUITO BAIXO — ligação comercial B2B é prática aceita
+    → Volume: 20-30 ligações/dia (realista para 1 pessoa)
+    → Melhor horário: 9h-11h e 14h-16h (terça a quinta)
+    → Dica: ligar após enviar material por e-mail/WhatsApp
+
+  4. LINKEDIN (prospecção orgânica):
+    ✅ Prós: profissional, decisores acessíveis, conteúdo técnico valorizado
+    ⛔ Contras: escala limitada (100 conexões/semana), tempo para construir
+    ⚠️ Riscos: BAIXO — restrição é de volume, não de ban
+    → Público: engenheiros, arquitetos, compradores de construtoras
+    → Estratégia: publicar conteúdo técnico → conexão → mensagem
+    → Sem automação: LinkedIn bane ferramentas de automação
+
+  5. VISITA PRESENCIAL:
+    ✅ Prós: maior taxa de conversão (40-60%), relacionamento real
+    ⛔ Contras: custo de deslocamento, 3-5 visitas/dia máximo
+    ⚠️ Riscos: NENHUM — é a prospecção tradicional
+    → Priorizar: prospects top-score na região de Pouso Alegre e Sul de MG
+    → Levar: amostras físicas + ficha técnica impressa
+
+  6. GOOGLE ADS / META ADS (pago):
+    ✅ Prós: leads qualificados, segmentação precisa, resultados rápidos
+    ⛔ Contras: custo R$500-2000/mês para testar, precisa otimizar
+    ⚠️ Riscos: MÉDIO — gastar sem retorno se mal configurado
+    → Começar com: Google Search "fixador porcelanato inox" (intenção alta)
+    → Orçamento mínimo: R$20/dia Google, R$15/dia Meta
+    → Só investir DEPOIS de validar conversão orgânica
+
+CANAIS B2C (PESSOAS FÍSICAS):
+
+  7. INSTAGRAM / REDES SOCIAIS:
+    ✅ Prós: visual (produto fotogênico), alcance orgânico, Stories/Reels
+    ⛔ Contras: resultado lento, precisa constância, algoritmo imprevisível
+    ⚠️ Riscos: BAIXO — risco só de investir tempo sem retorno
+    → Conteúdo: antes/depois de obras, vídeos de instalação, depoimentos
+    → Hashtags: #reforma #porcelanato #obra #decoracao #arquitetura
+    → Frequência: 3-5 posts/semana, 1-2 Reels/semana
+
+  8. MARKETPLACE (MercadoLivre, Shopee):
+    ✅ Prós: tráfego pronto, confiança do comprador, logística integrada
+    ⛔ Contras: comissão 11-16%, concorrência de preço, margem menor
+    ⚠️ Riscos: BAIXO — risco financeiro limitado ao estoque
+    → Ideal para: kits pequenos, outlet, pronta-entrega
+    → Dica: usar Mercado Livre primeiro (maior volume construção civil)
+
+  9. GOOGLE MEU NEGÓCIO (GBP):
+    ✅ Prós: gratuito, aparece em buscas locais, gera ligações diretas
+    ⛔ Contras: limitado à região, precisa manutenção
+    ⚠️ Riscos: NENHUM — é presença digital básica
+    → Ações: fotos profissionais, posts semanais, responder avaliações
+    → Pedir avaliação a cada cliente satisfeito
+
+  10. INDICAÇÃO / PARCERIAS:
+    ✅ Prós: lead mais quente que existe, custo zero, confiança prévia
+    ⛔ Contras: não é escalável, depende de relacionamento
+    ⚠️ Riscos: NENHUM
+    → Parceiros: lojas de porcelanato, marmorarias, pedreiros, arquitetos
+    → Oferecer: comissão por indicação ou desconto cruzado
+    → Manter: contato mensal com parceiros ativos
+
+  11. SEO / CONTEÚDO (site + blog):
+    ✅ Prós: tráfego gratuito, autoridade, longo prazo
+    ⛔ Contras: resultado em 3-6 meses, precisa constância
+    ⚠️ Riscos: NENHUM — investimento de tempo com retorno composto
+    → Site pousinox.com.br já existe e indexa
+    → Blog com: guias de instalação, comparativos, normas técnicas
+    → Calculadora pública já atrai tráfego (implementada)
+
+COMO PROSPECTAR PESSOAS FÍSICAS (B2C):
+
+  ONDE ENCONTRAR:
+    → Google Ads: palavras-chave de reforma ("fixador porcelanato preço")
+    → Instagram: hashtags de reforma, comentários em perfis de arquitetos
+    → Grupos Facebook: "reforma", "obra", "construindo minha casa"
+    → YouTube: comentários em vídeos de instalação de porcelanato
+    → MercadoLivre: quem busca "fixador porcelanato" é PF comprando
+    → Parcerias com lojas de material de construção
+
+  ABORDAGEM B2C (diferente de B2B):
+    → Linguagem simples, sem jargão técnico
+    → Foco em benefício: "não risca o porcelanato", "instalação fácil"
+    → Preço visível (PF quer saber o preço ANTES de falar com vendedor)
+    → Frete calculado no site (já implementado)
+    → Pix QR para pagamento rápido (já implementado)
+
+RESUMO — PRIORIDADE DE CANAIS:
+  🥇 Imediato (esta semana): Telefone + E-mail + WhatsApp manual
+  🥈 Curto prazo (2 semanas): WhatsApp Interakt + Instagram + GBP
+  🥉 Médio prazo (1-2 meses): Google Ads + Marketplace + SEO
+  🏅 Longo prazo (3+ meses): LinkedIn + Parcerias + Conteúdo blog`,
+    ondeFazer: `AdminCentralVendas (B2B — Hot List, Follow-ups, WhatsApp). Outlet /pronta-entrega (B2C). Instagram/Meta (perfil da Pousinox). Google Ads (ads.google.com). Mercado Livre (mercadolivre.com.br).`,
+    porQue: `Diversificar canais reduz risco (o ban do WhatsApp provou isso). B2C é mercado inexplorado pela Pousinox — fixadores para reforma residencial têm demanda crescente. Cada canal tem custo e risco diferente: começar pelos gratuitos e escalar conforme resultado.`,
+  },
+  {
+    id: 'atualizar-prospects',
+    titulo: 'Como Atualizar e Manter a Base de 800K Prospects',
+    categoria: 'comercial',
+    nivel: 'intermediario',
+    tags: ['prospects', 'base de dados', 'atualização', 'brasilapi', 'receita federal', 'enriquecimento', 'cnpj'],
+    oQueE: `Estratégia para manter a base de 800K prospects atualizada SEM repetir o trabalho árduo da importação original.
+
+A BASE ATUAL:
+  → 800K CNPJs segmentados da Receita Federal
+  → Campos: razão social, fantasia, CNPJ, porte, segmento, UF, cidade, telefone, email
+  → Scoring on-the-fly via fn_top_prospects
+  → Problema: dados podem ficar desatualizados (telefone, situação cadastral, endereço)`,
+    quandoUsar: `→ Quando iniciar campanha de prospecção (atualizar os top prospects primeiro)
+→ Trimestralmente: importar novos CNPJs da Receita Federal
+→ Quando ligação/WhatsApp retornar "número inexistente"`,
+    comoFazer: `3 ESTRATÉGIAS (da mais simples à mais completa):
+
+  1. ENRIQUECIMENTO SOB DEMANDA (Recomendado — custo R$0):
+    → Atualiza SÓ os prospects que você vai contactar
+    → BrasilAPI (gratuita): consulta CNPJ → telefone, situação, endereço
+    → Automático: edge function semanal nos top 200 sem atualização há 90+ dias
+    → Manual: botão "Atualizar dados" no drawer do prospect
+
+    COMO FUNCIONA:
+      a) Cron semanal seleciona top 200 prospects (por score) sem update há 90 dias
+      b) Consulta BrasilAPI: https://brasilapi.com.br/api/cnpj/v1/{cnpj}
+      c) Atualiza: telefone, email, situação cadastral, endereço
+      d) Marca data de atualização
+      e) Remove prospects com situação "Baixada" ou "Inapta"
+
+    ✅ Prós: gratuito, rápido, focado no que importa
+    ⛔ Contras: não pega empresas novas
+    ⚠️ Riscos: BAIXO — BrasilAPI tem rate limit (3/seg), respeitamos
+
+  2. IMPORTAÇÃO INCREMENTAL (Trimestral — custo R$0):
+    → Receita Federal publica dados abertos a cada ~3 meses
+    → Fonte: dados.gov.br → CNPJ → download dos arquivos de "estabelecimentos"
+    → Script compara com base existente: insere novos, atualiza alterados
+    → NÃO precisa reimportar tudo — só o delta
+
+    COMO FUNCIONA:
+      a) Download dos CSVs da Receita (divididos por UF)
+      b) Script filtra por CNAEs relevantes (construção, arquitetura, etc.)
+      c) Compara CNPJ: novo → INSERT, existente → UPDATE se mudou
+      d) Marca empresas "Baixadas" como inativas
+
+    ✅ Prós: pega empresas novas, dados oficiais, gratuito
+    ⛔ Contras: arquivos grandes (~30GB total), processamento demorado
+    ⚠️ Riscos: BAIXO — dados públicos, sem limite de uso
+
+  3. APIS DE ENRIQUECIMENTO (Para dados extras — custo variável):
+    → ReceitaWS: gratuito 3/min, pago ~R$50/mês para volume
+    → CNPJ.ws: similar, foco em dados complementares
+    → Clearbit/Apollo: dados de contato avançados (caro, internacional)
+
+    ✅ Prós: dados mais ricos (sócios, capital social, filiais)
+    ⛔ Contras: custo mensal, limites de volume
+    ⚠️ Riscos: MÉDIO — dependência de serviço terceiro
+
+PLANO RECOMENDADO (combinação):
+  → Semanal: enriquecimento automático dos top 200 (BrasilAPI, grátis)
+  → Trimestral: importação incremental da Receita Federal (grátis)
+  → Sob demanda: BrasilAPI no drawer do prospect (já existe no admin)
+
+IMPLEMENTAÇÃO TÉCNICA:
+  → Edge function: enriquecer-prospects (cron semanal)
+  → Coluna nova: atualizado_em TIMESTAMPTZ em prospeccao
+  → Filtro: WHERE atualizado_em IS NULL OR atualizado_em < NOW() - INTERVAL '90 days'
+  → Rate limit: 2 req/seg para BrasilAPI (seguro)
+  → Lote: 200 prospects por execução (10-15 minutos)`,
+    ondeFazer: `Edge function em supabase/supabase/functions/enriquecer-prospects/. Drawer de detalhe em AdminProspeccao.tsx (botão "Atualizar dados" já consulta BrasilAPI). Dados abertos em dados.gov.br.`,
+    porQue: `800K prospects são o maior ativo digital da Pousinox. Dados desatualizados = ligações perdidas e e-mails devolvidos. A estratégia "sob demanda" custa R$0 e garante que os prospects que IMPORTAM estejam sempre atualizados. Atualizar tudo de uma vez é desperdício — foco nos top-score.`,
+  },
 ]
 
 function CodeBlock({ code }: { code: string }) {
@@ -1367,10 +1655,13 @@ export default function AdminKnowledge() {
   const buscaLower = busca.toLowerCase()
 
   const abrirGuia = (id: string) => {
-    const abrir = guiaAberto === id ? null : id
-    setGuiaAberto(abrir)
-    if (abrir) setAcessos(registrarAcesso(id))
+    setGuiaAberto(id)
+    setAcessos(registrarAcesso(id))
   }
+
+  const fecharGuia = () => setGuiaAberto(null)
+
+  const guiaAbertoObj = guiaAberto ? todasGuias.find(g => g.id === guiaAberto) : null
 
   const filtradas = todasGuias.filter(g => {
     if (catAtiva !== 'todos' && g.categoria !== catAtiva) return false
@@ -1395,94 +1686,113 @@ export default function AdminKnowledge() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.header}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-          <div>
-            <h2>Base de Conhecimento</h2>
-            <p>Guias práticos para desenvolvimento — busque por tema ou filtre por categoria.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div className={styles.vistaToggle}>
-              <button className={vista === 'lista' ? styles.vistaActive : styles.vistaBtn} onClick={() => setVista('lista')}>Lista</button>
-              <button className={vista === 'mapa' ? styles.vistaActive : styles.vistaBtn} onClick={() => setVista('mapa')}>Mapa</button>
+      {guiaAbertoObj ? (
+        /* === VISTA TELA CHEIA === */
+        <div className={styles.guiaFullScreen}>
+          <div className={styles.guiaFullHeader}>
+            <button className={styles.btnVoltar} onClick={fecharGuia}>← Voltar</button>
+            <div className={styles.guiaFullMeta}>
+              <span className={styles[NIVEL_CLASS[guiaAbertoObj.nivel]]}>{NIVEL_LABEL[guiaAbertoObj.nivel]}</span>
+              <span className={styles.badgeCat}>{CATEGORIAS.find(c => c.value === guiaAbertoObj.categoria)?.label}</span>
+              {guiaAbertoObj.rascunho && <span className={styles.badgeRascunho}>Rascunho</span>}
+              {(acessos[guiaAbertoObj.id] || 0) > 0 && <span className={styles.badgeAcessos}>{acessos[guiaAbertoObj.id]}x</span>}
             </div>
-            <button className={styles.btnPrimary} onClick={() => setModalAberto(true)}>
-              + Sugerir guia
+          </div>
+          <h2 className={styles.guiaFullTitulo}>{guiaAbertoObj.titulo}</h2>
+          <div className={styles.guiaFullTags}>
+            {guiaAbertoObj.tags.map(t => <span key={t} className={styles.guiaTag}>{t}</span>)}
+          </div>
+          <div className={styles.guiaFullBody}>
+            <GuiaSection titulo="O que é" conteudo={guiaAbertoObj.oQueE} />
+            <GuiaSection titulo="Quando usar" conteudo={guiaAbertoObj.quandoUsar} />
+            <GuiaSection titulo="Como fazer" conteudo={guiaAbertoObj.comoFazer} />
+            <GuiaSection titulo="Onde fazer" conteudo={guiaAbertoObj.ondeFazer} />
+            <GuiaSection titulo="Por quê" conteudo={guiaAbertoObj.porQue} />
+          </div>
+          <div className={styles.guiaFullActions}>
+            <button className={styles.btnPerplexity} onClick={() => pesquisarGoogle(guiaAbertoObj.titulo + ' tutorial prático')}>
+              Pesquisar no Google
             </button>
+            <a className={styles.btnPerplexity} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }} href={perplexityUrl(guiaAbertoObj.titulo)} target="_blank" rel="noopener noreferrer">
+              Perplexity
+            </a>
+            {guiaAbertoObj.id.startsWith('user-') && guiaAbertoObj.rascunho && (
+              <button className={styles.btnPrimary} onClick={() => aprovarGuia(guiaAbertoObj.id)} style={{ fontSize: '0.85rem' }}>
+                Aprovar
+              </button>
+            )}
+            {guiaAbertoObj.id.startsWith('user-') && (
+              <button className={styles.btnDanger} onClick={() => { excluirGuia(guiaAbertoObj.id); fecharGuia() }} style={{ fontSize: '0.85rem' }}>
+                Excluir
+              </button>
+            )}
           </div>
         </div>
-      </div>
-
-      <input
-        className={styles.searchBox}
-        type="text"
-        placeholder="Buscar guia... (ex: tabela, deploy, componente, lgpd)"
-        value={busca}
-        onChange={e => setBusca(e.target.value)}
-      />
-
-      <div className={styles.categories}>
-        {CATEGORIAS.map(c => (
-          <button
-            key={c.value}
-            className={catAtiva === c.value ? styles.catPillActive : styles.catPill}
-            onClick={() => setCatAtiva(c.value)}
-          >
-            {c.label} ({contagemPorCat[c.value] || 0})
-          </button>
-        ))}
-      </div>
-
-      {vista === 'mapa' ? (
-        <MapaMental guias={filtradas} onAcesso={id => setAcessos(registrarAcesso(id))} perplexityUrl={perplexityUrl} />
       ) : (
+        /* === VISTA LISTA / MAPA === */
         <>
-          <div className={styles.count}>
-            {filtradas.length} guia{filtradas.length !== 1 ? 's' : ''} encontrada{filtradas.length !== 1 ? 's' : ''}
+          <div className={styles.header}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <div>
+                <h2>Base de Conhecimento</h2>
+                <p>Guias práticos — busque por tema ou filtre por categoria.</p>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div className={styles.vistaToggle}>
+                  <button className={vista === 'lista' ? styles.vistaActive : styles.vistaBtn} onClick={() => setVista('lista')}>Lista</button>
+                  <button className={vista === 'mapa' ? styles.vistaActive : styles.vistaBtn} onClick={() => setVista('mapa')}>Mapa</button>
+                </div>
+                <button className={styles.btnPrimary} onClick={() => setModalAberto(true)}>
+                  + Sugerir guia
+                </button>
+              </div>
+            </div>
           </div>
 
-          {filtradas.length === 0 ? (
-            <div className={styles.empty}>Nenhuma guia encontrada para "{busca}"</div>
+          <input
+            className={styles.searchBox}
+            type="text"
+            placeholder="Buscar guia... (ex: tabela, deploy, componente, lgpd)"
+            value={busca}
+            onChange={e => setBusca(e.target.value)}
+          />
+
+          <div className={styles.categories}>
+            {CATEGORIAS.map(c => (
+              <button
+                key={c.value}
+                className={catAtiva === c.value ? styles.catPillActive : styles.catPill}
+                onClick={() => setCatAtiva(c.value)}
+              >
+                {c.label} ({contagemPorCat[c.value] || 0})
+              </button>
+            ))}
+          </div>
+
+          {vista === 'mapa' ? (
+            <MapaMental guias={filtradas} onAcesso={id => setAcessos(registrarAcesso(id))} perplexityUrl={perplexityUrl} />
           ) : (
-            filtradas.map(g => {
-              const isDinamico = g.id.startsWith('user-')
-              return (
-                <details key={g.id} className={`${styles.card} ${g.rascunho ? styles.cardRascunho : ''}`} open={guiaAberto === g.id}>
-                  <summary onClick={e => { e.preventDefault(); abrirGuia(g.id) }}>
-                    <span>{g.titulo}</span>
-                    {(acessos[g.id] || 0) > 0 && <span className={styles.badgeAcessos}>{acessos[g.id]}x</span>}
-                    <span className={styles[NIVEL_CLASS[g.nivel]]}>{NIVEL_LABEL[g.nivel]}</span>
-                    <span className={styles.badgeCat}>{CATEGORIAS.find(c => c.value === g.categoria)?.label}</span>
-                    {g.rascunho && <span className={styles.badgeRascunho}>Rascunho</span>}
-                  </summary>
-                  <div className={styles.cardBody}>
-                    <GuiaSection titulo="O que é" conteudo={g.oQueE} />
-                    <GuiaSection titulo="Quando usar" conteudo={g.quandoUsar} />
-                    <GuiaSection titulo="Como fazer" conteudo={g.comoFazer} />
-                    <GuiaSection titulo="Onde fazer" conteudo={g.ondeFazer} />
-                    <GuiaSection titulo="Por quê" conteudo={g.porQue} />
-                    <div className={styles.guiaActions}>
-                      <button className={styles.btnPerplexity} onClick={() => pesquisarGoogle(g.titulo + ' tutorial prático')}>
-                        Pesquisar no Google
-                      </button>
-                      <a className={styles.btnPerplexity} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }} href={perplexityUrl(g.titulo)} target="_blank" rel="noopener noreferrer">
-                        Perplexity
-                      </a>
-                      {isDinamico && g.rascunho && (
-                        <button className={styles.btnPrimary} onClick={() => aprovarGuia(g.id)} style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
-                          Aprovar
-                        </button>
-                      )}
-                      {isDinamico && (
-                        <button className={styles.btnDanger} onClick={() => excluirGuia(g.id)} style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
-                          Excluir
-                        </button>
-                      )}
+            <>
+              <div className={styles.count}>
+                {filtradas.length} guia{filtradas.length !== 1 ? 's' : ''} encontrada{filtradas.length !== 1 ? 's' : ''}
+              </div>
+
+              {filtradas.length === 0 ? (
+                <div className={styles.empty}>Nenhuma guia encontrada para "{busca}"</div>
+              ) : (
+                filtradas.map(g => (
+                  <div key={g.id} className={`${styles.cardCompact} ${g.rascunho ? styles.cardRascunho : ''}`} onClick={() => abrirGuia(g.id)}>
+                    <span className={styles.cardCompactTitle}>{g.titulo}</span>
+                    <div className={styles.cardCompactMeta}>
+                      {(acessos[g.id] || 0) > 0 && <span className={styles.badgeAcessos}>{acessos[g.id]}x</span>}
+                      <span className={styles[NIVEL_CLASS[g.nivel]]}>{NIVEL_LABEL[g.nivel]}</span>
+                      <span className={styles.badgeCat}>{CATEGORIAS.find(c => c.value === g.categoria)?.label}</span>
+                      {g.rascunho && <span className={styles.badgeRascunho}>Rascunho</span>}
                     </div>
                   </div>
-                </details>
-              )
-            })
+                ))
+              )}
+            </>
           )}
         </>
       )}

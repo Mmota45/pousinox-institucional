@@ -764,3 +764,127 @@
     padding: 4px 10px;
   }
 }
+
+/* === Card compacto (lista) === */
+.cardCompact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  margin-bottom: 6px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.cardCompact:hover {
+  border-color: #93c5fd;
+  background: #f0f7ff;
+  transform: translateX(4px);
+}
+.cardCompactTitle {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: #1a3a5c;
+}
+.cardCompactMeta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* === Vista tela cheia === */
+.guiaFullScreen {
+  animation: fadeSlideIn 0.25s ease-out;
+}
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.guiaFullHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.guiaFullMeta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.btnVoltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 18px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1a3a5c;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btnVoltar:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+.guiaFullTitulo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a3a5c;
+  margin: 8px 0 12px;
+  line-height: 1.3;
+}
+.guiaFullTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+.guiaTag {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  color: #475569;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+}
+.guiaFullBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.guiaFullActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .cardCompact {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .cardCompactMeta {
+    flex-wrap: wrap;
+  }
+  .guiaFullTitulo {
+    font-size: 1.2rem;
+  }
+  .guiaFullActions {
+    flex-direction: column;
+  }
+  .guiaFullActions > * {
+    width: 100%;
+    text-align: center;
+  }
+}

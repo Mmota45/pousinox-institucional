@@ -60,7 +60,7 @@ interface DashData {
   dealsAbertos: number; dealsGanhos: number; receitaPipeline: number
 }
 
-type Aba = 'radar' | 'hotlist' | 'followups' | 'whatsapp' | 'materiais' | 'dashboard'
+type Aba = 'radar' | 'hotlist' | 'followups' | 'whatsapp' | 'materiais' | 'dashboard' | 'emails'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -110,6 +110,7 @@ const ABAS: { key: Aba; label: string; icon: string }[] = [
   { key: 'followups', label: 'Follow-ups', icon: '📅' },
   { key: 'whatsapp', label: 'WhatsApp', icon: '📱' },
   { key: 'materiais', label: 'Materiais', icon: '📎' },
+  { key: 'emails', label: 'E-mails', icon: '📧' },
   { key: 'dashboard', label: 'Dashboard', icon: '📊' },
   { key: 'radar', label: 'Radar', icon: '📡' },
 ]
@@ -276,6 +277,7 @@ pousinox.com.br`
   const [drawerPs, setDrawerPs] = useState<ProspectScore | null>(null)
   const [orcamentoModal, setOrcamentoModal] = useState(false)
   const [validandoWa, setValidandoWa] = useState(false)
+  const [enviandoEmail, setEnviandoEmail] = useState(false)
   const [waProg, setWaProg] = useState({ done: 0, total: 0, validos: 0 })
   const [waPendentes, setWaPendentes] = useState<ProspectScore[]>([])
   const [waStats, setWaStats] = useState({ total: 0, validados: 0, pendentes: 0 })
@@ -294,7 +296,7 @@ pousinox.com.br`
   const [drawerNfItens, setDrawerNfItens] = useState<Record<number, any[]>>({})
   const [drawerStatusOpen, setDrawerStatusOpen] = useState(false)
   const [historicoAberto, setHistoricoAberto] = useState<{ id: number; nome: string } | null>(null)
-  const [drawerSecoes, setDrawerSecoes] = useState<Record<string, boolean>>({ contato: true, scores: false, nfs: false, portfolio: true, regulatorio: false, estoque: false, orcamentos: false, producao: false, deals: false, ia: false })
+  const [drawerSecoes, setDrawerSecoes] = useState<Record<string, boolean>>({ contato: false, scores: false, nfs: false, portfolio: false, regulatorio: false, estoque: false, orcamentos: false, producao: false, deals: false, ia: false, atividades: false })
   const [drawerPortfolio, setDrawerPortfolio] = useState<any[]>([])
   const [drawerPortfolioLoading, setDrawerPortfolioLoading] = useState(false)
   const [drawerNormas, setDrawerNormas] = useState<any[]>([])
@@ -310,6 +312,10 @@ pousinox.com.br`
   const [drawerOrcamentos, setDrawerOrcamentos] = useState<any[]>([])
   const [drawerProducao, setDrawerProducao] = useState<any[]>([])
   const [drawerDeals, setDrawerDeals] = useState<any[]>([])
+  const [drawerAtividades, setDrawerAtividades] = useState<any[]>([])
+  const [emailsLog, setEmailsLog] = useState<any[]>([])
+  const [emailsLoading, setEmailsLoading] = useState(false)
+  const [emailExpandido, setEmailExpandido] = useState<number | null>(null)
   const [drawerNfResumo, setDrawerNfResumo] = useState<{ total: number; qtd: number; ultima: string | null; media: number } | null>(null)
   const [fichaExpandida, setFichaExpandida] = useState<number | null>(null)
   const [drawerConcorrentes, setDrawerConcorrentes] = useState<any[]>([])
@@ -445,6 +451,18 @@ pousinox.com.br`
       .order('created_at', { ascending: false })
     setMateriais((data ?? []) as Material[])
     setLoadingMat(false)
+  }, [])
+
+  const carregarEmails = useCallback(async () => {
+    setEmailsLoading(true)
+    const { data } = await supabaseAdmin
+      .from('activity_log')
+      .select('id, tipo, canal, detalhes, created_at, prospect_id, prospeccao(razao_social, nome_fantasia, email, segmento, uf, cidade)')
+      .eq('tipo', 'email')
+      .order('created_at', { ascending: false })
+      .limit(50)
+    setEmailsLog(data ?? [])
+    setEmailsLoading(false)
   }, [])
 
   const carregarDashboard = useCallback(async () => {
@@ -618,6 +636,7 @@ pousinox.com.br`
     if (aba === 'materiais') { if (tabLoaded.current.materiais) return; tabLoaded.current.materiais = true; carregarMateriais() }
     if (aba === 'dashboard') { if (tabLoaded.current.dashboard) return; tabLoaded.current.dashboard = true; carregarDashboard() }
     if (aba === 'radar') { if (tabLoaded.current.radar) return; tabLoaded.current.radar = true; carregarGsc() }
+    if (aba === 'emails') { if (tabLoaded.current.emails) return; tabLoaded.current.emails = true; carregarEmails() }
   }, [aba, carregarHotList, carregarFollowups, carregarMateriais, carregarDashboard, carregarGsc, carregarWaTab])
 
   // Carregar mesorregiões quando UF muda (sem recarregar hot list)
@@ -819,107 +838,76 @@ REGRAS OBRIGATÓRIAS:
     setDrawerPs(ps)
     setDrawerNfExpandida(null)
     setDrawerNfItens({})
-    // Buscar NFs pelo CNPJ
+    setFichaExpandida(null)
+
     const cnpjLimpo = ps.cnpj?.replace(/\D/g, '')
-    if (cnpjLimpo) {
-      setDrawerNfsLoading(true)
-      const { data } = await supabaseAdmin
-        .from('nf_cabecalho')
-        .select('id,destinatario,emissao,total,cnpj')
-        .or(`cnpj.eq.${cnpjLimpo}`)
-        .order('emissao', { ascending: false })
-        .limit(20)
-      setDrawerNfs(data ?? [])
-      setDrawerNfsLoading(false)
-    } else {
-      setDrawerNfs([])
-    }
-    // Carregar portfólio do segmento
-    let portfolioData: any[] = []
+
+    // Loading states
+    setDrawerNfsLoading(true)
+    setDrawerPortfolioLoading(true)
+
+    // Todas as queries em paralelo
+    const [nfsRes, portfolioRes, normasRes, equipRes, concRes, dealsRes, orcRes, estRes, opRes, ativRes] = await Promise.all([
+      // 1. NFs
+      cnpjLimpo
+        ? supabaseAdmin.from('nf_cabecalho').select('id,destinatario,emissao,total,cnpj').or(`cnpj.eq.${cnpjLimpo}`).order('emissao', { ascending: false }).limit(20)
+        : Promise.resolve({ data: [] }),
+      // 2. Portfólio
+      ps.segmento
+        ? supabaseAdmin.from('segmento_portfolio').select('id, relevancia, destaque, portfolio_produtos(id, nome, descricao, categoria, material, dimensoes, peso_kg, norma_aplicavel, laudo_url, laudo_descricao, ficha_tecnica, vantagens, aplicacoes)').eq('segmento', ps.segmento).order('relevancia', { ascending: false })
+        : Promise.resolve({ data: [] }),
+      // 3. Normas
+      ps.segmento
+        ? supabaseAdmin.from('portfolio_normas').select('id, norma, orgao, titulo, status, penalidade, observacao, segmentos').contains('segmentos', [ps.segmento])
+        : Promise.resolve({ data: [] }),
+      // 4. Equipamentos
+      ps.segmento
+        ? supabaseAdmin.from('segmento_equipamentos').select('*').eq('segmento', ps.segmento).order('obrigatorio', { ascending: false })
+        : Promise.resolve({ data: [] }),
+      // 5. Concorrentes
+      supabaseAdmin.from('portfolio_concorrentes').select('*'),
+      // 6. Deals
+      supabaseAdmin.from('pipeline_deals').select('id, titulo, estagio, valor_estimado, created_at, updated_at').eq('prospect_id', ps.prospect_id).order('created_at', { ascending: false }),
+      // 7. Orçamentos
+      cnpjLimpo
+        ? supabaseAdmin.from('orcamentos').select('id, numero, status, valor_total, created_at').or(`cliente_cnpj.eq.${cnpjLimpo},cliente_cnpj.eq.${ps.cnpj}`).order('created_at', { ascending: false }).limit(10)
+        : Promise.resolve({ data: [] }),
+      // 8. Estoque
+      ps.segmento
+        ? supabaseAdmin.from('estoque_itens').select('id, codigo, nome, saldo_atual, unidade, estoque_minimo').gt('saldo_atual', 0).eq('ativo', true).order('saldo_atual', { ascending: false }).limit(20)
+        : Promise.resolve({ data: [] }),
+      // 9. Produção
+      supabaseAdmin.from('ordens_producao').select('id, numero, status, data_prevista, projetos(titulo)').in('status', ['planejada', 'liberada', 'em_producao']).order('data_prevista', { ascending: true }).limit(10),
+      // 10. Atividades (histórico de contatos)
+      supabaseAdmin.from('activity_log').select('id, tipo, canal, detalhes, created_at').eq('prospect_id', ps.prospect_id).order('created_at', { ascending: false }).limit(20),
+    ])
+
+    // Setar todos os estados de uma vez
+    const nfs = nfsRes.data ?? []
+    const portfolioData = portfolioRes.data ?? []
+    const normas = normasRes.data ?? []
+    const equip = equipRes.data ?? []
+
+    setDrawerNfs(nfs)
+    setDrawerNfsLoading(false)
+    setDrawerPortfolio(portfolioData)
+    setDrawerPortfolioLoading(false)
+    setDrawerNormas(normas)
+    setDrawerEquipamentos(equip)
+    setDrawerConcorrentes(concRes.data ?? [])
+    setDrawerDeals(dealsRes.data ?? [])
+    setDrawerOrcamentos(orcRes.data ?? [])
+    setDrawerEstoque(estRes.data ?? [])
+    setDrawerProducao(opRes.data ?? [])
+    setDrawerAtividades(ativRes.data ?? [])
+
+    // Mensagem regulatória via IA (async, não bloqueia)
     if (ps.segmento) {
-      setDrawerPortfolioLoading(true)
-      const { data: pData } = await supabaseAdmin
-        .from('segmento_portfolio')
-        .select('id, relevancia, destaque, portfolio_produtos(id, nome, descricao, categoria, material, dimensoes, peso_kg, norma_aplicavel, laudo_url, laudo_descricao, ficha_tecnica, vantagens, aplicacoes)')
-        .eq('segmento', ps.segmento)
-        .order('relevancia', { ascending: false })
-      portfolioData = pData ?? []
-      setDrawerPortfolio(portfolioData)
-      setDrawerPortfolioLoading(false)
-    } else {
-      setDrawerPortfolio([])
-    }
-    // Carregar normas aplicáveis ao segmento
-    if (ps.segmento) {
-      const { data: nData } = await supabaseAdmin
-        .from('portfolio_normas')
-        .select('id, norma, orgao, titulo, status, penalidade, observacao, segmentos')
-        .contains('segmentos', [ps.segmento])
-      setDrawerNormas(nData ?? [])
-      // Carregar equipamentos obrigatórios do segmento
-      const { data: eData } = await supabaseAdmin
-        .from('segmento_equipamentos')
-        .select('*')
-        .eq('segmento', ps.segmento)
-        .order('obrigatorio', { ascending: false })
-      setDrawerEquipamentos(eData ?? [])
-      // Gerar mensagem regulatória via IA (usa pData do portfolio já carregado acima)
       setMsgRegulatoria('⏳ Gerando mensagem...')
-      gerarMsgRegulatorioIA(ps, nData ?? [], eData ?? [], portfolioData).then(msg => setMsgRegulatoria(msg))
+      gerarMsgRegulatorioIA(ps, normas, equip, portfolioData).then(msg => setMsgRegulatoria(msg))
     } else {
-      setDrawerNormas([])
-      setDrawerEquipamentos([])
       setMsgRegulatoria('')
     }
-    // Carregar concorrentes
-    const { data: concData } = await supabaseAdmin
-      .from('portfolio_concorrentes')
-      .select('*')
-    setDrawerConcorrentes(concData ?? [])
-    setFichaExpandida(null)
-    // Carregar deals do prospect
-    const { data: dealsData } = await supabaseAdmin
-      .from('pipeline_deals')
-      .select('id, titulo, estagio, valor_estimado, created_at, updated_at')
-      .eq('prospect_id', ps.prospect_id)
-      .order('created_at', { ascending: false })
-    setDrawerDeals(dealsData ?? [])
-
-    // Carregar orçamentos pelo CNPJ
-    if (cnpjLimpo) {
-      const { data: orcData } = await supabaseAdmin
-        .from('orcamentos')
-        .select('id, numero, status, valor_total, created_at')
-        .or(`cliente_cnpj.eq.${cnpjLimpo},cliente_cnpj.eq.${ps.cnpj}`)
-        .order('created_at', { ascending: false })
-        .limit(10)
-      setDrawerOrcamentos(orcData ?? [])
-    } else {
-      setDrawerOrcamentos([])
-    }
-
-    // Carregar estoque relevante (produtos do segmento com saldo)
-    if (ps.segmento) {
-      const { data: estData } = await supabaseAdmin
-        .from('estoque_itens')
-        .select('id, codigo, nome, saldo_atual, unidade, estoque_minimo')
-        .gt('saldo_atual', 0)
-        .eq('ativo', true)
-        .order('saldo_atual', { ascending: false })
-        .limit(20)
-      setDrawerEstoque(estData ?? [])
-    } else {
-      setDrawerEstoque([])
-    }
-
-    // Carregar produção ativa
-    const { data: opData } = await supabaseAdmin
-      .from('ordens_producao')
-      .select('id, numero, status, data_prevista, projetos(titulo)')
-      .in('status', ['planejada', 'liberada', 'em_producao'])
-      .order('data_prevista', { ascending: true })
-      .limit(10)
-    setDrawerProducao(opData ?? [])
 
     // Resumo NFs
     if (drawerNfs && drawerNfs.length > 0) {
@@ -2063,6 +2051,72 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════ */}
+      {/* E-MAILS */}
+      {aba === 'emails' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: '1rem', color: '#1a3a5c' }}>📧 E-mails Enviados</h3>
+            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.emails = false; carregarEmails() }} title="Atualizar">🔄 Atualizar</button>
+          </div>
+          {emailsLoading ? (
+            <div className={styles.loadingBox}>Carregando...</div>
+          ) : emailsLog.length === 0 ? (
+            <div className={styles.emptyState}>Nenhum e-mail enviado ainda. Use o botão "📧 Enviar E-mail" no detalhe do prospect.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {emailsLog.map((e: any) => {
+                const p = e.prospeccao
+                const nome = p?.nome_fantasia || p?.razao_social || '—'
+                let parsed: { assunto?: string; corpo?: string; destinatario?: string } | null = null
+                try { parsed = typeof e.detalhes === 'string' && e.detalhes.startsWith('{') ? JSON.parse(e.detalhes) : null } catch { /* old format */ }
+                const assunto = parsed?.assunto || e.detalhes || '—'
+                const isExpanded = emailExpandido === e.id
+                return (
+                  <div key={e.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', transition: 'border-color 0.15s' }}
+                    onMouseEnter={ev => (ev.currentTarget.style.borderColor = '#93c5fd')}
+                    onMouseLeave={ev => (ev.currentTarget.style.borderColor = '#e5e7eb')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px', cursor: 'pointer' }}
+                      onClick={() => setEmailExpandido(isExpanded ? null : e.id)}
+                    >
+                      <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>{isExpanded ? '▼' : '▶'}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, color: '#1a3a5c', fontSize: '0.9rem', marginBottom: 2 }}>{nome}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{p?.email || parsed?.destinatario || '—'}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#2563eb', marginTop: 2 }}>{typeof assunto === 'string' ? assunto.replace('E-mail enviado: ', '') : '—'}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        {p?.segmento && <div style={{ fontSize: '0.7rem', color: '#64748b', background: '#f1f5f9', padding: '2px 8px', borderRadius: 6, marginBottom: 4, display: 'inline-block' }}>{p.segmento}</div>}
+                        {p?.uf && <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{p.cidade}/{p.uf}</div>}
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>{fmtData(e.created_at)}</div>
+                      </div>
+                    </div>
+                    {isExpanded && (
+                      <div style={{ borderTop: '1px solid #e5e7eb', padding: '16px 20px', background: '#fafbfc' }}>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                          <button className={styles.btnSmall} style={{ background: '#2563eb', color: '#fff', border: 'none' }}
+                            onClick={() => { const ps = hotlist.find(h => h.prospect_id === e.prospect_id); if (ps) abrirDrawer(ps); else showMsg('erro', 'Prospect não está na Hot List atual') }}>
+                            Ver Prospect
+                          </button>
+                        </div>
+                        {parsed?.corpo ? (
+                          <div style={{ fontSize: '0.85rem', color: '#334155', lineHeight: 1.6, maxHeight: 400, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, background: '#fff' }}
+                            dangerouslySetInnerHTML={{ __html: parsed.corpo }}
+                          />
+                        ) : (
+                          <div style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>Conteúdo não disponível (e-mail enviado antes da atualização)</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════ */}
       {/* DASHBOARD */}
       {/* ══════════════════════════════════════════════════════════════════════ */}
       {aba === 'dashboard' && (
@@ -2422,6 +2476,24 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                       <div className={styles.drawerContatoRow}>
                         <span>{drawerPs.email}</span>
                         <button className={styles.btnSmall} onClick={() => { navigator.clipboard.writeText(drawerPs.email!); showMsg('ok', 'E-mail copiado') }}>Copiar</button>
+                        <button className={styles.btnSmall} disabled={enviandoEmail} style={{ background: '#2563eb', color: '#fff', border: 'none' }} onClick={async () => {
+                          setEnviandoEmail(true)
+                          try {
+                            const { data, error } = await supabaseAdmin.functions.invoke('enviar-email', {
+                              body: {
+                                acao: 'individual',
+                                para: drawerPs.email,
+                                nome: drawerPs.nome_fantasia || drawerPs.razao_social,
+                                segmento: drawerPs.segmento || '',
+                                prospect_id: drawerPs.prospect_id,
+                              }
+                            })
+                            if (error) throw error
+                            if (data?.ok) showMsg('ok', '✅ E-mail enviado!')
+                            else showMsg('erro', data?.erro || 'Erro ao enviar')
+                          } catch (e: any) { showMsg('erro', e.message || 'Erro ao enviar e-mail') }
+                          setEnviandoEmail(false)
+                        }}>{enviandoEmail ? '⏳ Enviando...' : '📧 Enviar E-mail'}</button>
                       </div>
                     )}
                     {/* WhatsApp dedicado */}
@@ -2766,6 +2838,41 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   )}
                 </div>
               )}
+
+              {/* 📋 Histórico de Atividades */}
+              <div className={styles.secaoColapsavel}>
+                <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('atividades')}>
+                  <span>{drawerSecoes.atividades ? '▼' : '▶'}</span>
+                  <span>📋 Histórico de Atividades {drawerAtividades.length > 0 ? `(${drawerAtividades.length})` : ''}</span>
+                </button>
+                {drawerSecoes.atividades && (
+                  <div style={{ padding: '12px 20px' }}>
+                    {drawerAtividades.length === 0 ? (
+                      <p className={styles.vazio}>Nenhuma atividade registrada</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {drawerAtividades.map((a: any) => {
+                          const icone = a.tipo === 'email' ? '📧' : a.tipo === 'whatsapp' || a.tipo === 'whatsapp_auto' ? '📱' : a.tipo === 'ligacao' ? '📞' : '📝'
+                          const corBg = a.tipo === 'email' ? '#eff6ff' : a.tipo === 'whatsapp' || a.tipo === 'whatsapp_auto' ? '#f0fdf4' : '#f8fafc'
+                          return (
+                            <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 12px', background: corBg, borderRadius: 8, fontSize: '0.82rem' }}>
+                              <span style={{ fontSize: '1.1rem', lineHeight: 1 }}>{icone}</span>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: 600, color: '#334155', marginBottom: 2 }}>
+                                  {a.tipo === 'email' ? 'E-mail enviado' : a.tipo === 'whatsapp' ? 'WhatsApp' : a.tipo === 'whatsapp_auto' ? 'WhatsApp (auto)' : a.tipo === 'ligacao' ? 'Ligação' : a.tipo}
+                                  {a.canal && <span style={{ fontWeight: 400, color: '#94a3b8', marginLeft: 6 }}>via {a.canal}</span>}
+                                </div>
+                                {a.detalhes && <div style={{ color: '#64748b', fontSize: '0.78rem' }}>{a.detalhes}</div>}
+                              </div>
+                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>{fmtData(a.created_at)}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* 📦 Estoque Disponível */}
               {drawerEstoque.length > 0 && (

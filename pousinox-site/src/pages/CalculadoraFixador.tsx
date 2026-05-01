@@ -398,7 +398,7 @@ export default function CalculadoraFixador() {
                 <div className={s.field}>
                   <label>Área total a revestir (m²) <span className={s.req}>*</span></label>
                   <input className={s.input} type="text" inputMode="decimal" placeholder="Ex: 274.7" value={areaTotal} onChange={e => setAreaTotal(e.target.value)} />
-                  <span className={s.hint}>Área total de piso ou parede onde o porcelanato será instalado</span>
+                  <span className={s.hint}>Área total de parede ou fachada onde o porcelanato será instalado</span>
                 </div>
 
                 <div className={s.grid2}>
