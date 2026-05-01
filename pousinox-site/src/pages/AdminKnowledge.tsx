@@ -24,14 +24,14 @@ const CATEGORIAS: { value: Categoria | 'todos'; label: string }[] = [
   { value: 'backend', label: 'Backend/API' },
   { value: 'deploy', label: 'Deploy' },
   { value: 'git', label: 'Git' },
-  { value: 'sites', label: 'Criacao de Sites' },
+  { value: 'sites', label: 'Criação de Sites' },
   { value: 'apps', label: 'Apps' },
 ]
 
 const NIVEL_LABEL: Record<Nivel, string> = {
   iniciante: '\uD83D\uDFE2 Iniciante',
-  intermediario: '\uD83D\uDFE1 Intermediario',
-  avancado: '\uD83D\uDD34 Avancado',
+  intermediario: '\uD83D\uDFE1 Intermediário',
+  avancado: '\uD83D\uDD34 Avançado',
 }
 
 const NIVEL_CLASS: Record<Nivel, string> = {
@@ -48,8 +48,8 @@ const GUIAS: Guia[] = [
     categoria: 'sql',
     nivel: 'iniciante',
     tags: ['supabase', 'sql', 'tabela', 'create table', 'rls'],
-    oQueE: 'Uma tabela e a estrutura basica de armazenamento de dados no banco PostgreSQL do Supabase. Cada tabela tem colunas (campos) e linhas (registros).',
-    quandoUsar: 'Sempre que voce precisa armazenar um novo tipo de dado no sistema. Ex: cadastrar fornecedores, ordens de producao, logs de atividade.',
+    oQueE: 'Uma tabela é a estrutura básica de armazenamento de dados no banco PostgreSQL do Supabase. Cada tabela tem colunas (campos) e linhas (registros).',
+    quandoUsar: 'Sempre que você precisa armazenar um novo tipo de dado no sistema. Ex: cadastrar fornecedores, ordens de produção, logs de atividade.',
     comoFazer: `-- Exemplo: tabela de fornecedores
 CREATE TABLE fornecedores (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -73,21 +73,21 @@ CREATE TRIGGER set_updated_at
   BEFORE UPDATE ON fornecedores
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();`,
     ondeFazer: 'Supabase Dashboard > SQL Editor. Cole o SQL e execute. Ou crie um arquivo em supabase/migrations/ para versionar.',
-    porQue: 'O banco de dados e a fundacao do sistema. Sem tabelas bem definidas, o frontend nao consegue salvar nem consultar dados. RLS garante seguranca.',
+    porQue: 'O banco de dados é a fundação do sistema. Sem tabelas bem definidas, o frontend não consegue salvar nem consultar dados. RLS garante segurança.',
   },
   {
     id: 'cron-job',
     titulo: 'Como criar um cron job (tarefa agendada)',
     categoria: 'sql',
     nivel: 'intermediario',
-    tags: ['cron', 'pg_cron', 'pg_net', 'agendamento', 'automatizacao'],
-    oQueE: 'Um cron job e uma tarefa que roda automaticamente em intervalos regulares no banco de dados, usando a extensao pg_cron do Supabase.',
-    quandoUsar: 'Para tarefas periodicas como: recalcular scores RFM diariamente, limpar registros antigos, enviar notificacoes agendadas.',
-    comoFazer: `-- Habilitar extensao (se ainda nao estiver)
+    tags: ['cron', 'pg_cron', 'pg_net', 'agendamento', 'automatização'],
+    oQueE: 'Um cron job é uma tarefa que roda automaticamente em intervalos regulares no banco de dados, usando a extensão pg_cron do Supabase.',
+    quandoUsar: 'Para tarefas periódicas como: recalcular scores RFM diariamente, limpar registros antigos, enviar notificações agendadas.',
+    comoFazer: `-- Habilitar extensão (se ainda não estiver)
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 CREATE EXTENSION IF NOT EXISTS pg_net;
 
--- Exemplo: recalcular RFM todo dia as 3h
+-- Exemplo: recalcular RFM todo dia às 3h
 SELECT cron.schedule(
   'rfm-diario',           -- nome do job
   '0 3 * * *',            -- cron expression: 3h todo dia
@@ -100,11 +100,11 @@ SELECT * FROM cron.job;
 -- Remover um job
 SELECT cron.unschedule('rfm-diario');
 
--- Ver historico de execucoes
+-- Ver histórico de execuções
 SELECT * FROM cron.job_run_details
 ORDER BY start_time DESC LIMIT 20;`,
     ondeFazer: 'Supabase Dashboard > SQL Editor. Precisa que pg_cron esteja habilitado em Database > Extensions.',
-    porQue: 'Automatiza tarefas repetitivas sem precisar de servidor externo. O banco faz tudo sozinho no horario certo.',
+    porQue: 'Automatiza tarefas repetitivas sem precisar de servidor externo. O banco faz tudo sozinho no horário certo.',
   },
   {
     id: 'rpc-function',
@@ -112,9 +112,9 @@ ORDER BY start_time DESC LIMIT 20;`,
     categoria: 'sql',
     nivel: 'intermediario',
     tags: ['function', 'rpc', 'plpgsql', 'supabase', 'stored procedure'],
-    oQueE: 'Uma function (ou RPC) e um bloco de codigo SQL que roda dentro do banco. Voce chama pelo frontend com supabaseAdmin.rpc("nome_funcao").',
-    quandoUsar: 'Quando precisa de logica complexa que seria lenta ou insegura no frontend. Ex: calcular scores, buscar dados agregados, operacoes em lote.',
-    comoFazer: `-- Exemplo: funcao que retorna top prospects por score
+    oQueE: 'Uma function (ou RPC) é um bloco de código SQL que roda dentro do banco. Você chama pelo frontend com supabaseAdmin.rpc("nome_funcao").',
+    quandoUsar: 'Quando precisa de lógica complexa que seria lenta ou insegura no frontend. Ex: calcular scores, buscar dados agregados, operações em lote.',
+    comoFazer: `-- Exemplo: função que retorna top prospects por score
 CREATE OR REPLACE FUNCTION fn_top_prospects(
   n INTEGER DEFAULT 50,
   filtro_uf TEXT DEFAULT NULL
@@ -127,7 +127,7 @@ RETURNS TABLE (
   score NUMERIC
 )
 LANGUAGE plpgsql
-SECURITY DEFINER  -- roda com permissoes do owner
+SECURITY DEFINER  -- roda com permissões do owner
 AS $$
 BEGIN
   RETURN QUERY
@@ -141,43 +141,43 @@ BEGIN
 END;
 $$;
 
--- Dar permissao para o service_role chamar
+-- Dar permissão para o service_role chamar
 GRANT EXECUTE ON FUNCTION fn_top_prospects TO service_role;
 
 -- Chamar no frontend:
 -- const { data } = await supabaseAdmin.rpc('fn_top_prospects', { n: 50, filtro_uf: 'MG' })`,
     ondeFazer: 'Supabase Dashboard > SQL Editor. Ou em arquivo de migration.',
-    porQue: 'Functions rodam direto no banco, muito mais rapidas que buscar tudo no frontend e processar. SECURITY DEFINER garante que a logica tem as permissoes certas.',
+    porQue: 'Functions rodam direto no banco, muito mais rápidas que buscar tudo no frontend e processar. SECURITY DEFINER garante que a lógica tem as permissões certas.',
   },
   {
     id: 'criar-indice',
-    titulo: 'Como criar um indice no banco',
+    titulo: 'Como criar um índice no banco',
     categoria: 'sql',
     nivel: 'intermediario',
-    tags: ['index', 'performance', 'consulta', 'otimizacao'],
-    oQueE: 'Um indice e como um "sumario" que o banco cria para encontrar dados mais rapido. Sem indice, o banco precisa ler TODAS as linhas da tabela.',
-    quandoUsar: 'Quando uma consulta esta lenta, especialmente em tabelas grandes (>10K linhas). Consultas com WHERE, JOIN ou ORDER BY se beneficiam de indices.',
-    comoFazer: `-- Criar indice SEM travar a tabela (sempre usar CONCURRENTLY)
+    tags: ['índice', 'performance', 'consulta', 'otimização'],
+    oQueE: 'Um índice é como um "sumário" que o banco cria para encontrar dados mais rápido. Sem índice, o banco precisa ler TODAS as linhas da tabela.',
+    quandoUsar: 'Quando uma consulta está lenta, especialmente em tabelas grandes (>10K linhas). Consultas com WHERE, JOIN ou ORDER BY se beneficiam de índices.',
+    comoFazer: `-- Criar índice SEM travar a tabela (sempre usar CONCURRENTLY)
 CREATE INDEX CONCURRENTLY idx_prospeccao_uf
   ON prospeccao (uf);
 
--- Indice composto (2+ colunas)
+-- Índice composto (2+ colunas)
 CREATE INDEX CONCURRENTLY idx_prospeccao_uf_segmento
   ON prospeccao (uf, segmento);
 
--- Indice parcial (so para registros ativos)
+-- Índice parcial (só para registros ativos)
 CREATE INDEX CONCURRENTLY idx_prospeccao_ativo
   ON prospeccao (uf) WHERE ativo = true;
 
--- Ver indices existentes de uma tabela
+-- Ver índices existentes de uma tabela
 SELECT indexname, indexdef
 FROM pg_indexes
 WHERE tablename = 'prospeccao';
 
--- Remover indice desnecessario
+-- Remover índice desnecessário
 DROP INDEX IF EXISTS idx_prospeccao_uf;`,
-    ondeFazer: 'Supabase Dashboard > SQL Editor. Usar CONCURRENTLY para nao travar o banco durante a criacao.',
-    porQue: 'Sem indice, consultas em tabelas com 800K+ registros (como prospeccao) podem levar segundos. Com indice, caem para milissegundos.',
+    ondeFazer: 'Supabase Dashboard > SQL Editor. Usar CONCURRENTLY para não travar o banco durante a criação.',
+    porQue: 'Sem índice, consultas em tabelas com 800K+ registros (como prospecção) podem levar segundos. Com índice, caem para milissegundos.',
   },
   {
     id: 'migration',
@@ -185,12 +185,12 @@ DROP INDEX IF EXISTS idx_prospeccao_uf;`,
     categoria: 'sql',
     nivel: 'iniciante',
     tags: ['migration', 'versionamento', 'sql', 'supabase'],
-    oQueE: 'Uma migration e um arquivo SQL versionado que documenta mudancas no banco. Fica em supabase/migrations/ com timestamp no nome.',
-    quandoUsar: 'Sempre que voce muda a estrutura do banco: criar tabela, adicionar coluna, criar function. Isso garante que as mudancas sao rastreadas e reproduziveis.',
+    oQueE: 'Uma migration é um arquivo SQL versionado que documenta mudanças no banco. Fica em supabase/migrations/ com timestamp no nome.',
+    quandoUsar: 'Sempre que você muda a estrutura do banco: criar tabela, adicionar coluna, criar function. Isso garante que as mudanças são rastreadas e reproduzíveis.',
     comoFazer: `-- 1. Criar arquivo com timestamp
 -- Nome: supabase/migrations/20260501_nova_feature.sql
 
--- 2. Escrever o SQL da mudanca
+-- 2. Escrever o SQL da mudança
 CREATE TABLE minha_tabela (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   nome TEXT NOT NULL,
@@ -203,8 +203,8 @@ CREATE POLICY "Service role only"
 
 -- 3. Executar no SQL Editor do Supabase
 -- 4. Commitar o arquivo no Git`,
-    ondeFazer: 'Crie o arquivo .sql na pasta supabase/migrations/. Execute o conteudo no SQL Editor. Depois faca commit no Git.',
-    porQue: 'Sem migrations, voce perde o historico de mudancas do banco. Se precisar recriar o banco ou revisar o que mudou, as migrations sao essenciais.',
+    ondeFazer: 'Crie o arquivo .sql na pasta supabase/migrations/. Execute o conteúdo no SQL Editor. Depois faça commit no Git.',
+    porQue: 'Sem migrations, você perde o histórico de mudanças do banco. Se precisar recriar o banco ou revisar o que mudou, as migrations são essenciais.',
   },
 
   // Frontend
@@ -214,8 +214,8 @@ CREATE POLICY "Service role only"
     categoria: 'frontend',
     nivel: 'iniciante',
     tags: ['react', 'componente', 'typescript', 'props', 'estado'],
-    oQueE: 'Um componente React e uma funcao TypeScript que retorna HTML (JSX). E a unidade basica de construcao da interface.',
-    quandoUsar: 'Sempre que voce precisa de um pedaco reutilizavel de interface. Ex: um botao customizado, um card de produto, um formulario.',
+    oQueE: 'Um componente React é uma função TypeScript que retorna HTML (JSX). É a unidade básica de construção da interface.',
+    quandoUsar: 'Sempre que você precisa de um pedaço reutilizável de interface. Ex: um botão customizado, um card de produto, um formulário.',
     comoFazer: `// src/components/MeuComponente/MeuComponente.tsx
 
 import { useState } from 'react'
@@ -244,24 +244,24 @@ export default function MeuComponente({ titulo, valor = 0, onChange }: MeuCompon
     </div>
   )
 }`,
-    ondeFazer: 'Crie o arquivo .tsx dentro de src/components/ (se reutilizavel) ou src/pages/ (se for pagina). Sempre acompanhado do .module.css.',
-    porQue: 'Componentes permitem reutilizar interface e logica. Em vez de copiar HTML, voce importa o componente onde precisar.',
+    ondeFazer: 'Crie o arquivo .tsx dentro de src/components/ (se reutilizável) ou src/pages/ (se for página). Sempre acompanhado do .module.css.',
+    porQue: 'Componentes permitem reutilizar interface e lógica. Em vez de copiar HTML, você importa o componente onde precisar.',
   },
   {
     id: 'pagina-admin',
-    titulo: 'Como criar uma pagina admin (modulo completo)',
+    titulo: 'Como criar uma página admin (módulo completo)',
     categoria: 'frontend',
     nivel: 'intermediario',
-    tags: ['admin', 'modulo', 'rota', 'permissao', 'nav'],
-    oQueE: 'Um modulo admin e uma pagina completa dentro do painel administrativo, com rota propria, permissao de acesso e item no menu lateral.',
-    quandoUsar: 'Quando voce precisa de uma nova area no admin. Ex: gestao de fornecedores, controle de qualidade, novo relatorio.',
+    tags: ['admin', 'módulo', 'rota', 'permissão', 'nav'],
+    oQueE: 'Um módulo admin é uma página completa dentro do painel administrativo, com rota própria, permissão de acesso e item no menu lateral.',
+    quandoUsar: 'Quando você precisa de uma nova área no admin. Ex: gestão de fornecedores, controle de qualidade, novo relatório.',
     comoFazer: `// 1. Criar o componente: src/pages/AdminNovo.tsx
 import styles from './AdminNovo.module.css'
 
 export default function AdminNovo() {
   return (
     <div className={styles.container}>
-      <h2>Novo Modulo</h2>
+      <h2>Novo Módulo</h2>
     </div>
   )
 }
@@ -275,21 +275,21 @@ export default function AdminNovo() {
 // 4. Em AdminLayout.tsx:
 // - Adicionar em ROTA_PERMISSAO: novo: 'novo'
 // - Adicionar 'novo' em TODAS_PERMISSOES
-// - Adicionar item em NAV_ITEMS com icone SVG
+// - Adicionar item em NAV_ITEMS com ícone SVG
 
-// 5. Dar permissao no banco:
+// 5. Dar permissão no banco:
 // UPDATE admin_perfis SET permissoes = permissoes || '{novo}';`,
-    ondeFazer: 'Arquivo .tsx em src/pages/, rota em App.tsx, permissoes em AdminLayout.tsx, SQL no Supabase.',
-    porQue: 'Seguir esse padrao garante que o modulo tera controle de acesso, aparecera no menu e sera consistente com os outros modulos.',
+    ondeFazer: 'Arquivo .tsx em src/pages/, rota em App.tsx, permissões em AdminLayout.tsx, SQL no Supabase.',
+    porQue: 'Seguir esse padrão garante que o módulo terá controle de acesso, aparecerá no menu e será consistente com os outros módulos.',
   },
   {
     id: 'css-modules',
     titulo: 'CSS Modules - como funciona',
     categoria: 'frontend',
     nivel: 'iniciante',
-    tags: ['css', 'modulos', 'estilos', 'classes'],
-    oQueE: 'CSS Modules e um sistema onde cada arquivo .module.css gera classes unicas automaticamente. Isso evita conflito de nomes entre componentes.',
-    quandoUsar: 'Sempre que criar um componente ou pagina. E o padrao do projeto Pousinox.',
+    tags: ['css', 'módulos', 'estilos', 'classes'],
+    oQueE: 'CSS Modules é um sistema onde cada arquivo .module.css gera classes únicas automaticamente. Isso evita conflito de nomes entre componentes.',
+    quandoUsar: 'Sempre que criar um componente ou página. É o padrão do projeto Pousinox.',
     comoFazer: `/* MeuComponente.module.css */
 .container {
   padding: 24px;
@@ -312,12 +312,12 @@ export default function AdminNovo() {
 // import styles from './MeuComponente.module.css'
 // <div className={styles.container}>
 // <h2 className={styles.titulo}>Titulo</h2>
-// <div className={styles.card}>conteudo</div>
+// <div className={styles.card}>conteúdo</div>
 
 /* Para classes adicionadas via JS puro (body.classList.add): */
 /* usar :global(.minhaClasse) { ... } */`,
     ondeFazer: 'Crie o arquivo .module.css ao lado do .tsx. Importe como "styles" no componente.',
-    porQue: 'Sem CSS Modules, classes como .container ou .card de componentes diferentes podem conflitar. Com Modules, cada classe e unica.',
+    porQue: 'Sem CSS Modules, classes como .container ou .card de componentes diferentes podem conflitar. Com Modules, cada classe é única.',
   },
   {
     id: 'searchable-select',
@@ -325,18 +325,18 @@ export default function AdminNovo() {
     categoria: 'frontend',
     nivel: 'iniciante',
     tags: ['select', 'dropdown', 'busca', 'componente', 'filtro'],
-    oQueE: 'SearchableSelect e um componente dropdown com campo de busca integrado. Substitui o <select> nativo com melhor UX.',
-    quandoUsar: 'Em formularios onde ha muitas opcoes (UFs, segmentos, fornecedores). Permite digitar para filtrar.',
+    oQueE: 'SearchableSelect é um componente dropdown com campo de busca integrado. Substitui o <select> nativo com melhor UX.',
+    quandoUsar: 'Em formulários onde há muitas opções (UFs, segmentos, fornecedores). Permite digitar para filtrar.',
     comoFazer: `import SearchableSelect from '../components/SearchableSelect/SearchableSelect'
 
-// Opcoes no formato { value, label }
+// Opções no formato { value, label }
 const opcoes = [
   { value: 'MG', label: 'Minas Gerais' },
-  { value: 'SP', label: 'Sao Paulo' },
+  { value: 'SP', label: 'São Paulo' },
   { value: 'RJ', label: 'Rio de Janeiro' },
 ]
 
-// Uso basico
+// Uso básico
 <SearchableSelect
   value={ufSelecionada}
   onChange={setUfSelecionada}
@@ -347,12 +347,12 @@ const opcoes = [
 />
 
 // O componente:
-// - Filtra opcoes conforme digita
-// - Highlight na opcao selecionada
-// - Botao X para limpar selecao
+// - Filtra opções conforme digita
+// - Highlight na opção selecionada
+// - Botão X para limpar seleção
 // - Fecha ao clicar fora`,
-    ondeFazer: 'Importe de src/components/SearchableSelect/SearchableSelect.tsx e passe as props necessarias.',
-    porQue: 'O select nativo do HTML e limitado: nao tem busca, nao tem estilo customizavel. SearchableSelect resolve isso com uma UX moderna.',
+    ondeFazer: 'Importe de src/components/SearchableSelect/SearchableSelect.tsx e passe as props necessárias.',
+    porQue: 'O select nativo do HTML é limitado: não tem busca, não tem estilo customizável. SearchableSelect resolve isso com uma UX moderna.',
   },
 
   // Backend/API
@@ -362,8 +362,8 @@ const opcoes = [
     categoria: 'backend',
     nivel: 'intermediario',
     tags: ['deno', 'edge function', 'supabase', 'api', 'serverless'],
-    oQueE: 'Uma Edge Function e um pedaco de codigo que roda no servidor do Supabase (Deno). Usado para logica que nao pode ficar no frontend (chaves secretas, processamento pesado).',
-    quandoUsar: 'Para integracoes com APIs externas (Z-API, Brave, Gemini), processamento de PDF, validacoes server-side.',
+    oQueE: 'Uma Edge Function é um pedaço de código que roda no servidor do Supabase (Deno). Usado para lógica que não pode ficar no frontend (chaves secretas, processamento pesado).',
+    quandoUsar: 'Para integrações com APIs externas (Z-API, Brave, Gemini), processamento de PDF, validações server-side.',
     comoFazer: `// supabase/supabase/functions/minha-funcao/index.ts
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -382,7 +382,7 @@ serve(async (req: Request) => {
       // Acessar secrets do Supabase
       const apiKey = Deno.env.get('MINHA_API_KEY')
 
-      // Sua logica aqui
+      // Sua lógica aqui
       const resultado = { ok: true, processado: dados }
 
       return new Response(JSON.stringify(resultado), {
@@ -390,7 +390,7 @@ serve(async (req: Request) => {
       })
     }
 
-    return new Response(JSON.stringify({ error: 'Acao invalida' }), {
+    return new Response(JSON.stringify({ error: 'Ação inválida' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -407,7 +407,7 @@ serve(async (req: Request) => {
 //   body: { acao: 'processar', dados: { nome: 'teste' } }
 // })`,
     ondeFazer: 'Criar pasta em supabase/supabase/functions/nome-funcao/ com index.ts. Deploy com: supabase functions deploy nome-funcao.',
-    porQue: 'O frontend e publico - qualquer pessoa pode ver o codigo. Chaves de API, logica de seguranca e processamento pesado devem ficar no servidor.',
+    porQue: 'O frontend é público - qualquer pessoa pode ver o código. Chaves de API, lógica de segurança e processamento pesado devem ficar no servidor.',
   },
   {
     id: 'supabase-api',
@@ -415,8 +415,8 @@ serve(async (req: Request) => {
     categoria: 'backend',
     nivel: 'iniciante',
     tags: ['supabase', 'select', 'insert', 'update', 'delete', 'rpc', 'api'],
-    oQueE: 'O cliente Supabase (@supabase/supabase-js) permite fazer operacoes no banco diretamente do frontend: buscar, inserir, atualizar e deletar dados.',
-    quandoUsar: 'Sempre que precisar ler ou escrever dados no banco. E a forma padrao de interagir com o Supabase no projeto.',
+    oQueE: 'O cliente Supabase (@supabase/supabase-js) permite fazer operações no banco diretamente do frontend: buscar, inserir, atualizar e deletar dados.',
+    quandoUsar: 'Sempre que precisar ler ou escrever dados no banco. É a forma padrão de interagir com o Supabase no projeto.',
     comoFazer: `import { supabaseAdmin } from '../lib/supabase'
 
 // SELECT - buscar dados
@@ -437,7 +437,7 @@ const { data } = await supabaseAdmin
 // INSERT - inserir registro
 const { data, error } = await supabaseAdmin
   .from('fornecedores')
-  .insert({ nome: 'Acos Silva', cnpj: '12345678000100' })
+  .insert({ nome: 'Aços Silva', cnpj: '12345678000100' })
   .select()
   .single()
 
@@ -456,7 +456,7 @@ const { error } = await supabaseAdmin
 // RPC - chamar function do banco
 const { data } = await supabaseAdmin
   .rpc('fn_top_prospects', { n: 50 })`,
-    ondeFazer: 'Em qualquer componente React. Importe supabaseAdmin de src/lib/supabase.ts. Para tabelas publicas, use supabase (sem Admin).',
+    ondeFazer: 'Em qualquer componente React. Importe supabaseAdmin de src/lib/supabase.ts. Para tabelas públicas, use supabase (sem Admin).',
     porQue: 'O Supabase gera uma API REST automaticamente para cada tabela. O cliente JS facilita as chamadas com tipagem e filtros encadeados.',
   },
   {
@@ -464,12 +464,12 @@ const { data } = await supabaseAdmin
     titulo: 'Como usar a Z-API (WhatsApp)',
     categoria: 'backend',
     nivel: 'avancado',
-    tags: ['zapi', 'whatsapp', 'mensagem', 'validacao', 'api'],
-    oQueE: 'A Z-API e o servico usado para integrar WhatsApp no sistema. Permite verificar se um numero tem WhatsApp e enviar mensagens.',
-    quandoUsar: 'Para validar numeros de telefone de prospects (verificar se aceitam WhatsApp) e para envio de mensagens automatizadas.',
+    tags: ['zapi', 'whatsapp', 'mensagem', 'validação', 'api'],
+    oQueE: 'A Z-API é o serviço usado para integrar WhatsApp no sistema. Permite verificar se um número tem WhatsApp e enviar mensagens.',
+    quandoUsar: 'Para validar números de telefone de prospects (verificar se aceitam WhatsApp) e para envio de mensagens automatizadas.',
     comoFazer: `// Edge function: supabase/supabase/functions/validar-whatsapp/index.ts
 
-// Verificar se numero tem WhatsApp
+// Verificar se número tem WhatsApp
 const response = await fetch(
   \`https://api.z-api.io/instances/\${INSTANCE_ID}/token/\${TOKEN}/phone-exists/\${telefone}\`,
   {
@@ -481,9 +481,9 @@ const result = await response.json()
 // result.exists = true/false
 
 // IMPORTANTE: Rate limit de 600ms entre chamadas
-// Em lote, processar no maximo 50 por vez com delay
+// Em lote, processar no máximo 50 por vez com delay
 
-// Secrets necessarias no Supabase:
+// Secrets necessárias no Supabase:
 // ZAPI_INSTANCE_ID
 // ZAPI_TOKEN
 // ZAPI_CLIENT_TOKEN
@@ -492,8 +492,8 @@ const result = await response.json()
 // await supabaseAdmin.functions.invoke('validar-whatsapp', {
 //   body: { acao: 'check', telefone: '5535999998888' }
 // })`,
-    ondeFazer: 'Toda integracao Z-API deve ficar em Edge Functions (nunca no frontend). As chaves ficam como secrets do Supabase.',
-    porQue: 'As chaves da Z-API dao acesso total a sua conta WhatsApp Business. Se ficarem no frontend, qualquer pessoa pode usa-las.',
+    ondeFazer: 'Toda integração Z-API deve ficar em Edge Functions (nunca no frontend). As chaves ficam como secrets do Supabase.',
+    porQue: 'As chaves da Z-API dão acesso total à sua conta WhatsApp Business. Se ficarem no frontend, qualquer pessoa pode usá-las.',
   },
 
   // Deploy
@@ -502,9 +502,9 @@ const result = await response.json()
     titulo: 'Como fazer deploy no Cloudflare Pages',
     categoria: 'deploy',
     nivel: 'iniciante',
-    tags: ['cloudflare', 'deploy', 'build', 'wrangler', 'producao'],
-    oQueE: 'Cloudflare Pages hospeda o site estatico (HTML/CSS/JS) gerado pelo Vite. O deploy envia os arquivos da pasta dist/ para os servidores da Cloudflare.',
-    quandoUsar: 'Apos finalizar alteracoes e testar localmente. O deploy publica as mudancas no site pousinox.com.br.',
+    tags: ['cloudflare', 'deploy', 'build', 'wrangler', 'produção'],
+    oQueE: 'Cloudflare Pages hospeda o site estático (HTML/CSS/JS) gerado pelo Vite. O deploy envia os arquivos da pasta dist/ para os servidores da Cloudflare.',
+    quandoUsar: 'Após finalizar alterações e testar localmente. O deploy publica as mudanças no site pousinox.com.br.',
     comoFazer: `# 1. Build do projeto
 npm run build
 
@@ -518,10 +518,10 @@ npx wrangler pages deploy dist/ --project-name pousinox-institucional
 # 4. Verificar no Cloudflare Dashboard
 # https://dash.cloudflare.com > Pages > pousinox-institucional
 
-# Deploy automatico (configurado):
+# Deploy automático (configurado):
 # Push para branch main > Cloudflare auto-build > deploy`,
-    ondeFazer: 'No terminal, na pasta pousinox-site/. Certifique-se de que o build nao tem erros antes de fazer deploy.',
-    porQue: 'O deploy e o que leva suas mudancas do computador local para o site acessivel publicamente. Sem deploy, as alteracoes ficam so no seu PC.',
+    ondeFazer: 'No terminal, na pasta pousinox-site/. Certifique-se de que o build não tem erros antes de fazer deploy.',
+    porQue: 'O deploy é o que leva suas mudanças do computador local para o site acessível publicamente. Sem deploy, as alterações ficam só no seu PC.',
   },
   {
     id: 'deploy-edge-functions',
@@ -529,13 +529,13 @@ npx wrangler pages deploy dist/ --project-name pousinox-institucional
     categoria: 'deploy',
     nivel: 'iniciante',
     tags: ['supabase', 'edge function', 'deploy', 'deno'],
-    oQueE: 'Deploy de Edge Functions envia o codigo Deno para os servidores do Supabase, tornando a funcao acessivel via API.',
-    quandoUsar: 'Apos criar ou alterar uma Edge Function. Precisa fazer deploy para que as mudancas tenham efeito.',
-    comoFazer: `# Deploy de uma funcao especifica
+    oQueE: 'Deploy de Edge Functions envia o código Deno para os servidores do Supabase, tornando a função acessível via API.',
+    quandoUsar: 'Após criar ou alterar uma Edge Function. Precisa fazer deploy para que as mudanças tenham efeito.',
+    comoFazer: `# Deploy de uma função específica
 cd ../supabase
 supabase functions deploy minha-funcao --project-ref SEU_PROJECT_REF
 
-# Deploy de todas as funcoes
+# Deploy de todas as funções
 supabase functions deploy --project-ref SEU_PROJECT_REF
 
 # Adicionar secret (chave de API)
@@ -544,32 +544,32 @@ supabase secrets set MINHA_API_KEY=valor_da_chave --project-ref SEU_PROJECT_REF
 # Listar secrets
 supabase secrets list --project-ref SEU_PROJECT_REF
 
-# Ver logs da funcao
+# Ver logs da função
 supabase functions logs minha-funcao --project-ref SEU_PROJECT_REF`,
     ondeFazer: 'No terminal, na pasta supabase/. Precisa do CLI do Supabase instalado e estar logado (supabase login).',
-    porQue: 'Edge Functions rodam no servidor. Se voce nao fizer deploy, o Supabase continua rodando a versao antiga do codigo.',
+    porQue: 'Edge Functions rodam no servidor. Se você não fizer deploy, o Supabase continua rodando a versão antiga do código.',
   },
 
   // Git
   {
     id: 'fluxo-git',
-    titulo: 'Fluxo Git basico',
+    titulo: 'Fluxo Git básico',
     categoria: 'git',
     nivel: 'iniciante',
     tags: ['git', 'commit', 'push', 'branch', 'merge', 'versionamento'],
-    oQueE: 'Git e o sistema de versionamento que rastreia todas as mudancas no codigo. Cada "commit" e uma fotografia do estado do projeto naquele momento.',
+    oQueE: 'Git é o sistema de versionamento que rastreia todas as mudanças no código. Cada "commit" é uma fotografia do estado do projeto naquele momento.',
     quandoUsar: 'Sempre. Todo trabalho deve ser commitado no Git. Antes de desligar o computador, antes de mudar de assunto, antes de fazer deploy.',
     comoFazer: `# Ver o que mudou
 git status
 
-# Ver diferenca nos arquivos
+# Ver diferença nos arquivos
 git diff
 
-# Adicionar arquivos para commit (especificos)
+# Adicionar arquivos para commit (específicos)
 git add src/pages/AdminNovo.tsx src/pages/AdminNovo.module.css
 
 # Criar commit com mensagem descritiva
-git commit -m "feat: adicionar modulo AdminNovo com CRUD"
+git commit -m "feat: adicionar módulo AdminNovo com CRUD"
 
 # Enviar para o GitHub
 git push
@@ -582,38 +582,38 @@ git checkout -b minha-feature
 # Voltar para main
 git checkout main
 
-# Trazer mudancas da branch para main
+# Trazer mudanças da branch para main
 git merge minha-feature
 
-# --- Boas praticas ---
+# --- Boas práticas ---
 # Prefixos de commit:
 # feat:  nova funcionalidade
-# fix:   correcao de bug
-# chore: tarefas de manutencao
-# docs:  documentacao
-# refactor: refatoracao (sem mudar comportamento)`,
+# fix:   correção de bug
+# chore: tarefas de manutenção
+# docs:  documentação
+# refactor: refatoração (sem mudar comportamento)`,
     ondeFazer: 'No terminal (Git Bash, VS Code terminal, Claude Code). Sempre na pasta raiz do projeto.',
-    porQue: 'Sem Git voce perde o historico de mudancas. Se algo quebrar, voce pode voltar para uma versao anterior. Alem disso, o deploy depende do Git.',
+    porQue: 'Sem Git você perde o histórico de mudanças. Se algo quebrar, você pode voltar para uma versão anterior. Além disso, o deploy depende do Git.',
   },
   {
     id: 'badge-dinamica',
-    titulo: 'Como criar badges dinamicas com dados do estado',
+    titulo: 'Como criar badges dinâmicas com dados do estado',
     categoria: 'frontend',
     nivel: 'iniciante',
     tags: ['badge', 'jsx', 'array', 'join', 'filter', 'estado', 'react'],
-    oQueE: 'Badge e uma etiqueta visual que mostra informacao resumida (ex: "MG · Sul/Sudoeste de Minas · POUSO ALEGRE"). Ela reflete o estado atual dos filtros ou dados selecionados.',
-    quandoUsar: 'Sempre que tiver uma secao colapsavel ou card onde o usuario precisa ver o resumo sem abrir. Exemplos: filtros salvos, status, contadores.',
-    comoFazer: `// Exemplo real: badge do cron de prospeccao
+    oQueE: 'Badge é uma etiqueta visual que mostra informação resumida (ex: "MG · Sul/Sudoeste de Minas · POUSO ALEGRE"). Ela reflete o estado atual dos filtros ou dados selecionados.',
+    quandoUsar: 'Sempre que tiver uma seção colapsável ou card onde o usuário precisa ver o resumo sem abrir. Exemplos: filtros salvos, status, contadores.',
+    comoFazer: `// Exemplo real: badge do cron de prospecção
 // cronConfig tem arrays: { uf: ['MG'], mesorregiao: ['Sul/Sudoeste de Minas'], cidade: ['POUSO ALEGRE'], segmento: [] }
 
-// ERRADO - esquecendo um campo (cidade nao aparece):
+// ERRADO - esquecendo um campo (cidade não aparece):
 {[cronConfig.uf.join(','), cronConfig.mesorregiao.join(',')].filter(Boolean).join(' . ')}
 
 // CERTO - incluir TODOS os campos relevantes:
 {[
   cronConfig.uf.join(','),
   cronConfig.mesorregiao.join(','),
-  cronConfig.cidade.join(','),       // <-- nao esquecer!
+  cronConfig.cidade.join(','),       // <-- não esquecer!
   cronConfig.segmento.join(',')
 ].filter(Boolean).join(' . ')}
 // Resultado: "MG . Sul/Sudoeste de Minas . POUSO ALEGRE"
@@ -635,8 +635,8 @@ git merge minha-feature
 
 // Para strings: verificar se nao e vazio
 {filtro ? filtro : 'Todos'}`,
-    ondeFazer: 'No arquivo .tsx do modulo, dentro do JSX. Geralmente no <summary> de um <details> (secao colapsavel).',
-    porQue: 'Sem a badge, o usuario precisa abrir a secao para ver o que esta selecionado. Com a badge, a informacao fica visivel mesmo com a secao fechada.',
+    ondeFazer: 'No arquivo .tsx do módulo, dentro do JSX. Geralmente no <summary> de um <details> (seção colapsável).',
+    porQue: 'Sem a badge, o usuário precisa abrir a seção para ver o que está selecionado. Com a badge, a informação fica visível mesmo com a seção fechada.',
   },
   {
     id: 'admin-loading',
@@ -644,13 +644,13 @@ git merge minha-feature
     categoria: 'frontend',
     nivel: 'iniciante',
     tags: ['loading', 'spinner', 'progresso', 'componente', 'AdminLoading', 'useLoadingProgress'],
-    oQueE: 'AdminLoading e o componente padrao para estados de carregamento no admin. Tem dois modos: spinner animado (sem %) e anel de progresso (com %).',
+    oQueE: 'AdminLoading é o componente padrão para estados de carregamento no admin. Tem dois modos: spinner animado (sem %) e anel de progresso (com %).',
     quandoUsar: 'Sempre que o sistema estiver carregando dados, validando, fazendo upload/download. NUNCA usar texto "Carregando..." puro.',
     comoFazer: `// 1. Importar o componente
 import AdminLoading from '../components/AdminLoading/AdminLoading'
 
 // 2a. MODO SPINNER (sem progresso definido)
-// Usa quando nao sabe quantos passos faltam
+// Usa quando não sabe quantos passos faltam
 {loading ? <AdminLoading /> : <ConteudoReal />}
 
 // 2b. MODO PROGRESSO (com %)
@@ -659,10 +659,10 @@ import AdminLoading from '../components/AdminLoading/AdminLoading'
 // Mostra: anel com "30%" no centro
 
 // 2c. COM LABEL
-<AdminLoading label="Validando numeros..." />
+<AdminLoading label="Validando números..." />
 <AdminLoading total={50} current={25} label="Validando WhatsApp..." />
 
-// --- Hook useLoadingProgress (para progresso automatico) ---
+// --- Hook useLoadingProgress (para progresso automático) ---
 import { useLoadingProgress } from '../hooks/useLoadingProgress'
 
 // No componente:
@@ -673,13 +673,13 @@ async function carregarDados() {
   prog.reset(3) // 3 passos no total
 
   const { data: clientes } = await supabaseAdmin.from('clientes').select('*')
-  prog.step() // passo 1 concluido
+  prog.step() // passo 1 concluído
 
   const { data: vendas } = await supabaseAdmin.from('vendas').select('*')
-  prog.step() // passo 2 concluido
+  prog.step() // passo 2 concluído
 
   const { data: pipeline } = await supabaseAdmin.from('pipeline_deals').select('*')
-  prog.step() // passo 3 concluido (100%)
+  prog.step() // passo 3 concluído (100%)
 }
 
 // No JSX:
@@ -688,7 +688,7 @@ async function carregarDados() {
   : <ConteudoReal />
 }`,
     ondeFazer: 'Em qualquer arquivo .tsx de modulo admin. Importar de ../components/AdminLoading/AdminLoading.',
-    porQue: 'O spinner animado da feedback visual profissional ao usuario. O modo com % mostra exatamente quanto falta, evitando a sensacao de "travou". E padrao do sistema - usar texto simples e proibido.',
+    porQue: 'O spinner animado dá feedback visual profissional ao usuário. O modo com % mostra exatamente quanto falta, evitando a sensação de "travou". É padrão do sistema - usar texto simples é proibido.',
   },
 ]
 
@@ -769,7 +769,7 @@ export default function AdminKnowledge() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h2>Base de Conhecimento</h2>
-        <p>Guias praticos para desenvolvimento — busque por tema ou filtre por categoria.</p>
+        <p>Guias práticos para desenvolvimento — busque por tema ou filtre por categoria.</p>
       </div>
 
       <input
@@ -807,11 +807,11 @@ export default function AdminKnowledge() {
               <span className={styles.badgeCat}>{CATEGORIAS.find(c => c.value === g.categoria)?.label}</span>
             </summary>
             <div className={styles.cardBody}>
-              <GuiaSection titulo="O que e" conteudo={g.oQueE} />
+              <GuiaSection titulo="O que é" conteudo={g.oQueE} />
               <GuiaSection titulo="Quando usar" conteudo={g.quandoUsar} />
               <GuiaSection titulo="Como fazer" conteudo={g.comoFazer} />
               <GuiaSection titulo="Onde fazer" conteudo={g.ondeFazer} />
-              <GuiaSection titulo="Por que" conteudo={g.porQue} />
+              <GuiaSection titulo="Por quê" conteudo={g.porQue} />
             </div>
           </details>
         ))
