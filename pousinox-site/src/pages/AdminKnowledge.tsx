@@ -954,31 +954,126 @@ function CodeBlock({ code }: { code: string }) {
   )
 }
 
-function parseContent(text: string) {
-  const parts = text.split(/(```[\s\S]*?```|`[^`]+`)/)
-  return parts.map((part, i) => {
-    if (part.startsWith('```')) {
-      const code = part.replace(/^```\w*\n?/, '').replace(/\n?```$/, '')
-      return <CodeBlock key={i} code={code} />
+function RichContent({ text }: { text: string }) {
+  const lines = text.split('\n')
+  const elements: React.ReactNode[] = []
+  let i = 0
+
+  while (i < lines.length) {
+    const line = lines[i]
+    const trimmed = line.trim()
+
+    // Empty line
+    if (!trimmed) { i++; continue }
+
+    // Code block ```
+    if (trimmed.startsWith('```')) {
+      const codeLines: string[] = []
+      i++
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        codeLines.push(lines[i])
+        i++
+      }
+      i++ // skip closing ```
+      elements.push(<CodeBlock key={elements.length} code={codeLines.join('\n')} />)
+      continue
     }
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return <code key={i} style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: 4, fontSize: '0.85em' }}>{part.slice(1, -1)}</code>
+
+    // SQL/code block (starts with -- or CREATE or ALTER or SELECT or INSERT)
+    if (/^(--|CREATE |ALTER |SELECT |INSERT |UPDATE |DROP |WITH )/.test(trimmed)) {
+      const codeLines: string[] = [line]
+      i++
+      while (i < lines.length) {
+        const next = lines[i].trim()
+        if (!next || /^(--|CREATE |ALTER |SELECT |INSERT |UPDATE |DROP |WITH |  )/.test(lines[i]) || /[;)]$/.test(next)) {
+          codeLines.push(lines[i])
+          if (/;$/.test(next)) { i++; break }
+          i++
+        } else break
+      }
+      elements.push(<CodeBlock key={elements.length} code={codeLines.join('\n')} />)
+      continue
     }
-    return <span key={i}>{part}</span>
+
+    // HEADER LINE: ALL CAPS or ends with : (section headers like "COMPARATIVO:", "O QUE CAUSA BAN:")
+    if (/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/\-\(\)0-9,.:]+:?\s*$/.test(trimmed) && trimmed.length > 3) {
+      // Collect sub-items under this header
+      const header = trimmed.replace(/:$/, '')
+      const items: string[] = []
+      i++
+      while (i < lines.length) {
+        const next = lines[i].trim()
+        if (!next) { i++; continue }
+        // Stop if next ALL CAPS header
+        if (/^[A-ZÁÉÍÓÚÂÊÔÃÕÇ][A-ZÁÉÍÓÚÂÊÔÃÕÇ\s\/\-\(\)0-9,.:]+:?\s*$/.test(next) && next.length > 3) break
+        items.push(lines[i])
+        i++
+      }
+
+      if (items.length > 0) {
+        elements.push(
+          <div key={elements.length} className={styles.richBlock}>
+            <div className={styles.richBlockHeader}>{header}</div>
+            <div className={styles.richBlockBody}>
+              {items.map((item, j) => {
+                const t = item.trim()
+                // Numbered item: "1. ..."
+                if (/^\d+\.\s/.test(t)) {
+                  const num = t.match(/^(\d+)\.\s/)![1]
+                  const rest = t.replace(/^\d+\.\s/, '')
+                  return <div key={j} className={styles.richStep}><span className={styles.richStepNum}>{num}</span><span>{renderInline(rest)}</span></div>
+                }
+                // Checkbox item: "✅ ..." or "⛔ ..." or "⚠️ ..."
+                if (/^[✅⛔⚠️❌]/.test(t)) {
+                  const isOk = t.startsWith('✅')
+                  const isBad = t.startsWith('⛔') || t.startsWith('❌')
+                  return <div key={j} className={`${styles.richItem} ${isOk ? styles.richItemOk : isBad ? styles.richItemBad : styles.richItemWarn}`}>{renderInline(t)}</div>
+                }
+                // Key: Value pair
+                if (/^[\w\sáéíóúâêôãõç]+:\s/.test(t) && t.indexOf(':') < 30) {
+                  const [key, ...valParts] = t.split(':')
+                  const val = valParts.join(':').trim()
+                  return <div key={j} className={styles.richKV}><span className={styles.richKey}>{key}</span><span>{renderInline(val)}</span></div>
+                }
+                // Indented sub-item
+                if (item.startsWith('  ')) {
+                  return <div key={j} className={styles.richSubItem}>{renderInline(t)}</div>
+                }
+                return <div key={j} className={styles.richLine}>{renderInline(t)}</div>
+              })}
+            </div>
+          </div>
+        )
+      } else {
+        elements.push(<div key={elements.length} className={styles.richBlockHeader} style={{ marginBottom: 8 }}>{header}</div>)
+      }
+      continue
+    }
+
+    // Regular line
+    elements.push(<div key={elements.length} className={styles.richLine}>{renderInline(trimmed)}</div>)
+    i++
+  }
+
+  return <div className={styles.richContent}>{elements}</div>
+}
+
+function renderInline(text: string): React.ReactNode {
+  // Bold **text** and inline `code`
+  const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/)
+  return parts.map((p, i) => {
+    if (p.startsWith('**') && p.endsWith('**')) return <strong key={i}>{p.slice(2, -2)}</strong>
+    if (p.startsWith('`') && p.endsWith('`')) return <code key={i} style={{ background: '#f1f5f9', padding: '1px 5px', borderRadius: 4, fontSize: '0.85em' }}>{p.slice(1, -1)}</code>
+    return <span key={i}>{p}</span>
   })
 }
 
 function GuiaSection({ titulo, conteudo }: { titulo: string; conteudo: string }) {
   if (!conteudo) return null
-  const hasCode = conteudo.includes('```') || conteudo.includes('\n--') || conteudo.includes('\n//')
   return (
     <div className={styles.section}>
       <h4>{titulo}</h4>
-      {hasCode && !conteudo.includes('```') ? (
-        <CodeBlock code={conteudo} />
-      ) : (
-        <div>{parseContent(conteudo)}</div>
-      )}
+      <RichContent text={conteudo} />
     </div>
   )
 }
