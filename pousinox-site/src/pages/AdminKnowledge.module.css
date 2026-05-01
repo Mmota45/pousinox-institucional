@@ -687,6 +687,66 @@
   color: #374151;
 }
 
+/* Navegador embutido */
+.navOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 1100;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.navPanel {
+  width: 70%;
+  max-width: 1100px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 20px rgba(0,0,0,0.15);
+  animation: slideIn 0.2s ease;
+}
+
+.navToolbar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+}
+
+.navUrlBar {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.navUrlBar:focus {
+  border-color: #1a3a5c;
+}
+
+.navIframe {
+  flex: 1;
+  border: none;
+  width: 100%;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@media (max-width: 768px) {
+  .navPanel {
+    width: 100%;
+  }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }

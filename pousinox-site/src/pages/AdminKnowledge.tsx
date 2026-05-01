@@ -1333,11 +1333,16 @@ export default function AdminKnowledge() {
   const [vista, setVista] = useState<Vista>('lista')
   const [guiaAberto, setGuiaAberto] = useState<string | null>(null)
   const [acessos, setAcessos] = useState<Record<string, number>>({})
+  const [navUrl, setNavUrl] = useState<string | null>(null)
+  const [navInput, setNavInput] = useState('')
 
   useEffect(() => {
     setGuiasDinamicos(loadGuiasDinamicos())
     setAcessos(loadAcessos())
   }, [])
+
+  const abrirNav = (url: string) => { setNavUrl(url); setNavInput(url) }
+  const pesquisarGoogle = (q: string) => abrirNav(`https://www.google.com/search?igu=1&q=${encodeURIComponent(q)}`)
 
   const todasGuias: Guia[] = [...GUIAS, ...guiasDinamicos]
 
@@ -1457,13 +1462,11 @@ export default function AdminKnowledge() {
                     <GuiaSection titulo="Onde fazer" conteudo={g.ondeFazer} />
                     <GuiaSection titulo="Por quê" conteudo={g.porQue} />
                     <div className={styles.guiaActions}>
-                      <a
-                        className={styles.btnPerplexity}
-                        href={perplexityUrl(g.titulo)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Aprofundar no Perplexity
+                      <button className={styles.btnPerplexity} onClick={() => pesquisarGoogle(g.titulo + ' tutorial prático')}>
+                        Pesquisar no Google
+                      </button>
+                      <a className={styles.btnPerplexity} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }} href={perplexityUrl(g.titulo)} target="_blank" rel="noopener noreferrer">
+                        Perplexity
                       </a>
                       {isDinamico && g.rascunho && (
                         <button className={styles.btnPrimary} onClick={() => aprovarGuia(g.id)} style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
@@ -1485,6 +1488,35 @@ export default function AdminKnowledge() {
       )}
 
       {modalAberto && <SugerirGuiaModal onClose={() => setModalAberto(false)} onSave={salvarGuia} />}
+
+      {navUrl && (
+        <div className={styles.navOverlay}>
+          <div className={styles.navPanel}>
+            <div className={styles.navToolbar}>
+              <input
+                className={styles.navUrlBar}
+                value={navInput}
+                onChange={e => setNavInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') abrirNav(navInput) }}
+                placeholder="Digite URL ou pesquisa..."
+              />
+              <button className={styles.btnSecondary} onClick={() => {
+                const q = navInput.trim()
+                if (q.startsWith('http')) abrirNav(q)
+                else pesquisarGoogle(q)
+              }} style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Ir</button>
+              <a className={styles.btnSecondary} href={navUrl} target="_blank" rel="noopener noreferrer" style={{ padding: '6px 12px', fontSize: '0.8rem', textDecoration: 'none' }}>Nova aba</a>
+              <button className={styles.modalClose} onClick={() => setNavUrl(null)}>x</button>
+            </div>
+            <iframe
+              src={navUrl}
+              className={styles.navIframe}
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+              title="Navegador"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
