@@ -6,6 +6,7 @@ import { aiChat, aiParallel, type MultiResult } from '../lib/aiHelper'
 import AiActionButton from '../components/assistente/AiActionButton'
 import HistoricoModal from '../components/HistoricoModal/HistoricoModal'
 import ModalIframe from '../components/ModalIframe/ModalIframe'
+import SearchableSelect from '../components/SearchableSelect/SearchableSelect'
 import styles from './AdminCentralVendas.module.css'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -279,6 +280,7 @@ pousinox.com.br`
   const [waLoadingTab, setWaLoadingTab] = useState(false)
   const [cronConfig, setCronConfig] = useState<{ uf: string; mesorregiao: string; segmento: string }>({ uf: '', mesorregiao: '', segmento: '' })
   const [cronMesos, setCronMesos] = useState<string[]>([])
+  const [cronSegmentos, setCronSegmentos] = useState<string[]>([])
   const [cronSaving, setCronSaving] = useState(false)
   const [waAutoStats, setWaAutoStats] = useState<{ hoje: number; semana: number; total: number; respondidos: number; ultimos: any[] }>({ hoje: 0, semana: 0, total: 0, respondidos: 0, ultimos: [] })
   const [drawerNfs, setDrawerNfs] = useState<any[]>([])
@@ -525,6 +527,10 @@ pousinox.com.br`
         setCronMesos((mData ?? []).map((r: any) => r.mesorregiao).filter(Boolean))
       }
     }
+    // Carregar segmentos distintos
+    const { data: segData } = await supabaseAdmin.from('prospeccao').select('segmento').not('segmento', 'is', null).limit(10000)
+    const segsUnicos = [...new Set((segData ?? []).map((r: any) => r.segmento).filter(Boolean))].sort()
+    setCronSegmentos(segsUnicos)
     // Stats de prospecção automática
     const hojeISO = new Date().toISOString().slice(0, 10)
     const inicioSemana = new Date()
@@ -1627,35 +1633,45 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 Roda seg-sex 8h-18h, 20 mensagens a cada 30min. Filtre por região para focar a prospecção.
               </p>
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'end' }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', fontWeight: 600 }}>
-                  UF
-                  <select value={cronConfig.uf} onChange={async e => {
-                    const uf = e.target.value
-                    setCronConfig(p => ({ ...p, uf, mesorregiao: '' }))
-                    if (uf) {
-                      const { data } = await supabaseAdmin.rpc('fn_distinct_mesorregiao', { p_uf: uf })
-                      setCronMesos((data ?? []).map((r: any) => r.mesorregiao).filter(Boolean))
-                    } else { setCronMesos([]) }
-                  }} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem' }}>
-                    <option value="">Todos</option>
-                    {['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'].map(u =>
-                      <option key={u} value={u}>{u}</option>
-                    )}
-                  </select>
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', fontWeight: 600 }}>
-                  Mesorregião
-                  <select value={cronConfig.mesorregiao} onChange={e => setCronConfig(p => ({ ...p, mesorregiao: e.target.value }))}
-                    disabled={!cronConfig.uf} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem', minWidth: 200 }}>
-                    <option value="">Todas</option>
-                    {cronMesos.map(m => <option key={m} value={m}>{m}</option>)}
-                  </select>
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', fontWeight: 600 }}>
-                  Segmento
-                  <input value={cronConfig.segmento} onChange={e => setCronConfig(p => ({ ...p, segmento: e.target.value }))}
-                    placeholder="Ex: Restaurante" style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: '0.85rem', width: 160 }} />
-                </label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>UF</span>
+                  <SearchableSelect
+                    value={cronConfig.uf}
+                    onChange={async (uf) => {
+                      setCronConfig(p => ({ ...p, uf, mesorregiao: '' }))
+                      if (uf) {
+                        const { data } = await supabaseAdmin.rpc('fn_distinct_mesorregiao', { p_uf: uf })
+                        setCronMesos((data ?? []).map((r: any) => r.mesorregiao).filter(Boolean))
+                      } else { setCronMesos([]) }
+                    }}
+                    options={['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT','PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO'].map(u => ({ value: u, label: u }))}
+                    placeholder="Todos"
+                    searchPlaceholder="Buscar UF..."
+                    minWidth={100}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Mesorregião</span>
+                  <SearchableSelect
+                    value={cronConfig.mesorregiao}
+                    onChange={(v) => setCronConfig(p => ({ ...p, mesorregiao: v }))}
+                    options={cronMesos.map(m => ({ value: m, label: m }))}
+                    placeholder="Todas"
+                    searchPlaceholder="Buscar mesorregião..."
+                    minWidth={220}
+                  />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Segmento</span>
+                  <SearchableSelect
+                    value={cronConfig.segmento}
+                    onChange={(v) => setCronConfig(p => ({ ...p, segmento: v }))}
+                    options={cronSegmentos.map(s => ({ value: s, label: s }))}
+                    placeholder="Todos"
+                    searchPlaceholder="Buscar segmento..."
+                    minWidth={200}
+                  />
+                </div>
                 <button className={styles.btnPrimary} disabled={cronSaving} onClick={async () => {
                   setCronSaving(true)
                   const valor = { uf: cronConfig.uf || null, mesorregiao: cronConfig.mesorregiao || null, segmento: cronConfig.segmento || null }
