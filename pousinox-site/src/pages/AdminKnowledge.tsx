@@ -1012,8 +1012,8 @@ function RichContent({ text }: { text: string }) {
 
       if (items.length > 0) {
         elements.push(
-          <div key={elements.length} className={styles.richBlock}>
-            <div className={styles.richBlockHeader}>{header}</div>
+          <details key={elements.length} className={styles.richBlock}>
+            <summary className={styles.richBlockHeader}>{header}</summary>
             <div className={styles.richBlockBody}>
               {items.map((item, j) => {
                 const t = item.trim()
@@ -1042,7 +1042,7 @@ function RichContent({ text }: { text: string }) {
                 return <div key={j} className={styles.richLine}>{renderInline(t)}</div>
               })}
             </div>
-          </div>
+          </details>
         )
       } else {
         elements.push(<div key={elements.length} className={styles.richBlockHeader} style={{ marginBottom: 8 }}>{header}</div>)

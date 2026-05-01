@@ -567,6 +567,41 @@
   padding: 8px 14px;
   letter-spacing: 0.02em;
   border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.2s;
+}
+
+.richBlockHeader:hover {
+  background: #e2e8f0;
+}
+
+.richBlockHeader::-webkit-details-marker {
+  display: none;
+}
+
+.richBlockHeader::before {
+  content: '\25B6';
+  font-size: 0.6rem;
+  color: #9ca3af;
+  transition: transform 0.2s;
+}
+
+.richBlock[open] > .richBlockHeader::before {
+  transform: rotate(90deg);
+}
+
+.richBlock[open] > .richBlockHeader {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.richBlock:not([open]) > .richBlockHeader {
+  border-bottom: none;
+  border-radius: 0 0 10px 10px;
 }
 
 .richBlockBody {
