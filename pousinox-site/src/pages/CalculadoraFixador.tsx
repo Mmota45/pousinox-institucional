@@ -367,11 +367,11 @@ export default function CalculadoraFixador() {
         {/* Hero — orientado a acao */}
         <section className={s.hero}>
           <div className={s.heroInner}>
-            <div className={s.heroBadge}>Calcule gratis · Compre online · POUSINOX</div>
-            <h1 className={s.heroTitle}>Calcule e compre<br />fixadores de porcelanato</h1>
+            <div className={s.heroBadge}>Ferramenta gratuita · Direto do fabricante · POUSINOX</div>
+            <h1 className={s.heroTitle}>Especificacao tecnica<br />de fixadores de porcelanato</h1>
             <p className={s.heroSub}>
-              Quantidade exata de fixadores, parafusos e consumiveis
-              para fachada e revestimento. Orcamento na hora, compra com Pix.
+              Calcule a quantidade exata de fixadores, parafusos e consumiveis
+              para fachada e revestimento. Orcamento na hora, direto do fabricante.
             </p>
             <button type="button" className={s.heroCta} onClick={() => {
               document.getElementById('calc-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -391,8 +391,8 @@ export default function CalculadoraFixador() {
                 Direto do fabricante
               </div>
               <div className={s.trustItem}>
-                <span className={s.trustIcon}>💳</span>
-                Pix, cartao e boleto
+                <span className={s.trustIcon}>⚡</span>
+                Pix instantaneo
               </div>
               <div className={s.trustItem}>
                 <span className={s.trustIcon}>🚚</span>
