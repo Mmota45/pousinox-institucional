@@ -1644,8 +1644,8 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
             <summary className={styles.waSegmentoHeader}>
               <span>⚙️ Prospecção Automática (cron)</span>
               <span className={styles.waSegmentoBadge}>
-                {cronConfig.uf.length || cronConfig.mesorregiao.length || cronConfig.segmento.length
-                  ? [cronConfig.uf.join(','), cronConfig.mesorregiao.join(','), cronConfig.segmento.join(',')].filter(Boolean).join(' · ')
+                {cronConfig.uf.length || cronConfig.mesorregiao.length || cronConfig.cidade.length || cronConfig.segmento.length
+                  ? [cronConfig.uf.join(','), cronConfig.mesorregiao.join(','), cronConfig.cidade.join(','), cronConfig.segmento.join(',')].filter(Boolean).join(' · ')
                   : 'Todos'}
               </span>
             </summary>

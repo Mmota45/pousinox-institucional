@@ -595,6 +595,101 @@ git merge minha-feature
     ondeFazer: 'No terminal (Git Bash, VS Code terminal, Claude Code). Sempre na pasta raiz do projeto.',
     porQue: 'Sem Git voce perde o historico de mudancas. Se algo quebrar, voce pode voltar para uma versao anterior. Alem disso, o deploy depende do Git.',
   },
+  {
+    id: 'badge-dinamica',
+    titulo: 'Como criar badges dinamicas com dados do estado',
+    categoria: 'frontend',
+    nivel: 'iniciante',
+    tags: ['badge', 'jsx', 'array', 'join', 'filter', 'estado', 'react'],
+    oQueE: 'Badge e uma etiqueta visual que mostra informacao resumida (ex: "MG · Sul/Sudoeste de Minas · POUSO ALEGRE"). Ela reflete o estado atual dos filtros ou dados selecionados.',
+    quandoUsar: 'Sempre que tiver uma secao colapsavel ou card onde o usuario precisa ver o resumo sem abrir. Exemplos: filtros salvos, status, contadores.',
+    comoFazer: `// Exemplo real: badge do cron de prospeccao
+// cronConfig tem arrays: { uf: ['MG'], mesorregiao: ['Sul/Sudoeste de Minas'], cidade: ['POUSO ALEGRE'], segmento: [] }
+
+// ERRADO - esquecendo um campo (cidade nao aparece):
+{[cronConfig.uf.join(','), cronConfig.mesorregiao.join(',')].filter(Boolean).join(' . ')}
+
+// CERTO - incluir TODOS os campos relevantes:
+{[
+  cronConfig.uf.join(','),
+  cronConfig.mesorregiao.join(','),
+  cronConfig.cidade.join(','),       // <-- nao esquecer!
+  cronConfig.segmento.join(',')
+].filter(Boolean).join(' . ')}
+// Resultado: "MG . Sul/Sudoeste de Minas . POUSO ALEGRE"
+
+// --- Como funciona ---
+// 1. .join(',') converte array em string: ['MG','SP'] -> "MG,SP"
+// 2. Se array vazio, .join(',') retorna "" (string vazia)
+// 3. .filter(Boolean) remove strings vazias do array
+// 4. .join(' . ') junta tudo com separador bonito
+
+// --- Onde fica no JSX ---
+<span className={styles.badge}>
+  {temFiltro ? textoResumido : 'Todos'}
+</span>
+
+// --- Verificar se tem filtro ---
+// Para arrays: verificar .length
+{cronConfig.uf.length || cronConfig.cidade.length ? 'tem filtro' : 'Todos'}
+
+// Para strings: verificar se nao e vazio
+{filtro ? filtro : 'Todos'}`,
+    ondeFazer: 'No arquivo .tsx do modulo, dentro do JSX. Geralmente no <summary> de um <details> (secao colapsavel).',
+    porQue: 'Sem a badge, o usuario precisa abrir a secao para ver o que esta selecionado. Com a badge, a informacao fica visivel mesmo com a secao fechada.',
+  },
+  {
+    id: 'admin-loading',
+    titulo: 'Como usar o AdminLoading (spinner e progresso)',
+    categoria: 'frontend',
+    nivel: 'iniciante',
+    tags: ['loading', 'spinner', 'progresso', 'componente', 'AdminLoading', 'useLoadingProgress'],
+    oQueE: 'AdminLoading e o componente padrao para estados de carregamento no admin. Tem dois modos: spinner animado (sem %) e anel de progresso (com %).',
+    quandoUsar: 'Sempre que o sistema estiver carregando dados, validando, fazendo upload/download. NUNCA usar texto "Carregando..." puro.',
+    comoFazer: `// 1. Importar o componente
+import AdminLoading from '../components/AdminLoading/AdminLoading'
+
+// 2a. MODO SPINNER (sem progresso definido)
+// Usa quando nao sabe quantos passos faltam
+{loading ? <AdminLoading /> : <ConteudoReal />}
+
+// 2b. MODO PROGRESSO (com %)
+// Usa quando sabe o total de passos
+{loading ? <AdminLoading total={10} current={3} /> : <ConteudoReal />}
+// Mostra: anel com "30%" no centro
+
+// 2c. COM LABEL
+<AdminLoading label="Validando numeros..." />
+<AdminLoading total={50} current={25} label="Validando WhatsApp..." />
+
+// --- Hook useLoadingProgress (para progresso automatico) ---
+import { useLoadingProgress } from '../hooks/useLoadingProgress'
+
+// No componente:
+const prog = useLoadingProgress()
+
+// Ao carregar dados:
+async function carregarDados() {
+  prog.reset(3) // 3 passos no total
+
+  const { data: clientes } = await supabaseAdmin.from('clientes').select('*')
+  prog.step() // passo 1 concluido
+
+  const { data: vendas } = await supabaseAdmin.from('vendas').select('*')
+  prog.step() // passo 2 concluido
+
+  const { data: pipeline } = await supabaseAdmin.from('pipeline_deals').select('*')
+  prog.step() // passo 3 concluido (100%)
+}
+
+// No JSX:
+{loading
+  ? <AdminLoading total={prog.total} current={prog.current} label="Carregando dados..." />
+  : <ConteudoReal />
+}`,
+    ondeFazer: 'Em qualquer arquivo .tsx de modulo admin. Importar de ../components/AdminLoading/AdminLoading.',
+    porQue: 'O spinner animado da feedback visual profissional ao usuario. O modo com % mostra exatamente quanto falta, evitando a sensacao de "travou". E padrao do sistema - usar texto simples e proibido.',
+  },
 ]
 
 function CodeBlock({ code }: { code: string }) {
