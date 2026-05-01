@@ -848,6 +848,83 @@ PÁGINA DE PRIVACIDADE:
     ondeFazer: 'Política em src/pages/Privacidade.tsx. Canal de contato: adm@pousinox.com.br. Supabase: dados criptografados em trânsito (HTTPS/TLS).',
     porQue: 'Conformidade com a LGPD evita multas (até 2% do faturamento), processos judiciais e danos à reputação. Transparência e integridade são valores fundamentais da Pousinox.',
   },
+  {
+    id: 'lgpd-api-oficial-vs-nao-oficial',
+    titulo: 'WhatsApp: API Oficial vs Não Oficial — comparativo e migração',
+    categoria: 'lgpd',
+    nivel: 'intermediario',
+    tags: ['whatsapp', 'api oficial', 'interakt', 'z-api', 'meta', 'bsp', 'migração'],
+    oQueE: 'Existem duas formas de enviar WhatsApp por API: oficial (via BSP parceiro da Meta) e não oficial (via ferramentas como Z-API que simulam o WhatsApp Web). A API oficial elimina o risco de ban, mas tem custo por mensagem.',
+    quandoUsar: 'Ao decidir qual solução usar para prospecção, atendimento ou campanhas por WhatsApp. Especialmente após experiência de ban com API não oficial.',
+    comoFazer: `COMPARATIVO:
+
+API NÃO OFICIAL (Z-API):
+  Custo: R$99/mês (mensagens ilimitadas)
+  Risco de ban: ALTO
+  Setup: Simples (QR code)
+  Templates: Não precisa aprovação
+  Volume seguro: 10-15/dia para prospecção
+  Webhook: Sim
+  ⚠️ Viola termos do WhatsApp/Meta
+
+API OFICIAL (BSP — ex: Interakt):
+  Custo: ~R$63/mês + R$0,35/msg marketing
+  Risco de ban: ZERO
+  Setup: Verificação CNPJ + aprovação Meta (24-48h)
+  Templates: Precisa aprovação Meta (minutos)
+  Volume: Milhares/dia
+  Webhook: Sim
+  ✅ 100% dentro dos termos
+
+SIMULAÇÃO DE CUSTO MENSAL (330 msgs):
+  Z-API:     R$99  (risco médio-alto)
+  Interakt:  R$178 (risco zero)
+  Diferença: R$79/mês pela segurança total
+
+BSPs MAIS ACESSÍVEIS NO BRASIL:
+  1. Interakt — ~R$63/mês, sem taxa setup, 14 dias grátis
+  2. WATI — ~R$199/mês, +20% markup
+  3. Gupshup — variável, para grandes volumes
+  4. Twilio — pay-as-you-go, para devs
+
+COMO MIGRAR (Z-API → Interakt):
+  1. Criar conta na Interakt (interakt.shop)
+  2. Verificar empresa com CNPJ
+  3. Vincular chip NOVO (dedicado para prospecção)
+  4. Criar templates de mensagem → Meta aprova
+  5. Pegar API key da Interakt
+  6. Adicionar como secret no Supabase
+  7. Adaptar edge functions para nova API
+  8. Testar envio individual antes de automação
+
+TEMPLATES (exemplos para aprovação Meta):
+  Marketing/prospecção:
+    "Olá {{1}}! Sou da Pousinox, fabricante de fixadores
+     de porcelanato em aço inox. Temos soluções para
+     {{2}}. Posso enviar nosso catálogo?
+     Responda SAIR para não receber mais mensagens."
+
+  Utilidade (status pedido):
+    "Olá {{1}}, seu pedido {{2}} foi enviado!
+     Código de rastreio: {{3}}"
+
+O QUE O CLAUDE FAZ NA INTEGRAÇÃO:
+  ✅ Criar edge function nova (enviar-whatsapp-oficial)
+  ✅ Adaptar prospectar-whatsapp para Interakt
+  ✅ Adaptar validar-whatsapp
+  ✅ Integrar no admin (botões, drawer, hot list)
+  ✅ Configurar webhooks de resposta
+  ✅ Dashboard de custos no AdminUso
+
+O QUE VOCÊ FAZ:
+  ✅ Criar conta na Interakt
+  ✅ Verificar CNPJ
+  ✅ Vincular chip novo
+  ✅ Passar API key para o Claude
+  ✅ Adicionar secret no Supabase`,
+    ondeFazer: 'Edge functions em supabase/supabase/functions/. Secrets no Supabase Dashboard > Edge Functions > Secrets. Admin em src/pages/AdminCentralVendas.tsx.',
+    porQue: 'A Pousinox foi banida do WhatsApp usando Z-API (API não oficial). A migração para API oficial (Interakt) custa ~R$79/mês a mais, mas elimina 100% o risco de ban e garante conformidade com termos do WhatsApp e LGPD. Decisão tomada em 01/05/2026.',
+  },
 ]
 
 function CodeBlock({ code }: { code: string }) {
