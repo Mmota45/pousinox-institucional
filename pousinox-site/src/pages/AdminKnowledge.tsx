@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import styles from './AdminKnowledge.module.css'
 
-type Categoria = 'sql' | 'frontend' | 'backend' | 'deploy' | 'git' | 'sites' | 'apps'
+type Categoria = 'sql' | 'frontend' | 'backend' | 'deploy' | 'git' | 'sites' | 'apps' | 'lgpd'
 type Nivel = 'iniciante' | 'intermediario' | 'avancado'
 
 interface Guia {
@@ -26,6 +26,7 @@ const CATEGORIAS: { value: Categoria | 'todos'; label: string }[] = [
   { value: 'git', label: 'Git' },
   { value: 'sites', label: 'Criação de Sites' },
   { value: 'apps', label: 'Apps' },
+  { value: 'lgpd', label: 'LGPD/Compliance' },
 ]
 
 const NIVEL_LABEL: Record<Nivel, string> = {
@@ -689,6 +690,149 @@ async function carregarDados() {
 }`,
     ondeFazer: 'Em qualquer arquivo .tsx de modulo admin. Importar de ../components/AdminLoading/AdminLoading.',
     porQue: 'O spinner animado dá feedback visual profissional ao usuário. O modo com % mostra exatamente quanto falta, evitando a sensação de "travou". É padrão do sistema - usar texto simples é proibido.',
+  },
+  // LGPD/Compliance
+  {
+    id: 'lgpd-prospeccao-b2b',
+    titulo: 'LGPD: Como prospectar clientes B2B sem violar a lei',
+    categoria: 'lgpd',
+    nivel: 'intermediario',
+    tags: ['lgpd', 'prospecção', 'whatsapp', 'b2b', 'opt-out', 'legítimo interesse', 'compliance'],
+    oQueE: 'A LGPD (Lei 13.709/2018) regula o tratamento de dados pessoais no Brasil. Para prospecção B2B, a base legal mais adequada é o Legítimo Interesse (Art. 7º, IX). Dados públicos de CNPJ (Receita Federal) podem ser usados, mas telefone e e-mail de responsáveis são dados pessoais e precisam de tratamento adequado.',
+    quandoUsar: 'Sempre que for enviar mensagens comerciais (WhatsApp, e-mail, ligação) para empresas que NÃO solicitaram contato. Isso inclui prospecção manual e qualquer automação.',
+    comoFazer: `REGRAS OBRIGATÓRIAS:
+
+1. OPT-OUT em toda mensagem:
+   "Se não deseja receber comunicações, responda SAIR"
+
+2. RESPEITAR quem pedir para sair:
+   - Manter lista de bloqueio permanente no sistema
+   - Nunca mais enviar para quem pediu opt-out
+
+3. VOLUME CONTROLADO:
+   - Máximo 10-20 contatos novos por dia
+   - Nunca disparo em massa automatizado
+   - Warm-up gradual: começar com 5/dia
+
+4. DADOS PERMITIDOS (públicos):
+   ✅ Razão social, CNPJ, endereço comercial
+   ✅ Telefone comercial público
+   ✅ Segmento de atuação
+
+5. DADOS QUE EXIGEM CUIDADO:
+   ⚠️ Telefone celular de sócio/responsável
+   ⚠️ E-mail pessoal
+   ⚠️ CPF de sócio
+
+6. REGISTRO DO LEGÍTIMO INTERESSE:
+   Documento interno justificando:
+   - Por que o contato é relevante (segmento compatível)
+   - Como os dados foram obtidos (fonte pública)
+   - Medidas de mitigação (opt-out, volume limitado)
+
+RISCOS DE DESCUMPRIMENTO:
+⛔ Ban de WhatsApp (aconteceu conosco!)
+⛔ Multa ANPD: até 2% do faturamento
+⛔ Dano reputacional
+⛔ Processo judicial do titular`,
+    ondeFazer: 'A política de privacidade do site (/privacidade) já inclui seção 4.1 sobre prospecção B2B. O sistema deve respeitar a lista de bloqueio em prospect_bloqueio (futuro).',
+    porQue: 'A Pousinox foi banida do WhatsApp por envio em massa automatizado. Prospecção B2B é legal e necessária, mas precisa ser feita com volume controlado, opt-out claro e respeito ao titular. Transparência e integridade são valores da empresa.',
+  },
+  {
+    id: 'lgpd-whatsapp-limites',
+    titulo: 'WhatsApp API: limites seguros para não ser banido',
+    categoria: 'lgpd',
+    nivel: 'iniciante',
+    tags: ['whatsapp', 'z-api', 'ban', 'limites', 'rate limit', 'automação'],
+    oQueE: 'O WhatsApp (Meta) monitora o comportamento de envio de mensagens. Contas que enviam muitas mensagens para números que não interagiram antes são classificadas como spam e banidas temporária ou permanentemente.',
+    quandoUsar: 'Antes de configurar qualquer automação de WhatsApp: validação de números, envio de mensagens, cron jobs.',
+    comoFazer: `LIMITES SEGUROS (baseados em experiência real):
+
+VALIDAÇÃO DE NÚMEROS (phone-exists):
+  ✅ Máximo 50 por dia (1 execução diária)
+  ⛔ NÃO fazer a cada 5 minutos (causou ban!)
+  ⛔ NÃO validar centenas de uma vez
+
+ENVIO DE MENSAGENS (prospecção):
+  ✅ Máximo 10-15 mensagens novas por dia
+  ✅ Intervalo mínimo de 2-3 minutos entre envios
+  ✅ Warm-up: começar com 5/dia, aumentar 5 por semana
+  ⛔ NÃO enviar mais de 20/dia para contatos novos
+
+CRON JOBS RECOMENDADOS:
+  Validação: 1x/dia, lote de 50
+    '0 3 * * 1-5' (3h da manhã, seg-sex)
+
+  Prospecção: 1x/dia, lote de 10-15
+    '0 9 * * 1-5' (9h da manhã, seg-sex)
+
+O QUE CAUSA BAN:
+  ⛔ Muitas mensagens para números novos em curto período
+  ⛔ Validação em massa (centenas por hora)
+  ⛔ Mensagens não respondidas em alta taxa
+  ⛔ Denúncias de spam por destinatários
+  ⛔ Múltiplas sessões/dispositivos simultâneos
+
+SE FOR BANIDO:
+  1. NÃO tente reconectar a instância Z-API
+  2. Aguarde a análise do WhatsApp (24-72h)
+  3. Clique "Solicitar revisão" no app
+  4. Depois de liberado, espere 1 semana antes de reativar automação`,
+    ondeFazer: 'Cron jobs no SQL Editor do Supabase (pg_cron). Edge functions em supabase/supabase/functions/. Config no feature_flags (flag prospectar_whatsapp_config).',
+    porQue: 'A Pousinox foi banida do WhatsApp em 01/05/2026 por validação a cada 5 minutos (~288/dia) + prospecção automática. O número ficou em análise. Recuperação levou dias e causou perda de comunicação com clientes reais.',
+  },
+  {
+    id: 'lgpd-dados-pessoais',
+    titulo: 'LGPD: O que são dados pessoais e como tratar',
+    categoria: 'lgpd',
+    nivel: 'iniciante',
+    tags: ['lgpd', 'dados pessoais', 'tratamento', 'base legal', 'consentimento'],
+    oQueE: 'Dado pessoal é qualquer informação que identifique ou possa identificar uma pessoa natural (física). CNPJ não é dado pessoal, mas o telefone celular do sócio é. A LGPD exige uma base legal para cada tipo de tratamento.',
+    quandoUsar: 'Sempre que for coletar, armazenar, usar ou compartilhar qualquer dado que possa identificar uma pessoa.',
+    comoFazer: `TIPOS DE DADOS NO SISTEMA POUSINOX:
+
+DADOS EMPRESARIAIS (não pessoais):
+  ✅ CNPJ, razão social, nome fantasia
+  ✅ Endereço comercial
+  ✅ Telefone fixo comercial
+  ✅ Segmento, porte, faturamento
+
+DADOS PESSOAIS (exigem base legal):
+  ⚠️ Nome do sócio/responsável
+  ⚠️ CPF do sócio
+  ⚠️ Telefone celular pessoal
+  ⚠️ E-mail pessoal
+  ⚠️ WhatsApp (vinculado a pessoa)
+
+BASES LEGAIS MAIS USADAS:
+  1. Consentimento (Art. 7º, I):
+     Formulário de contato, cadastro, newsletter
+     → Precisa: checkbox "Li e aceito a política de privacidade"
+
+  2. Execução de contrato (Art. 7º, V):
+     Pedidos, entregas, checkout
+     → Não precisa consentimento extra
+
+  3. Legítimo interesse (Art. 7º, IX):
+     Prospecção B2B, análise de mercado
+     → Precisa: documentar justificativa + opt-out
+
+  4. Obrigação legal (Art. 7º, II):
+     NFs, dados fiscais
+     → Retenção obrigatória de 5 anos
+
+DIREITOS DO TITULAR (o que a pessoa pode pedir):
+  - Acessar seus dados
+  - Corrigir dados incorretos
+  - Excluir dados (quando não há obrigação legal)
+  - Revogar consentimento
+  - Portabilidade
+
+PÁGINA DE PRIVACIDADE:
+  /privacidade — já cobre todos esses pontos
+  Atualizar sempre que adicionar nova coleta de dados`,
+    ondeFazer: 'Política em src/pages/Privacidade.tsx. Canal de contato: adm@pousinox.com.br. Supabase: dados criptografados em trânsito (HTTPS/TLS).',
+    porQue: 'Conformidade com a LGPD evita multas (até 2% do faturamento), processos judiciais e danos à reputação. Transparência e integridade são valores fundamentais da Pousinox.',
   },
 ]
 

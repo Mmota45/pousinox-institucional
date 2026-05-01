@@ -285,6 +285,8 @@ pousinox.com.br`
   const [cronSegmentos, setCronSegmentos] = useState<string[]>([])
   const [cronCidades, setCronCidades] = useState<string[]>([])
   const [cronSaving, setCronSaving] = useState(false)
+  const [cronSegStats, setCronSegStats] = useState<{ segmento: string; total: number; validados: number; pendentes: number }[]>([])
+  const [cronSegLoading, setCronSegLoading] = useState(false)
   const [waAutoStats, setWaAutoStats] = useState<{ hoje: number; semana: number; total: number; respondidos: number; ultimos: any[] }>({ hoje: 0, semana: 0, total: 0, respondidos: 0, ultimos: [] })
   const [drawerNfs, setDrawerNfs] = useState<any[]>([])
   const [drawerNfsLoading, setDrawerNfsLoading] = useState(false)
@@ -511,6 +513,30 @@ pousinox.com.br`
     setGscSort(prev => ({ col, asc: prev.col === col ? !prev.asc : false }))
   }
 
+  const carregarCronSegStats = useCallback(async () => {
+    setCronSegLoading(true)
+    try {
+      let query = supabaseAdmin.from('prospeccao').select('segmento, whatsapp_validado').not('telefone1', 'is', null)
+      if (cronConfig.uf.length) query = query.in('uf', cronConfig.uf)
+      if (cronConfig.mesorregiao.length) query = query.in('mesorregiao', cronConfig.mesorregiao)
+      if (cronConfig.cidade.length) query = query.in('cidade', cronConfig.cidade)
+      const { data } = await query.limit(50000)
+      if (data) {
+        const map = new Map<string, { total: number; validados: number; pendentes: number }>()
+        for (const r of data) {
+          const seg = r.segmento || 'Sem segmento'
+          const e = map.get(seg) || { total: 0, validados: 0, pendentes: 0 }
+          e.total++
+          if (r.whatsapp_validado) e.validados++
+          else e.pendentes++
+          map.set(seg, e)
+        }
+        setCronSegStats([...map.entries()].map(([segmento, v]) => ({ segmento, ...v })).sort((a, b) => b.total - a.total))
+      }
+    } catch { /* ignore */ }
+    setCronSegLoading(false)
+  }, [cronConfig])
+
   const carregarWaTab = useCallback(async () => {
     setWaLoadingTab(true)
     // Buscar contagens + config do cron
@@ -551,6 +577,8 @@ pousinox.com.br`
     const { data: segData } = await supabaseAdmin.from('prospeccao').select('segmento').not('segmento', 'is', null).limit(10000)
     const segsUnicos = [...new Set((segData ?? []).map((r: any) => r.segmento).filter(Boolean))].sort()
     setCronSegmentos(segsUnicos)
+    // Carregar stats por segmento para os filtros atuais
+    carregarCronSegStats()
     // Stats de prospecção automática
     const hojeISO = new Date().toISOString().slice(0, 10)
     const inicioSemana = new Date()
@@ -1740,6 +1768,50 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   {cronSaving ? '⏳' : '💾 Salvar'}
                 </button>
               </div>
+              {/* Gráfico por segmento */}
+              {cronSegLoading ? <AdminLoading /> : cronSegStats.length > 0 && (() => {
+                const max = Math.max(...cronSegStats.map(s => s.total))
+                const totalGeral = cronSegStats.reduce((a, b) => a + b.total, 0)
+                const validadosGeral = cronSegStats.reduce((a, b) => a + b.validados, 0)
+                const pctGeral = totalGeral > 0 ? ((validadosGeral / totalGeral) * 100).toFixed(1) : '0'
+                return (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#1a3a5c' }}>
+                        Prospects por segmento {cronConfig.cidade.length ? `em ${cronConfig.cidade.join(', ')}` : ''}
+                      </span>
+                      <div style={{ display: 'flex', gap: 12, fontSize: '0.78rem' }}>
+                        <span style={{ color: '#1a3a5c', fontWeight: 600 }}>{totalGeral.toLocaleString('pt-BR')} total</span>
+                        <span style={{ color: '#0ea5e9', fontWeight: 600 }}>{validadosGeral.toLocaleString('pt-BR')} WA ({pctGeral}%)</span>
+                        <button className={styles.btnSecondary} onClick={carregarCronSegStats} style={{ fontSize: '0.72rem', padding: '2px 8px' }}>🔄</button>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                      {cronSegStats.slice(0, 20).map(s => {
+                        const pct = s.total > 0 ? ((s.validados / s.total) * 100).toFixed(1) : '0'
+                        return (
+                          <div key={s.segmento} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: '0.75rem', color: '#334155', width: 200, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.segmento}>
+                              {s.segmento}
+                            </span>
+                            <div style={{ flex: 1, height: 24, background: '#f1f5f9', borderRadius: 6, overflow: 'hidden', position: 'relative' }}>
+                              <div style={{ width: `${(s.total / max) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #e2e8f0, #cbd5e1)', borderRadius: 6, position: 'absolute' }} />
+                              <div style={{ width: `${(s.validados / max) * 100}%`, height: '100%', background: 'linear-gradient(90deg, #0284c7, #0ea5e9)', borderRadius: 6, position: 'absolute' }} />
+                            </div>
+                            <span style={{ fontSize: '0.7rem', color: '#0284c7', fontWeight: 700, width: 42, textAlign: 'right', flexShrink: 0 }}>{pct}%</span>
+                            <span style={{ fontSize: '0.72rem', color: '#1e40af', fontWeight: 700, width: 50, textAlign: 'right', flexShrink: 0 }}>{s.total.toLocaleString('pt-BR')}</span>
+                            <span style={{ fontSize: '0.72rem', color: '#0ea5e9', fontWeight: 600, width: 55, textAlign: 'right', flexShrink: 0 }}>{s.validados} WA</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, marginTop: 10, fontSize: '0.72rem', color: '#64748b' }}>
+                      <span><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: 'linear-gradient(90deg, #0284c7, #0ea5e9)', marginRight: 5, verticalAlign: 'middle' }} />WhatsApp validado</span>
+                      <span><span style={{ display: 'inline-block', width: 12, height: 12, borderRadius: 3, background: 'linear-gradient(90deg, #e2e8f0, #cbd5e1)', marginRight: 5, verticalAlign: 'middle' }} />Total com telefone</span>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           </details>
 

@@ -11,7 +11,7 @@ export default function Privacidade() {
       <section style={{ paddingTop: 'calc(var(--header-height) + 48px)', paddingBottom: 64, background: '#fff' }}>
         <div className="container" style={{ maxWidth: 780 }}>
           <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>Política de Privacidade</h1>
-          <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: 32 }}>Última atualização: 25 de abril de 2026</p>
+          <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: 32 }}>Última atualização: 1 de maio de 2026</p>
 
           <div style={{ fontSize: '0.92rem', color: '#374151', lineHeight: 1.8, display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div>
@@ -43,7 +43,25 @@ export default function Privacidade() {
 
             <div>
               <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>4. Base legal</h2>
-              <p>O tratamento de dados pessoais é realizado com base no consentimento do titular (Art. 7º, I, LGPD), na execução de contrato (Art. 7º, V) e no cumprimento de obrigação legal (Art. 7º, II).</p>
+              <p>O tratamento de dados pessoais é realizado com base nas seguintes hipóteses legais (Art. 7º, LGPD):</p>
+              <ul style={{ paddingLeft: 20, marginTop: 8 }}>
+                <li><strong>Consentimento (Art. 7º, I):</strong> formulários de contato, orçamento e cadastro.</li>
+                <li><strong>Execução de contrato (Art. 7º, V):</strong> processamento de pedidos e entregas.</li>
+                <li><strong>Cumprimento de obrigação legal (Art. 7º, II):</strong> dados fiscais e contábeis.</li>
+                <li><strong>Legítimo interesse (Art. 7º, IX):</strong> prospecção comercial B2B com dados empresariais públicos, conforme descrito na seção 4.1.</li>
+              </ul>
+            </div>
+
+            <div>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>4.1. Prospecção comercial B2B</h2>
+              <p>A Pousinox realiza contato comercial com empresas (pessoas jurídicas) cujos dados cadastrais são de acesso público na Receita Federal do Brasil. Este tratamento é fundamentado no legítimo interesse (Art. 7º, IX, LGPD) para oferta de produtos e serviços relevantes ao segmento de atuação da empresa.</p>
+              <ul style={{ paddingLeft: 20, marginTop: 8 }}>
+                <li>Os dados utilizados são exclusivamente empresariais e de acesso público (razão social, CNPJ, endereço comercial, telefone comercial).</li>
+                <li>O contato é realizado de forma individualizada e direcionada, sem envio em massa.</li>
+                <li>Toda comunicação comercial inclui opção clara de descadastramento (<em>opt-out</em>).</li>
+                <li>Solicitações de descadastramento são atendidas imediatamente e o contato é incluído em lista de bloqueio permanente.</li>
+                <li>Nenhum dado pessoal de sócio ou responsável é utilizado para finalidade diversa da comercial.</li>
+              </ul>
             </div>
 
             <div>
