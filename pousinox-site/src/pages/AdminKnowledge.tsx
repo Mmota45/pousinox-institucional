@@ -1465,9 +1465,9 @@ export default function AdminKnowledge() {
                       <button className={styles.btnPerplexity} onClick={() => pesquisarGoogle(g.titulo + ' tutorial prático')}>
                         Pesquisar no Google
                       </button>
-                      <button className={styles.btnPerplexity} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }} onClick={() => abrirNav(perplexityUrl(g.titulo))}>
+                      <a className={styles.btnPerplexity} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }} href={perplexityUrl(g.titulo)} target="_blank" rel="noopener noreferrer">
                         Perplexity
-                      </button>
+                      </a>
                       {isDinamico && g.rascunho && (
                         <button className={styles.btnPrimary} onClick={() => aprovarGuia(g.id)} style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
                           Aprovar
