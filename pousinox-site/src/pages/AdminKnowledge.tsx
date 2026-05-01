@@ -1128,6 +1128,7 @@ Nunca invente nomes de funções, APIs ou comandos que não existam.`
 }
 
 const STORAGE_KEY = 'pousinox_knowledge_guias'
+const ACESSOS_KEY = 'pousinox_knowledge_acessos'
 
 function loadGuiasDinamicos(): GuiaDinamico[] {
   try {
@@ -1139,13 +1140,73 @@ function saveGuiasDinamicos(guias: GuiaDinamico[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(guias))
 }
 
+function loadAcessos(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(ACESSOS_KEY) || '{}')
+  } catch { return {} }
+}
+
+function registrarAcesso(id: string): Record<string, number> {
+  const acessos = loadAcessos()
+  acessos[id] = (acessos[id] || 0) + 1
+  localStorage.setItem(ACESSOS_KEY, JSON.stringify(acessos))
+  return acessos
+}
+
+type Vista = 'lista' | 'mapa'
+
+function MapaMental({ guias, onSelect }: { guias: Guia[]; onSelect: (id: string) => void }) {
+  const cats = CATEGORIAS.filter(c => c.value !== 'todos')
+  const guiasPorCat = cats.map(c => ({
+    ...c,
+    guias: guias.filter(g => g.categoria === c.value),
+  })).filter(c => c.guias.length > 0)
+
+  return (
+    <div className={styles.mapaContainer}>
+      <div className={styles.mapaCenter}>Base de Conhecimento</div>
+      <div className={styles.mapaRamos}>
+        {guiasPorCat.map(cat => (
+          <div key={cat.value} className={styles.mapaRamo}>
+            <div className={styles.mapaCatNode}>
+              <span className={styles.mapaCatLabel}>{cat.label}</span>
+              <span className={styles.mapaCatCount}>{cat.guias.length}</span>
+            </div>
+            <div className={styles.mapaFilhos}>
+              {cat.guias.map(g => (
+                <button
+                  key={g.id}
+                  className={`${styles.mapaGuiaNode} ${g.rascunho ? styles.mapaGuiaRascunho : ''}`}
+                  onClick={() => onSelect(g.id)}
+                  title={g.oQueE.slice(0, 120)}
+                >
+                  <span className={styles.mapaGuiaTitulo}>{g.titulo}</span>
+                  <span className={styles[NIVEL_CLASS[g.nivel]]} style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
+                    {g.nivel === 'iniciante' ? 'Ini' : g.nivel === 'intermediario' ? 'Int' : 'Av'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function AdminKnowledge() {
   const [busca, setBusca] = useState('')
   const [catAtiva, setCatAtiva] = useState<Categoria | 'todos'>('todos')
   const [modalAberto, setModalAberto] = useState(false)
   const [guiasDinamicos, setGuiasDinamicos] = useState<GuiaDinamico[]>([])
+  const [vista, setVista] = useState<Vista>('lista')
+  const [guiaAberto, setGuiaAberto] = useState<string | null>(null)
+  const [acessos, setAcessos] = useState<Record<string, number>>({})
 
-  useEffect(() => { setGuiasDinamicos(loadGuiasDinamicos()) }, [])
+  useEffect(() => {
+    setGuiasDinamicos(loadGuiasDinamicos())
+    setAcessos(loadAcessos())
+  }, [])
 
   const todasGuias: Guia[] = [...GUIAS, ...guiasDinamicos]
 
@@ -1169,6 +1230,12 @@ export default function AdminKnowledge() {
 
   const buscaLower = busca.toLowerCase()
 
+  const abrirGuia = (id: string) => {
+    const abrir = guiaAberto === id ? null : id
+    setGuiaAberto(abrir)
+    if (abrir) setAcessos(registrarAcesso(id))
+  }
+
   const filtradas = todasGuias.filter(g => {
     if (catAtiva !== 'todos' && g.categoria !== catAtiva) return false
     if (!busca) return true
@@ -1178,7 +1245,7 @@ export default function AdminKnowledge() {
       g.oQueE.toLowerCase().includes(buscaLower) ||
       g.comoFazer.toLowerCase().includes(buscaLower)
     )
-  })
+  }).sort((a, b) => (acessos[b.id] || 0) - (acessos[a.id] || 0))
 
   const contagemPorCat = CATEGORIAS.reduce<Record<string, number>>((acc, c) => {
     acc[c.value] = c.value === 'todos'
@@ -1198,9 +1265,15 @@ export default function AdminKnowledge() {
             <h2>Base de Conhecimento</h2>
             <p>Guias práticos para desenvolvimento — busque por tema ou filtre por categoria.</p>
           </div>
-          <button className={styles.btnPrimary} onClick={() => setModalAberto(true)}>
-            + Sugerir guia
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div className={styles.vistaToggle}>
+              <button className={vista === 'lista' ? styles.vistaActive : styles.vistaBtn} onClick={() => setVista('lista')}>Lista</button>
+              <button className={vista === 'mapa' ? styles.vistaActive : styles.vistaBtn} onClick={() => setVista('mapa')}>Mapa</button>
+            </div>
+            <button className={styles.btnPrimary} onClick={() => setModalAberto(true)}>
+              + Sugerir guia
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1224,53 +1297,60 @@ export default function AdminKnowledge() {
         ))}
       </div>
 
-      <div className={styles.count}>
-        {filtradas.length} guia{filtradas.length !== 1 ? 's' : ''} encontrada{filtradas.length !== 1 ? 's' : ''}
-      </div>
-
-      {filtradas.length === 0 ? (
-        <div className={styles.empty}>Nenhuma guia encontrada para "{busca}"</div>
+      {vista === 'mapa' ? (
+        <MapaMental guias={filtradas} onSelect={id => { setVista('lista'); abrirGuia(id) }} />
       ) : (
-        filtradas.map(g => {
-          const isDinamico = g.id.startsWith('user-')
-          return (
-            <details key={g.id} className={`${styles.card} ${g.rascunho ? styles.cardRascunho : ''}`}>
-              <summary>
-                <span>{g.titulo}</span>
-                <span className={styles[NIVEL_CLASS[g.nivel]]}>{NIVEL_LABEL[g.nivel]}</span>
-                <span className={styles.badgeCat}>{CATEGORIAS.find(c => c.value === g.categoria)?.label}</span>
-                {g.rascunho && <span className={styles.badgeRascunho}>Rascunho</span>}
-              </summary>
-              <div className={styles.cardBody}>
-                <GuiaSection titulo="O que é" conteudo={g.oQueE} />
-                <GuiaSection titulo="Quando usar" conteudo={g.quandoUsar} />
-                <GuiaSection titulo="Como fazer" conteudo={g.comoFazer} />
-                <GuiaSection titulo="Onde fazer" conteudo={g.ondeFazer} />
-                <GuiaSection titulo="Por quê" conteudo={g.porQue} />
-                <div className={styles.guiaActions}>
-                  <a
-                    className={styles.btnPerplexity}
-                    href={perplexityUrl(g.titulo)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Aprofundar no Perplexity
-                  </a>
-                  {isDinamico && g.rascunho && (
-                    <button className={styles.btnPrimary} onClick={() => aprovarGuia(g.id)} style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
-                      Aprovar
-                    </button>
-                  )}
-                  {isDinamico && (
-                    <button className={styles.btnDanger} onClick={() => excluirGuia(g.id)} style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
-                      Excluir
-                    </button>
-                  )}
-                </div>
-              </div>
-            </details>
-          )
-        })
+        <>
+          <div className={styles.count}>
+            {filtradas.length} guia{filtradas.length !== 1 ? 's' : ''} encontrada{filtradas.length !== 1 ? 's' : ''}
+          </div>
+
+          {filtradas.length === 0 ? (
+            <div className={styles.empty}>Nenhuma guia encontrada para "{busca}"</div>
+          ) : (
+            filtradas.map(g => {
+              const isDinamico = g.id.startsWith('user-')
+              return (
+                <details key={g.id} className={`${styles.card} ${g.rascunho ? styles.cardRascunho : ''}`} open={guiaAberto === g.id}>
+                  <summary onClick={e => { e.preventDefault(); abrirGuia(g.id) }}>
+                    <span>{g.titulo}</span>
+                    {(acessos[g.id] || 0) > 0 && <span className={styles.badgeAcessos}>{acessos[g.id]}x</span>}
+                    <span className={styles[NIVEL_CLASS[g.nivel]]}>{NIVEL_LABEL[g.nivel]}</span>
+                    <span className={styles.badgeCat}>{CATEGORIAS.find(c => c.value === g.categoria)?.label}</span>
+                    {g.rascunho && <span className={styles.badgeRascunho}>Rascunho</span>}
+                  </summary>
+                  <div className={styles.cardBody}>
+                    <GuiaSection titulo="O que é" conteudo={g.oQueE} />
+                    <GuiaSection titulo="Quando usar" conteudo={g.quandoUsar} />
+                    <GuiaSection titulo="Como fazer" conteudo={g.comoFazer} />
+                    <GuiaSection titulo="Onde fazer" conteudo={g.ondeFazer} />
+                    <GuiaSection titulo="Por quê" conteudo={g.porQue} />
+                    <div className={styles.guiaActions}>
+                      <a
+                        className={styles.btnPerplexity}
+                        href={perplexityUrl(g.titulo)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Aprofundar no Perplexity
+                      </a>
+                      {isDinamico && g.rascunho && (
+                        <button className={styles.btnPrimary} onClick={() => aprovarGuia(g.id)} style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
+                          Aprovar
+                        </button>
+                      )}
+                      {isDinamico && (
+                        <button className={styles.btnDanger} onClick={() => excluirGuia(g.id)} style={{ fontSize: '0.78rem', padding: '5px 12px' }}>
+                          Excluir
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </details>
+              )
+            })
+          )}
+        </>
       )}
 
       {modalAberto && <SugerirGuiaModal onClose={() => setModalAberto(false)} onSave={salvarGuia} />}
