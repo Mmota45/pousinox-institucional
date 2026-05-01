@@ -392,7 +392,7 @@ export default function CalculadoraFixador() {
               </div>
               <div className={s.trustItem}>
                 <span className={s.trustIcon}>💳</span>
-                Pix e boleto
+                Pix, cartao e boleto
               </div>
               <div className={s.trustItem}>
                 <span className={s.trustIcon}>🚚</span>
