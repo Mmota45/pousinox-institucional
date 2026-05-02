@@ -548,8 +548,7 @@
   background: #fafaf8;
   transform: none;
 }
-.modelActive::before {
-  content: '\2713';
+.modelCheck {
   position: absolute;
   top: -8px;
   right: -8px;
@@ -564,6 +563,7 @@
   display: flex;
   align-items: center;
   box-shadow: 0 2px 6px rgba(22,163,74,0.3);
+  pointer-events: none;
   justify-content: center;
 }
 .modelName {

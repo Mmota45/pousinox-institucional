@@ -558,6 +558,7 @@ export default function CalculadoraFixador() {
                             const isActive = m._idx === modeloIdx
                             return (
                               <div key={m._idx} className={`${s.modelCard} ${isActive ? s.modelActive : ''}`} onClick={() => setModeloIdx(m._idx)}>
+                                {isActive && <span className={s.modelCheck}>✓</span>}
                                 {m.imagem_url ? (
                                   <div className={s.modelImgWrap} onClick={e => { e.stopPropagation(); setLightbox({ src: m.imagem_url!, alt: m.nome }) }}>
                                     <img src={m.imagem_url} alt={m.nome} className={s.modelImg} loading="lazy" />
