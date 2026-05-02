@@ -377,6 +377,29 @@
   color: var(--calc-muted);
   border-bottom: 1px solid #edeae4;
 }
+.toggleGroup {
+  display: flex;
+  gap: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--calc-border);
+}
+.toggleBtn {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: #fff;
+  color: var(--calc-muted);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.toggleBtn:first-child { border-right: 1px solid var(--calc-border); }
+.toggleActive {
+  background: var(--calc-accent);
+  color: #fff;
+}
 .formToggleEdit {
   margin-left: auto;
   font-size: 0.75rem;
@@ -1522,29 +1545,52 @@
 .orcamentoGrid {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
+}
+.orcamentoHeader {
+  display: grid;
+  grid-template-columns: 1fr 60px 80px 100px;
+  gap: 8px;
+  padding: 10px 16px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--calc-muted);
+  border-bottom: 1px solid var(--calc-border);
 }
 .orcamentoItem {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr 60px 80px 100px;
+  gap: 8px;
   align-items: center;
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.75);
-  border-radius: 12px;
-  font-size: 0.84rem;
+  padding: 10px 16px;
+  font-size: 0.82rem;
   color: var(--calc-text);
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.orcamentoItem span:nth-child(2),
+.orcamentoItem span:nth-child(3) {
+  text-align: right;
 }
 .orcamentoItem strong {
-  font-size: 1.1rem;
+  font-size: 0.85rem;
   font-weight: 800;
   color: var(--calc-green);
+  text-align: right;
 }
 .orcamentoTotal {
   background: rgba(26,138,92,0.06);
-  border: 1px solid rgba(26,138,92,0.12);
+  border: none;
+  border-top: 2px solid rgba(26,138,92,0.15);
+  margin-top: 4px;
 }
 .orcamentoTotal strong {
-  font-size: 1.3rem;
+  font-size: 1.05rem;
+}
+@media (max-width: 480px) {
+  .orcamentoHeader { grid-template-columns: 1fr 40px 65px 80px; font-size: 0.6rem; padding: 8px 10px; }
+  .orcamentoItem { grid-template-columns: 1fr 40px 65px 80px; font-size: 0.75rem; padding: 8px 10px; }
 }
 .orcamentoNota {
   margin-top: 14px;

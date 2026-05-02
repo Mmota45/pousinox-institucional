@@ -172,6 +172,7 @@ export default function CalculadoraFixador() {
   const [formOpen, setFormOpen] = useState(true)
 
   // Calculator state
+  const [aplicacao, setAplicacao] = useState<'externo' | 'interno'>('externo')
   const [areaTotal, setAreaTotal] = useState('')
   const [largura, setLargura] = useState('')
   const [altura, setAltura] = useState('')
@@ -371,8 +372,10 @@ export default function CalculadoraFixador() {
     const precoLine = modelo.preco_unitario
       ? `• Estimativa fixadores: R$ ${(modelo.preco_unitario * resultado.total_fixadores).toFixed(2).replace('.', ',')}\n`
       : ''
+    const nome = session?.nome || loginNome.trim() || ''
     return encodeURIComponent(
-      `Olá! Fiz uma simulação na calculadora de materiais do site:\n\n` +
+      `Olá${nome ? `, meu nome é ${nome}` : ''}! Fiz uma simulação na calculadora de materiais do site:\n\n` +
+      `• Aplicação: ${aplicacao === 'externo' ? 'Fachada / Externo' : 'Parede Interna'}\n` +
       `• Área: ${areaTotal} m²\n` +
       `• Peça: ${largura} × ${altura} cm${espessura ? ` (${espessura}mm)` : ''}\n` +
       `• Modelo: ${modelo.nome}\n` +
@@ -520,6 +523,15 @@ export default function CalculadoraFixador() {
                 </h2>
 
                 <div className={s.field}>
+                  <label>Aplicação</label>
+                  <div className={s.toggleGroup}>
+                    <button type="button" className={`${s.toggleBtn} ${aplicacao === 'externo' ? s.toggleActive : ''}`} onClick={() => setAplicacao('externo')}>Fachada / Externo</button>
+                    <button type="button" className={`${s.toggleBtn} ${aplicacao === 'interno' ? s.toggleActive : ''}`} onClick={() => setAplicacao('interno')}>Parede Interna</button>
+                  </div>
+                  <span className={s.hint}>{aplicacao === 'externo' ? 'Recomendado Inox 304 — resistente à corrosão' : 'Inox 430 — solução econômica para áreas internas'}</span>
+                </div>
+
+                <div className={s.field}>
                   <label>Área total a revestir (m²) <span className={s.req}>*</span></label>
                   <input className={s.input} type="text" inputMode="decimal" placeholder="Ex: 274.7" value={areaTotal} onChange={e => setAreaTotal(e.target.value)} />
                   <span className={s.hint}>Área total de parede ou fachada onde o porcelanato será instalado</span>
@@ -531,7 +543,7 @@ export default function CalculadoraFixador() {
                     <input
                       className={s.input}
                       type="text"
-                      placeholder="Busque por formato ou fabricante — ex: 60×120, Portobello"
+                      placeholder="Digite o formato da peça — ex: 60×120, 90×90"
                       value={revQuery}
                       onChange={e => { setRevQuery(e.target.value); setRevOpen(true) }}
                       onFocus={() => setRevOpen(true)}
@@ -1070,12 +1082,9 @@ export default function CalculadoraFixador() {
                       </thead>
                       <tbody>
                         {resultado.itens.map((it, i) => {
-                          const kitItem = it.nome === 'Parafuso' || it.nome === 'Bucha'
                           return (
                           <tr key={i}>
-                            <td>
-                              {it.nome}{kitItem ? <span className={s.kitBadge}>kit</span> : ''}
-                            </td>
+                            <td>{it.nome}</td>
                             <td style={{ textAlign: 'right', fontWeight: 700 }}>{it.quantidade.toLocaleString('pt-BR')}</td>
                             <td>{it.unidade}</td>
                           </tr>
@@ -1097,19 +1106,46 @@ export default function CalculadoraFixador() {
                   )}
 
                   {/* Orçamento estimado */}
-                  {modelo.preco_unitario && (() => {
-                    const kitTotal = modelo.preco_unitario * resultado.total_fixadores
+                  {(modelo.preco_unitario || consumiveisDb.some(c => c.preco_unitario)) && (() => {
+                    const linhas: { nome: string; qtd: number; unitario: number; total: number }[] = []
+                    // Fixador
+                    if (modelo.preco_unitario) {
+                      linhas.push({ nome: 'Fixador / Grampo', qtd: resultado.total_fixadores, unitario: modelo.preco_unitario, total: modelo.preco_unitario * resultado.total_fixadores })
+                    }
+                    // Consumíveis do banco
+                    consumiveisDb.forEach(c => {
+                      if (!c.preco_unitario) return
+                      const qtd = c.proporcao_por === 1 ? resultado.total_fixadores : Math.ceil(resultado.total_fixadores / c.proporcao_por)
+                      linhas.push({ nome: c.nome, qtd, unitario: c.preco_unitario, total: c.preco_unitario * qtd })
+                    })
+                    const grandTotal = linhas.reduce((acc, l) => acc + l.total, 0)
                     return (
                       <div className={s.orcamentoBox}>
                         <div className={s.orcamentoTitle}>Estimativa de Investimento</div>
                         <div className={s.orcamentoGrid}>
-                          <div className={s.orcamentoItem}>
-                            <span>Kit Fixador + Bucha + Parafuso ({resultado.total_fixadores.toLocaleString('pt-BR')} un. x R$ {modelo.preco_unitario.toFixed(2).replace('.', ',')})</span>
-                            <strong>R$ {kitTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                          <div className={s.orcamentoHeader}>
+                            <span>Material</span>
+                            <span>Qtd</span>
+                            <span>Vl. Unit.</span>
+                            <span>Total</span>
+                          </div>
+                          {linhas.map((l, i) => (
+                            <div key={i} className={s.orcamentoItem}>
+                              <span>{l.nome}</span>
+                              <span>{l.qtd.toLocaleString('pt-BR')}</span>
+                              <span>R$ {l.unitario.toFixed(2).replace('.', ',')}</span>
+                              <strong>R$ {l.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                            </div>
+                          ))}
+                          <div className={`${s.orcamentoItem} ${s.orcamentoTotal}`}>
+                            <span>Total estimado</span>
+                            <span />
+                            <span />
+                            <strong>R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
                           </div>
                         </div>
                         <div className={s.orcamentoNota}>
-                          Valores estimados para referência. Adesivo PU, disco de corte e broca são opcionais. O orçamento final pode variar conforme volume e condições de pagamento.
+                          Valores estimados para referência. O orçamento final pode variar conforme volume e condições de pagamento.
                         </div>
                       </div>
                     )
