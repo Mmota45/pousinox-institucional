@@ -615,7 +615,12 @@ export default function CalculadoraFixador() {
                     const desc = items[0]?.desc || ''
                     return (
                       <div key={mat} className={`${s.modelGroup} ${hasActive ? s.modelGroupActive : ''} ${isRecomendado ? s.modelGroupRecomendado : ''}`}>
-                        {isRecomendado && <span className={s.recomendadoBadge}>Recomendado para {aplicacao === 'externo' ? 'externo' : 'interno'}</span>}
+                        {isRecomendado && (
+                          <div className={s.recomendadoWrap}>
+                            <span className={s.recomendadoBadge}>Recomendado para {aplicacao === 'externo' ? 'externo' : 'interno'}</span>
+                            <span className={s.recomendadoNota}>{aplicacao === 'externo' ? 'Inox 304 contém níquel, garantindo resistência à corrosão em fachadas, áreas úmidas e piscinas.' : 'Inox 430 oferece alta resistência mecânica a custo menor — ideal para paredes internas sem exposição à umidade.'}</span>
+                          </div>
+                        )}
                         <div className={s.modelGroupCards}>
                           {items.map(m => {
                             const isActive = m._idx === modeloIdx

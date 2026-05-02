@@ -457,8 +457,14 @@
   box-shadow: 0 0 0 1px rgba(22,163,74,0.1);
   position: relative;
 }
+.recomendadoWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
 .recomendadoBadge {
-  display: inline-block;
   font-size: 0.62rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -467,7 +473,12 @@
   color: #fff;
   padding: 3px 10px;
   border-radius: 8px;
-  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.recomendadoNota {
+  font-size: 0.72rem;
+  color: var(--calc-muted);
+  line-height: 1.4;
 }
 .modelGroupCards {
   display: grid;
