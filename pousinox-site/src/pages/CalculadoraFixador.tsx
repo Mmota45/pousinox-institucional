@@ -1172,11 +1172,10 @@ export default function CalculadoraFixador() {
           )}
         </div>
 
-        {/* ── Comparativo 304 vs 430 ── */}
+        {/* ── Comparativo + FAQ ── */}
         <div className={s.card} style={{ marginTop: 20 }}>
           <h2 className={s.secaoTitulo}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
-            Comparativo: Inox 304 vs 430
+            Inox 304 vs 430
           </h2>
           <div className={s.comparativoWrap}>
             <div className={`${s.comparativoCard} ${s.comparativoCard304}`}>
@@ -1208,13 +1207,10 @@ export default function CalculadoraFixador() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ── FAQ Accordion ── */}
-        <div className={s.card} style={{ marginTop: 20 }}>
-          <h2 className={s.secaoTitulo}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            Perguntas Frequentes
+          <div className={s.secaoDivider} />
+          <h2 className={s.secaoTitulo} style={{ marginTop: 4 }}>
+            Perguntas frequentes
           </h2>
           <div className={s.faqList}>
             {[
