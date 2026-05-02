@@ -1179,24 +1179,34 @@ export default function CalculadoraFixador() {
             Comparativo: Inox 304 vs 430
           </h2>
           <div className={s.comparativoWrap}>
-            <table className={s.comparativoTable}>
-              <thead>
-                <tr>
-                  <th>Característica</th>
-                  <th className={s.comparativoCol304}>Inox 304</th>
-                  <th className={s.comparativoCol430}>Inox 430</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>Composição</td><td>Cromo + Níquel</td><td>Cromo</td></tr>
-                <tr><td>Resistência à corrosão</td><td className={s.comparativoDestaque}>Superior</td><td>Moderada</td></tr>
-                <tr><td>Aplicação ideal</td><td>Fachadas, áreas externas, piscinas</td><td>Áreas internas</td></tr>
-                <tr><td>Exposição à umidade</td><td className={s.comparativoDestaque}>Sim</td><td>Não recomendado</td></tr>
-                <tr><td>Variação térmica</td><td className={s.comparativoDestaque}>Alta resistência</td><td>Moderada</td></tr>
-                <tr><td>Laudo SENAI/LAMAT</td><td className={s.comparativoDestaque}>Validado</td><td>Em andamento</td></tr>
-                <tr><td>Custo-benefício</td><td>Premium</td><td className={s.comparativoDestaque}>Econômico</td></tr>
-              </tbody>
-            </table>
+            <div className={`${s.comparativoCard} ${s.comparativoCard304}`}>
+              <div className={s.comparativoCardTitle}>
+                Aço Inox 304
+                <span className={s.comparativoBadge}>Fachadas</span>
+              </div>
+              <div className={s.comparativoLista}>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Composição</span><span className={s.comparativoValor}>Cromo + Níquel</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Corrosão</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Superior</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Aplicação</span><span className={s.comparativoValor}>Fachadas, externas, piscinas</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Umidade</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Resistente</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Laudo SENAI</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Validado</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Perfil</span><span className={s.comparativoValor}>Premium</span></div>
+              </div>
+            </div>
+            <div className={`${s.comparativoCard} ${s.comparativoCard430}`}>
+              <div className={s.comparativoCardTitle}>
+                Aço Inox 430
+                <span className={s.comparativoBadge}>Internas</span>
+              </div>
+              <div className={s.comparativoLista}>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Composição</span><span className={s.comparativoValor}>Cromo</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Corrosão</span><span className={s.comparativoValor}>Moderada</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Aplicação</span><span className={s.comparativoValor}>Áreas internas</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Umidade</span><span className={s.comparativoValor}>Não recomendado</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Laudo SENAI</span><span className={s.comparativoValor}>Em andamento</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Perfil</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Econômico</span></div>
+              </div>
+            </div>
           </div>
         </div>
 
