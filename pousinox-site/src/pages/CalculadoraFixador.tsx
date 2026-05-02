@@ -1177,8 +1177,8 @@ export default function CalculadoraFixador() {
           </h2>
           <div className={s.comparativoWrap}>
             <div className={`${s.comparativoCard} ${s.comparativoCard304}`}>
-              <div className={s.comparativoCardTitle}>
-                Aço Inox 304
+              <div className={s.comparativoCardHeader}>
+                <div className={s.comparativoCardTitle}>Aço Inox 304</div>
                 <span className={s.comparativoBadge}>Fachadas</span>
               </div>
               <div className={s.comparativoLista}>
@@ -1191,8 +1191,8 @@ export default function CalculadoraFixador() {
               </div>
             </div>
             <div className={`${s.comparativoCard} ${s.comparativoCard430}`}>
-              <div className={s.comparativoCardTitle}>
-                Aço Inox 430
+              <div className={s.comparativoCardHeader}>
+                <div className={s.comparativoCardTitle}>Aço Inox 430</div>
                 <span className={s.comparativoBadge}>Internas</span>
               </div>
               <div className={s.comparativoLista}>
