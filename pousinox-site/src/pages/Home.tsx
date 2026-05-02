@@ -546,8 +546,8 @@ export default function Home() {
                 <Link to="/fixador-porcelanato/orcamento" className="btn-primary">
                   Solicitar Orçamento
                 </Link>
-                <Link to="/fixador-porcelanato" className="btn-outline-dark">
-                  Conhecer a solução →
+                <Link to="/fixador-porcelanato/calculadora" className="btn-outline-dark">
+                  Calcular materiais →
                 </Link>
               </div>
             </div>
