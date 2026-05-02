@@ -525,8 +525,8 @@ export default function CalculadoraFixador() {
                 <div className={s.field}>
                   <label>Aplicação</label>
                   <div className={s.toggleGroup}>
-                    <button type="button" className={`${s.toggleBtn} ${aplicacao === 'externo' ? s.toggleActive : ''}`} onClick={() => setAplicacao('externo')}>Fachada / Externo</button>
-                    <button type="button" className={`${s.toggleBtn} ${aplicacao === 'interno' ? s.toggleActive : ''}`} onClick={() => setAplicacao('interno')}>Parede Interna</button>
+                    <button type="button" className={`${s.toggleBtn} ${aplicacao === 'externo' ? s.toggleActive : ''}`} onClick={() => setAplicacao('externo')}>Externo</button>
+                    <button type="button" className={`${s.toggleBtn} ${aplicacao === 'interno' ? s.toggleActive : ''}`} onClick={() => setAplicacao('interno')}>Interno</button>
                   </div>
                   <span className={s.hint}>{aplicacao === 'externo' ? 'Recomendado Inox 304 — resistente à corrosão' : 'Inox 430 — solução econômica para áreas internas'}</span>
                 </div>
@@ -604,7 +604,7 @@ export default function CalculadoraFixador() {
               <div className={s.sectionContent}>
                 <h2 className={s.sectionTitle}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                  Escolha o Fixador
+                  Tipo de Fixador
                 </h2>
                 <div className={s.modelGroups}>
                   {(['Aço Inox 304', 'Aço Inox 430'] as const).map(mat => {
