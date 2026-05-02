@@ -375,7 +375,7 @@ export default function CalculadoraFixador() {
     const nome = session?.nome || loginNome.trim() || ''
     return encodeURIComponent(
       `Olá${nome ? `, meu nome é ${nome}` : ''}! Fiz uma simulação na calculadora de materiais do site:\n\n` +
-      `• Aplicação: ${aplicacao === 'externo' ? 'Fachada / Externo' : 'Parede Interna'}\n` +
+      `• Aplicação: ${aplicacao === 'externo' ? 'Externo' : 'Interno'}\n` +
       `• Área: ${areaTotal} m²\n` +
       `• Peça: ${largura} × ${altura} cm${espessura ? ` (${espessura}mm)` : ''}\n` +
       `• Modelo: ${modelo.nome}\n` +
