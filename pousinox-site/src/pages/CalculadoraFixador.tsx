@@ -1186,6 +1186,7 @@ export default function CalculadoraFixador() {
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Corrosão</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Superior</span></div>
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Aplicação</span><span className={s.comparativoValor}>Fachadas, externas, piscinas</span></div>
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Umidade</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Resistente</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Resistência mecânica</span><span className={s.comparativoValor}>Alta</span></div>
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Laudo SENAI</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Validado</span></div>
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Perfil</span><span className={s.comparativoValor}>Premium</span></div>
               </div>
@@ -1200,6 +1201,7 @@ export default function CalculadoraFixador() {
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Corrosão</span><span className={s.comparativoValor}>Moderada</span></div>
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Aplicação</span><span className={s.comparativoValor}>Áreas internas</span></div>
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Umidade</span><span className={s.comparativoValor}>Não recomendado</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Resistência mecânica</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Superior</span></div>
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Laudo SENAI</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Validado</span></div>
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Perfil</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Econômico</span></div>
               </div>
