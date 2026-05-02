@@ -1172,6 +1172,57 @@ export default function CalculadoraFixador() {
           )}
         </div>
 
+        {/* ── Comparativo 304 vs 430 ── */}
+        <div className={s.card} style={{ marginTop: 20 }}>
+          <h2 className={s.secaoTitulo}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/></svg>
+            Comparativo: Inox 304 vs 430
+          </h2>
+          <div className={s.comparativoWrap}>
+            <table className={s.comparativoTable}>
+              <thead>
+                <tr>
+                  <th>Característica</th>
+                  <th className={s.comparativoCol304}>Inox 304</th>
+                  <th className={s.comparativoCol430}>Inox 430</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Composição</td><td>Cromo + Níquel</td><td>Cromo</td></tr>
+                <tr><td>Resistência à corrosão</td><td className={s.comparativoDestaque}>Superior</td><td>Moderada</td></tr>
+                <tr><td>Aplicação ideal</td><td>Fachadas, áreas externas, piscinas</td><td>Áreas internas</td></tr>
+                <tr><td>Exposição à umidade</td><td className={s.comparativoDestaque}>Sim</td><td>Não recomendado</td></tr>
+                <tr><td>Variação térmica</td><td className={s.comparativoDestaque}>Alta resistência</td><td>Moderada</td></tr>
+                <tr><td>Laudo SENAI/LAMAT</td><td className={s.comparativoDestaque}>Validado</td><td>Em andamento</td></tr>
+                <tr><td>Custo-benefício</td><td>Premium</td><td className={s.comparativoDestaque}>Econômico</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ── FAQ Accordion ── */}
+        <div className={s.card} style={{ marginTop: 20 }}>
+          <h2 className={s.secaoTitulo}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Perguntas Frequentes
+          </h2>
+          <div className={s.faqList}>
+            {[
+              { q: 'Quantos fixadores de porcelanato por m²?', a: 'A quantidade varia conforme o peso e dimensão da peça. Em média, são necessários 2 a 3 fixadores por peça. Use a calculadora acima para obter a quantidade exata com base no seu revestimento.' },
+              { q: 'Qual a diferença entre fixador inox 304 e 430?', a: 'O inox 304 contém cromo e níquel, sendo resistente à corrosão — ideal para fachadas e áreas externas. O inox 430 é mais econômico e indicado para áreas internas sem exposição à umidade.' },
+              { q: 'Como funciona o fixador de porcelanato?', a: 'A peça recebe argamassa colante normalmente. Uma incisão é feita na borda com disco diamantado, aplica-se adesivo PU na incisão, o fixador é parafusado na parede e sua aba encaixa na incisão — criando ancoragem mecânica que previne a queda do revestimento.' },
+              { q: 'O fixador substitui a argamassa colante?', a: 'Não. A argamassa colante é aplicada na peça toda normalmente. O fixador é um sistema complementar de segurança mecânica que cria dupla ancoragem — química (argamassa) e mecânica (fixador) — contra o desprendimento.' },
+              { q: 'Para quais revestimentos o fixador é indicado?', a: 'O fixador é indicado para porcelanatos, cerâmicas e revestimentos de grande formato em fachadas e paredes. Quanto maior e mais pesada a peça, mais crítica é a ancoragem mecânica complementar.' },
+              { q: 'O fixador tem laudo técnico?', a: 'Sim. Os fixadores POUSINOX® em aço inox 304 foram ensaiados pelo SENAI/LAMAT com resultados de força máxima (Fm) documentados. A calculadora utiliza esses dados para dimensionar a quantidade correta com fator de segurança 4×.' },
+            ].map((item, i) => (
+              <details key={i} className={s.faqItem}>
+                <summary className={s.faqQuestion}>{item.q}</summary>
+                <div className={s.faqAnswer}>{item.a}</div>
+              </details>
+            ))}
+          </div>
+        </div>
+
         {/* Sticky CTA mobile — aparece apos resultado */}
         {etapa === 'resultado' && resultado && (
           <div className={s.stickyCtaMobile}>
