@@ -1074,9 +1074,6 @@ export default function CalculadoraFixador() {
                           return (
                           <tr key={i}>
                             <td>
-                              <span className={s.materialIcon}>
-                                {it.tipo === 'fixador' ? '🔩' : kitItem ? '🔩' : '🔧'}
-                              </span>
                               {it.nome}{kitItem ? <span className={s.kitBadge}>kit</span> : ''}
                             </td>
                             <td style={{ textAlign: 'right', fontWeight: 700 }}>{it.quantidade.toLocaleString('pt-BR')}</td>
