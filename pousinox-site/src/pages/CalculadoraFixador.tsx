@@ -29,8 +29,8 @@ type ModeloCalc = {
 const MODELOS_FALLBACK: ModeloCalc[] = [
   { id: 1, nome: 'Fixador de Porcelanato Aço Inox 304', material: 'Aço Inox 304', espessura: '0.8mm', largura_mm: 40, comprimento_mm: 120, laudo: true, desc: 'Previne queda de porcelanato em fachadas com ancoragem mecânica em inox 304 — resistente à corrosão em áreas externas e ambientes úmidos. Para revestimentos de 5 a 8 mm.', imagem_url: '/images/fixadores/fixador-porcelanato-5mm.png', abertura_mm: 5, preco_unitario: null },
   { id: 2, nome: 'Fixador de Porcelanato Aço Inox 304', material: 'Aço Inox 304', espessura: '0.8mm', largura_mm: 40, comprimento_mm: 120, laudo: true, desc: 'Previne queda de porcelanato em fachadas com ancoragem mecânica em inox 304 — resistente à corrosão em áreas externas e ambientes úmidos. Para revestimentos de 9 a 14 mm.', imagem_url: '/images/fixadores/fixador-porcelanato-11mm.png', abertura_mm: 11, preco_unitario: null },
-  { id: 3, nome: 'Fixador de Porcelanato Aço Inox 430', material: 'Aço Inox 430', espessura: '0.8mm', largura_mm: 40, comprimento_mm: 120, laudo: false, desc: 'Previne queda de porcelanato com ancoragem mecânica em inox 430 — solução econômica para áreas internas sem exposição à umidade. Para revestimentos de 5 a 8 mm.', imagem_url: '/images/fixadores/fixador-porcelanato-5mm.png', abertura_mm: 5, preco_unitario: null },
-  { id: 4, nome: 'Fixador de Porcelanato Aço Inox 430', material: 'Aço Inox 430', espessura: '0.8mm', largura_mm: 40, comprimento_mm: 120, laudo: false, desc: 'Previne queda de porcelanato com ancoragem mecânica em inox 430 — solução econômica para áreas internas sem exposição à umidade. Para revestimentos de 9 a 14 mm.', imagem_url: '/images/fixadores/fixador-porcelanato-11mm.png', abertura_mm: 11, preco_unitario: null },
+  { id: 3, nome: 'Fixador de Porcelanato Aço Inox 430', material: 'Aço Inox 430', espessura: '0.8mm', largura_mm: 40, comprimento_mm: 120, laudo: true, desc: 'Previne queda de porcelanato com ancoragem mecânica em inox 430 — solução econômica para áreas internas sem exposição à umidade. Para revestimentos de 5 a 8 mm.', imagem_url: '/images/fixadores/fixador-porcelanato-5mm.png', abertura_mm: 5, preco_unitario: null },
+  { id: 4, nome: 'Fixador de Porcelanato Aço Inox 430', material: 'Aço Inox 430', espessura: '0.8mm', largura_mm: 40, comprimento_mm: 120, laudo: true, desc: 'Previne queda de porcelanato com ancoragem mecânica em inox 430 — solução econômica para áreas internas sem exposição à umidade. Para revestimentos de 9 a 14 mm.', imagem_url: '/images/fixadores/fixador-porcelanato-11mm.png', abertura_mm: 11, preco_unitario: null },
 ]
 
 const STATUS_VISUAL: Record<StatusAnalise, { bg: string; border: string; color: string; icon: string; label: string }> = {
@@ -1203,7 +1203,7 @@ export default function CalculadoraFixador() {
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Corrosão</span><span className={s.comparativoValor}>Moderada</span></div>
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Aplicação</span><span className={s.comparativoValor}>Áreas internas</span></div>
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Umidade</span><span className={s.comparativoValor}>Não recomendado</span></div>
-                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Laudo SENAI</span><span className={s.comparativoValor}>Em andamento</span></div>
+                <div className={s.comparativoItem}><span className={s.comparativoLabel}>Laudo SENAI</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Validado</span></div>
                 <div className={s.comparativoItem}><span className={s.comparativoLabel}>Perfil</span><span className={`${s.comparativoValor} ${s.comparativoDestaque}`}>Econômico</span></div>
               </div>
             </div>
@@ -1223,7 +1223,7 @@ export default function CalculadoraFixador() {
               { q: 'Como funciona o fixador de porcelanato?', a: 'A peça recebe argamassa colante normalmente. Uma incisão é feita na borda com disco diamantado, aplica-se adesivo PU na incisão, o fixador é parafusado na parede e sua aba encaixa na incisão — criando ancoragem mecânica que previne a queda do revestimento.' },
               { q: 'O fixador substitui a argamassa colante?', a: 'Não. A argamassa colante é aplicada na peça toda normalmente. O fixador é um sistema complementar de segurança mecânica que cria dupla ancoragem — química (argamassa) e mecânica (fixador) — contra o desprendimento.' },
               { q: 'Para quais revestimentos o fixador é indicado?', a: 'O fixador é indicado para porcelanatos, cerâmicas e revestimentos de grande formato em fachadas e paredes. Quanto maior e mais pesada a peça, mais crítica é a ancoragem mecânica complementar.' },
-              { q: 'O fixador tem laudo técnico?', a: 'Sim. Os fixadores POUSINOX® em aço inox 304 foram ensaiados pelo SENAI/LAMAT com resultados de força máxima (Fm) documentados. A calculadora utiliza esses dados para dimensionar a quantidade correta com fator de segurança 4×.' },
+              { q: 'O fixador tem laudo técnico?', a: 'Sim. Os fixadores POUSINOX® em aço inox 304 e 430 foram ensaiados pelo SENAI/LAMAT com resultados de força máxima (Fm) documentados. A calculadora utiliza esses dados para dimensionar a quantidade correta com fator de segurança 4×.' },
             ].map((item, i) => (
               <details key={i} className={s.faqItem}>
                 <summary className={s.faqQuestion}>{item.q}</summary>
