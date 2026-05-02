@@ -423,6 +423,7 @@
   padding: 14px;
   background: #fafaf8;
   transition: all 0.2s ease;
+  overflow: visible;
 }
 .modelGroupActive {
   border-color: #e5e2dc;
@@ -534,6 +535,7 @@
   text-align: left;
   transition: all 0.2s ease;
   position: relative;
+  overflow: visible;
 }
 .modelCard:hover {
   border-color: #c8c3b8;
@@ -549,9 +551,9 @@
 .modelActive::before {
   content: '\2713';
   position: absolute;
-  top: 12px;
-  right: 14px;
-  z-index: 3;
+  top: -8px;
+  right: -8px;
+  z-index: 10;
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -561,6 +563,7 @@
   font-weight: 700;
   display: flex;
   align-items: center;
+  box-shadow: 0 2px 6px rgba(22,163,74,0.3);
   justify-content: center;
 }
 .modelName {
