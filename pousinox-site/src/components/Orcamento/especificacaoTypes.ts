@@ -48,6 +48,8 @@ export interface EspecificacaoInput {
   espessura_mm?: number
   perda_pct: number
   modelo_id?: number
+  abertura_mm?: number
+  material?: string
   revisao_manual?: boolean
   obs?: string
 }
@@ -72,6 +74,7 @@ export interface ResultadoEspecificacao {
   fixadores_por_peca: number
   total_fixadores: number
   regra_aplicada: string
+  laudo_referencia?: string
   itens: ItemCalculado[]
   revisao_tecnica: boolean
   revisao_motivos: string[]

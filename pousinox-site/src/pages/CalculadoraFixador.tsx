@@ -16,17 +16,21 @@ import s from './CalculadoraFixador.module.css'
 
 const WA_NUMERO = '5535999619463'
 
+// Lightbox state type
+type LightboxImg = { src: string; alt: string } | null
+
 type ModeloCalc = {
   id: number; nome: string; material: string; espessura: string
+  largura_mm: number | null; comprimento_mm: number | null
   laudo: boolean; desc: string; imagem_url: string | null; abertura_mm: number | null
   preco_unitario: number | null
 }
 
 const MODELOS_FALLBACK: ModeloCalc[] = [
-  { id: 1, nome: 'Fixador de Porcelanato Aço Inox 304', material: 'Aço Inox 304', espessura: '0.8mm', laudo: true, desc: 'Ideal para fachadas, áreas externas e ambientes sujeitos a variação térmica. Compatível com revestimentos de 5 a 8 mm de espessura.', imagem_url: null, abertura_mm: 5, preco_unitario: null },
-  { id: 2, nome: 'Fixador de Porcelanato Aço Inox 304', material: 'Aço Inox 304', espessura: '0.8mm', laudo: true, desc: 'Ideal para fachadas, áreas externas e ambientes sujeitos a variação térmica. Compatível com revestimentos de 9 a 14 mm de espessura.', imagem_url: null, abertura_mm: 11, preco_unitario: null },
-  { id: 3, nome: 'Fixador de Porcelanato Aço Inox 430', material: 'Aço Inox 430', espessura: '0.8mm', laudo: false, desc: 'Indicado para áreas internas e ambientes sem exposição direta à umidade. Compatível com revestimentos de 5 a 8 mm de espessura.', imagem_url: null, abertura_mm: 5, preco_unitario: null },
-  { id: 4, nome: 'Fixador de Porcelanato Aço Inox 430', material: 'Aço Inox 430', espessura: '0.8mm', laudo: false, desc: 'Indicado para áreas internas e ambientes sem exposição direta à umidade. Compatível com revestimentos de 9 a 14 mm de espessura.', imagem_url: null, abertura_mm: 11, preco_unitario: null },
+  { id: 1, nome: 'Fixador de Porcelanato Aço Inox 304', material: 'Aço Inox 304', espessura: '0.8mm', largura_mm: 40, comprimento_mm: 120, laudo: true, desc: 'Previne queda de porcelanato em fachadas com ancoragem mecânica em inox 304 — resistente à corrosão em áreas externas e ambientes úmidos. Para revestimentos de 5 a 8 mm.', imagem_url: '/images/fixadores/fixador-porcelanato-5mm.png', abertura_mm: 5, preco_unitario: null },
+  { id: 2, nome: 'Fixador de Porcelanato Aço Inox 304', material: 'Aço Inox 304', espessura: '0.8mm', largura_mm: 40, comprimento_mm: 120, laudo: true, desc: 'Previne queda de porcelanato em fachadas com ancoragem mecânica em inox 304 — resistente à corrosão em áreas externas e ambientes úmidos. Para revestimentos de 9 a 14 mm.', imagem_url: '/images/fixadores/fixador-porcelanato-11mm.png', abertura_mm: 11, preco_unitario: null },
+  { id: 3, nome: 'Fixador de Porcelanato Aço Inox 430', material: 'Aço Inox 430', espessura: '0.8mm', largura_mm: 40, comprimento_mm: 120, laudo: false, desc: 'Previne queda de porcelanato com ancoragem mecânica em inox 430 — solução econômica para áreas internas sem exposição à umidade. Para revestimentos de 5 a 8 mm.', imagem_url: '/images/fixadores/fixador-porcelanato-5mm.png', abertura_mm: 5, preco_unitario: null },
+  { id: 4, nome: 'Fixador de Porcelanato Aço Inox 430', material: 'Aço Inox 430', espessura: '0.8mm', largura_mm: 40, comprimento_mm: 120, laudo: false, desc: 'Previne queda de porcelanato com ancoragem mecânica em inox 430 — solução econômica para áreas internas sem exposição à umidade. Para revestimentos de 9 a 14 mm.', imagem_url: '/images/fixadores/fixador-porcelanato-11mm.png', abertura_mm: 11, preco_unitario: null },
 ]
 
 const STATUS_VISUAL: Record<StatusAnalise, { bg: string; border: string; color: string; icon: string; label: string }> = {
@@ -98,11 +102,42 @@ export default function CalculadoraFixador() {
   const [authErro, setAuthErro] = useState<string | null>(null)
   const [reenvioTimer, setReenvioTimer] = useState(0)
 
+  // Catálogo de revestimentos para autocomplete
+  type Revestimento = { id: number; fabricante: string; formato: string; largura_cm: number; altura_cm: number; espessura_mm: number | null; peso_peca_kg: number | null; peso_m2_kg: number | null }
+  const [revestimentos, setRevestimentos] = useState<Revestimento[]>([])
+  const [revQuery, setRevQuery] = useState('')
+  const [revOpen, setRevOpen] = useState(false)
+  useEffect(() => {
+    supabase.from('revestimentos_catalogo').select('id, fabricante, formato, largura_cm, altura_cm, espessura_mm, peso_peca_kg, peso_m2_kg').eq('ativo', true).order('formato')
+      .then(({ data }) => { if (data?.length) setRevestimentos(data) })
+  }, [])
+  const revFiltrados = useMemo(() => {
+    if (!revQuery.trim()) return revestimentos.slice(0, 15)
+    const q = revQuery.toLowerCase()
+    return revestimentos.filter(r =>
+      r.formato.toLowerCase().includes(q) ||
+      r.fabricante.toLowerCase().includes(q) ||
+      `${r.largura_cm}x${r.altura_cm}`.includes(q)
+    ).slice(0, 15)
+  }, [revestimentos, revQuery])
+  function selecionarRevestimento(r: Revestimento) {
+    setLargura(String(r.largura_cm))
+    setAltura(String(r.altura_cm))
+    if (r.espessura_mm) setEspessura(String(r.espessura_mm))
+    if (r.peso_peca_kg) setPesoPeca(String(r.peso_peca_kg))
+    else if (r.peso_m2_kg) {
+      const area = (r.largura_cm / 100) * (r.altura_cm / 100)
+      setPesoPeca((r.peso_m2_kg * area).toFixed(2))
+    }
+    setRevQuery(`${r.fabricante} ${r.formato}`)
+    setRevOpen(false)
+  }
+
   // Modelos dinâmicos do banco
   const [modelos, setModelos] = useState<ModeloCalc[]>(MODELOS_FALLBACK)
   const [consumiveisDb, setConsumiveisDb] = useState<{ nome: string; preco_unitario: number | null; proporcao_por: number }[]>([])
   useEffect(() => {
-    supabase.from('fixador_modelos').select('id, nome, material, espessura_mm, obs_tecnica, possui_laudo, imagem_url, abertura_aba_mm, preco_unitario').eq('ativo', true).order('id')
+    supabase.from('fixador_modelos').select('id, nome, material, espessura_mm, largura_mm, comprimento_mm, obs_tecnica, possui_laudo, imagem_url, abertura_aba_mm, preco_unitario').eq('ativo', true).order('id')
       .then(({ data }) => {
         if (data?.length) {
           setModelos(data.map(m => ({
@@ -110,6 +145,8 @@ export default function CalculadoraFixador() {
             nome: m.nome,
             material: m.material,
             espessura: m.espessura_mm + 'mm',
+            largura_mm: m.largura_mm,
+            comprimento_mm: m.comprimento_mm,
             laudo: m.possui_laudo,
             desc: m.obs_tecnica || '',
             imagem_url: m.imagem_url,
@@ -122,22 +159,9 @@ export default function CalculadoraFixador() {
       .then(({ data }) => { if (data) setConsumiveisDb(data) })
   }, [])
 
-  // Agrupar modelos por material para UI de cards
-  const grupos = useMemo(() => {
-    const map = new Map<string, { material: string; imagem_url: string | null; laudo: boolean; aberturas: { mm: number; idx: number; desc: string; preco: number | null }[] }>()
-    modelos.forEach((m, i) => {
-      const key = m.material
-      if (!map.has(key)) map.set(key, { material: key, imagem_url: m.imagem_url, laudo: m.laudo, aberturas: [] })
-      const g = map.get(key)!
-      if (!g.imagem_url && m.imagem_url) g.imagem_url = m.imagem_url
-      if (m.laudo) g.laudo = true
-      g.aberturas.push({ mm: m.abertura_mm || 0, idx: i, desc: m.desc, preco: m.preco_unitario })
-    })
-    return Array.from(map.values())
-  }, [modelos])
-
-  // Material selecionado (índice do grupo)
-  const [grupoIdx, setGrupoIdx] = useState(0)
+  // Modelo selecionado (índice direto no array modelos)
+  const [modeloIdx, setModeloIdx] = useState(0)
+  const [lightbox, setLightbox] = useState<LightboxImg>(null)
 
   // Collapsible form
   const [formOpen, setFormOpen] = useState(true)
@@ -148,20 +172,15 @@ export default function CalculadoraFixador() {
   const [altura, setAltura] = useState('')
   const [espessura, setEspessura] = useState('')
 
-  // Auto-selecionar modelo (abertura) baseado na espessura do revestimento
-  const modeloIdx = useMemo(() => {
-    const grupo = grupos[grupoIdx]
-    if (!grupo) return 0
+  // Auto-selecionar modelo baseado na espessura do revestimento
+  useEffect(() => {
     const esp = parseFloat(espessura) || 0
-    // espessura <= 8mm → abertura menor (5mm), > 8mm → abertura maior (11mm)
-    if (esp > 0 && esp > 8) {
-      const maior = grupo.aberturas.reduce((a, b) => b.mm > a.mm ? b : a)
-      return maior.idx
-    }
-    // padrão: abertura menor
-    const menor = grupo.aberturas.reduce((a, b) => b.mm < a.mm ? b : a)
-    return menor.idx
-  }, [grupos, grupoIdx, espessura])
+    if (esp <= 0 || modelos.length === 0) return
+    // espessura <= 8mm → abertura 5mm (304 primeiro), > 8mm → abertura 11mm (304 primeiro)
+    const abertura = esp > 8 ? 11 : 5
+    const idx = modelos.findIndex(m => m.abertura_mm === abertura && m.material.includes('304'))
+    if (idx >= 0 && idx !== modeloIdx) setModeloIdx(idx)
+  }, [espessura, modelos])
   const [pesoPeca, setPesoPeca] = useState('')
   const [resultado, setResultado] = useState<ResultadoEspecificacao | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -196,6 +215,8 @@ export default function CalculadoraFixador() {
         peso_peca_kg: parseFloat(pesoPeca.replace(',', '.')) || undefined,
         perda_pct: 10,
         modelo_id: modelos[modeloIdx].id,
+        abertura_mm: modelos[modeloIdx].abertura_mm ?? undefined,
+        material: modelos[modeloIdx].material,
       },
       REGRAS_PADRAO,
       CONSUMIVEIS_PADRAO,
@@ -396,31 +417,23 @@ export default function CalculadoraFixador() {
               </div>
             </div>
 
-            <div className={s.heroSteps}>
-              {[
-                { icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>, label: 'Dados da obra' },
-                { icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>, label: 'Resultado' },
-                { icon: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>, label: 'Orçamento' },
-              ].map((st, i) => {
-                const stepIdx = etapa === 'form' ? 0 : session?.verificado ? 2 : 1
-                const done = i < stepIdx
-                const active = i === stepIdx
-                return (
-                  <div key={i} className={`${s.step} ${done ? s.stepDone : ''} ${active ? s.stepActive : ''}`}>
-                    <span className={s.stepNum}>{done ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg> : st.icon}</span> {st.label}
-                  </div>
-                )
-              })}
-            </div>
           </div>
         </section>
 
-        {/* Degradê de transição hero → conteúdo */}
         <div className={s.heroFade} />
 
         <div className={s.container}>
           {/* ── Formulário ── */}
           <form className={s.card} id="calc-form" onSubmit={handleCalcular}>
+            {/* Header do card — identidade */}
+            <div className={s.cardHeader}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg>
+              <div>
+                <div className={s.cardHeaderTitle}>Calculadora de Materiais POUSINOX®</div>
+                <div className={s.cardHeaderSub}>Especificação técnica para fixação de porcelanato</div>
+              </div>
+            </div>
+
             {/* Toggle do form colapsado */}
             {!formOpen && (
               <button type="button" className={s.formToggle} onClick={() => setFormOpen(true)}>
@@ -431,17 +444,69 @@ export default function CalculadoraFixador() {
             )}
 
             <div className={`${s.collapseBody} ${formOpen ? s.collapseOpen : ''}`}>
-            {/* Dados da obra — PRIMEIRO para capturar espessura antes do modelo */}
+            {/* Stepper */}
+            <div className={s.formStepper}>
+              <div className={s.formStep}>
+                <span className={s.formStepNum}>1</span>
+                <span className={s.formStepLabel}>Dados da obra</span>
+              </div>
+              <div className={s.formStepLine} />
+              <div className={s.formStep}>
+                <span className={s.formStepNum}>2</span>
+                <span className={s.formStepLabel}>Modelo</span>
+              </div>
+              <div className={s.formStepLine} />
+              <div className={s.formStep}>
+                <span className={s.formStepNum}>3</span>
+                <span className={s.formStepLabel}>Resultado</span>
+              </div>
+            </div>
+
+            {/* Etapa 1 — Dados da obra */}
             <div className={s.cardSection}>
-              <div className={s.sectionIcon}>📐</div>
               <div className={s.sectionContent}>
-                <h2 className={s.sectionTitle}>Dados da Obra e Revestimento</h2>
+                <h2 className={s.sectionTitle}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                  Dados da Obra e Revestimento
+                </h2>
 
                 <div className={s.field}>
                   <label>Área total a revestir (m²) <span className={s.req}>*</span></label>
                   <input className={s.input} type="text" inputMode="decimal" placeholder="Ex: 274.7" value={areaTotal} onChange={e => setAreaTotal(e.target.value)} />
                   <span className={s.hint}>Área total de parede ou fachada onde o porcelanato será instalado</span>
                 </div>
+
+                {revestimentos.length > 0 && (
+                  <div className={s.field} style={{ position: 'relative' }}>
+                    <label>Revestimento (opcional)</label>
+                    <input
+                      className={s.input}
+                      type="text"
+                      placeholder="Busque por formato ou fabricante — ex: 60×120, Portobello"
+                      value={revQuery}
+                      onChange={e => { setRevQuery(e.target.value); setRevOpen(true) }}
+                      onFocus={() => setRevOpen(true)}
+                    />
+                    <span className={s.hint}>Preenche largura, altura, espessura e peso automaticamente</span>
+                    {revOpen && revFiltrados.length > 0 && (
+                      <>
+                        <div className={s.acBackdrop} onClick={() => setRevOpen(false)} />
+                        <ul className={s.acList}>
+                          {revFiltrados.map(r => (
+                            <li key={r.id} className={s.acItem} onClick={() => selecionarRevestimento(r)}>
+                              <strong>{r.formato}</strong>
+                              <span className={s.acFab}>{r.fabricante}</span>
+                              <span className={s.acMeta}>
+                                {r.espessura_mm && `${r.espessura_mm}mm`}
+                                {r.peso_m2_kg && ` · ${r.peso_m2_kg} kg/m²`}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 <div className={s.grid2}>
                   <div className={s.field}>
@@ -462,7 +527,7 @@ export default function CalculadoraFixador() {
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>
-                    <span className={s.hint}>Usada para selecionar o fixador compatível automaticamente</span>
+                    <span className={s.hint}>Seleciona o fixador compatível automaticamente</span>
                   </div>
                   <div className={s.field}>
                     <label>Peso da peça (kg)</label>
@@ -473,28 +538,60 @@ export default function CalculadoraFixador() {
               </div>
             </div>
 
-            {/* Modelo — DEPOIS dos dados, abertura já calculada */}
+            {/* Etapa 2 — Modelo (vitrine) */}
             <div className={s.cardSection}>
-              <div className={s.sectionIcon}>📌</div>
               <div className={s.sectionContent}>
-                <h2 className={s.sectionTitle}>Modelo do Fixador</h2>
-                <div className={s.modelGrid}>
-                  {grupos.map((g, gi) => {
-                    const isActive = gi === grupoIdx
-                    const selectedAb = isActive ? g.aberturas.find(a => a.idx === modeloIdx) : null
+                <h2 className={s.sectionTitle}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  Escolha o Fixador
+                </h2>
+                <div className={s.modelGroups}>
+                  {(['Aço Inox 304', 'Aço Inox 430'] as const).map(mat => {
+                    const items = modelos.map((m, i) => ({ ...m, _idx: i })).filter(m => m.material === mat)
+                    if (!items.length) return null
+                    const hasActive = items.some(m => m._idx === modeloIdx)
+                    const desc = items[0]?.desc || ''
                     return (
-                      <div key={g.material} className={`${s.modelCard} ${isActive ? s.modelActive : ''}`} onClick={() => setGrupoIdx(gi)}>
-                        {g.imagem_url && <img src={g.imagem_url} alt={g.material} className={s.modelImg} loading="lazy" />}
-                        <div className={s.modelName}>{modelos[g.aberturas[0].idx].nome.replace(/\s*—\s*\d+\s*mm$/i, '')}</div>
-                        <div className={g.laudo ? s.modelSeloLaudo : s.modelSeloEcon}>{g.laudo ? '🔬 Possui laudo/ensaios' : '💰 Econômico'}</div>
-                        {isActive && (
-                          <div className={s.aberturaAuto}>
-                            {espessura
-                              ? <>Revestimento de <strong>{espessura} mm</strong> — fixador compatível selecionado</>
-                              : <>Informe a espessura acima para seleção automática do fixador ideal</>
-                            }
+                      <div key={mat} className={`${s.modelGroup} ${hasActive ? s.modelGroupActive : ''}`}>
+                        <div className={s.modelGroupCards}>
+                          {items.map(m => {
+                            const isActive = m._idx === modeloIdx
+                            return (
+                              <div key={m._idx} className={`${s.modelCard} ${isActive ? s.modelActive : ''}`} onClick={() => setModeloIdx(m._idx)}>
+                                {m.imagem_url ? (
+                                  <div className={s.modelImgWrap} onClick={e => { e.stopPropagation(); setLightbox({ src: m.imagem_url!, alt: m.nome }) }}>
+                                    <img src={m.imagem_url} alt={m.nome} className={s.modelImg} loading="lazy" />
+                                    <span className={s.modelZoom}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span>
+                                  </div>
+                                ) : (
+                                  <div className={s.modelImgPlaceholder}>
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+                                  </div>
+                                )}
+                                <div className={s.modelInfo}>
+                                  <div className={s.modelAbertura}>Abertura {m.abertura_mm || '—'} mm</div>
+                                  <div className={s.modelMaterial}>{m.comprimento_mm && m.largura_mm ? `${m.comprimento_mm}×${m.largura_mm}×${m.espessura}` : m.espessura}</div>
+                                  {m.preco_unitario != null && m.preco_unitario > 0 && (
+                                    <div className={s.modelPreco}>R$ {m.preco_unitario.toFixed(2).replace('.', ',')} <span>/un.</span></div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        <div className={s.modelGroupInfo}>
+                          <div className={s.modelGroupHeader}>
+                            <span className={s.modelName}>{mat}</span>
+                            <div className={items[0]?.laudo ? s.modelSeloLaudo : s.modelSeloEcon}>
+                              {items[0]?.laudo ? (
+                                <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Validação técnica</>
+                              ) : (
+                                <><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> Econômico</>
+                              )}
+                            </div>
                           </div>
-                        )}
+                          <div className={s.modelDesc}>{desc}</div>
+                        </div>
                       </div>
                     )
                   })}
@@ -505,12 +602,26 @@ export default function CalculadoraFixador() {
 
             {erro && <div className={s.erro}>{erro}</div>}
 
-            <button type="submit" className={s.btnCalc}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/></svg>
-              Calcular Materiais
-            </button>
+            <div className={s.btnCalcWrap}>
+              <button type="submit" className={s.btnCalc}>
+                Calcular Materiais
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </button>
+              <div className={s.btnCalcHint}>Cálculo técnico POUSINOX® · Resultado imediato</div>
+            </div>
             </div>
           </form>
+
+          <div className={s.ctaConsultor}>
+            <div className={s.ctaConsultorTexto}>
+              <strong>Dúvidas sobre o seu projeto?</strong>
+              <span>Fale direto com nosso consultor técnico</span>
+            </div>
+            <a href={`https://wa.me/${WA_NUMERO}?text=${encodeURIComponent('Olá, estou usando a calculadora e gostaria de tirar uma dúvida sobre meu projeto.')}`} target="_blank" rel="noopener noreferrer" className={s.ctaConsultorBtn}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.556 4.124 1.527 5.855L.06 23.488a.5.5 0 00.608.631l5.845-1.39A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.94 0-3.76-.562-5.295-1.53a.5.5 0 00-.38-.058l-3.736.889.94-3.548a.5.5 0 00-.063-.396A9.953 9.953 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
+              Falar com consultor
+            </a>
+          </div>
 
           {/* ── Resultado (sempre visível após calcular) ── */}
           {etapa === 'resultado' && resultado && (
@@ -561,6 +672,110 @@ export default function CalculadoraFixador() {
                 )}
               </div>
 
+              {/* Diagrama de posicionamento dos grampos */}
+              {(() => {
+                const n = resultado.fixadores_por_peca
+                const larg_cm = parseFloat(largura) || 60
+                const alt_cm = parseFloat(altura) || 60
+                const isVertical = alt_cm > larg_cm * 1.5 // peça estreita vertical (ex: 20×120)
+                // Escala proporcional
+                const maxW = 160, maxH = 200
+                const ratio = alt_cm / larg_cm
+                let w = maxW, h = maxW * ratio
+                if (h > maxH) { h = maxH; w = maxH / ratio }
+                const pad = 30 // padding para cotas
+                const ox = pad + (maxW - w) / 2 + 10 // offset x
+                const oy = pad + 5
+                const margin = w * 0.06 // 5-6% margem da borda
+                const svgW = maxW + pad * 2 + 20
+                const svgH = h + pad * 2 + 30
+
+                // Posições dos grampos — padrão real POUSINOX®
+                let grampos: [number, number][] = []
+                if (isVertical) {
+                  // Peça estreita: 1 topo + 1 base (centralizado)
+                  if (n === 2) {
+                    grampos = [[ox + w / 2, oy + margin], [ox + w / 2, oy + h - margin]]
+                  } else {
+                    grampos = [[ox + w / 2, oy + margin], [ox + w / 2, oy + h / 2], [ox + w / 2, oy + h - margin]]
+                  }
+                } else {
+                  // Peça quadrada/larga: grampos na borda superior
+                  if (n === 2) {
+                    grampos = [[ox + margin + w * 0.05, oy + margin], [ox + w - margin - w * 0.05, oy + margin]]
+                  } else if (n === 3) {
+                    grampos = [[ox + margin + w * 0.05, oy + margin], [ox + w - margin - w * 0.05, oy + margin], [ox + w / 2, oy + h - margin]]
+                  } else {
+                    grampos = [[ox + margin + w * 0.05, oy + margin], [ox + w - margin - w * 0.05, oy + margin], [ox + margin + w * 0.05, oy + h - margin], [ox + w - margin - w * 0.05, oy + h - margin]]
+                  }
+                }
+
+                // Cotas
+                const cotaGap = margin + w * 0.05
+                const cotaEntreX = (w - 2 * cotaGap).toFixed(2)
+                const cotaMargemX = (larg_cm * 0.06 + larg_cm * 0.05).toFixed(2)
+
+                return (
+                  <div className={s.diagramaWrap}>
+                    <div className={s.diagramaLabel}>Posicionamento dos grampos POUSINOX®</div>
+                    <svg className={s.diagramaSvg} viewBox={`0 0 ${svgW} ${svgH}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+                      {/* Peça */}
+                      <rect x={ox} y={oy} width={w} height={h} rx="3" fill="#f2f0ec" stroke="#c8c3b8" strokeWidth="1.5" />
+
+                      {/* Cota horizontal — topo */}
+                      <line x1={ox} y1={oy - 10} x2={ox + w} y2={oy - 10} stroke="#9ca3af" strokeWidth="0.7" />
+                      <line x1={ox} y1={oy - 14} x2={ox} y2={oy - 6} stroke="#9ca3af" strokeWidth="0.7" />
+                      <line x1={ox + w} y1={oy - 14} x2={ox + w} y2={oy - 6} stroke="#9ca3af" strokeWidth="0.7" />
+                      <text x={ox + w / 2} y={oy - 14} textAnchor="middle" fontSize="9" fill="#6b7280" fontFamily="Inter, sans-serif" fontWeight="600">{(larg_cm / 100).toFixed(2)}m</text>
+
+                      {/* Cota vertical — esquerda */}
+                      <line x1={ox - 10} y1={oy} x2={ox - 10} y2={oy + h} stroke="#9ca3af" strokeWidth="0.7" />
+                      <line x1={ox - 14} y1={oy} x2={ox - 6} y2={oy} stroke="#9ca3af" strokeWidth="0.7" />
+                      <line x1={ox - 14} y1={oy + h} x2={ox - 6} y2={oy + h} stroke="#9ca3af" strokeWidth="0.7" />
+                      <text x={ox - 16} y={oy + h / 2} textAnchor="middle" fontSize="9" fill="#6b7280" fontFamily="Inter, sans-serif" fontWeight="600" transform={`rotate(-90 ${ox - 16} ${oy + h / 2})`}>{(alt_cm / 100).toFixed(2)}m</text>
+
+                      {/* Cota margem — entre grampos (topo, se 2+ no topo) */}
+                      {!isVertical && n >= 2 && (
+                        <>
+                          <line x1={grampos[0][0]} y1={oy - 3} x2={grampos[0][0]} y2={oy + margin + 4} stroke="#0b1520" strokeWidth="0.5" strokeDasharray="2 2" opacity="0.3" />
+                          <line x1={grampos[1][0]} y1={oy - 3} x2={grampos[1][0]} y2={oy + margin + 4} stroke="#0b1520" strokeWidth="0.5" strokeDasharray="2 2" opacity="0.3" />
+                        </>
+                      )}
+
+                      {/* Fixadores POUSINOX® — 40×120mm, 3 furos, aba na base */}
+                      {grampos.map(([cx, cy], i) => {
+                        const isTopo = cy < oy + h / 2
+                        // Corpo fora da peça, aba dentro
+                        const fw = 6, fh = 20 // proporção ~1:3 (40×120mm)
+                        const bodyY = isTopo ? cy - fh : cy
+                        const abaY = isTopo ? cy : cy - 3
+                        return (
+                          <g key={i}>
+                            {/* Corpo do fixador (na parede) */}
+                            <rect x={cx - fw / 2} y={bodyY} width={fw} height={fh} rx="1" fill="#d4d4d4" stroke="#999" strokeWidth="0.7" />
+                            {/* 3 furos de parafuso */}
+                            <circle cx={cx} cy={bodyY + fh * 0.2} r="1.3" fill="#888" />
+                            <circle cx={cx} cy={bodyY + fh * 0.5} r="1.3" fill="#888" />
+                            <circle cx={cx} cy={bodyY + fh * 0.8} r="1.3" fill="#888" />
+                            {/* Aba (encaixe na incisão) */}
+                            <rect x={cx - fw / 2 - 2} y={abaY} width={fw + 4} height={3} rx="0.5" fill="#b0b0b0" stroke="#999" strokeWidth="0.5" />
+                          </g>
+                        )
+                      })}
+
+                      {/* Legenda */}
+                      <g transform={`translate(${ox}, ${oy + h + 14})`}>
+                        <rect x="0" y="0" width="5" height="14" rx="1" fill="#d4d4d4" stroke="#999" strokeWidth="0.5" />
+                        <circle cx={2.5} cy={3} r="0.8" fill="#888" />
+                        <circle cx={2.5} cy={7} r="0.8" fill="#888" />
+                        <circle cx={2.5} cy={11} r="0.8" fill="#888" />
+                        <text x="10" y="10" fontSize="8.5" fill="#6b7280" fontFamily="Inter, sans-serif">= Fixador POUSINOX® ({n} por peça)</text>
+                      </g>
+                    </svg>
+                  </div>
+                )
+              })()}
+
               {/* Social proof — sempre visivel */}
               <div className={s.socialProof}>
                 <div className={s.proofCard}>
@@ -586,7 +801,23 @@ export default function CalculadoraFixador() {
                 </div>
               </div>
 
-              {/* Disclaimer — aberto */}
+              {/* Referência do laudo */}
+              {resultado.laudo_referencia && (
+                <div className={s.laudoRef}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  {resultado.laudo_referencia}
+                </div>
+              )}
+
+              {/* Alerta — condições da parede */}
+              <div className={s.alertaParede}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <div>
+                  <strong>Condições do substrato (ref. ABNT NBR 13755):</strong> A base deve estar limpa, sem trincas, sem materiais soltos, óleos ou eflorescências, e não apresentar som cavo à percussão. Emboço com cura mínima de 14 dias. Desvio de planeza máximo de 3 mm em régua de 2 m. Superfícies expostas a sol/vento devem ser pré-umedecidas (sem saturar).
+                </div>
+              </div>
+
+              {/* Disclaimer */}
               <div className={s.disclaimer}>
                 <strong>Nota técnica:</strong> Especificação com caráter estimativo.
                 A validação final depende das condições da obra e do responsável técnico.
@@ -914,6 +1145,13 @@ export default function CalculadoraFixador() {
           </div>
         )}
       </div>
+
+      {lightbox && (
+        <div className={s.lightboxOverlay} onClick={() => setLightbox(null)}>
+          <button className={s.lightboxClose} onClick={() => setLightbox(null)} aria-label="Fechar">✕</button>
+          <img src={lightbox.src} alt={lightbox.alt} className={s.lightboxImg} onClick={e => e.stopPropagation()} />
+        </div>
+      )}
     </>
   )
 }
