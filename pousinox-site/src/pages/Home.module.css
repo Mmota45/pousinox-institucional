@@ -1035,12 +1035,31 @@
 }
 
 @media (max-width: 768px) {
+  .hero {
+    padding-bottom: 100px;
+  }
+
   .heroArrow {
     display: none;
   }
 
+  .heroStatsBar {
+    flex-wrap: wrap;
+  }
+
   .heroStatItem {
     text-align: center;
+    padding: 10px 16px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .heroStatValue {
+    font-size: 1.1rem;
+  }
+
+  .heroStatLabel {
+    font-size: 0.6rem;
   }
 
   .fabricaGrid {
