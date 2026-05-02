@@ -383,7 +383,7 @@ export default function CalculadoraFixador() {
       `• Total fixadores: ${resultado.total_fixadores}\n` +
       `${resultado.peso_peca_kg ? `• Peso estimado/peça: ${resultado.peso_peca_kg.toFixed(2)} kg\n` : ''}` +
       precoLine +
-      `\nGostaria de solicitar um orçamento com esses materiais.`
+      `\nGostaria de fechar este pedido. Podem me enviar a proposta comercial com frete?`
     )
   }
 
