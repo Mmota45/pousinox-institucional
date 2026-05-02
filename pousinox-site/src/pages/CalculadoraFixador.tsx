@@ -380,9 +380,49 @@ export default function CalculadoraFixador() {
   return (
     <>
       <SEO
-        title="Calculadora de Materiais — Fixador de Porcelanato POUSINOX®"
-        description="Calcule a quantidade de fixadores, parafusos, buchas e consumíveis para sua obra. Ferramenta gratuita da POUSINOX® para especificação técnica de materiais."
+        title="Calculadora de Fixador de Porcelanato — Quantos Fixadores por m²"
+        description="Calcule quantos fixadores de porcelanato são necessários para sua fachada ou parede. Ferramenta gratuita com base em ensaio técnico SENAI/LAMAT. Especificação de materiais: fixadores, parafusos, buchas e adesivo PU."
         path="/fixador-porcelanato/calculadora"
+        keywords="fixador de porcelanato, calculadora fixador porcelanato, quantos fixadores por m2, fixador para fachada, grampo porcelanato, fixador inox 304, fixador inox 430, queda de porcelanato fachada, ancoragem mecânica porcelanato, fixador POUSINOX, especificação técnica fixador, NBR 13755, fixador porcelanato preço"
+        extraSchema={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebApplication',
+            name: 'Calculadora de Fixadores de Porcelanato POUSINOX®',
+            description: 'Ferramenta gratuita para calcular a quantidade de fixadores de porcelanato, parafusos, buchas e consumíveis para fachadas e paredes.',
+            url: 'https://pousinox.com.br/fixador-porcelanato/calculadora',
+            applicationCategory: 'UtilitiesApplication',
+            operatingSystem: 'Web',
+            offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' },
+            creator: { '@type': 'Organization', name: 'POUSINOX®', url: 'https://pousinox.com.br' },
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [
+              {
+                '@type': 'Question',
+                name: 'Quantos fixadores de porcelanato por m²?',
+                acceptedAnswer: { '@type': 'Answer', text: 'A quantidade varia conforme o peso e dimensão da peça. Em média, são necessários 2 a 3 fixadores por peça. Use a calculadora POUSINOX para obter a quantidade exata com base no seu revestimento.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'Qual a diferença entre fixador inox 304 e 430?',
+                acceptedAnswer: { '@type': 'Answer', text: 'O inox 304 contém cromo e níquel, sendo resistente à corrosão — ideal para fachadas e áreas externas. O inox 430 é mais econômico e indicado para áreas internas sem exposição à umidade.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'Como funciona o fixador de porcelanato?',
+                acceptedAnswer: { '@type': 'Answer', text: 'O fixador é um grampo em aço inox que fornece ancoragem mecânica ao porcelanato. Uma incisão é feita na borda da peça com disco diamantado, aplica-se adesivo PU, e o fixador é parafusado na parede. A aba do fixador encaixa na incisão, prevenindo a queda do revestimento.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'O fixador substitui a argamassa colante?',
+                acceptedAnswer: { '@type': 'Answer', text: 'Não. O fixador é um sistema complementar de segurança que trabalha junto com a argamassa colante ou adesivo, criando dupla ancoragem — química e mecânica — contra o desprendimento do revestimento.' },
+              },
+            ],
+          },
+        ]}
       />
       <div className={s.page}>
         {/* Hero — orientado a acao */}

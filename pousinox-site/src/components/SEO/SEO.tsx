@@ -4,6 +4,8 @@ interface SEOProps {
   title: string
   description: string
   path?: string
+  keywords?: string
+  extraSchema?: Record<string, unknown>[]
 }
 
 const BASE_URL = 'https://pousinox.com.br'
@@ -95,7 +97,7 @@ const LOCAL_BUSINESS_SCHEMA = {
   },
 }
 
-export default function SEO({ title, description, path = '' }: SEOProps) {
+export default function SEO({ title, description, path = '', keywords, extraSchema }: SEOProps) {
   const url = `${BASE_URL}${path}`
   const fullTitle = title.includes('Pousinox') || title.includes('POUSINOX')
     ? title
@@ -105,7 +107,7 @@ export default function SEO({ title, description, path = '' }: SEOProps) {
     <Helmet>
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
-      <meta name="keywords" content="inox Pouso Alegre, equipamentos inox Sul de Minas, fábrica inox Pouso Alegre MG, bancada inox cozinha industrial, mesa inox restaurante, coifa inox, pia inox, mobiliário hospitalar inox, corte a laser inox Sul de Minas, aço inox sob medida, fabricante inox MG, POUSINOX" />
+      <meta name="keywords" content={keywords || "inox Pouso Alegre, equipamentos inox Sul de Minas, fábrica inox Pouso Alegre MG, bancada inox cozinha industrial, mesa inox restaurante, coifa inox, pia inox, mobiliário hospitalar inox, corte a laser inox Sul de Minas, aço inox sob medida, fabricante inox MG, POUSINOX"} />
 
       {/* Geo tags — essencial para SEO local */}
       <meta name="geo.region" content="BR-MG" />
@@ -135,6 +137,13 @@ export default function SEO({ title, description, path = '' }: SEOProps) {
       <script type="application/ld+json">
         {JSON.stringify(LOCAL_BUSINESS_SCHEMA)}
       </script>
+
+      {/* Schema extra (página-específico) */}
+      {extraSchema?.map((s, i) => (
+        <script key={i} type="application/ld+json">
+          {JSON.stringify(s)}
+        </script>
+      ))}
     </Helmet>
   )
 }
