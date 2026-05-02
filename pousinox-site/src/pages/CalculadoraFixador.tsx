@@ -1170,10 +1170,8 @@ export default function CalculadoraFixador() {
               )}
             </div>
           )}
-        </div>
-
         {/* ── Comparativo + FAQ ── */}
-        <div className={s.card} style={{ marginTop: 20 }}>
+        <div className={s.card} style={{ marginTop: 20, padding: '24px 28px' }}>
           <h2 className={s.secaoTitulo}>
             Inox 304 vs 430
           </h2>
@@ -1227,6 +1225,7 @@ export default function CalculadoraFixador() {
               </details>
             ))}
           </div>
+        </div>
         </div>
 
         {/* Sticky CTA mobile — aparece apos resultado */}
