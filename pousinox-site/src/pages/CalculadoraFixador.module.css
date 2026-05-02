@@ -13,7 +13,7 @@
   --calc-border: #e4e1da;
   --calc-text: #1a1e24;
   --calc-muted: #6b7280;
-  --calc-green: #1a8a5c;
+  --calc-green: #15794f;
   --calc-green-light: #e8f5ee;
   --calc-green-cta: #1d9965;
   --calc-gold: #b8a070;
@@ -707,7 +707,7 @@
 }
 .hint {
   font-size: 0.68rem;
-  color: #9ca3af;
+  color: #6b7280;
   line-height: 1.4;
 }
 

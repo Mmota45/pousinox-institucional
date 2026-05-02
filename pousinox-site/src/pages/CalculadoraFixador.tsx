@@ -562,7 +562,7 @@ export default function CalculadoraFixador() {
                 <div className={s.grid2}>
                   <div className={s.field}>
                     <label>Espessura do revestimento (mm)</label>
-                    <select className={s.input} value={espessura} onChange={e => setEspessura(e.target.value)}>
+                    <select className={s.input} value={espessura} onChange={e => setEspessura(e.target.value)} aria-label="Espessura do revestimento">
                       {ESPESSURAS_COMUNS.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
@@ -601,7 +601,7 @@ export default function CalculadoraFixador() {
                                 {isActive && <span className={s.modelCheck}>✓</span>}
                                 {m.imagem_url ? (
                                   <div className={s.modelImgWrap} onClick={e => { e.stopPropagation(); setLightbox({ src: m.imagem_url!, alt: m.nome }) }}>
-                                    <img src={m.imagem_url} alt={m.nome} className={s.modelImg} loading="lazy" />
+                                    <img src={m.imagem_url} alt={m.nome} className={s.modelImg} loading="lazy" width="280" height="140" />
                                     <span className={s.modelZoom}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span>
                                   </div>
                                 ) : (
@@ -1016,7 +1016,7 @@ export default function CalculadoraFixador() {
                           </div>
                           <div className={s.field}>
                             <label>Segmento</label>
-                            <select className={s.input} value={loginSegmento} onChange={e => setLoginSegmento(e.target.value)}>
+                            <select className={s.input} value={loginSegmento} onChange={e => setLoginSegmento(e.target.value)} aria-label="Segmento de atuação">
                               <option value="">Selecione...</option>
                               <option value="construcao">Construção Civil</option>
                               <option value="revestimentos">Revestimentos</option>
