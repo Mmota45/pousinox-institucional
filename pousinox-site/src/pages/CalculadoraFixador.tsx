@@ -1069,18 +1069,21 @@ export default function CalculadoraFixador() {
                         </tr>
                       </thead>
                       <tbody>
-                        {resultado.itens.map((it, i) => (
+                        {resultado.itens.map((it, i) => {
+                          const kitItem = it.nome === 'Parafuso' || it.nome === 'Bucha'
+                          return (
                           <tr key={i}>
                             <td>
                               <span className={s.materialIcon}>
-                                {it.tipo === 'fixador' ? '🔩' : it.tipo === 'consumivel' ? '🔧' : '📦'}
+                                {it.tipo === 'fixador' ? '🔩' : kitItem ? '🔩' : '🔧'}
                               </span>
-                              {it.nome}
+                              {it.nome}{kitItem ? <span className={s.kitBadge}>kit</span> : ''}
                             </td>
                             <td style={{ textAlign: 'right', fontWeight: 700 }}>{it.quantidade.toLocaleString('pt-BR')}</td>
                             <td>{it.unidade}</td>
                           </tr>
-                        ))}
+                          )
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1097,39 +1100,19 @@ export default function CalculadoraFixador() {
                   )}
 
                   {/* Orçamento estimado */}
-                  {(modelo.preco_unitario || consumiveisDb.some(c => c.preco_unitario)) && (() => {
-                    const fixTotal = modelo.preco_unitario ? modelo.preco_unitario * resultado.total_fixadores : 0
-                    const consLinhas = consumiveisDb.filter(c => c.preco_unitario).map(c => {
-                      const qtd = Math.ceil(resultado.total_fixadores / (c.proporcao_por || 1))
-                      return { nome: c.nome, qtd, total: c.preco_unitario! * qtd, unitario: c.preco_unitario! }
-                    })
-                    const consTotal = consLinhas.reduce((acc, c) => acc + c.total, 0)
-                    const grandTotal = fixTotal + consTotal
+                  {modelo.preco_unitario && (() => {
+                    const kitTotal = modelo.preco_unitario * resultado.total_fixadores
                     return (
                       <div className={s.orcamentoBox}>
                         <div className={s.orcamentoTitle}>Estimativa de Investimento</div>
                         <div className={s.orcamentoGrid}>
-                          {modelo.preco_unitario && (
-                            <div className={s.orcamentoItem}>
-                              <span>Fixadores ({resultado.total_fixadores.toLocaleString('pt-BR')} un. x R$ {modelo.preco_unitario.toFixed(2).replace('.', ',')})</span>
-                              <strong>R$ {fixTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                            </div>
-                          )}
-                          {consLinhas.map((c, i) => (
-                            <div key={i} className={s.orcamentoItem}>
-                              <span>{c.nome} ({c.qtd.toLocaleString('pt-BR')} un. x R$ {c.unitario.toFixed(2).replace('.', ',')})</span>
-                              <strong>R$ {c.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                            </div>
-                          ))}
-                          {(fixTotal > 0 && consLinhas.length > 0) && (
-                            <div className={`${s.orcamentoItem} ${s.orcamentoTotal}`}>
-                              <span>Total estimado</span>
-                              <strong>R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                            </div>
-                          )}
+                          <div className={s.orcamentoItem}>
+                            <span>Kit Fixador + Bucha + Parafuso ({resultado.total_fixadores.toLocaleString('pt-BR')} un. x R$ {modelo.preco_unitario.toFixed(2).replace('.', ',')})</span>
+                            <strong>R$ {kitTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                          </div>
                         </div>
                         <div className={s.orcamentoNota}>
-                          Valores estimados para referência. O orçamento final pode variar conforme volume e condições de pagamento.
+                          Valores estimados para referência. Adesivo PU, disco de corte e broca são opcionais. O orçamento final pode variar conforme volume e condições de pagamento.
                         </div>
                       </div>
                     )
