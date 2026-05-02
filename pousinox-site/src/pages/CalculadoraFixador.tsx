@@ -413,12 +413,12 @@ export default function CalculadoraFixador() {
               {
                 '@type': 'Question',
                 name: 'Como funciona o fixador de porcelanato?',
-                acceptedAnswer: { '@type': 'Answer', text: 'O fixador é um grampo em aço inox que fornece ancoragem mecânica ao porcelanato. Uma incisão é feita na borda da peça com disco diamantado, aplica-se adesivo PU, e o fixador é parafusado na parede. A aba do fixador encaixa na incisão, prevenindo a queda do revestimento.' },
+                acceptedAnswer: { '@type': 'Answer', text: 'O fixador é um grampo em aço inox que fornece ancoragem mecânica ao porcelanato. A peça recebe argamassa colante normalmente e uma incisão é feita na borda com disco diamantado. Aplica-se adesivo PU na incisão, o fixador é parafusado na parede e sua aba encaixa na incisão, prevenindo a queda do revestimento.' },
               },
               {
                 '@type': 'Question',
                 name: 'O fixador substitui a argamassa colante?',
-                acceptedAnswer: { '@type': 'Answer', text: 'Não. O fixador é um sistema complementar de segurança que trabalha junto com a argamassa colante ou adesivo, criando dupla ancoragem — química e mecânica — contra o desprendimento do revestimento.' },
+                acceptedAnswer: { '@type': 'Answer', text: 'Não. A argamassa colante é aplicada na peça toda normalmente. O fixador é um sistema complementar de segurança mecânica — parafusado na parede, sua aba encaixa na incisão do porcelanato com adesivo PU, criando dupla ancoragem contra o desprendimento.' },
               },
             ],
           },
