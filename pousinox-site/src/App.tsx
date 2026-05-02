@@ -137,8 +137,8 @@ function App() {
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<Blog />} />
           <Route path="/servicos/corte-laser" element={<CorteLaser />} />
-          <Route path="/fixador-porcelanato" element={<FixadorPorcelanato />} />
-          <Route path="/fixador-porcelanato/fachadas" element={<Navigate to="/fixador-porcelanato" replace />} />
+          <Route path="/fixador-porcelanato" element={<Navigate to="/fixador-porcelanato/calculadora" replace />} />
+          <Route path="/fixador-porcelanato/fachadas" element={<Navigate to="/fixador-porcelanato/calculadora" replace />} />
           <Route path="/fixador-porcelanato/ensaios" element={<FixadorEnsaios />} />
           <Route path="/fixador-porcelanato/testes-lamat" element={<Navigate to="/fixador-porcelanato/ensaios" replace />} />
           <Route path="/fixador-porcelanato/normas" element={<FixadorNormas />} />
