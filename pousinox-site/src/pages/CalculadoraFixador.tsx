@@ -525,8 +525,8 @@ export default function CalculadoraFixador() {
                 <div className={s.field}>
                   <label>Aplicação</label>
                   <div className={s.toggleGroup}>
-                    <button type="button" className={`${s.toggleBtn} ${aplicacao === 'externo' ? s.toggleActive : ''}`} onClick={() => setAplicacao('externo')}>Externo</button>
-                    <button type="button" className={`${s.toggleBtn} ${aplicacao === 'interno' ? s.toggleActive : ''}`} onClick={() => setAplicacao('interno')}>Interno</button>
+                    <button type="button" className={`${s.toggleBtn} ${aplicacao === 'externo' ? s.toggleActive : ''}`} onClick={() => { setAplicacao('externo'); const idx = modelos.findIndex(m => m.material.includes('304')); if (idx >= 0) setModeloIdx(idx) }}>Externo</button>
+                    <button type="button" className={`${s.toggleBtn} ${aplicacao === 'interno' ? s.toggleActive : ''}`} onClick={() => { setAplicacao('interno'); const idx = modelos.findIndex(m => m.material.includes('430')); if (idx >= 0) setModeloIdx(idx) }}>Interno</button>
                   </div>
                   <span className={s.hint}>{aplicacao === 'externo' ? 'Recomendado Inox 304 — resistente à corrosão' : 'Inox 430 — solução econômica para áreas internas'}</span>
                 </div>
@@ -611,9 +611,11 @@ export default function CalculadoraFixador() {
                     const items = modelos.map((m, i) => ({ ...m, _idx: i })).filter(m => m.material === mat)
                     if (!items.length) return null
                     const hasActive = items.some(m => m._idx === modeloIdx)
+                    const isRecomendado = (aplicacao === 'externo' && mat.includes('304')) || (aplicacao === 'interno' && mat.includes('430'))
                     const desc = items[0]?.desc || ''
                     return (
-                      <div key={mat} className={`${s.modelGroup} ${hasActive ? s.modelGroupActive : ''}`}>
+                      <div key={mat} className={`${s.modelGroup} ${hasActive ? s.modelGroupActive : ''} ${isRecomendado ? s.modelGroupRecomendado : ''}`}>
+                        {isRecomendado && <span className={s.recomendadoBadge}>Recomendado para {aplicacao === 'externo' ? 'externo' : 'interno'}</span>}
                         <div className={s.modelGroupCards}>
                           {items.map(m => {
                             const isActive = m._idx === modeloIdx
@@ -752,23 +754,33 @@ export default function CalculadoraFixador() {
                 const svgW = maxW + pad * 2 + 20
                 const svgH = h + pad * 2 + 30
 
-                // Posições dos grampos — padrão real POUSINOX®
-                let grampos: [number, number][] = []
+                // Posições dos grampos — distribuídos nas bordas laterais
+                const grampos: [number, number][] = []
+                const xLeft = ox + margin
+                const xRight = ox + w - margin
+                const xCenter = ox + w / 2
+
                 if (isVertical) {
-                  // Peça estreita: 1 topo + 1 base (centralizado)
-                  if (n === 2) {
-                    grampos = [[ox + w / 2, oy + margin], [ox + w / 2, oy + h - margin]]
-                  } else {
-                    grampos = [[ox + w / 2, oy + margin], [ox + w / 2, oy + h / 2], [ox + w / 2, oy + h - margin]]
+                  // Peça estreita: grampos ao longo do centro vertical
+                  for (let i = 0; i < n; i++) {
+                    const y = n === 1 ? oy + h / 2 : oy + margin + (h - 2 * margin) * i / (n - 1)
+                    grampos.push([xCenter, y])
                   }
+                } else if (n === 2) {
+                  grampos.push([xLeft, oy + margin], [xRight, oy + margin])
+                } else if (n === 3) {
+                  grampos.push([xLeft, oy + margin], [xRight, oy + margin], [xCenter, oy + h - margin])
                 } else {
-                  // Peça quadrada/larga: grampos na borda superior
-                  if (n === 2) {
-                    grampos = [[ox + margin + w * 0.05, oy + margin], [ox + w - margin - w * 0.05, oy + margin]]
-                  } else if (n === 3) {
-                    grampos = [[ox + margin + w * 0.05, oy + margin], [ox + w - margin - w * 0.05, oy + margin], [ox + w / 2, oy + h - margin]]
-                  } else {
-                    grampos = [[ox + margin + w * 0.05, oy + margin], [ox + w - margin - w * 0.05, oy + margin], [ox + margin + w * 0.05, oy + h - margin], [ox + w - margin - w * 0.05, oy + h - margin]]
+                  // 4+: distribuir nas bordas esquerda e direita
+                  const perSide = Math.ceil(n / 2)
+                  for (let i = 0; i < perSide; i++) {
+                    const y = perSide === 1 ? oy + h / 2 : oy + margin + (h - 2 * margin) * i / (perSide - 1)
+                    grampos.push([xLeft, y])
+                  }
+                  const rightSide = n - perSide
+                  for (let i = 0; i < rightSide; i++) {
+                    const y = rightSide === 1 ? oy + h / 2 : oy + margin + (h - 2 * margin) * i / (rightSide - 1)
+                    grampos.push([xRight, y])
                   }
                 }
 
