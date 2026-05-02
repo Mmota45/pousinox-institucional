@@ -870,15 +870,16 @@
   gap: 10px;
 }
 .comparativoCard304 .comparativoCardHeader {
-  background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%);
+  background: linear-gradient(135deg, #d4d4d8 0%, #f4f4f5 30%, #a1a1aa 60%, #e4e4e7 80%, #d4d4d8 100%);
 }
 .comparativoCard430 .comparativoCardHeader {
-  background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+  background: linear-gradient(135deg, #a8a29e 0%, #d6d3d1 15%, #b0ada8 30%, #c8c5c0 45%, #a8a29e 60%, #c0bdb8 80%, #a8a29e 100%);
+  background-size: 100% 100%;
 }
 .comparativoCardTitle {
   font-size: 0.9rem;
   font-weight: 700;
-  color: #fff;
+  color: #27272a;
 }
 .comparativoBadge {
   font-size: 0.58rem;
@@ -887,8 +888,8 @@
   border-radius: 20px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  background: rgba(255,255,255,0.2);
-  color: rgba(255,255,255,0.9);
+  background: rgba(0,0,0,0.12);
+  color: #3f3f46;
 }
 .comparativoLista {
   display: flex;
