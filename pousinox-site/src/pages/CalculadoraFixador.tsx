@@ -16,6 +16,11 @@ import s from './CalculadoraFixador.module.css'
 
 const WA_NUMERO = '5535999619463'
 
+// GA4 event helper
+const track = (name: string, params?: Record<string, unknown>) => {
+  window.gtag?.('event', name, params)
+}
+
 // Lightbox state type
 type LightboxImg = { src: string; alt: string } | null
 
@@ -224,6 +229,7 @@ export default function CalculadoraFixador() {
     setResultado(res)
     setEtapa('resultado')
     setFormOpen(false)
+    track('calculator_submit', { formato: `${larg}x${alt}`, area, modelo: modelos[modeloIdx].nome })
     setTimeout(() => {
       document.getElementById('resultado-calc')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 100)
@@ -261,6 +267,7 @@ export default function CalculadoraFixador() {
       setWaMasked(res.data.whatsapp_masked || '')
       setShowGate('otp')
       setReenvioTimer(60)
+      track('calculator_otp_sent', { whatsapp_masked: res.data.whatsapp_masked })
     } catch (err) {
       setAuthErro((err as Error).message)
     } finally {
@@ -297,6 +304,7 @@ export default function CalculadoraFixador() {
       setSession(sess)
       saveSession(sess)
       setShowConfirmacao(true)
+      track('calculator_otp_verified', { lead_id: res.data.lead_id })
       setShowGate('complemento')
 
       setTimeout(() => {
@@ -337,6 +345,7 @@ export default function CalculadoraFixador() {
     }
     if (Object.keys(updates).length > 0) {
       await supabase.from('calculadora_leads').update(updates).eq('id', session.lead_id)
+      track('calculator_lead_complete', { segmento: updates.segmento, tipo_pessoa: tipoPessoa })
     }
     setShowGate('none')
   }
@@ -658,7 +667,7 @@ export default function CalculadoraFixador() {
               <strong>Dúvidas sobre o seu projeto?</strong>
               <span>Fale direto com nosso consultor técnico</span>
             </div>
-            <a href={`https://wa.me/${WA_NUMERO}?text=${encodeURIComponent('Olá, estou usando a calculadora e gostaria de tirar uma dúvida sobre meu projeto.')}`} target="_blank" rel="noopener noreferrer" className={s.ctaConsultorBtn}>
+            <a href={`https://wa.me/${WA_NUMERO}?text=${encodeURIComponent('Olá, estou usando a calculadora e gostaria de tirar uma dúvida sobre meu projeto.')}`} target="_blank" rel="noopener noreferrer" className={s.ctaConsultorBtn} onClick={() => track('calculator_whatsapp_click', { modelo: modelos[modeloIdx]?.nome, source: 'consultor' })}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.556 4.124 1.527 5.855L.06 23.488a.5.5 0 00.608.631l5.845-1.39A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.94 0-3.76-.562-5.295-1.53a.5.5 0 00-.38-.058l-3.736.889.94-3.548a.5.5 0 00-.063-.396A9.953 9.953 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
               Falar com consultor
             </a>
