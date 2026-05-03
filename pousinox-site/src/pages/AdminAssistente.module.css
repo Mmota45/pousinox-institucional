@@ -674,3 +674,5 @@
   color: #9ca3af; cursor: pointer; border-radius: 6px; transition: all 0.15s;
 }
 .msgActionIcon:hover { color: #1B3A5C; background: #f5f7fa; }
+.feedbackUp { color: #2563eb; background: #eff6ff; }
+.feedbackDown { color: #dc2626; background: #fef2f2; }

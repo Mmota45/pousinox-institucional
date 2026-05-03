@@ -671,6 +671,17 @@ export default function AdminAssistente() {
   const [ragEnabled, setRagEnabled] = useState(() => localStorage.getItem('assistente_rag') === '1')
   const [activeSources, setActiveSources] = useState<string[]>([])
   const [userName, setUserName] = useState('')
+  const [feedback, setFeedback] = useState<Record<number, 'up' | 'down'>>(() => {
+    try { return JSON.parse(localStorage.getItem('assistente_feedback') || '{}') } catch { return {} }
+  })
+  const toggleFeedback = (idx: number, val: 'up' | 'down') => {
+    setFeedback(prev => {
+      const next = { ...prev }
+      if (next[idx] === val) delete next[idx]; else next[idx] = val
+      localStorage.setItem('assistente_feedback', JSON.stringify(next))
+      return next
+    })
+  }
   const [revisorAtivo, setRevisorAtivo] = useState(false)
   const [showKb, setShowKb] = useState(false)
   const [showGuias, setShowGuias] = useState(false)
@@ -866,7 +877,7 @@ export default function AdminAssistente() {
       const systemFinal = srcFiles
         ? 'Você é um assistente de estudo. Responda em português brasileiro com base EXCLUSIVAMENTE nos documentos fornecidos. Seja detalhado e preciso.' + (customPrompt ? `\n\nInstruções do usuário: ${customPrompt}` : '')
         : SYSTEM_PROMPT + (customPrompt ? `\n\nInstruções do usuário: ${customPrompt}` : '')
-      console.log('[Assistente] ragEnabled:', ragEnabled, 'activeSources:', activeSources.length, 'docCount:', docCount, 'source_files:', JSON.stringify(srcFiles), 'modelo:', modelo)
+      // Debug removido
 
       let data: Record<string, unknown>, error: unknown
       const effectiveSearch = forceSearchSource || searchSource
@@ -887,7 +898,6 @@ export default function AdminAssistente() {
         })
         data = res.data ? (typeof res.data === 'string' ? JSON.parse(res.data) : res.data) : {}
         error = res.error
-        console.log('[Assistente] RAG response:', JSON.stringify({ content: (data as Record<string,unknown>)?.content?.toString()?.slice(0, 100), model: (data as Record<string,unknown>)?.model, error: error, rag_used: (data as Record<string,unknown>)?.rag_used, rag_sources: (data as Record<string,unknown>)?.rag_sources }))
       } else {
         // Sempre via ai-hub — tem contexto rico (banco + site + busca web)
         const providerModel = usarModelo || modelo
@@ -1221,11 +1231,11 @@ export default function AdminAssistente() {
                               <button className={s.msgActionIcon} title="Copiar" onClick={() => navigator.clipboard.writeText(mainText)}>
                                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
                               </button>
-                              <button className={s.msgActionIcon} title="Boa resposta" onClick={() => {}}>
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+                              <button className={`${s.msgActionIcon} ${feedback[i] === 'up' ? s.feedbackUp : ''}`} title="Boa resposta" onClick={() => toggleFeedback(i, 'up')}>
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill={feedback[i] === 'up' ? '#2563eb' : 'none'} stroke={feedback[i] === 'up' ? '#2563eb' : 'currentColor'} strokeWidth="2"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
                               </button>
-                              <button className={s.msgActionIcon} title="Resposta ruim" onClick={() => {}}>
-                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg>
+                              <button className={`${s.msgActionIcon} ${feedback[i] === 'down' ? s.feedbackDown : ''}`} title="Resposta ruim" onClick={() => toggleFeedback(i, 'down')}>
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill={feedback[i] === 'down' ? '#dc2626' : 'none'} stroke={feedback[i] === 'down' ? '#dc2626' : 'currentColor'} strokeWidth="2"><path d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg>
                               </button>
                             </div>
                             <div className={s.msgMeta}>
