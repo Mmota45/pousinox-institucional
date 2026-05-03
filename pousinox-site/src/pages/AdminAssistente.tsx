@@ -27,6 +27,17 @@ const ico = {
   bot:    <svg className={s.avatarSvg} viewBox="0 0 24 24"><path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 110 2h-1.17A7.002 7.002 0 0113 22h-2a7.002 7.002 0 01-6.83-6H3a1 1 0 110-2h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2zm0 7a5 5 0 00-5 5 5 5 0 005 5h0a5 5 0 005-5 5 5 0 00-5-5zm-2 4a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm4 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"/></svg>,
 }
 
+/* ── Inline SVG icons (replace emojis) ── */
+const svgI = (d: string, color = 'currentColor', size = 16) => <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline-block', verticalAlign: '-2px', marginRight: 4, flexShrink: 0 }}><path d={d}/></svg>
+const icoFolder    = svgI('M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z', '#3b82f6')
+const icoBook      = svgI('M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z', '#10b981')
+const icoDollar    = svgI('M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6', '#f97316')
+const icoChat      = svgI('M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z', '#6366f1')
+const icoClip      = svgI('M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48', '#0ea5e9')
+const icoSparkle   = svgI('M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z', '#f59e0b')
+const icoTrash     = svgI('M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2', '#ef4444')
+const icoSave      = svgI('M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2zM17 21v-8H7v8M7 3v5h8', '#3b82f6')
+
 /* ════════════════════════════════════════════════════════════
    Markdown → Structured Blocks parser
    ════════════════════════════════════════════════════════════ */
@@ -88,15 +99,16 @@ function parseBlocks(text: string): Block[] {
   return blocks
 }
 
-/* ── Inline formatter (bold + code) ── */
+/* ── Inline formatter (bold + code + links) ── */
 function fmt(t: string): React.ReactNode {
   const parts: React.ReactNode[] = []
-  const re = /(\*\*(.+?)\*\*|`(.+?)`)/g
+  const re = /(\*\*(.+?)\*\*|`(.+?)`|\[([^\]]+)\]\(([^)]+)\))/g
   let last = 0, m: RegExpExecArray | null
   while ((m = re.exec(t)) !== null) {
     if (m.index > last) parts.push(t.slice(last, m.index))
     if (m[2]) parts.push(<strong key={m.index}>{m[2]}</strong>)
     else if (m[3]) parts.push(<code key={m.index}>{m[3]}</code>)
+    else if (m[4] && m[5]) parts.push(<a key={m.index} href={m[5]} target="_blank" rel="noopener noreferrer" style={{ color: '#2C5F8A', textDecoration: 'underline' }}>{m[4]}</a>)
     last = m.index + m[0].length
   }
   if (last < t.length) parts.push(t.slice(last))
@@ -448,25 +460,31 @@ function escolherProviderModelo(texto: string): { provider: string; modelo: stri
 }
 
 const SEARCH_SOURCES = [
-  { id: 'auto', label: '🔍 Auto' },
-  { id: 'brave', label: '🦁 Brave' },
-  { id: 'serper', label: '🔎 Google' },
-  { id: 'none', label: '❌ Sem busca' },
+  { id: 'auto', label: 'Auto' },
+  { id: 'brave', label: 'Brave' },
+  { id: 'serper', label: 'Google' },
+  { id: 'none', label: 'Sem busca' },
 ] as const
 
+const presetIcons = {
+  chart: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#0ea5e9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>,
+  factory: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h20M5 20V8l5 4V8l5 4V4h3v16"/></svg>,
+  box: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16zM3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>,
+  search: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#3b82f6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>,
+}
 const PRESETS = [
-  { label: '📊 Resumo financeiro', prompt: 'Faça um resumo financeiro do mês atual: receitas, despesas, saldo, principais categorias.' },
-  { label: '🏭 Status produção', prompt: 'Qual o status atual das ordens de produção? Quantas estão em andamento, planejadas e concluídas este mês?' },
-  { label: '📦 Estoque crítico', prompt: 'Quais itens de estoque estão abaixo do estoque mínimo? Liste com saldo atual e mínimo.' },
-  { label: '🔍 Top clientes', prompt: 'Quais são os 10 maiores clientes por faturamento? Inclua segmento e cidade.' },
-  { label: '📈 Pipeline', prompt: 'Resuma o pipeline comercial: quantos deals por estágio, valor total previsto, deals mais antigos.' },
-  { label: '🧾 Orçamentos', prompt: 'Quantos orçamentos estão com status "enviado" aguardando resposta? Liste os mais antigos.' },
-  { label: '⚠️ NCs abertas', prompt: 'Existem não-conformidades abertas na qualidade? Liste com severidade e status.' },
-  { label: '📋 Manutenções', prompt: 'Quais ordens de manutenção estão abertas ou em execução? Prioridades altas primeiro.' },
-  { label: '🎯 Prospecção', prompt: 'Analise a base de prospecção: quantos prospects por UF, segmentos com mais empresas, score médio e oportunidades.' },
-  { label: '🌍 Estudo mercado', prompt: 'Analise as keywords de mercado: volume total de busca, UFs com mais demanda, segmentos com oportunidade e gaps.' },
-  { label: '📢 Campanhas', prompt: 'Resuma as campanhas de marketing: quais estão ativas, ROI, investimento total e conversões.' },
-  { label: '📝 Conteúdo site', prompt: 'Qual o status dos conteúdos do site? Quantos posts publicados, rascunhos pendentes e temas cobertos.' },
+  { icon: presetIcons.chart, label: 'Resumo financeiro', prompt: 'Faça um resumo financeiro do mês atual: receitas, despesas, saldo, principais categorias.' },
+  { icon: presetIcons.factory, label: 'Status produção', prompt: 'Qual o status atual das ordens de produção? Quantas estão em andamento, planejadas e concluídas este mês?' },
+  { icon: presetIcons.box, label: 'Estoque crítico', prompt: 'Quais itens de estoque estão abaixo do estoque mínimo? Liste com saldo atual e mínimo.' },
+  { icon: presetIcons.search, label: 'Top clientes', prompt: 'Quais são os 10 maiores clientes por faturamento? Inclua segmento e cidade.' },
+  { icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#8b5cf6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>, label: 'Pipeline', prompt: 'Resuma o pipeline comercial: quantos deals por estágio, valor total previsto, deals mais antigos.' },
+  { icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>, label: 'Orçamentos', prompt: 'Quantos orçamentos estão com status "enviado" aguardando resposta? Liste os mais antigos.' },
+  { icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ef4444" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>, label: 'NCs abertas', prompt: 'Existem não-conformidades abertas na qualidade? Liste com severidade e status.' },
+  { icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#0ea5e9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>, label: 'Manutenções', prompt: 'Quais ordens de manutenção estão abertas ou em execução? Prioridades altas primeiro.' },
+  { icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>, label: 'Prospecção', prompt: 'Analise a base de prospecção: quantos prospects por UF, segmentos com mais empresas, score médio e oportunidades.' },
+  { icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>, label: 'Estudo mercado', prompt: 'Analise as keywords de mercado: volume total de busca, UFs com mais demanda, segmentos com oportunidade e gaps.' },
+  { icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ec4899" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>, label: 'Campanhas', prompt: 'Resuma as campanhas de marketing: quais estão ativas, ROI, investimento total e conversões.' },
+  { icon: <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>, label: 'Conteúdo site', prompt: 'Qual o status dos conteúdos do site? Quantos posts publicados, rascunhos pendentes e temas cobertos.' },
 ]
 
 const SYSTEM_PROMPT = `Você é o assistente inteligente da **Pousinox** — indústria metalúrgica especializada em aço inoxidável, fundada em 2001 em Pouso Alegre/MG.
@@ -477,7 +495,7 @@ IDENTIDADE DA EMPRESA (use naturalmente, NÃO liste como ficha cadastral):
 - **Corte a laser** em aço inox para peças e projetos sob medida
 - Atende 14+ segmentos: construção civil, restaurantes/food service, hospitais, hotéis, supermercados, açougues/frigoríficos, indústria alimentícia, condomínios, laboratórios, entre outros
 - Abrangência: desde projetos unitários sob medida até demandas industriais em série
-- Sites: pousinox.com.br | fixadorporcelanato.com.br
+- Sites: www.pousinox.com.br | www.fixadorporcelanato.com.br
 
 DADOS CADASTRAIS (citar APENAS quando perguntado diretamente):
 - CNPJ: 12.115.379/0001-64 | Empresa de Pequeno Porte
@@ -489,7 +507,7 @@ TOM E ESTILO:
 - Seja conciso mas completo. Não repita dados óbvios. Não peça desculpas
 - Quando falar da Pousinox, fale com propriedade e orgulho (é a SUA empresa)
 - Use dados reais do sistema quando disponíveis — números, nomes, datas concretas
-- NUNCA invente dados. Se não tiver, diga "não tenho essa informação no sistema"
+- NUNCA invente dados, processos, procedimentos ou informações. Se não tiver a informação no sistema ou nos documentos, diga claramente "não tenho essa informação no sistema". NÃO crie etapas, formulários ou fluxos que não existem. NÃO sugira que o usuário "entre em contato" ou "forneça dados" como se houvesse um processo — a menos que esse processo esteja documentado nos dados fornecidos
 
 CAPACIDADES:
 - Analisar dados do ERP: financeiro, estoque, produção, vendas, pipeline, qualidade, manutenção, prospecção, mercado
@@ -558,6 +576,27 @@ async function buscarContexto(prompt: string): Promise<string> {
   if (lower.match(/conte[uú]do|blog|post|artigo|seo|página|pagina.*site|publicação|publicacao/))
     queries.push(q('conteudos', 'CONTEÚDOS DO SITE', { limit: 20 }))
 
+  // Overview geral — sempre buscar contagens se nenhuma query específica foi acionada
+  if (queries.length === 0) {
+    try {
+      const counts = await Promise.all([
+        supabaseAdmin.from('clientes').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('produtos').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('ordens_producao').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('pipeline_deals').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('vendas').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('orcamentos').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('estoque_itens').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('projetos').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('nf_cabecalho').select('*', { count: 'exact', head: true }),
+        supabaseAdmin.from('prospeccao').select('*', { count: 'exact', head: true }).eq('cliente_ativo', true),
+      ])
+      const labels = ['Clientes', 'Produtos', 'Ordens de Produção', 'Deals no Pipeline', 'Vendas', 'Orçamentos', 'Itens em Estoque', 'Projetos', 'Notas Fiscais', 'Prospects ativos']
+      const overview = labels.map((l, i) => `- ${l}: ${counts[i].count ?? 0}`).join('\n')
+      partes.push(`VISÃO GERAL DO SISTEMA (dados reais):\n${overview}`)
+    } catch (e) { console.warn('[Assistente] Erro overview:', e) }
+  }
+
   await Promise.all(queries)
 
   console.log(`[Assistente] Contexto: ${partes.length} blocos carregados`, partes.map(p => p.split('\n')[0]))
@@ -592,7 +631,7 @@ function RAGSources({ sources }: { sources: RAGSource[] }) {
   const [open, setOpen] = useState<string | null>(null)
   return (
     <div className={s.ragSources}>
-      <div className={s.ragSourcesTitle}>📎 Fontes ({sources.length} documentos)</div>
+      <div className={s.ragSourcesTitle}>{icoClip} Fontes ({sources.length} documentos)</div>
       {sources.map(src => (
         <div key={src.file}>
           <button className={s.ragSourceBtn} onClick={() => setOpen(open === src.file ? null : src.file)}>
@@ -767,9 +806,9 @@ export default function AdminAssistente() {
       }
       const mainContent = parsed?.content || parsed?.message || parsed?.error || 'Sem resposta.'
       const msgBadges: string[] = []
-      if (parsed?.rag_used) msgBadges.push('📚 RAG')
-      if (parsed?.web_search) msgBadges.push('🌐 Web')
-      if (motivo) msgBadges.push(`🤖 ${motivo}`)
+      if (parsed?.rag_used) msgBadges.push('RAG')
+      if (parsed?.web_search) msgBadges.push('Web')
+      if (motivo) msgBadges.push(motivo)
       setMsgs(prev => [...prev, { role: 'assistant', content: mainContent, model: parsed?.model, rag_sources: parsed?.rag_sources, badges: msgBadges.length ? msgBadges : undefined }])
 
       // Modo Revisor: segunda IA valida a resposta
@@ -830,7 +869,7 @@ export default function AdminAssistente() {
   const handleFileResult = useCallback((content: string, filename: string) => {
     setMsgs(prev => [
       ...prev,
-      { role: 'user', content: `📎 Arquivo enviado: ${filename}` },
+      { role: 'user', content: `Arquivo enviado: ${filename}` },
       { role: 'assistant', content },
     ])
   }, [])
@@ -841,6 +880,9 @@ export default function AdminAssistente() {
 
   const [metaAberto, setMetaAberto] = useState(false)
   const [mobileTab, setMobileTab] = useState<'fontes' | 'chat' | 'studio'>('chat')
+  const [chatMenu, setChatMenu] = useState(false)
+  const [fontesCollapsed, setFontesCollapsed] = useState(() => localStorage.getItem('assistente_fontes_collapsed') === '1')
+  const [studioCollapsed, setStudioCollapsed] = useState(() => localStorage.getItem('assistente_studio_collapsed') === '1')
   const [docCount, setDocCount] = useState(0)
 
   // Studio: generate output using RAG context
@@ -855,18 +897,29 @@ export default function AdminAssistente() {
   }, [modelo])
 
   return (
-    <div className={s.wrap}>
+    <div className={`${s.wrap} ${fontesCollapsed ? s.wrapFontesCollapsed : ''} ${studioCollapsed ? s.wrapStudioCollapsed : ''}`}>
       {/* Mobile tabs */}
       <div className={s.mobileTabs}>
-        <button className={`${s.mobileTab} ${mobileTab === 'fontes' ? s.mobileTabActive : ''}`} onClick={() => setMobileTab('fontes')}>📎 Fontes</button>
-        <button className={`${s.mobileTab} ${mobileTab === 'chat' ? s.mobileTabActive : ''}`} onClick={() => setMobileTab('chat')}>💬 Conversa</button>
-        <button className={`${s.mobileTab} ${mobileTab === 'studio' ? s.mobileTabActive : ''}`} onClick={() => setMobileTab('studio')}>✨ Estúdio</button>
+        <button className={`${s.mobileTab} ${mobileTab === 'fontes' ? s.mobileTabActive : ''}`} onClick={() => setMobileTab('fontes')}>{icoClip} Fontes</button>
+        <button className={`${s.mobileTab} ${mobileTab === 'chat' ? s.mobileTabActive : ''}`} onClick={() => setMobileTab('chat')}>{icoChat} Conversa</button>
+        <button className={`${s.mobileTab} ${mobileTab === 'studio' ? s.mobileTabActive : ''}`} onClick={() => setMobileTab('studio')}>{icoSparkle} Estúdio</button>
       </div>
 
       {/* LEFT — Fontes */}
-      <div className={`${s.fontePanel} ${mobileTab === 'fontes' ? s.fontePanelMobileVisible : ''}`}>
+      {fontesCollapsed ? (
+        <div className={s.fontePanelCollapsed}>
+          <button className={s.collapsedToggle} onClick={() => { setFontesCollapsed(false); localStorage.setItem('assistente_fontes_collapsed', '0') }} title="Abrir Fontes">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M13 9l2 3-2 3"/></svg>
+          </button>
+          <button className={s.collapsedAdd} onClick={() => { setFontesCollapsed(false); localStorage.setItem('assistente_fontes_collapsed', '0') }} title="Adicionar fonte">+</button>
+        </div>
+      ) : null}
+      <div className={`${s.fontePanel} ${fontesCollapsed ? s.fontePanelHidden : ''} ${mobileTab === 'fontes' ? s.fontePanelMobileVisible : ''}`}>
         <div className={s.fonteHeader}>
           <span className={s.fonteTitle}>Fontes</span>
+          <button className={s.fonteToggleBtn} onClick={() => { setFontesCollapsed(true); localStorage.setItem('assistente_fontes_collapsed', '1') }} title="Fechar painel">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M14 9l-2 3 2 3"/></svg>
+          </button>
         </div>
         <div className={s.fonteBody}>
           <KnowledgeBase
@@ -900,7 +953,7 @@ export default function AdminAssistente() {
 
           {/* Histórico de conversas */}
           <div className={s.histSection}>
-            <button className={s.histSectionBtn} onClick={() => setShowKb(v => !v)}>📂 Conversas {threads.length > 0 ? `(${threads.length})` : ''} {showKb ? '▾' : '▸'}</button>
+            <button className={s.histSectionBtn} onClick={() => setShowKb(v => !v)}>{icoFolder} Conversas {threads.length > 0 ? `(${threads.length})` : ''} {showKb ? '▾' : '▸'}</button>
             {showKb && (
               <div className={s.histList}>
                 <button className={s.histNovaBtn} onClick={() => { setMsgs([]); setMobileTab('chat') }} style={{ width: '100%', marginBottom: 6 }}>+ Nova conversa</button>
@@ -920,7 +973,7 @@ export default function AdminAssistente() {
 
           {/* Guias de conhecimento */}
           <div className={s.histSection}>
-            <button className={s.histSectionBtn} onClick={() => setShowGuias(v => !v)}>📘 Guias {guias.length > 0 ? `(${guias.length})` : ''} {showGuias ? '▾' : '▸'}</button>
+            <button className={s.histSectionBtn} onClick={() => setShowGuias(v => !v)}>{icoBook} Guias {guias.length > 0 ? `(${guias.length})` : ''} {showGuias ? '▾' : '▸'}</button>
             {showGuias && (
               <div className={s.guiasList}>
                 {guias.length === 0 && <p className={s.histVazio}>Nenhum guia cadastrado</p>}
@@ -937,7 +990,7 @@ export default function AdminAssistente() {
                         {(guiaDetalhe as Record<string, string>).como_fazer && <div className={s.guiaBloco}><strong>Como fazer</strong><pre className={s.guiaCodigo}>{(guiaDetalhe as Record<string, string>).como_fazer}</pre></div>}
                         {(guiaDetalhe as Record<string, string>).onde_fazer && <div className={s.guiaBloco}><strong>Onde fazer</strong><p>{(guiaDetalhe as Record<string, string>).onde_fazer}</p></div>}
                         {(guiaDetalhe as Record<string, string>).por_que && <div className={s.guiaBloco}><strong>Por quê</strong><p>{(guiaDetalhe as Record<string, string>).por_que}</p></div>}
-                        <button className={s.guiaUsarBtn} onClick={() => { setInput(`Explique sobre: ${(guiaDetalhe as Record<string, string>).titulo}`); setMobileTab('chat'); setTimeout(() => inputRef.current?.focus(), 50) }}>💬 Perguntar à IA</button>
+                        <button className={s.guiaUsarBtn} onClick={() => { setInput(`Explique sobre: ${(guiaDetalhe as Record<string, string>).titulo}`); setMobileTab('chat'); setTimeout(() => inputRef.current?.focus(), 50) }}>{icoChat} Perguntar à IA</button>
                       </div>
                     )}
                   </div>
@@ -947,7 +1000,7 @@ export default function AdminAssistente() {
           </div>
 
           <div className={s.histSection}>
-            <button className={s.histSectionBtn} onClick={() => setShowUsage(v => !v)}>💰 Custos API {showUsage ? '▾' : '▸'}</button>
+            <button className={s.histSectionBtn} onClick={() => setShowUsage(v => !v)}>{icoDollar} Custos API {showUsage ? '▾' : '▸'}</button>
             {showUsage && <UsageDashboard />}
           </div>
         </div>
@@ -955,27 +1008,57 @@ export default function AdminAssistente() {
 
       {/* CENTER — Conversa */}
       <div className={s.chatArea}>
-        {msgs.length > 0 && (
-          <div className={s.chatHeader}>
-            <span className={s.chatTitle}>{msgs.find(m => m.role === 'user')?.content.slice(0, 60) || 'Nova conversa'}</span>
+        <div className={s.chatHeader}>
+          <span className={s.chatTitle}>Conversa</span>
+          <div className={s.chatMenuWrap}>
+            <button className={s.chatMenuBtn} onClick={() => setChatMenu(v => !v)}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+            </button>
+            {chatMenu && (
+              <>
+                <div className={s.chatMenuBackdrop} onClick={() => setChatMenu(false)} />
+                <div className={s.chatMenuDrop}>
+                  <p className={s.chatMenuInfo}>O historico de conversa agora e salvo entre sessoes.</p>
+                  {msgs.length > 0 && <button className={s.chatMenuAction} onClick={() => { setMsgs([]); setChatMenu(false) }}>{icoTrash} Excluir conversa atual</button>}
+                  <button className={s.chatMenuAction} onClick={() => { salvarConversa(); setChatMenu(false) }}>{icoSave} Salvar conversa</button>
+                  <hr className={s.chatMenuDivider} />
+                  <div className={s.chatMenuSettings}>
+                    <label className={s.chatMenuLabel}>Modelo</label>
+                    <select className={s.chatMenuSelect} value={modelo} onChange={e => { setModelo(e.target.value as ModelKey); localStorage.setItem('assistente_modelo', e.target.value) }}>
+                      <option value="auto">Auto</option>
+                      <option value="gemini">Gemini</option>
+                      <option value="groq">Groq</option>
+                      <option value="cerebras">Cerebras</option>
+                      <option value="mistral">Mistral</option>
+                      <option value="haiku">Haiku</option>
+                      <option value="sonnet">Sonnet</option>
+                    </select>
+                    <label className={s.chatMenuLabel}>Busca web</label>
+                    <select className={s.chatMenuSelect} value={searchSource} onChange={e => { setSearchSource(e.target.value); localStorage.setItem('assistente_search', e.target.value) }}>
+                      {SEARCH_SOURCES.map(src => <option key={src.id} value={src.id}>{src.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        )}
+        </div>
         {msgs.length === 0 ? (
           <div className={s.welcome}>
-            <h2 className={s.welcomeTitle}>Assistente Pousinox</h2>
-            <p className={s.welcomeSub}>Consulte dados do ERP com inteligência artificial</p>
+            <h2 className={s.welcomeTitle}>Olá, como posso ajudar?</h2>
+            <p className={s.welcomeSub}>Use os atalhos abaixo ou digite sua pergunta.</p>
             <div className={s.sugestoes}>
-              {PRESETS.slice(0, 4).map((p, i) => (
-                <button key={i} className={s.sugestaoBtn} onClick={() => { const u = JSON.parse(localStorage.getItem('assistente_preset_usage') || '{}'); u[p.label] = (u[p.label] || 0) + 1; localStorage.setItem('assistente_preset_usage', JSON.stringify(u)); enviar(p.prompt) }} disabled={loading}>
-                  <span className={s.sugestaoBtnIcon}>{p.label.slice(0, 2)}</span>
-                  {p.label.slice(2).trim()}
+              {[...PRESETS].sort(() => Math.random() - 0.5).slice(0, 4).map((p, i) => (
+                <button key={p.label} className={s.sugestaoBtn} onClick={() => enviar(p.prompt)} disabled={loading}>
+                  <span className={s.sugestaoBtnIcon}>{p.icon}</span>
+                  {p.label}
                 </button>
               ))}
             </div>
           </div>
         ) : (
           <div className={s.scroll} ref={scrollRef}>
-            <div className={s.content}>
+            <div className={`${s.content} ${(fontesCollapsed || studioCollapsed) ? s.contentWide : ''}`}>
               {msgs.map((m, i) => (
                 m.role === 'user' ? (
                   <div key={i} className={s.userRow}>
@@ -993,6 +1076,21 @@ export default function AdminAssistente() {
                           <div className={s.botContent}>
                             <RenderResponse text={mainText} onFollowUp={enviar} />
                             {m.rag_sources?.length ? <RAGSources sources={m.rag_sources} /> : null}
+                            <div className={s.msgActions}>
+                              <button className={s.msgActionBtn} title="Salvar nas observacoes" onClick={() => { const notas = JSON.parse(localStorage.getItem('studio_notas') || '[]'); notas.unshift({ text: mainText.slice(0, 500), date: new Date().toLocaleString('pt-BR') }); localStorage.setItem('studio_notas', JSON.stringify(notas.slice(0, 30))); }}>
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+                                Salvar nas observacoes
+                              </button>
+                              <button className={s.msgActionIcon} title="Copiar" onClick={() => navigator.clipboard.writeText(mainText)}>
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                              </button>
+                              <button className={s.msgActionIcon} title="Boa resposta" onClick={() => {}}>
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>
+                              </button>
+                              <button className={s.msgActionIcon} title="Resposta ruim" onClick={() => {}}>
+                                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10zM17 2h2.67A2.31 2.31 0 0122 4v7a2.31 2.31 0 01-2.33 2H17"/></svg>
+                              </button>
+                            </div>
                             <div className={s.msgMeta}>
                               <ModelBadge model={m.model} />
                               {m.badges?.map((b, j) => <span key={j} className={s.msgBadge}>{b}</span>)}
@@ -1026,54 +1124,53 @@ export default function AdminAssistente() {
         )}
 
         <div className={s.composer}>
-          <div className={s.composerInner}>
+          <div className={`${s.composerInner} ${(fontesCollapsed || studioCollapsed) ? s.composerWide : ''}`}>
             <FileUpload disabled={loading} onResult={handleFileResult} />
             <textarea
               ref={inputRef}
               className={s.composerInput}
-              placeholder="Pergunte sobre o sistema..."
+              placeholder="Comece a digitar..."
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={onKey}
               rows={1}
             />
-            {docCount > 0 && <span className={s.composerFontes}>{docCount} fonte{docCount !== 1 ? 's' : ''}</span>}
+            <span className={s.composerFontes}>{docCount} fonte{docCount !== 1 ? 's' : ''}</span>
             <button className={s.composerSend} onClick={() => enviar()} disabled={loading || !input.trim()} aria-label="Enviar">
               <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
-          </div>
-          <div className={s.composerMeta}>
-            <div className={s.metaRow}>
-              <select
-                className={s.metaSelect}
-                value={modelo}
-                onChange={e => { setModelo(e.target.value as ModelKey); localStorage.setItem('assistente_modelo', e.target.value) }}
-              >
-                <option value="auto">🤖 Auto</option>
-                <option value="gemini">💎 Gemini</option>
-                <option value="groq">⚡ Groq</option>
-                <option value="cerebras">🧠 Cerebras</option>
-                <option value="mistral">🌀 Mistral</option>
-                <option value="haiku">🍃 Haiku</option>
-                <option value="sonnet">🎵 Sonnet</option>
-              </select>
-              <select
-                className={s.metaSelect}
-                value={searchSource}
-                onChange={e => { setSearchSource(e.target.value); localStorage.setItem('assistente_search', e.target.value) }}
-              >
-                {SEARCH_SOURCES.map(src => <option key={src.id} value={src.id}>{src.label}</option>)}
-              </select>
-              {msgs.length > 0 && <button className={s.metaBtn} onClick={salvarConversa}>💾 Salvar</button>}
-              {msgs.length > 0 && <button className={s.metaBtn} onClick={() => setMsgs([])}>+ Nova</button>}
-            </div>
           </div>
         </div>
       </div>
 
       {/* RIGHT — Estúdio */}
-      <div className={`${s.studioPanel} ${mobileTab === 'studio' ? s.studioPanelMobileVisible : ''}`}>
-        <StudioPanel fonteCount={docCount} onGenerate={handleStudioGenerate} onGuiaSaved={() => {
+      {studioCollapsed ? (
+        <div className={s.studioPanelCollapsed}>
+          <button className={s.collapsedToggle} onClick={() => { setStudioCollapsed(false); localStorage.setItem('assistente_studio_collapsed', '0') }} title="Abrir Estudio">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/><path d="M11 9l-2 3 2 3"/></svg>
+          </button>
+          {[
+            { d: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6', c: '#6366f1', t: 'Resumo' },
+            { d: 'M18 20V10M12 20V4M6 20v-6', c: '#0ea5e9', t: 'Relatorio' },
+            { d: 'M12 3v4M12 7H8M12 7h4M8 7v4M16 7v4M8 11H5M16 11h3M5 11v4M19 11v4M5 15H3M19 15h2', c: '#ec4899', t: 'Mapa Mental' },
+            { d: 'M2 6h16a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM6 2h14a2 2 0 012 2v1', c: '#10b981', t: 'Cartoes' },
+            { d: 'M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18', c: '#f59e0b', t: 'Tabela' },
+            { d: 'M22 11.08V12a10 10 0 11-5.93-9.14 M22 4L12 14.01l-3-3', c: '#10b981', t: 'Teste' },
+            { d: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 18a6 6 0 100-12 6 6 0 000 12zM12 14a2 2 0 100-4 2 2 0 000 4z', c: '#f97316', t: 'Pontos-Chave' },
+            { d: 'M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z', c: '#3b82f6', t: 'Guia' },
+          ].map((c, j) => (
+            <button key={j} className={s.collapsedCardIcon} onClick={() => { setStudioCollapsed(false); localStorage.setItem('assistente_studio_collapsed', '0') }} title={c.t}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke={c.c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={c.d}/></svg>
+            </button>
+          ))}
+          <hr style={{ width: '70%', border: 'none', borderTop: '1px solid #e5e7eb', margin: '4px 0' }} />
+          <button className={s.collapsedCardIcon} onClick={() => { setStudioCollapsed(false); localStorage.setItem('assistente_studio_collapsed', '0') }} title="Adicionar nota">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#6b7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </button>
+        </div>
+      ) : null}
+      <div className={`${s.studioPanel} ${studioCollapsed ? s.studioPanelHidden : ''} ${mobileTab === 'studio' ? s.studioPanelMobileVisible : ''}`}>
+        <StudioPanel fonteCount={docCount} onGenerate={handleStudioGenerate} onCollapse={() => { setStudioCollapsed(true); localStorage.setItem('assistente_studio_collapsed', '1') }} onGuiaSaved={() => {
           supabaseAdmin.from('knowledge_guias').select('id, titulo, categoria, nivel').eq('ativo', true).order('categoria').order('titulo')
             .then(({ data }) => { if (data) setGuias(data) })
         }} />

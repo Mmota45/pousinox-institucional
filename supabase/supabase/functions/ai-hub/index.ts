@@ -475,7 +475,7 @@ async function buildSystemPrompt(overview: string, detail: string, siteContent: 
   }
 
   parts.push(`\nPRIORIDADE: 1º Banco de dados → 2º Site próprio → 3º Busca web → 4º Conhecimento geral.
-Seja preciso e honesto. NUNCA invente informações.`);
+Seja preciso e honesto. NUNCA invente dados, processos, procedimentos ou informações. Se não tiver a informação, diga "não tenho essa informação no sistema". NÃO crie etapas, formulários ou fluxos fictícios. NÃO sugira "entre em contato" ou "forneça dados" como se houvesse um processo — a menos que esteja documentado nos dados fornecidos.`);
 
   return parts.join('\n');
 }

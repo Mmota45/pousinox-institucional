@@ -4,21 +4,25 @@
 
 /* ── 3-panel NotebookLM layout ── */
 .wrap {
-  padding: 0; height: 100%; display: grid;
+  padding: 10px; height: 100%; display: grid;
   grid-template-columns: 280px 1fr 300px;
-  background: #f5f7fa; overflow: hidden;
+  gap: 10px;
+  background: #e0e3e8; overflow: hidden;
+  box-sizing: border-box;
 }
-.chatArea { display: flex; flex-direction: column; overflow: hidden; min-height: 0; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; }
+.chatArea { display: flex; flex-direction: column; overflow: hidden; min-height: 0; background: #fff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 
 /* ── Left panel (Fontes) ── */
 .fontePanel {
   display: flex; flex-direction: column; height: 100%;
-  background: #fff; overflow: hidden;
+  background: #fff; overflow: hidden; border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 .fontePanelHidden { display: none; }
 .fonteHeader {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px; border-bottom: 1px solid #e5e7eb;
+  padding: 0 20px; height: 52px;
+  border-bottom: 1px solid #e5e7eb; box-sizing: border-box;
 }
 .fonteTitle { font-size: 0.95rem; font-weight: 700; color: #1B3A5C; }
 .fonteToggleBtn {
@@ -71,6 +75,7 @@
 /* ── Right panel (Estudio) ── */
 .studioPanel {
   background: #fff; overflow: hidden; display: flex; flex-direction: column; height: 100%;
+  border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 .studioPanelHidden { display: none; }
 
@@ -102,11 +107,12 @@
 /* ── Chat header ── */
 .chatHeader {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 24px; border-bottom: 1px solid #e5e7eb; background: #fff;
-  flex-shrink: 0;
+  padding: 0 20px; height: 52px;
+  border-bottom: 1px solid #e5e7eb; background: #fff;
+  flex-shrink: 0; box-sizing: border-box;
 }
 .chatTitle {
-  font-size: 0.85rem; font-weight: 600; color: #1B3A5C;
+  font-size: 0.95rem; font-weight: 700; color: #1B3A5C;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   max-width: 500px;
 }
@@ -150,22 +156,22 @@
 .welcomeTitle { font-size: 1.6rem; font-weight: 400; color: #1B3A5C; margin: 0 0 6px; }
 .welcomeSub { font-size: 0.82rem; color: #6b7280; margin: 0 0 40px; }
 
-.sugestoes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 520px; width: 100%; }
+.sugestoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 460px; width: 100%; }
 .sugestaoBtn {
-  padding: 16px 18px; border-radius: 16px; border: 1px solid #e5e7eb; background: #fff;
-  color: #3A3F47; cursor: pointer; font-size: 0.82rem; text-align: left;
-  transition: all .2s; line-height: 1.4; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  padding: 10px 14px; border-radius: 12px; border: 1px solid #e5e7eb; background: #fff;
+  color: #3A3F47; cursor: pointer; font-size: 0.78rem; text-align: left;
+  transition: all .2s; line-height: 1.3; display: flex; align-items: center; gap: 8px;
 }
-.sugestaoBtn:hover { border-color: #2C5F8A; color: #1B3A5C; box-shadow: 0 6px 20px rgba(27,58,92,0.12); transform: translateY(-2px); }
-.sugestaoBtn:disabled { opacity: 0.5; cursor: wait; transform: none; }
-.sugestaoBtnIcon { font-size: 1rem; display: block; margin-bottom: 6px; }
+.sugestaoBtn:hover { border-color: #2C5F8A; color: #1B3A5C; background: #f8fafc; }
+.sugestaoBtn:disabled { opacity: 0.5; cursor: wait; }
+.sugestaoBtnIcon { flex-shrink: 0; display: flex; align-items: center; }
 
 /* ── Composer ── */
-.composer { flex-shrink: 0; padding: 0 24px 16px; background: #f5f7fa; }
+.composer { flex-shrink: 0; padding: 0 24px 16px; background: #fff; }
 .composerInner {
   max-width: 900px; margin: 0 auto;
   background: #fff; border: 1px solid #e5e7eb; border-radius: 24px;
-  padding: 4px 4px 4px 8px; display: flex; align-items: flex-end;
+  padding: 4px 4px 4px 8px; display: flex; align-items: center;
   transition: border-color .2s; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 .composerInner:focus-within { border-color: #2C5F8A; }
@@ -189,8 +195,8 @@
 .composerSend:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; box-shadow: none; transform: none; }
 .composerSend svg { width: 16px; height: 16px; }
 .composerFontes {
-  font-size: 0.65rem; color: #9ca3af; font-weight: 500; white-space: nowrap;
-  padding: 0 6px; flex-shrink: 0;
+  font-size: 0.72rem; color: #9ca3af; font-weight: 500; white-space: nowrap;
+  padding: 0 8px; flex-shrink: 0; align-self: center;
 }
 
 /* ── Web search box (Fontes panel) ── */
@@ -315,7 +321,8 @@
 .histSection { padding: 8px 0; border-top: 1px solid #e5e7eb; margin-top: 6px; }
 .histSectionBtn {
   background: none; border: none; cursor: pointer; font-size: 0.72rem;
-  color: #6b7280; font-weight: 600; padding: 6px 0; width: 100%; text-align: left;
+  color: #6b7280; font-weight: 600; padding: 8px 16px; width: 100%; text-align: left;
+  display: flex; align-items: center; gap: 6px; box-sizing: border-box;
 }
 .histSectionBtn:hover { color: #1B3A5C; }
 
@@ -533,3 +540,90 @@
   .colPos, .colFat, .colSeg, .colCidade { width: auto; }
   .content { padding: 0 16px; }
 }
+
+/* ── Collapsed panel layouts ── */
+.wrapFontesCollapsed { grid-template-columns: 48px 1fr 300px; }
+.wrapStudioCollapsed { grid-template-columns: 280px 1fr 48px; }
+.wrapFontesCollapsed.wrapStudioCollapsed { grid-template-columns: 48px 1fr 48px; }
+
+.contentWide { max-width: 100% !important; }
+.composerWide { max-width: 100% !important; }
+
+.fontePanelCollapsed {
+  display: flex; flex-direction: column; align-items: center;
+  background: #fff; border-radius: 16px; padding: 12px 0; gap: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.studioPanelCollapsed {
+  display: flex; flex-direction: column; align-items: center;
+  background: #fff; border-radius: 16px; padding: 12px 0; gap: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.collapsedToggle {
+  background: none; border: none; cursor: pointer; color: #9ca3af;
+  padding: 6px; border-radius: 6px; transition: all 0.15s;
+}
+.collapsedToggle:hover { color: #1B3A5C; background: #f5f7fa; }
+.collapsedAdd {
+  background: none; border: none; cursor: pointer; color: #9ca3af;
+  font-size: 1.2rem; padding: 4px; border-radius: 6px; transition: all 0.15s;
+  width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+}
+.collapsedAdd:hover { color: #1B3A5C; background: #f5f7fa; }
+.collapsedCardIcon {
+  background: none; border: none; cursor: pointer; font-size: 1rem;
+  padding: 6px; border-radius: 6px; transition: all 0.15s; opacity: 0.6;
+  width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+}
+.collapsedCardIcon:hover { background: #f5f7fa; opacity: 1; }
+
+/* ── Chat header with menu ── */
+.chatMenuWrap { position: relative; }
+.chatMenuBtn {
+  background: none; border: none; cursor: pointer; color: #9ca3af;
+  font-size: 1.2rem; padding: 4px 8px; border-radius: 6px; transition: all 0.15s;
+  font-family: inherit; line-height: 1;
+}
+.chatMenuBtn:hover { color: #1B3A5C; background: #f5f7fa; }
+.chatMenuBackdrop { position: fixed; inset: 0; z-index: 99; }
+.chatMenuDrop {
+  position: absolute; top: 100%; right: 0; z-index: 100;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 12px 16px;
+  min-width: 260px; animation: fadeIn 0.15s ease;
+}
+.chatMenuInfo {
+  font-size: 0.72rem; color: #6b7280; margin: 0 0 8px; line-height: 1.5;
+}
+.chatMenuAction {
+  display: block; width: 100%; text-align: left; padding: 8px 10px;
+  border: none; background: none; cursor: pointer; font-size: 0.78rem;
+  color: #3A3F47; border-radius: 6px; font-family: inherit; transition: background 0.1s;
+}
+.chatMenuAction:hover { background: #f5f7fa; }
+.chatMenuDivider { border: none; border-top: 1px solid #e5e7eb; margin: 8px 0; }
+.chatMenuSettings { display: flex; flex-direction: column; gap: 6px; }
+.chatMenuLabel { font-size: 0.65rem; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.chatMenuSelect {
+  padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 8px;
+  font-size: 0.75rem; font-family: inherit; color: #3A3F47; background: #fff;
+  cursor: pointer; outline: none;
+}
+
+/* ── Message actions (NotebookLM style) ── */
+.msgActions {
+  display: flex; align-items: center; gap: 2px; margin-top: 8px; padding-top: 4px;
+}
+.msgActionBtn {
+  display: flex; align-items: center; gap: 5px; padding: 5px 12px;
+  border: 1px solid #e5e7eb; border-radius: 20px; background: #fff;
+  color: #6b7280; cursor: pointer; font-size: 0.72rem; font-weight: 500;
+  font-family: inherit; transition: all 0.15s;
+}
+.msgActionBtn:hover { border-color: #2C5F8A; color: #1B3A5C; }
+.msgActionIcon {
+  display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border: none; background: none;
+  color: #9ca3af; cursor: pointer; border-radius: 6px; transition: all 0.15s;
+}
+.msgActionIcon:hover { color: #1B3A5C; background: #f5f7fa; }
