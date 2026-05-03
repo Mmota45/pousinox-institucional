@@ -129,7 +129,7 @@ function App() {
       {!isAdmin && !isFullscreen && <CartDrawer />}
       <main>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={window.location.hostname.includes('fixadorporcelanato') ? <Navigate to="/fixador-porcelanato/calculadora" replace /> : <Home />} />
           <Route path="/produtos" element={<Produtos />} />
           <Route path="/segmentos/:slug" element={<Segmento />} />
           <Route path="/sobre" element={<Sobre />} />
