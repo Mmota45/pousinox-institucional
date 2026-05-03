@@ -98,6 +98,47 @@ function InfographicViewer({ content }: { content: string }) {
   )
 }
 
+function AudioPlayer({ content }: { content: string }) {
+  const [playing, setPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const utterRef = useCallback(() => {
+    const u = new SpeechSynthesisUtterance(content)
+    u.lang = 'pt-BR'
+    u.rate = 1
+    const voices = speechSynthesis.getVoices()
+    const ptVoice = voices.find(v => v.lang.startsWith('pt') && v.name.includes('Google')) || voices.find(v => v.lang.startsWith('pt'))
+    if (ptVoice) u.voice = ptVoice
+    return u
+  }, [content])
+
+  const play = () => {
+    speechSynthesis.cancel()
+    const u = utterRef()
+    u.onboundary = (e) => { if (e.charIndex && content.length) setProgress(Math.round((e.charIndex / content.length) * 100)) }
+    u.onend = () => { setPlaying(false); setProgress(100) }
+    u.onerror = () => { setPlaying(false) }
+    speechSynthesis.speak(u)
+    setPlaying(true)
+    setProgress(0)
+  }
+  const stop = () => { speechSynthesis.cancel(); setPlaying(false) }
+
+  return (
+    <div className={s.audioPlayer}>
+      <button className={s.audioPlayBtn} onClick={playing ? stop : play}>
+        {playing
+          ? <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          : <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><polygon points="5,3 19,12 5,21"/></svg>
+        }
+      </button>
+      <div className={s.audioProgress}>
+        <div className={s.audioBar} style={{ width: `${progress}%` }} />
+      </div>
+      <span className={s.audioLabel}>{playing ? 'Reproduzindo...' : progress === 100 ? 'Concluído' : 'Clique para ouvir'}</span>
+    </div>
+  )
+}
+
 interface StudioOutput {
   id: string
   tipo: string
@@ -114,6 +155,7 @@ interface Props {
 }
 
 const CARDS = [
+  { tipo: 'audio', icon: svgCard('M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8', '#d946ef'), label: 'Resumo em Áudio', desc: 'Ouça o resumo das fontes', prompt: 'Gere um resumo claro e fluido das fontes, como se estivesse explicando para alguém em voz alta. Use linguagem natural, sem formatação markdown, sem bullets, sem títulos. Parágrafos corridos, como um podcast breve de 2-3 minutos. Máximo 800 palavras.' },
   { tipo: 'resumo', icon: svgCard('M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6', '#6366f1'), label: 'Resumo', desc: 'Sintese clara em 3-5 paragrafos', prompt: 'Resuma o conteúdo das fontes de forma clara e objetiva em 3-5 parágrafos. Destaque os pontos principais.' },
   { tipo: 'relatorio', icon: svgCard('M18 20V10M12 20V4M6 20v-6', '#0ea5e9'), label: 'Relatório', desc: 'Documento estruturado com secoes', prompt: 'Gere um relatório estruturado com título, introdução, seções temáticas e conclusão baseado nas fontes.' },
   { tipo: 'mapa', icon: svgCard('M12 3v4M12 7H8M12 7h4M8 7v4M16 7v4M8 11H5M16 11h3M5 11v4M19 11v4M5 15H3M19 15h2', '#ec4899'), label: 'Mapa Mental', desc: 'Hierarquia de topicos e subtopicos', prompt: 'Crie um mapa mental hierárquico usando markdown (# Tema principal, ## Subtemas, ### Detalhes, - itens). Organize as ideias das fontes em tópicos e subtópicos.' },
@@ -264,11 +306,13 @@ export default function StudioPanel({ fonteCount, onGenerate, onCollapse, onGuia
                   </button>
                   {expandedOutput === out.id && (
                     <div className={s.outputBody}>
-                      {out.tipo === 'apresentacao'
-                        ? <SlideViewer content={out.conteudo} />
-                        : out.tipo === 'infografico'
-                          ? <InfographicViewer content={out.conteudo} />
-                          : <div className={s.outputContent}>{out.conteudo}</div>
+                      {out.tipo === 'audio'
+                        ? <><AudioPlayer content={out.conteudo} /><div className={s.outputContent}>{out.conteudo}</div></>
+                        : out.tipo === 'apresentacao'
+                          ? <SlideViewer content={out.conteudo} />
+                          : out.tipo === 'infografico'
+                            ? <InfographicViewer content={out.conteudo} />
+                            : <div className={s.outputContent}>{out.conteudo}</div>
                       }
                       <div className={s.outputActions}>
                         <button className={s.outputBtn} onClick={() => navigator.clipboard.writeText(out.conteudo)}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block',verticalAlign:'-1px',marginRight:4}}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copiar</button>

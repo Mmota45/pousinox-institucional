@@ -252,6 +252,31 @@
 
 .notaDel:hover { color: #dc2626; background: #fee2e2; }
 
+/* ── Audio Player ── */
+.audioPlayer {
+  display: flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg, #7c3aed, #d946ef);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+}
+.audioPlayBtn {
+  width: 40px; height: 40px; border-radius: 50%; border: none;
+  background: rgba(255,255,255,0.2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: background 0.15s;
+}
+.audioPlayBtn:hover { background: rgba(255,255,255,0.35); }
+.audioProgress {
+  flex: 1; height: 4px; background: rgba(255,255,255,0.2);
+  border-radius: 2px; overflow: hidden;
+}
+.audioBar {
+  height: 100%; background: #fff; border-radius: 2px;
+  transition: width 0.3s;
+}
+.audioLabel {
+  font-size: 0.7rem; color: rgba(255,255,255,0.8); white-space: nowrap;
+}
+
 /* ── Infographic ── */
 .infographic {
   background: #f8fafc; border-radius: 12px; padding: 16px; overflow: hidden;
