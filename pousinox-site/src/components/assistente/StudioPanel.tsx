@@ -4,6 +4,48 @@ import s from './StudioPanel.module.css'
 
 const svgCard = (d: string, color = '#1B3A5C'): ReactNode => <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d={d}/></svg>
 
+interface Slide { titulo: string; bullets: string[]; nota?: string }
+
+function SlideViewer({ content }: { content: string }) {
+  const [idx, setIdx] = useState(0)
+  const [fullscreen, setFullscreen] = useState(false)
+
+  let slides: Slide[] = []
+  try {
+    const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    slides = JSON.parse(cleaned)
+  } catch { return <div className={s.outputContent}>{content}</div> }
+
+  if (!slides.length) return <div className={s.outputContent}>{content}</div>
+
+  const slide = slides[idx]
+  const isFirst = idx === 0
+  const isLast = idx === slides.length - 1
+
+  const viewer = (
+    <div className={`${s.slideWrap} ${fullscreen ? s.slideFullscreen : ''}`}>
+      <div className={`${s.slide} ${isFirst ? s.slideCover : ''}`}>
+        <div className={s.slideTitle}>{slide.titulo}</div>
+        <ul className={s.slideBullets}>
+          {slide.bullets.map((b, i) => <li key={i}>{b}</li>)}
+        </ul>
+        {slide.nota && <div className={s.slideNota}>{slide.nota}</div>}
+      </div>
+      <div className={s.slideNav}>
+        <button disabled={isFirst} onClick={() => setIdx(i => i - 1)} className={s.slideNavBtn}>←</button>
+        <span className={s.slideCounter}>{idx + 1} / {slides.length}</span>
+        <button disabled={isLast} onClick={() => setIdx(i => i + 1)} className={s.slideNavBtn}>→</button>
+        <button onClick={() => setFullscreen(f => !f)} className={s.slideNavBtn} title={fullscreen ? 'Sair' : 'Tela cheia'}>
+          {fullscreen ? '✕' : '⛶'}
+        </button>
+      </div>
+    </div>
+  )
+
+  if (fullscreen) return <div className={s.slideOverlay} onClick={e => { if (e.target === e.currentTarget) setFullscreen(false) }}>{viewer}</div>
+  return viewer
+}
+
 interface StudioOutput {
   id: string
   tipo: string
@@ -27,6 +69,11 @@ const CARDS = [
   { tipo: 'tabela', icon: svgCard('M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18', '#f59e0b'), label: 'Tabela de Dados', desc: 'Dados extraidos em formato tabular', prompt: 'Extraia todos os dados estruturados das fontes e organize em tabela markdown com colunas relevantes. Use | para colunas.' },
   { tipo: 'teste', icon: svgCard('M22 11.08V12a10 10 0 11-5.93-9.14 M22 4L12 14.01l-3-3', '#10b981'), label: 'Teste', desc: 'Quiz interativo com respostas', prompt: 'Gere um quiz com 10 perguntas de múltipla escolha (A, B, C, D) baseadas nas fontes. Formato:\n\n**Pergunta N:** texto\nA) ...\nB) ...\nC) ...\nD) ...\n**Resposta:** letra — explicação breve\n\n---' },
   { tipo: 'pontos', icon: svgCard('M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 18a6 6 0 100-12 6 6 0 000 12zM12 14a2 2 0 100-4 2 2 0 000 4z', '#f97316'), label: 'Pontos-Chave', desc: 'Top 10-15 insights ordenados', prompt: 'Liste os 10-15 pontos-chave mais importantes das fontes, ordenados por relevância. Use bullets com explicação breve.' },
+  { tipo: 'apresentacao', icon: svgCard('M2 3h20v14H2zM8 21h8M12 17v4', '#8b5cf6'), label: 'Apresentação', desc: 'Slides com tópicos principais', prompt: `Gere uma apresentação de slides baseada nas fontes. Retorne APENAS um JSON array válido (sem markdown, sem \`\`\`), onde cada item é um slide:
+[
+  { "titulo": "Título do Slide", "bullets": ["Ponto 1", "Ponto 2", "Ponto 3"], "nota": "Nota opcional do apresentador" }
+]
+Gere 6-10 slides. O primeiro slide deve ser a capa (título principal + subtítulo nos bullets). O último deve ser "Conclusão" ou "Próximos Passos".` },
   { tipo: 'guia', icon: svgCard('M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z', '#3b82f6'), label: 'Criar Guia', desc: 'Guia estruturado para a base de conhecimento', prompt: `Baseado nas fontes, crie um guia de conhecimento estruturado no seguinte formato EXATO (use os marcadores para separar seções):
 
 [TITULO]: (título curto e descritivo)
@@ -156,7 +203,10 @@ export default function StudioPanel({ fonteCount, onGenerate, onCollapse, onGuia
                   </button>
                   {expandedOutput === out.id && (
                     <div className={s.outputBody}>
-                      <div className={s.outputContent}>{out.conteudo}</div>
+                      {out.tipo === 'apresentacao'
+                        ? <SlideViewer content={out.conteudo} />
+                        : <div className={s.outputContent}>{out.conteudo}</div>
+                      }
                       <div className={s.outputActions}>
                         <button className={s.outputBtn} onClick={() => navigator.clipboard.writeText(out.conteudo)}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block',verticalAlign:'-1px',marginRight:4}}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copiar</button>
                         <button className={s.outputBtn} onClick={() => salvarNota(out)}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block',verticalAlign:'-1px',marginRight:4}}><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Salvar nota</button>
