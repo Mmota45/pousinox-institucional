@@ -275,7 +275,7 @@ interface RAGResult {
   sources: RAGSource[]
 }
 
-async function searchRAG(query: string): Promise<RAGResult | null> {
+async function searchRAG(query: string, sourceFiles?: string[]): Promise<RAGResult | null> {
   if (!GEMINI_KEY || !SUPABASE_URL || !SERVICE_KEY) return null
   try {
     const embRes = await fetch(`${EMBED_URL}?key=${GEMINI_KEY}`, {
@@ -302,7 +302,13 @@ async function searchRAG(query: string): Promise<RAGResult | null> {
       }),
     })
     if (!rpcRes.ok) return null
-    const chunks = await rpcRes.json() as { content: string; source_file: string; similarity: number }[]
+    let chunks = await rpcRes.json() as { content: string; source_file: string; similarity: number }[]
+    // Filtrar por fontes selecionadas
+    if (sourceFiles?.length) {
+      const allowed = new Set(sourceFiles)
+      chunks = chunks.filter(c => allowed.has(c.source_file))
+      console.log(`[RAG] filtrado para ${sourceFiles.length} fontes → ${chunks.length} chunks`)
+    }
     if (!chunks?.length) { console.log('[RAG] nenhum chunk encontrado'); return null }
     console.log(`[RAG] ${chunks.length} chunks encontrados, sim: ${chunks.map(c => c.similarity.toFixed(2)).join(', ')}`)
 
@@ -345,7 +351,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { messages, system, model: modelKey, rag } = await req.json()
+    const { messages, system, model: modelKey, rag, source_files } = await req.json()
     console.log('[INIT] model:', modelKey, 'rag:', rag, 'msgs:', messages?.length)
 
     if (!messages?.length) return jsonRes({ error: 'messages é obrigatório' }, 400)
@@ -374,7 +380,7 @@ Deno.serve(async (req) => {
       const query = typeof lastUserMsg?.content === 'string' ? lastUserMsg.content : ''
       console.log('[RAG] query:', query?.slice(0, 100))
       if (query) {
-        const ragResult = await searchRAG(query)
+        const ragResult = await searchRAG(query, source_files)
         console.log('[RAG] contexto encontrado:', ragResult ? ragResult.context.length + ' chars' : 'nenhum')
         if (ragResult) {
           sysPrompt += `

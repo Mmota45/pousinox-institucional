@@ -13,6 +13,7 @@ interface Props {
   onRagToggle: (v: boolean) => void
   onAskQuestion?: (q: string) => void
   onDocCountChange?: (count: number) => void
+  onActiveSourcesChange?: (sources: string[]) => void
 }
 
 function docIcon(filename: string): string {
@@ -25,14 +26,15 @@ function docIcon(filename: string): string {
   return '📎'
 }
 
-export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, onDocCountChange }: Props) {
+export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, onDocCountChange, onActiveSourcesChange }: Props) {
   const [docs, setDocs] = useState<DocGroup[]>([])
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState('')
   const [docsOpen, setDocsOpen] = useState(false)
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null)
   const [perguntas, setPerguntas] = useState<string[]>([])
-  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [selected, setSelected] = useState<Set<string>>(new Set()) // fontes ativas para estudo
+  const [selectAll, setSelectAll] = useState(true) // quando true, todas as fontes estão ativas
   const [urlInput, setUrlInput] = useState('')
   const [showUrlInput, setShowUrlInput] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -56,26 +58,65 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, 
     const docList = Object.entries(groups).map(([source_file, g]) => ({ source_file, ...g }))
     setDocs(docList)
     onDocCountChange?.(docList.length)
-  }, [onDocCountChange])
+    // Quando selectAll, notificar todas as fontes
+    if (selectAll) {
+      onActiveSourcesChange?.(docList.map(d => d.source_file))
+    }
+  }, [onDocCountChange, selectAll, onActiveSourcesChange])
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
 
-  const toggleSelect = (file: string) => setSelected(prev => {
-    const next = new Set(prev)
-    next.has(file) ? next.delete(file) : next.add(file)
-    return next
-  })
-  const toggleAll = () => setSelected(prev => prev.size === docs.length ? new Set() : new Set(docs.map(d => d.source_file)))
+  const toggleSelect = (file: string) => {
+    if (selectAll) {
+      // Primeira vez desmarcando: criar set com todos MENOS o clicado
+      const next = new Set(docs.map(d => d.source_file))
+      next.delete(file)
+      setSelected(next)
+      setSelectAll(false)
+      onActiveSourcesChange?.([...next])
+    } else {
+      setSelected(prev => {
+        const next = new Set(prev)
+        next.has(file) ? next.delete(file) : next.add(file)
+        // Se voltou a ter todos, reativar selectAll
+        if (next.size === docs.length) {
+          setSelectAll(true)
+          onActiveSourcesChange?.(docs.map(d => d.source_file))
+        } else {
+          onActiveSourcesChange?.([...next])
+        }
+        return next
+      })
+    }
+  }
+  const isActive = (file: string) => selectAll || selected.has(file)
+  const activeCount = selectAll ? docs.length : selected.size
+  const toggleAll = () => {
+    if (selectAll || selected.size === docs.length) {
+      // Desmarcar todos — não faz sentido, manter pelo menos 1
+      // Inverter: se tudo ativo, desativar todos
+      setSelected(new Set())
+      setSelectAll(false)
+      onActiveSourcesChange?.([])
+    } else {
+      setSelected(new Set(docs.map(d => d.source_file)))
+      setSelectAll(true)
+      onActiveSourcesChange?.(docs.map(d => d.source_file))
+    }
+  }
 
   const handleDeleteSelected = useCallback(async () => {
-    if (!selected.size) return
-    if (!confirm(`Excluir ${selected.size} documento(s) da base de conhecimento?`)) return
-    for (const file of selected) {
+    // Deletar apenas os inativos (desmarcados)
+    const inativos = docs.filter(d => !isActive(d.source_file)).map(d => d.source_file)
+    if (!inativos.length) return
+    if (!confirm(`Excluir ${inativos.length} documento(s) desmarcado(s)?`)) return
+    for (const file of inativos) {
       await supabaseAdmin.from('knowledge_chunks').delete().eq('source_file', file)
     }
     setSelected(new Set())
+    setSelectAll(true)
     fetchDocs()
-  }, [selected, fetchDocs])
+  }, [docs, fetchDocs])
 
   const AI_HUB_URL = `${import.meta.env.VITE_SUPABASE_URL || 'https://vcektwtpofypsgdgdjlx.supabase.co'}/functions/v1/ai-hub`
   const SRV_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZjZWt0d3Rwb2Z5cHNnZGdkamx4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDM2NTgyNSwiZXhwIjoyMDg5OTQxODI1fQ.uuTk39oZ1JZW2BfsHytiwhO6f0kHk92AWX5WqKewulg'
@@ -298,18 +339,18 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, 
           {docsOpen && (
             <div className={s.docList}>
               <label className={s.docSelectAll}>
-                <input type="checkbox" checked={selected.size === docs.length && docs.length > 0} onChange={toggleAll} />
-                Selecionar todos
-                {selected.size > 0 && (
+                <input type="checkbox" checked={selectAll || selected.size === docs.length} onChange={toggleAll} />
+                {activeCount === docs.length ? 'Todas as fontes ativas' : `${activeCount} de ${docs.length} fontes ativas`}
+                {activeCount < docs.length && (
                   <button className={s.docDelSelected} onClick={handleDeleteSelected}>
-                    🗑 Excluir {selected.size}
+                    🗑 Excluir desmarcados
                   </button>
                 )}
               </label>
               {docs.map(d => (
                 <div key={d.source_file}>
                   <div className={s.docItem}>
-                    <input type="checkbox" checked={selected.has(d.source_file)} onChange={() => toggleSelect(d.source_file)} style={{ flexShrink: 0 }} />
+                    <input type="checkbox" checked={isActive(d.source_file)} onChange={() => toggleSelect(d.source_file)} style={{ flexShrink: 0 }} />
                     <span className={s.docTypeIcon}>{docIcon(d.source_file)}</span>
                     <span
                       className={s.docInfo}

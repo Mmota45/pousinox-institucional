@@ -669,6 +669,7 @@ export default function AdminAssistente() {
   const [modelo, setModelo] = useState<ModelKey>(() => (localStorage.getItem('assistente_modelo') as ModelKey) || 'auto')
   const [pendingTools, setPendingTools] = useState<{ tools: ToolCall[]; historico: { role: string; content: string }[] } | null>(null)
   const [ragEnabled, setRagEnabled] = useState(() => localStorage.getItem('assistente_rag') === '1')
+  const [activeSources, setActiveSources] = useState<string[]>([])
   const [revisorAtivo, setRevisorAtivo] = useState(false)
   const [showKb, setShowKb] = useState(false)
   const [showGuias, setShowGuias] = useState(false)
@@ -866,6 +867,7 @@ export default function AdminAssistente() {
             system: systemFinal,
             model: ragModel,
             rag: true,
+            source_files: activeSources.length > 0 && activeSources.length < docCount ? activeSources : undefined,
           },
         })
         data = res.data ? (typeof res.data === 'string' ? JSON.parse(res.data) : res.data) : {}
@@ -1030,6 +1032,7 @@ export default function AdminAssistente() {
             onRagToggle={v => { setRagEnabled(v); localStorage.setItem('assistente_rag', v ? '1' : '0') }}
             onAskQuestion={q => { setInput(q); setMobileTab('chat'); setTimeout(() => inputRef.current?.focus(), 50) }}
             onDocCountChange={setDocCount}
+            onActiveSourcesChange={setActiveSources}
           />
 
           {/* Busca web */}
@@ -1253,7 +1256,7 @@ export default function AdminAssistente() {
               onKeyDown={onKey}
               rows={1}
             />
-            <span className={s.composerFontes}>{docCount} fonte{docCount !== 1 ? 's' : ''}</span>
+            <span className={s.composerFontes}>{activeSources.length > 0 && activeSources.length < docCount ? `${activeSources.length}/${docCount}` : docCount} fonte{docCount !== 1 ? 's' : ''}</span>
             <button className={s.composerSend} onClick={() => enviar()} disabled={loading || !input.trim()} aria-label="Enviar">
               <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
