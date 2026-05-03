@@ -281,19 +281,41 @@ async function searchRAG(query: string, sourceFiles?: string[]): Promise<RAGResu
     let chunks: { content: string; source_file: string; similarity: number }[]
 
     if (sourceFiles?.length) {
-      // Fontes específicas selecionadas: buscar TODOS os chunks dessas fontes (sem busca semântica)
-      // Isso garante que o conteúdo completo do documento é fornecido
-      const inFilter = sourceFiles.map(f => `"${f.replace(/"/g, '\\"')}"`).join(',')
+      // Fontes específicas: buscar TODOS os chunks via POST (evita encoding issues em query string)
       const directRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/knowledge_chunks?source_file=in.(${encodeURIComponent(inFilter)})&chunk_index=gte.0&select=content,source_file&order=chunk_index.asc&limit=30`,
-        { headers: { 'Content-Type': 'application/json', apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } },
+        `${SUPABASE_URL}/rest/v1/knowledge_chunks?chunk_index=gte.0&select=content,source_file&order=chunk_index.asc&limit=30`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SERVICE_KEY,
+            Authorization: `Bearer ${SERVICE_KEY}`,
+            Prefer: 'return=representation',
+          },
+          body: JSON.stringify({ source_file: sourceFiles.length === 1 ? sourceFiles[0] : undefined }),
+        },
       )
-      if (!directRes.ok) {
-        console.log('[RAG] busca direta falhou:', directRes.status)
-        return null
+      // Fallback: usar GET com eq para fonte única
+      let directChunks: { content: string; source_file: string }[] = []
+      if (sourceFiles.length === 1) {
+        const eqRes = await fetch(
+          `${SUPABASE_URL}/rest/v1/knowledge_chunks?source_file=eq.${encodeURIComponent(sourceFiles[0])}&chunk_index=gte.0&select=content,source_file&order=chunk_index.asc&limit=30`,
+          { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } },
+        )
+        if (eqRes.ok) directChunks = await eqRes.json()
+        console.log(`[RAG] busca direta eq: ${eqRes.status}, ${directChunks.length} chunks`)
+      } else {
+        // Múltiplas fontes: buscar cada uma
+        for (const sf of sourceFiles) {
+          const r = await fetch(
+            `${SUPABASE_URL}/rest/v1/knowledge_chunks?source_file=eq.${encodeURIComponent(sf)}&chunk_index=gte.0&select=content,source_file&order=chunk_index.asc&limit=10`,
+            { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } },
+          )
+          if (r.ok) directChunks.push(...(await r.json()))
+        }
+        console.log(`[RAG] busca direta multi: ${directChunks.length} chunks de ${sourceFiles.length} fontes`)
       }
-      chunks = (await directRes.json()).map((c: { content: string; source_file: string }) => ({ ...c, similarity: 1.0 }))
-      console.log(`[RAG] busca direta: ${chunks.length} chunks de ${sourceFiles.length} fontes`)
+      chunks = directChunks.map(c => ({ ...c, similarity: 1.0 }))
     } else {
       // Busca semântica normal (todas as fontes)
       if (!GEMINI_KEY) return null
@@ -376,7 +398,7 @@ Deno.serve(async (req) => {
     }
     let cfg = MODELS[resolvedKey] ?? MODELS.gemini
     let sysPrompt = system || 'Você é um assistente empresarial. Responda em português brasileiro.'
-    sysPrompt += '\n\nIMPORTANTE: Ao final de toda resposta, inclua 2-4 perguntas de follow-up usando blockquote (>). DEVEM ser perguntas terminando com "?", curtas, sem emojis. Exemplo:\n> Qual o faturamento deste mês?\n> Quais produtos mais vendem?'
+    sysPrompt += '\n\nIMPORTANTE: Ao final de toda resposta, inclua 2-4 perguntas de follow-up usando blockquote (>). DEVEM ser perguntas terminando com "?", curtas, sem emojis. Quando estiver respondendo com base em documentos (RAG), as perguntas DEVEM ser respondíveis pelos documentos fornecidos — NÃO sugira perguntas cujas respostas não estejam nos documentos. Exemplo:\n> Qual o faturamento deste mês?\n> Quais produtos mais vendem?'
 
     // RAG: buscar documentos relevantes e injetar no system prompt
     let ragUsed = false
@@ -451,8 +473,8 @@ REGRA RAG OBRIGATÓRIA — ANTI-ALUCINAÇÃO:
     } catch (err: unknown) {
       const errMsg = String(err)
       if (errMsg.includes('429') || errMsg.includes('rate_limit')) {
-        // Fallback: tentar cerebras → mistral
-        const fallbacks = ['cerebras', 'mistral'].filter(k => k !== resolvedKey)
+        // Fallback: gemini primeiro (melhor para RAG), depois cerebras → mistral
+        const fallbacks = ['gemini', 'cerebras', 'mistral'].filter(k => k !== resolvedKey)
         console.log('[FALLBACK] rate limit em', cfg.id, '→ tentando:', fallbacks)
         let ok = false
         for (const fb of fallbacks) {

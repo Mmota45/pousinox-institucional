@@ -861,8 +861,12 @@ export default function AdminAssistente() {
         usarModelo = providerMap[escolha.provider] || 'groq'
       }
 
-      const systemFinal = SYSTEM_PROMPT + (customPrompt ? `\n\nInstruções do usuário: ${customPrompt}` : '')
-      console.log('[Assistente] ragEnabled:', ragEnabled, 'activeSources:', activeSources.length, 'docCount:', docCount, 'useRag:', ragEnabled || (activeSources.length > 0 && activeSources.length < docCount), 'modelo:', modelo, 'search:', searchSource, 'roteamento:', motivo || 'manual')
+      const srcFiles = activeSources.length > 0 && activeSources.length < docCount ? activeSources : undefined
+      // Quando fontes específicas selecionadas: prompt neutro (sem contexto Pousinox)
+      const systemFinal = srcFiles
+        ? 'Você é um assistente de estudo. Responda em português brasileiro com base EXCLUSIVAMENTE nos documentos fornecidos. Seja detalhado e preciso.' + (customPrompt ? `\n\nInstruções do usuário: ${customPrompt}` : '')
+        : SYSTEM_PROMPT + (customPrompt ? `\n\nInstruções do usuário: ${customPrompt}` : '')
+      console.log('[Assistente] ragEnabled:', ragEnabled, 'activeSources:', activeSources.length, 'docCount:', docCount, 'source_files:', JSON.stringify(srcFiles), 'modelo:', modelo)
 
       let data: Record<string, unknown>, error: unknown
       const effectiveSearch = forceSearchSource || searchSource
@@ -878,7 +882,7 @@ export default function AdminAssistente() {
             system: systemFinal,
             model: ragModel,
             rag: true,
-            source_files: activeSources.length > 0 && activeSources.length < docCount ? activeSources : undefined,
+            source_files: srcFiles,
           },
         })
         data = res.data ? (typeof res.data === 'string' ? JSON.parse(res.data) : res.data) : {}
