@@ -1268,13 +1268,16 @@ export default function AdminAssistente() {
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/><path d="M11 9l-2 3 2 3"/></svg>
           </button>
           {[
+            { d: 'M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3zM19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8', c: '#d946ef', t: 'Áudio' },
             { d: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6', c: '#6366f1', t: 'Resumo' },
-            { d: 'M18 20V10M12 20V4M6 20v-6', c: '#0ea5e9', t: 'Relatorio' },
+            { d: 'M18 20V10M12 20V4M6 20v-6', c: '#0ea5e9', t: 'Relatório' },
             { d: 'M12 3v4M12 7H8M12 7h4M8 7v4M16 7v4M8 11H5M16 11h3M5 11v4M19 11v4M5 15H3M19 15h2', c: '#ec4899', t: 'Mapa Mental' },
-            { d: 'M2 6h16a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM6 2h14a2 2 0 012 2v1', c: '#10b981', t: 'Cartoes' },
+            { d: 'M2 6h16a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM6 2h14a2 2 0 012 2v1', c: '#10b981', t: 'Cartões' },
             { d: 'M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18', c: '#f59e0b', t: 'Tabela' },
             { d: 'M22 11.08V12a10 10 0 11-5.93-9.14 M22 4L12 14.01l-3-3', c: '#10b981', t: 'Teste' },
             { d: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 18a6 6 0 100-12 6 6 0 000 12zM12 14a2 2 0 100-4 2 2 0 000 4z', c: '#f97316', t: 'Pontos-Chave' },
+            { d: 'M18 20V10M12 20V4M6 20v-6M3 3v18h18', c: '#ec4899', t: 'Infográfico' },
+            { d: 'M2 3h20v14H2zM8 21h8M12 17v4', c: '#8b5cf6', t: 'Apresentação' },
             { d: 'M4 19.5A2.5 2.5 0 016.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z', c: '#3b82f6', t: 'Guia' },
           ].map((c, j) => (
             <button key={j} className={s.collapsedCardIcon} onClick={() => { setStudioCollapsed(false); localStorage.setItem('assistente_studio_collapsed', '0') }} title={c.t}>
