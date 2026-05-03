@@ -1320,7 +1320,7 @@ export default function CalculadoraFixador() {
                       <div className={s.grid2}>
                         <div className={s.field}>
                           <label>CEP <span className={s.req}>*</span></label>
-                          <input className={s.input} type="text" inputMode="numeric" placeholder="37550-000" maxLength={9} value={loginCep} onChange={e => {
+                          <input className={s.input} type="text" inputMode="numeric" placeholder="37550-360" maxLength={9} value={loginCep} onChange={e => {
                             let v = e.target.value.replace(/\D/g, '').slice(0, 8)
                             if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5)
                             setLoginCep(v)

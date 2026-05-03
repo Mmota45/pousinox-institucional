@@ -16,7 +16,7 @@ export default function Privacidade() {
           <div style={{ fontSize: '0.92rem', color: '#374151', lineHeight: 1.8, display: 'flex', flexDirection: 'column', gap: 24 }}>
             <div>
               <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>1. Quem somos</h2>
-              <p>A <strong>POUSINOX INDÚSTRIA E COMÉRCIO DE INOX LTDA</strong>, inscrita no CNPJ sob nº 26.434.252/0001-20, com sede em Av. Antonio Mariosa, 4545, São Geraldo, Pouso Alegre/MG, CEP 37550-000, é responsável pelo tratamento dos dados pessoais coletados neste site.</p>
+              <p>A <strong>POUSINOX LTDA</strong>, inscrita no CNPJ sob nº 12.115.379/0001-64, com sede em Av. Antonio Mariosa, 4545, Santa Angelina, Pouso Alegre/MG, CEP 37550-360, é responsável pelo tratamento dos dados pessoais coletados neste site.</p>
             </div>
 
             <div>
@@ -108,7 +108,7 @@ export default function Privacidade() {
               <ul style={{ paddingLeft: 20, marginTop: 8 }}>
                 <li><strong>E-mail:</strong> adm@pousinox.com.br</li>
                 <li><strong>Telefone:</strong> (35) 3423-8994</li>
-                <li><strong>Endereço:</strong> Av. Antonio Mariosa, 4545, São Geraldo, Pouso Alegre/MG, CEP 37550-000</li>
+                <li><strong>Endereço:</strong> Av. Antonio Mariosa, 4545, Santa Angelina, Pouso Alegre/MG, CEP 37550-360</li>
               </ul>
             </div>
           </div>

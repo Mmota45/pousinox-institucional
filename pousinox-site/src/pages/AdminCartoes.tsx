@@ -599,7 +599,7 @@ function FormCartao({ inicial, onSalvo, onCancelar }: FormProps) {
               </div>
               <div className={S.field}>
                 <label className={S.label}>CEP</label>
-                <input className={S.input} value={form.cep || ''} onChange={e => set('cep', e.target.value)} placeholder="37550-000" />
+                <input className={S.input} value={form.cep || ''} onChange={e => set('cep', e.target.value)} placeholder="37550-360" />
               </div>
             </div>
           </div>
