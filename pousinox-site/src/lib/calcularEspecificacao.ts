@@ -54,7 +54,7 @@ export const CONSUMIVEIS_PADRAO: Consumivel[] = [
   { id: 2, nome: 'Parafuso', tipo: 'consumivel', unidade: 'UN', proporcao_por: 1, ordem: 2 },
   { id: 3, nome: 'Bucha', tipo: 'consumivel', unidade: 'UN', proporcao_por: 1, ordem: 3 },
   { id: 4, nome: 'Adesivo PU/MS', tipo: 'consumivel', unidade: 'UN', proporcao_por: 90, ordem: 4 },
-  { id: 5, nome: 'Disco de Corte', tipo: 'consumivel', unidade: 'UN', proporcao_por: 90, ordem: 5 },
+  { id: 5, nome: 'Disco de Corte', tipo: 'consumivel', unidade: 'UN', proporcao_por: 120, ordem: 5 },
   { id: 6, nome: 'Broca', tipo: 'consumivel', unidade: 'UN', proporcao_por: 150, ordem: 6 },
 ]
 

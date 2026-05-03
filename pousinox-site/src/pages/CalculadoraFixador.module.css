@@ -1620,12 +1620,78 @@
   .orcamentoHeader { grid-template-columns: 1fr 40px 65px 80px; font-size: 0.6rem; padding: 8px 10px; }
   .orcamentoItem { grid-template-columns: 1fr 40px 65px 80px; font-size: 0.75rem; padding: 8px 10px; }
 }
+.orcamentoSubtotal {
+  border-top: 1px dashed rgba(26,138,92,0.2);
+  background: transparent;
+}
+.orcamentoSubtotal strong {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+.orcamentoFrete {
+  border-color: rgba(59,130,246,0.15);
+  background: rgba(59,130,246,0.03);
+}
+.orcamentoFrete:hover {
+  background: rgba(59,130,246,0.07);
+}
+.orcamentoFreteSel {
+  background: rgba(59,130,246,0.08);
+  border-color: rgba(59,130,246,0.3);
+}
+.orcamentoFreteSel strong {
+  color: #2563eb;
+}
+.btnCotarFrete {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btnCotarFrete:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37,99,235,0.25);
+}
 .orcamentoNota {
   margin-top: 14px;
   font-size: 0.68rem;
   color: #5ca87a;
   line-height: 1.5;
   font-style: italic;
+}
+
+/* ── Complemento (abaixo do orçamento) ── */
+.complementoBox {
+  margin-top: 20px;
+  background: linear-gradient(135deg, #eff6ff, #f0f9ff);
+  border: 2px dashed #93c5fd;
+  border-radius: 20px;
+  padding: 24px 28px;
+}
+.complementoHeader {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.complementoIcon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+.complementoTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e3a5f;
+}
+.complementoSub {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin-top: 2px;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════

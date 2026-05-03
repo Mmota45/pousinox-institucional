@@ -21,6 +21,9 @@ const track = (name: string, params?: Record<string, unknown>) => {
   window.gtag?.('event', name, params)
 }
 
+// Frete option type
+type FreteOpcaoCalc = { servico: string; preco: number; prazo: number | null; provedor: string }
+
 // Lightbox state type
 type LightboxImg = { src: string; alt: string } | null
 
@@ -107,6 +110,54 @@ export default function CalculadoraFixador() {
   const [authErro, setAuthErro] = useState<string | null>(null)
   const [reenvioTimer, setReenvioTimer] = useState(0)
 
+  // Frete
+  const [freteOpcoes, setFreteOpcoes] = useState<FreteOpcaoCalc[]>([])
+  const [freteSelecionado, setFreteSelecionado] = useState<FreteOpcaoCalc | null>(null)
+  const [freteLoading, setFreteLoading] = useState(false)
+  const [freteErro, setFreteErro] = useState<string | null>(null)
+  const [freteCepUsado, setFreteCepUsado] = useState('')
+
+  async function cotarFrete(cep: string) {
+    if (!resultado || !cep || cep.replace(/\D/g, '').length !== 8) return
+    setFreteLoading(true)
+    setFreteErro(null)
+    try {
+      // Peso estimado: ~50g por fixador (fixador + bucha + parafuso)
+      const pesoKg = Math.max(1, resultado.total_fixadores * 0.05)
+      // Dimensões estimadas da embalagem
+      const vol = Math.ceil(resultado.total_fixadores / 200) // ~200 fixadores por caixa
+      const comprimento = Math.min(60, 30 * vol)
+      const largura = 20
+      const altura = Math.min(40, 15 * vol)
+
+      const { data, error } = await supabase.functions.invoke('calcular-frete', {
+        body: {
+          cep_destino: cep.replace(/\D/g, ''),
+          peso_kg: pesoKg,
+          comprimento_cm: comprimento,
+          largura_cm: largura,
+          altura_cm: altura,
+        },
+      })
+      if (error) throw new Error(error.message)
+      const opcoes = (data?.opcoes || [])
+        .filter((o: { erro?: string; preco: number }) => !o.erro && o.preco > 0)
+        .map((o: { servico: string; preco: number; prazo?: number; codigo: string }) => ({
+          servico: o.servico,
+          preco: o.preco,
+          prazo: o.prazo || null,
+          provedor: o.codigo === 'braspress' ? 'Braspress' : 'Correios',
+        }))
+      setFreteOpcoes(opcoes)
+      if (opcoes.length) setFreteSelecionado(opcoes[0])
+      setFreteCepUsado(cep)
+    } catch {
+      setFreteErro('Não foi possível cotar o frete. Solicite via WhatsApp.')
+    } finally {
+      setFreteLoading(false)
+    }
+  }
+
   // Catálogo de revestimentos para autocomplete
   type Revestimento = { id: number; fabricante: string; formato: string; largura_cm: number; altura_cm: number; espessura_mm: number | null; peso_peca_kg: number | null; peso_m2_kg: number | null }
   const [revestimentos, setRevestimentos] = useState<Revestimento[]>([])
@@ -116,15 +167,20 @@ export default function CalculadoraFixador() {
     supabase.from('revestimentos_catalogo').select('id, fabricante, formato, largura_cm, altura_cm, espessura_mm, peso_peca_kg, peso_m2_kg').eq('ativo', true).order('formato')
       .then(({ data }) => { if (data?.length) setRevestimentos(data) })
   }, [])
+  // Remove "Padrão" quando já existe fabricante real com mesmo formato
+  const revSemDup = useMemo(() => {
+    const formatosReais = new Set(revestimentos.filter(r => r.fabricante !== 'Padrão').map(r => r.formato))
+    return revestimentos.filter(r => r.fabricante !== 'Padrão' || !formatosReais.has(r.formato))
+  }, [revestimentos])
   const revFiltrados = useMemo(() => {
-    if (!revQuery.trim()) return revestimentos.slice(0, 15)
+    if (!revQuery.trim()) return revSemDup.slice(0, 15)
     const q = revQuery.toLowerCase()
-    return revestimentos.filter(r =>
+    return revSemDup.filter(r =>
       r.formato.toLowerCase().includes(q) ||
       r.fabricante.toLowerCase().includes(q) ||
       `${r.largura_cm}x${r.altura_cm}`.includes(q)
     ).slice(0, 15)
-  }, [revestimentos, revQuery])
+  }, [revSemDup, revQuery])
   function selecionarRevestimento(r: Revestimento) {
     setLargura(String(r.largura_cm))
     setAltura(String(r.altura_cm))
@@ -160,7 +216,7 @@ export default function CalculadoraFixador() {
           })))
         }
       })
-    supabase.from('fixador_consumiveis').select('nome, preco_unitario, proporcao_por').order('ordem')
+    supabase.from('fixador_consumiveis').select('nome, preco_unitario, proporcao_por').eq('ativo', true).order('ordem')
       .then(({ data }) => { if (data) setConsumiveisDb(data) })
   }, [])
 
@@ -349,6 +405,10 @@ export default function CalculadoraFixador() {
       track('calculator_lead_complete', { segmento: updates.segmento, tipo_pessoa: tipoPessoa })
     }
     setShowGate('none')
+    // Auto-cotar frete se CEP preenchido
+    if (loginCep.replace(/\D/g, '').length === 8 && resultado) {
+      cotarFrete(loginCep)
+    }
   }
 
   async function enviarFeedback() {
@@ -372,6 +432,10 @@ export default function CalculadoraFixador() {
     const precoLine = modelo.preco_unitario
       ? `• Estimativa fixadores: R$ ${(modelo.preco_unitario * resultado.total_fixadores).toFixed(2).replace('.', ',')}\n`
       : ''
+    const freteLine = freteSelecionado
+      ? `• Frete (${freteSelecionado.provedor} ${freteSelecionado.servico}): R$ ${freteSelecionado.preco.toFixed(2).replace('.', ',')}${freteSelecionado.prazo ? ` — ${freteSelecionado.prazo} dias úteis` : ''}\n`
+      : ''
+    const cepLine = loginCep ? `• CEP: ${loginCep}\n` : ''
     const nome = session?.nome || loginNome.trim() || ''
     return encodeURIComponent(
       `Olá${nome ? `, meu nome é ${nome}` : ''}! Fiz uma simulação na calculadora de materiais do site:\n\n` +
@@ -383,7 +447,9 @@ export default function CalculadoraFixador() {
       `• Total fixadores: ${resultado.total_fixadores}\n` +
       `${resultado.peso_peca_kg ? `• Peso estimado/peça: ${resultado.peso_peca_kg.toFixed(2)} kg\n` : ''}` +
       precoLine +
-      `\nGostaria de fechar este pedido. Podem me enviar a proposta comercial com frete?`
+      cepLine +
+      freteLine +
+      `\nGostaria de fechar este pedido. Podem me enviar a proposta comercial${freteSelecionado ? '' : ' com frete'}?`
     )
   }
 
@@ -741,114 +807,206 @@ export default function CalculadoraFixador() {
                 )}
               </div>
 
-              {/* Diagrama de posicionamento dos grampos */}
+              {/* Diagrama técnico de posicionamento dos grampos */}
               {(() => {
                 const n = resultado.fixadores_por_peca
                 const larg_cm = parseFloat(largura) || 60
                 const alt_cm = parseFloat(altura) || 60
-                const isVertical = alt_cm > larg_cm * 1.5 // peça estreita vertical (ex: 20×120)
+
                 // Escala proporcional
-                const maxW = 160, maxH = 200
+                const maxW = 200, maxH = 260
                 const ratio = alt_cm / larg_cm
                 let w = maxW, h = maxW * ratio
                 if (h > maxH) { h = maxH; w = maxH / ratio }
-                const pad = 30 // padding para cotas
-                const ox = pad + (maxW - w) / 2 + 10 // offset x
-                const oy = pad + 5
-                const margin = w * 0.06 // 5-6% margem da borda
-                const svgW = maxW + pad * 2 + 20
-                const svgH = h + pad * 2 + 30
+                if (w < 60) w = 60
 
-                // Posições dos grampos — distribuídos nas bordas laterais
-                const grampos: [number, number][] = []
-                const xLeft = ox + margin
-                const xRight = ox + w - margin
-                const xCenter = ox + w / 2
+                const padT = 60, padB = 45, padL = 50, padR = 30
+                const ox = padL
+                const oy = padT
+                const svgW = w + padL + padR
+                const svgH = h + padT + padB + 20
 
-                if (isVertical) {
-                  // Peça estreita: grampos ao longo do centro vertical
-                  for (let i = 0; i < n; i++) {
-                    const y = n === 1 ? oy + h / 2 : oy + margin + (h - 2 * margin) * i / (n - 1)
-                    grampos.push([xCenter, y])
-                  }
+                // Gap = 5cm da borda da peça até o início do fixador (peças ≥30cm)
+                // Para peças estreitas (<30cm), gap se adapta: distribui espaço igualmente
+                const fixLargCm = (modelo.largura_mm || 40) / 10 // 40mm = 4cm
+                const minLadoParaGap5 = 2 * (5 + fixLargCm) + fixLargCm // ~22cm mínimo para gap=5
+                const gapCmX = larg_cm >= minLadoParaGap5 ? 5 : Math.max(1, (larg_cm - 2 * fixLargCm) / 3)
+                const gapCmY = alt_cm >= minLadoParaGap5 ? 5 : Math.max(1, (alt_cm - 2 * fixLargCm) / 3)
+                const fixLargPx = (fixLargCm / larg_cm) * w
+                // Centro do fixador = gap + metade da largura
+                const margemCentroCmX = gapCmX + fixLargCm / 2
+                const margemCentroCmY = gapCmY + fixLargCm / 2
+                const margemPxX = (margemCentroCmX / larg_cm) * w
+                const margemPxY = (margemCentroCmY / alt_cm) * h
+                // Distância entre fixadores
+                const entreFixCm = larg_cm - 2 * (gapCmX + fixLargCm)
+
+                // Posições dos grampos — SEMPRE nas bordas externas
+                type Grampo = { x: number; y: number; borda: 'topo' | 'base' | 'esq' | 'dir' }
+                const grampos: Grampo[] = []
+
+                if (n === 1) {
+                  grampos.push({ x: ox + w / 2, y: oy, borda: 'topo' })
                 } else if (n === 2) {
-                  grampos.push([xLeft, oy + margin], [xRight, oy + margin])
-                } else if (n === 3) {
-                  grampos.push([xLeft, oy + margin], [xRight, oy + margin], [xCenter, oy + h - margin])
-                } else {
-                  // 4+: distribuir nas bordas esquerda e direita
-                  const perSide = Math.ceil(n / 2)
-                  for (let i = 0; i < perSide; i++) {
-                    const y = perSide === 1 ? oy + h / 2 : oy + margin + (h - 2 * margin) * i / (perSide - 1)
-                    grampos.push([xLeft, y])
+                  // Peça estreita (lado menor < 30cm): 1 centralizado topo + 1 centralizado base
+                  const ladoMenor = Math.min(larg_cm, alt_cm)
+                  if (ladoMenor < 30) {
+                    grampos.push({ x: ox + w / 2, y: oy, borda: 'topo' })
+                    grampos.push({ x: ox + w / 2, y: oy + h, borda: 'base' })
+                  } else {
+                    grampos.push({ x: ox + margemPxX, y: oy, borda: 'topo' })
+                    grampos.push({ x: ox + w - margemPxX, y: oy, borda: 'topo' })
                   }
-                  const rightSide = n - perSide
-                  for (let i = 0; i < rightSide; i++) {
-                    const y = rightSide === 1 ? oy + h / 2 : oy + margin + (h - 2 * margin) * i / (rightSide - 1)
-                    grampos.push([xRight, y])
+                } else if (n === 3) {
+                  grampos.push({ x: ox + margemPxX, y: oy, borda: 'topo' })
+                  grampos.push({ x: ox + w - margemPxX, y: oy, borda: 'topo' })
+                  grampos.push({ x: ox + w / 2, y: oy + h, borda: 'base' })
+                } else if (n === 4) {
+                  grampos.push({ x: ox + margemPxX, y: oy, borda: 'topo' })
+                  grampos.push({ x: ox + w - margemPxX, y: oy, borda: 'topo' })
+                  grampos.push({ x: ox + margemPxX, y: oy + h, borda: 'base' })
+                  grampos.push({ x: ox + w - margemPxX, y: oy + h, borda: 'base' })
+                } else if (n === 5) {
+                  grampos.push({ x: ox + margemPxX, y: oy, borda: 'topo' })
+                  grampos.push({ x: ox + w - margemPxX, y: oy, borda: 'topo' })
+                  grampos.push({ x: ox + margemPxX, y: oy + h, borda: 'base' })
+                  grampos.push({ x: ox + w - margemPxX, y: oy + h, borda: 'base' })
+                  grampos.push({ x: ox + w, y: oy + h / 2, borda: 'dir' })
+                } else if (n === 6) {
+                  grampos.push({ x: ox + margemPxX, y: oy, borda: 'topo' })
+                  grampos.push({ x: ox + w - margemPxX, y: oy, borda: 'topo' })
+                  grampos.push({ x: ox + margemPxX, y: oy + h, borda: 'base' })
+                  grampos.push({ x: ox + w - margemPxX, y: oy + h, borda: 'base' })
+                  grampos.push({ x: ox, y: oy + h / 2, borda: 'esq' })
+                  grampos.push({ x: ox + w, y: oy + h / 2, borda: 'dir' })
+                } else {
+                  grampos.push({ x: ox + margemPxX, y: oy, borda: 'topo' })
+                  grampos.push({ x: ox + w - margemPxX, y: oy, borda: 'topo' })
+                  grampos.push({ x: ox + margemPxX, y: oy + h, borda: 'base' })
+                  grampos.push({ x: ox + w - margemPxX, y: oy + h, borda: 'base' })
+                  const lateral = n - 4
+                  const nEsq = Math.ceil(lateral / 2)
+                  const nDir = lateral - nEsq
+                  for (let i = 0; i < nEsq; i++) {
+                    const y = nEsq === 1 ? oy + h / 2 : oy + margemPxY + (h - 2 * margemPxY) * i / (nEsq - 1)
+                    grampos.push({ x: ox, y, borda: 'esq' })
+                  }
+                  for (let i = 0; i < nDir; i++) {
+                    const y = nDir === 1 ? oy + h / 2 : oy + margemPxY + (h - 2 * margemPxY) * i / (nDir - 1)
+                    grampos.push({ x: ox + w, y, borda: 'dir' })
                   }
                 }
 
-                // Cotas
-                const cotaGap = margin + w * 0.05
-                const cotaEntreX = (w - 2 * cotaGap).toFixed(2)
-                const cotaMargemX = (larg_cm * 0.06 + larg_cm * 0.05).toFixed(2)
+                const fmt = (cm: number) => `${cm % 1 === 0 ? cm : cm.toFixed(1)}cm`
+                const corCota = '#6b7280'
+                const corCotaAccent = '#1e3a5f'
+                const f = 'Inter, sans-serif'
+                const gramposTopo = grampos.filter(g => g.borda === 'topo')
+                const g1 = gramposTopo[0]
+                const g2 = gramposTopo.length >= 2 ? gramposTopo[gramposTopo.length - 1] : null
 
                 return (
                   <div className={s.diagramaWrap}>
                     <div className={s.diagramaLabel}>Posicionamento dos grampos POUSINOX®</div>
                     <svg className={s.diagramaSvg} viewBox={`0 0 ${svgW} ${svgH}`} fill="none" xmlns="http://www.w3.org/2000/svg">
+
                       {/* Peça */}
                       <rect x={ox} y={oy} width={w} height={h} rx="3" fill="#f2f0ec" stroke="#c8c3b8" strokeWidth="1.5" />
 
-                      {/* Cota horizontal — topo */}
-                      <line x1={ox} y1={oy - 10} x2={ox + w} y2={oy - 10} stroke="#9ca3af" strokeWidth="0.7" />
-                      <line x1={ox} y1={oy - 14} x2={ox} y2={oy - 6} stroke="#9ca3af" strokeWidth="0.7" />
-                      <line x1={ox + w} y1={oy - 14} x2={ox + w} y2={oy - 6} stroke="#9ca3af" strokeWidth="0.7" />
-                      <text x={ox + w / 2} y={oy - 14} textAnchor="middle" fontSize="9" fill="#6b7280" fontFamily="Inter, sans-serif" fontWeight="600">{(larg_cm / 100).toFixed(2)}m</text>
+                      {/* ═══ COTAS ACIMA DA PEÇA ═══ */}
+                      {g2 && (() => {
+                        // Posições X das bordas dos fixadores
+                        const fix1Left = g1.x - fixLargPx / 2    // borda esq do fixador esq
+                        const fix1Right = g1.x + fixLargPx / 2   // borda dir do fixador esq
+                        const fix2Left = g2.x - fixLargPx / 2    // borda esq do fixador dir
+                        const fix2Right = g2.x + fixLargPx / 2   // borda dir do fixador dir
 
-                      {/* Cota vertical — esquerda */}
-                      <line x1={ox - 10} y1={oy} x2={ox - 10} y2={oy + h} stroke="#9ca3af" strokeWidth="0.7" />
-                      <line x1={ox - 14} y1={oy} x2={ox - 6} y2={oy} stroke="#9ca3af" strokeWidth="0.7" />
-                      <line x1={ox - 14} y1={oy + h} x2={ox - 6} y2={oy + h} stroke="#9ca3af" strokeWidth="0.7" />
-                      <text x={ox - 16} y={oy + h / 2} textAnchor="middle" fontSize="9" fill="#6b7280" fontFamily="Inter, sans-serif" fontWeight="600" transform={`rotate(-90 ${ox - 16} ${oy + h / 2})`}>{(alt_cm / 100).toFixed(2)}m</text>
+                        const cotaY = oy - 16 // nível das cotas
 
-                      {/* Cota margem — entre grampos (topo, se 2+ no topo) */}
-                      {!isVertical && n >= 2 && (
-                        <>
-                          <line x1={grampos[0][0]} y1={oy - 3} x2={grampos[0][0]} y2={oy + margin + 4} stroke="#0b1520" strokeWidth="0.5" strokeDasharray="2 2" opacity="0.3" />
-                          <line x1={grampos[1][0]} y1={oy - 3} x2={grampos[1][0]} y2={oy + margin + 4} stroke="#0b1520" strokeWidth="0.5" strokeDasharray="2 2" opacity="0.3" />
-                        </>
-                      )}
+                        return (
+                          <>
+                            {/* Linhas de extensão verticais */}
+                            <line x1={ox} y1={oy} x2={ox} y2={cotaY - 4} stroke={corCota} strokeWidth="0.4" strokeDasharray="2 2" opacity="0.3" />
+                            <line x1={fix1Left} y1={oy} x2={fix1Left} y2={cotaY - 4} stroke={corCota} strokeWidth="0.4" strokeDasharray="2 2" opacity="0.3" />
+                            <line x1={fix1Right} y1={oy + 3} x2={fix1Right} y2={cotaY + 18} stroke={corCota} strokeWidth="0.4" strokeDasharray="2 2" opacity="0.15" />
+                            <line x1={fix2Left} y1={oy + 3} x2={fix2Left} y2={cotaY + 18} stroke={corCota} strokeWidth="0.4" strokeDasharray="2 2" opacity="0.15" />
+                            <line x1={fix2Right} y1={oy} x2={fix2Right} y2={cotaY - 4} stroke={corCota} strokeWidth="0.4" strokeDasharray="2 2" opacity="0.3" />
+                            <line x1={ox + w} y1={oy} x2={ox + w} y2={cotaY - 4} stroke={corCota} strokeWidth="0.4" strokeDasharray="2 2" opacity="0.3" />
 
-                      {/* Fixadores POUSINOX® — 40×120mm, 3 furos, aba na base */}
-                      {grampos.map(([cx, cy], i) => {
-                        const isTopo = cy < oy + h / 2
-                        // Corpo fora da peça, aba dentro
-                        const fw = 6, fh = 20 // proporção ~1:3 (40×120mm)
-                        const bodyY = isTopo ? cy - fh : cy
-                        const abaY = isTopo ? cy : cy - 3
+                            {/* Cota margem esquerda: borda peça → borda esq fixador = 5cm */}
+                            <line x1={ox} y1={cotaY} x2={fix1Left} y2={cotaY} stroke={corCota} strokeWidth="0.7" />
+                            <line x1={ox} y1={cotaY - 3} x2={ox} y2={cotaY + 3} stroke={corCota} strokeWidth="0.6" />
+                            <line x1={fix1Left} y1={cotaY - 3} x2={fix1Left} y2={cotaY + 3} stroke={corCota} strokeWidth="0.6" />
+                            <text x={(ox + fix1Left) / 2} y={cotaY - 5} textAnchor="middle" fontSize="8" fill={corCotaAccent} fontFamily={f} fontWeight="700">{fmt(gapCmX)}</text>
+
+                            {/* Cota distância entre fixadores: borda dir fix1 → borda esq fix2 */}
+                            <line x1={fix1Right} y1={cotaY} x2={fix2Left} y2={cotaY} stroke={corCotaAccent} strokeWidth="0.8" />
+                            <line x1={fix1Right} y1={cotaY - 3} x2={fix1Right} y2={cotaY + 3} stroke={corCotaAccent} strokeWidth="0.6" />
+                            <line x1={fix2Left} y1={cotaY - 3} x2={fix2Left} y2={cotaY + 3} stroke={corCotaAccent} strokeWidth="0.6" />
+                            <text x={(fix1Right + fix2Left) / 2} y={cotaY - 5} textAnchor="middle" fontSize="10" fill={corCotaAccent} fontFamily={f} fontWeight="700">{fmt(entreFixCm)}</text>
+
+                            {/* Cota margem direita: borda dir fixador → borda peça = 5cm */}
+                            <line x1={fix2Right} y1={cotaY} x2={ox + w} y2={cotaY} stroke={corCota} strokeWidth="0.7" />
+                            <line x1={fix2Right} y1={cotaY - 3} x2={fix2Right} y2={cotaY + 3} stroke={corCota} strokeWidth="0.6" />
+                            <line x1={ox + w} y1={cotaY - 3} x2={ox + w} y2={cotaY + 3} stroke={corCota} strokeWidth="0.6" />
+                            <text x={(fix2Right + ox + w) / 2} y={cotaY - 5} textAnchor="middle" fontSize="8" fill={corCotaAccent} fontFamily={f} fontWeight="700">{fmt(gapCmX)}</text>
+
+                            {/* Anotação largura fixador (0.04) — abaixo de cada fixador */}
+                            <line x1={fix1Left} y1={oy + 10} x2={fix1Right} y2={oy + 10} stroke="#999" strokeWidth="0.5" />
+                            <text x={g1.x} y={oy + 18} textAnchor="middle" fontSize="7" fill="#999" fontFamily={f}>{fmt(fixLargCm)}</text>
+
+                            <line x1={fix2Left} y1={oy + 10} x2={fix2Right} y2={oy + 10} stroke="#999" strokeWidth="0.5" />
+                            <text x={g2.x} y={oy + 18} textAnchor="middle" fontSize="7" fill="#999" fontFamily={f}>{fmt(fixLargCm)}</text>
+                          </>
+                        )
+                      })()}
+
+                      {/* ═══ COTA ESQUERDA — altura ═══ */}
+                      <line x1={ox - 16} y1={oy} x2={ox - 16} y2={oy + h} stroke={corCota} strokeWidth="0.7" />
+                      <line x1={ox - 20} y1={oy} x2={ox - 6} y2={oy} stroke={corCota} strokeWidth="0.5" />
+                      <line x1={ox - 20} y1={oy + h} x2={ox - 6} y2={oy + h} stroke={corCota} strokeWidth="0.5" />
+                      <text x={ox - 20} y={oy + h / 2} textAnchor="middle" fontSize="10" fill="#374151" fontFamily={f} fontWeight="700" transform={`rotate(-90 ${ox - 20} ${oy + h / 2})`}>{fmt(alt_cm)}</text>
+
+                      {/* ═══ COTA INFERIOR — largura total ═══ */}
+                      <line x1={ox} y1={oy + h + 16} x2={ox + w} y2={oy + h + 16} stroke={corCota} strokeWidth="0.7" />
+                      <line x1={ox} y1={oy + h + 6} x2={ox} y2={oy + h + 20} stroke={corCota} strokeWidth="0.5" />
+                      <line x1={ox + w} y1={oy + h + 6} x2={ox + w} y2={oy + h + 20} stroke={corCota} strokeWidth="0.5" />
+                      <text x={ox + w / 2} y={oy + h + 28} textAnchor="middle" fontSize="10" fill="#374151" fontFamily={f} fontWeight="700">{fmt(larg_cm)}</text>
+
+                      {/* ═══ Fixadores POUSINOX® — corpo inox realista, 3 furos, aba ═══ */}
+                      {grampos.map((g, i) => {
+                        const fw = 6, fh = 20
+
+                        if (g.borda === 'esq' || g.borda === 'dir') {
+                          const bodyX = g.borda === 'esq' ? g.x - fh / 2 : g.x - fh / 2
+                          const abaX = g.borda === 'esq' ? g.x - 3 : g.x
+                          return (
+                            <g key={i}>
+                              <rect x={bodyX} y={g.y - fw / 2} width={fh} height={fw} rx="1" fill="#d4d4d4" stroke="#999" strokeWidth="0.7" />
+                              <circle cx={bodyX + fh * 0.2} cy={g.y} r="1.3" fill="#888" />
+                              <circle cx={bodyX + fh * 0.5} cy={g.y} r="1.3" fill="#888" />
+                              <circle cx={bodyX + fh * 0.8} cy={g.y} r="1.3" fill="#888" />
+                              <rect x={abaX} y={g.y - fw / 2 - 2} width={3} height={fw + 4} rx="0.5" fill="#b0b0b0" stroke="#999" strokeWidth="0.5" />
+                            </g>
+                          )
+                        }
+
+                        const bodyY = g.borda === 'topo' ? g.y - fh / 2 : g.y - fh / 2
+                        const abaY = g.borda === 'topo' ? g.y : g.y - 3
                         return (
                           <g key={i}>
-                            {/* Corpo do fixador (na parede) */}
-                            <rect x={cx - fw / 2} y={bodyY} width={fw} height={fh} rx="1" fill="#d4d4d4" stroke="#999" strokeWidth="0.7" />
-                            {/* 3 furos de parafuso */}
-                            <circle cx={cx} cy={bodyY + fh * 0.2} r="1.3" fill="#888" />
-                            <circle cx={cx} cy={bodyY + fh * 0.5} r="1.3" fill="#888" />
-                            <circle cx={cx} cy={bodyY + fh * 0.8} r="1.3" fill="#888" />
-                            {/* Aba (encaixe na incisão) */}
-                            <rect x={cx - fw / 2 - 2} y={abaY} width={fw + 4} height={3} rx="0.5" fill="#b0b0b0" stroke="#999" strokeWidth="0.5" />
+                            <rect x={g.x - fw / 2} y={bodyY} width={fw} height={fh} rx="1" fill="#d4d4d4" stroke="#999" strokeWidth="0.7" />
+                            <circle cx={g.x} cy={bodyY + fh * 0.2} r="1.3" fill="#888" />
+                            <circle cx={g.x} cy={bodyY + fh * 0.5} r="1.3" fill="#888" />
+                            <circle cx={g.x} cy={bodyY + fh * 0.8} r="1.3" fill="#888" />
+                            <rect x={g.x - fw / 2 - 2} y={abaY} width={fw + 4} height={3} rx="0.5" fill="#b0b0b0" stroke="#999" strokeWidth="0.5" />
                           </g>
                         )
                       })}
 
                       {/* Legenda */}
-                      <g transform={`translate(${ox}, ${oy + h + 14})`}>
-                        <rect x="0" y="0" width="5" height="14" rx="1" fill="#d4d4d4" stroke="#999" strokeWidth="0.5" />
-                        <circle cx={2.5} cy={3} r="0.8" fill="#888" />
-                        <circle cx={2.5} cy={7} r="0.8" fill="#888" />
-                        <circle cx={2.5} cy={11} r="0.8" fill="#888" />
-                        <text x="10" y="10" fontSize="8.5" fill="#6b7280" fontFamily="Inter, sans-serif">= Fixador POUSINOX® ({n} por peça)</text>
+                      <g transform={`translate(${ox}, ${oy + h + 36})`}>
+                        <text x="0" y="10" fontSize="8.5" fill={corCota} fontFamily={f}>{n} fixador{n > 1 ? 'es' : ''} por peça</text>
                       </g>
                     </svg>
                   </div>
@@ -1012,15 +1170,156 @@ export default function CalculadoraFixador() {
                     </div>
                   )}
 
-                  {/* Complemento pós-verificação */}
+                  {/* Sessão ativa */}
+                  <div className={s.sessionBar}>
+                    <span>Logado como <strong>{session.nome}</strong></span>
+                    <button type="button" onClick={logout} className={s.sessionLogout}>Sair</button>
+                  </div>
+
+                  {/* Tabela de materiais completa */}
+                  <div className={s.tabelaWrap}>
+                    <table className={s.tabela}>
+                      <thead>
+                        <tr>
+                          <th>Material</th>
+                          <th style={{ textAlign: 'right' }}>Quantidade</th>
+                          <th>Un.</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {resultado.itens.map((it, i) => {
+                          return (
+                          <tr key={i}>
+                            <td>{it.nome}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 700 }}>{it.quantidade.toLocaleString('pt-BR')}</td>
+                            <td>{it.unidade}</td>
+                          </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Selo */}
+                  {modelo.laudo && (
+                    <div className={s.seloBox}>
+                      <div className={s.seloIcon}>🔬</div>
+                      <div>
+                        <div className={s.seloTitle}>Rastreabilidade técnica</div>
+                        <div className={s.seloText}>Material com ensaio técnico rastreável — POUSINOX®.</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Orçamento estimado */}
+                  {!(modelo.preco_unitario || consumiveisDb.some(c => c.preco_unitario)) && (
+                    <div className={s.orcamentoBox}>
+                      <div className={s.orcamentoTitle}>Estimativa de Investimento</div>
+                      <div style={{ textAlign: 'center', padding: '20px 16px', color: '#64748b', fontSize: '0.9rem' }}>
+                        Preços em atualização — solicite o orçamento detalhado via WhatsApp abaixo.
+                      </div>
+                    </div>
+                  )}
+                  {(modelo.preco_unitario || consumiveisDb.some(c => c.preco_unitario)) && (() => {
+                    const essenciais: { nome: string; qtd: number; unitario: number; total: number }[] = []
+                    const opcionais: { nome: string; qtd: number; unitario: number; total: number }[] = []
+                    // Fixador
+                    if (modelo.preco_unitario) {
+                      essenciais.push({ nome: 'Fixador / Grampo', qtd: resultado.total_fixadores, unitario: modelo.preco_unitario, total: modelo.preco_unitario * resultado.total_fixadores })
+                    }
+                    // Consumíveis do banco
+                    consumiveisDb.forEach(c => {
+                      if (!c.preco_unitario) return
+                      const qtd = c.proporcao_por === 1 ? resultado.total_fixadores : Math.ceil(resultado.total_fixadores / c.proporcao_por)
+                      const item = { nome: c.nome, qtd, unitario: c.preco_unitario, total: c.preco_unitario * qtd }
+                      if (c.proporcao_por === 1) essenciais.push(item)
+                      else opcionais.push(item)
+                    })
+                    const subtotalEssencial = essenciais.reduce((acc, l) => acc + l.total, 0)
+                    const subtotalOpcional = opcionais.reduce((acc, l) => acc + l.total, 0)
+                    const grandTotal = subtotalEssencial + subtotalOpcional
+                    return (
+                      <div className={s.orcamentoBox}>
+                        <div className={s.orcamentoTitle}>Estimativa de Investimento</div>
+                        <div className={s.orcamentoGrid}>
+                          <div className={s.orcamentoHeader}>
+                            <span>Material</span>
+                            <span>Qtd</span>
+                            <span>Vl. Unit.</span>
+                            <span>Total</span>
+                          </div>
+                          {essenciais.map((l, i) => (
+                            <div key={i} className={s.orcamentoItem}>
+                              <span>{l.nome}</span>
+                              <span>~{l.qtd.toLocaleString('pt-BR')}</span>
+                              <span>R$ {l.unitario.toFixed(2).replace('.', ',')}</span>
+                              <strong>R$ {l.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                            </div>
+                          ))}
+                          {/* Subtotal essenciais */}
+                          <div className={`${s.orcamentoItem} ${s.orcamentoSubtotal}`}>
+                            <span>Subtotal materiais</span>
+                            <span />
+                            <span />
+                            <strong>R$ {subtotalEssencial.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                          </div>
+
+                          {/* Consumíveis de instalação */}
+                          {opcionais.length > 0 && (
+                            <>
+                              <div style={{ borderTop: '1px dashed #cbd5e1', margin: '12px 0 8px' }} />
+                              <div className={s.orcamentoHeader} style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                                <span>Consumíveis de instalação</span>
+                                <span>Qtd</span>
+                                <span>Vl. Unit.</span>
+                                <span>Total</span>
+                              </div>
+                              {opcionais.map((l, i) => (
+                                <div key={`op-${i}`} className={s.orcamentoItem} style={{ color: '#64748b' }}>
+                                  <span>{l.nome}</span>
+                                  <span>~{l.qtd.toLocaleString('pt-BR')}</span>
+                                  <span>R$ {l.unitario.toFixed(2).replace('.', ',')}</span>
+                                  <strong style={{ color: '#475569' }}>R$ {l.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                                </div>
+                              ))}
+                              <div className={`${s.orcamentoItem} ${s.orcamentoSubtotal}`} style={{ color: '#64748b' }}>
+                                <span>Subtotal consumíveis</span>
+                                <span />
+                                <span />
+                                <strong style={{ color: '#475569' }}>R$ {subtotalOpcional.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                              </div>
+                            </>
+                          )}
+
+                          {/* Total geral */}
+                          <div className={`${s.orcamentoItem} ${s.orcamentoTotal}`}>
+                            <span>Total estimado</span>
+                            <span />
+                            <span />
+                            <strong>R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
+                          </div>
+                        </div>
+                        <div className={s.orcamentoNota}>
+                          Valores estimados. Confirme quantidades e condições com nosso consultor.
+                        </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* Complemento — abaixo do orçamento para cotar frete */}
                   {showGate === 'complemento' && (
-                    <div className={s.gateBox}>
-                      <div className={s.gateTitle}>Complete seu perfil (opcional)</div>
-                      <div className={s.gateText}>Dados adicionais para um orçamento mais preciso.</div>
+                    <div className={s.complementoBox}>
+                      <div className={s.complementoHeader}>
+                        <span className={s.complementoIcon}>🚚</span>
+                        <div>
+                          <div className={s.complementoTitle}>Complete seu cadastro e receba o valor do frete</div>
+                          <div className={s.complementoSub}>Informe o CEP para cotação automática de frete (Correios e Braspress).</div>
+                        </div>
+                      </div>
 
                       <div className={s.grid2}>
                         <div className={s.field}>
-                          <label>CEP</label>
+                          <label>CEP <span className={s.req}>*</span></label>
                           <input className={s.input} type="text" inputMode="numeric" placeholder="37550-000" maxLength={9} value={loginCep} onChange={e => {
                             let v = e.target.value.replace(/\D/g, '').slice(0, 8)
                             if (v.length > 5) v = v.slice(0, 5) + '-' + v.slice(5)
@@ -1072,7 +1371,7 @@ export default function CalculadoraFixador() {
 
                       <div style={{ display: 'flex', gap: 12 }}>
                         <button type="button" onClick={salvarComplemento} className={s.btnLogin}>
-                          Salvar e continuar
+                          Salvar e cotar frete
                         </button>
                         <button type="button" onClick={() => setShowGate('none')} className={s.otpVoltar} style={{ padding: '12px 20px' }}>
                           Pular
@@ -1081,98 +1380,11 @@ export default function CalculadoraFixador() {
                     </div>
                   )}
 
-                  {/* Sessão ativa */}
-                  <div className={s.sessionBar}>
-                    <span>Logado como <strong>{session.nome}</strong></span>
-                    <button type="button" onClick={logout} className={s.sessionLogout}>Sair</button>
-                  </div>
-
-                  {/* Tabela de materiais completa */}
-                  <div className={s.tabelaWrap}>
-                    <table className={s.tabela}>
-                      <thead>
-                        <tr>
-                          <th>Material</th>
-                          <th style={{ textAlign: 'right' }}>Quantidade</th>
-                          <th>Un.</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {resultado.itens.map((it, i) => {
-                          return (
-                          <tr key={i}>
-                            <td>{it.nome}</td>
-                            <td style={{ textAlign: 'right', fontWeight: 700 }}>{it.quantidade.toLocaleString('pt-BR')}</td>
-                            <td>{it.unidade}</td>
-                          </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Selo */}
-                  {modelo.laudo && (
-                    <div className={s.seloBox}>
-                      <div className={s.seloIcon}>🔬</div>
-                      <div>
-                        <div className={s.seloTitle}>Rastreabilidade técnica</div>
-                        <div className={s.seloText}>Material com ensaio técnico rastreável — POUSINOX®.</div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Orçamento estimado */}
-                  {(modelo.preco_unitario || consumiveisDb.some(c => c.preco_unitario)) && (() => {
-                    const linhas: { nome: string; qtd: number; unitario: number; total: number }[] = []
-                    // Fixador
-                    if (modelo.preco_unitario) {
-                      linhas.push({ nome: 'Fixador / Grampo', qtd: resultado.total_fixadores, unitario: modelo.preco_unitario, total: modelo.preco_unitario * resultado.total_fixadores })
-                    }
-                    // Consumíveis do banco
-                    consumiveisDb.forEach(c => {
-                      if (!c.preco_unitario) return
-                      const qtd = c.proporcao_por === 1 ? resultado.total_fixadores : Math.ceil(resultado.total_fixadores / c.proporcao_por)
-                      linhas.push({ nome: c.nome, qtd, unitario: c.preco_unitario, total: c.preco_unitario * qtd })
-                    })
-                    const grandTotal = linhas.reduce((acc, l) => acc + l.total, 0)
-                    return (
-                      <div className={s.orcamentoBox}>
-                        <div className={s.orcamentoTitle}>Estimativa de Investimento</div>
-                        <div className={s.orcamentoGrid}>
-                          <div className={s.orcamentoHeader}>
-                            <span>Material</span>
-                            <span>Qtd</span>
-                            <span>Vl. Unit.</span>
-                            <span>Total</span>
-                          </div>
-                          {linhas.map((l, i) => (
-                            <div key={i} className={s.orcamentoItem}>
-                              <span>{l.nome}</span>
-                              <span>{l.qtd.toLocaleString('pt-BR')}</span>
-                              <span>R$ {l.unitario.toFixed(2).replace('.', ',')}</span>
-                              <strong>R$ {l.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                            </div>
-                          ))}
-                          <div className={`${s.orcamentoItem} ${s.orcamentoTotal}`}>
-                            <span>Total estimado</span>
-                            <span />
-                            <span />
-                            <strong>R$ {grandTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                          </div>
-                        </div>
-                        <div className={s.orcamentoNota}>
-                          Valores estimados para referência. O orçamento final pode variar conforme volume e condições de pagamento.
-                        </div>
-                      </div>
-                    )
-                  })()}
-
                   {/* CTA */}
                   <div className={s.ctaBox}>
-                    <div className={s.ctaTitle}>Solicite um orçamento completo</div>
+                    <div className={s.ctaTitle}>Falar com consultor</div>
                     <div className={s.ctaText}>
-                      Nossa equipe técnica retorna com proposta comercial incluindo fixadores, consumíveis e frete.
+                      Solicite o orçamento completo com nosso consultor técnico.
                     </div>
                     <div className={s.ctaActions}>
                       <a href={`https://wa.me/${WA_NUMERO}?text=${gerarMsgWa()}`} target="_blank" rel="noopener noreferrer" className={s.ctaBtnWa}>
