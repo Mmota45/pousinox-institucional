@@ -87,8 +87,73 @@ async function generateEmbedding(text: string): Promise<number[]> {
   return data.embedding.values as number[]
 }
 
+// ── YouTube: extrair videoId ────────────────────────────────────────────────
+function extractYouTubeId(url: string): string | null {
+  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/)
+  return m ? m[1] : null
+}
+
+// ── YouTube: extrair conteúdo via Gemini (aceita URLs de vídeo) ────────────
+async function fetchYouTubeTranscript(videoId: string): Promise<string | null> {
+  if (!GEMINI_KEY) return null
+  try {
+    const ytUrl = `https://www.youtube.com/watch?v=${videoId}`
+    console.log('[YT] usando Gemini para extrair conteúdo do vídeo:', ytUrl)
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: 'Você é um transcritor de vídeos. Extraia TODO o conteúdo falado no vídeo em formato de texto corrido. Inclua o título do vídeo, o canal, e a transcrição completa do que é dito. Se houver demonstrações visuais, descreva-as brevemente entre colchetes. Retorne APENAS o texto, sem formatação extra.' }] },
+          contents: [{
+            role: 'user',
+            parts: [
+              { fileData: { mimeType: 'video/mp4', fileUri: ytUrl } },
+              { text: 'Transcreva todo o conteúdo deste vídeo do YouTube. Inclua título, canal e tudo que é falado.' },
+            ],
+          }],
+          generationConfig: { maxOutputTokens: 8192 },
+        }),
+      },
+    )
+    if (!res.ok) {
+      console.log('[YT] Gemini falhou:', res.status, await res.text().then(t => t.slice(0, 200)))
+      return null
+    }
+    const data = await res.json()
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    if (text.length > 100) {
+      console.log('[YT] Gemini transcrição ok:', text.length, 'chars')
+      const um = data.usageMetadata
+      if (um) logUsage('indexar-documento-yt', 'gemini-2.5-flash', um.promptTokenCount ?? 0, um.candidatesTokenCount ?? 0)
+      return `Título do vídeo (YouTube ID: ${videoId}):\n\n${text}`
+    }
+    console.log('[YT] Gemini retornou texto curto:', text.length)
+    return null
+  } catch (err) {
+    console.warn('[YT] erro Gemini:', err)
+    return null
+  }
+}
+
 // ── Scrape URL via Jina Reader ──────────────────────────────────────────────
 async function scrapeUrl(url: string): Promise<string> {
+  // YouTube: tentar transcrição primeiro
+  const ytId = extractYouTubeId(url)
+  if (ytId) {
+    console.log('[indexar] YouTube detectado, videoId:', ytId)
+    try {
+      const transcript = await fetchYouTubeTranscript(ytId)
+      if (transcript && transcript.length > 100) return transcript
+    } catch (err) {
+      console.warn('[indexar] transcrição YT erro:', err)
+    }
+    console.log('[indexar] transcrição YT falhou, fallback Jina com URL canônica')
+    // Usar URL canônica para Jina (melhor extração)
+    url = `https://www.youtube.com/watch?v=${ytId}`
+  }
+
   const res = await fetch(`https://r.jina.ai/${url}`, {
     headers: { 'Accept': 'text/plain', 'X-Return-Format': 'text' },
   })

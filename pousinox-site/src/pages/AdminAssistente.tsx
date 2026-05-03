@@ -862,12 +862,13 @@ export default function AdminAssistente() {
       }
 
       const systemFinal = SYSTEM_PROMPT + (customPrompt ? `\n\nInstruções do usuário: ${customPrompt}` : '')
-      console.log('[Assistente] ragEnabled:', ragEnabled, 'modelo:', modelo, 'search:', searchSource, 'roteamento:', motivo || 'manual', 'msgs:', historico.length)
+      console.log('[Assistente] ragEnabled:', ragEnabled, 'activeSources:', activeSources.length, 'docCount:', docCount, 'useRag:', ragEnabled || (activeSources.length > 0 && activeSources.length < docCount), 'modelo:', modelo, 'search:', searchSource, 'roteamento:', motivo || 'manual')
 
       let data: Record<string, unknown>, error: unknown
       const effectiveSearch = forceSearchSource || searchSource
 
-      if (ragEnabled && !forceSearchSource) {
+      const useRag = ragEnabled || (activeSources.length > 0 && activeSources.length < docCount)
+      if (useRag && !forceSearchSource) {
         // RAG ativo — rotear via assistente-chat (suporta embeddings)
         // Groq funciona bem para RAG e tem API key configurada
         const ragModel = (modelo !== 'auto') ? modelo : 'groq'
@@ -882,6 +883,7 @@ export default function AdminAssistente() {
         })
         data = res.data ? (typeof res.data === 'string' ? JSON.parse(res.data) : res.data) : {}
         error = res.error
+        console.log('[Assistente] RAG response:', JSON.stringify({ content: (data as Record<string,unknown>)?.content?.toString()?.slice(0, 100), model: (data as Record<string,unknown>)?.model, error: error, rag_used: (data as Record<string,unknown>)?.rag_used, rag_sources: (data as Record<string,unknown>)?.rag_sources }))
       } else {
         // Sempre via ai-hub — tem contexto rico (banco + site + busca web)
         const providerModel = usarModelo || modelo

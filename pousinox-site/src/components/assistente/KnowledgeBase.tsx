@@ -58,13 +58,18 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, 
     const docList = Object.entries(groups).map(([source_file, g]) => ({ source_file, ...g }))
     setDocs(docList)
     onDocCountChange?.(docList.length)
-    // Quando selectAll, notificar todas as fontes
-    if (selectAll) {
-      onActiveSourcesChange?.(docList.map(d => d.source_file))
-    }
-  }, [onDocCountChange, selectAll, onActiveSourcesChange])
+  }, [onDocCountChange])
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
+
+  // Notificar parent das fontes ativas (fora do render)
+  useEffect(() => {
+    if (selectAll) {
+      onActiveSourcesChange?.(docs.map(d => d.source_file))
+    } else {
+      onActiveSourcesChange?.([...selected])
+    }
+  }, [docs, selected, selectAll])
 
   const toggleSelect = (file: string) => {
     if (selectAll) {

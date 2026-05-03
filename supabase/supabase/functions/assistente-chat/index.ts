@@ -276,39 +276,46 @@ interface RAGResult {
 }
 
 async function searchRAG(query: string, sourceFiles?: string[]): Promise<RAGResult | null> {
-  if (!GEMINI_KEY || !SUPABASE_URL || !SERVICE_KEY) return null
+  if (!SUPABASE_URL || !SERVICE_KEY) return null
   try {
-    const embRes = await fetch(`${EMBED_URL}?key=${GEMINI_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: { parts: [{ text: query }] }, outputDimensionality: 768 }),
-    })
-    if (!embRes.ok) return null
-    const embData = await embRes.json()
-    const embedding = embData.embedding?.values as number[]
-    if (!embedding?.length) return null
+    let chunks: { content: string; source_file: string; similarity: number }[]
 
-    const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/search_knowledge`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: SERVICE_KEY,
-        Authorization: `Bearer ${SERVICE_KEY}`,
-      },
-      body: JSON.stringify({
-        query_embedding: '[' + embedding.join(',') + ']',
-        match_threshold: 0.3,
-        match_count: 10,
-      }),
-    })
-    if (!rpcRes.ok) return null
-    let chunks = await rpcRes.json() as { content: string; source_file: string; similarity: number }[]
-    // Filtrar por fontes selecionadas
     if (sourceFiles?.length) {
-      const allowed = new Set(sourceFiles)
-      chunks = chunks.filter(c => allowed.has(c.source_file))
-      console.log(`[RAG] filtrado para ${sourceFiles.length} fontes → ${chunks.length} chunks`)
+      // Fontes específicas selecionadas: buscar TODOS os chunks dessas fontes (sem busca semântica)
+      // Isso garante que o conteúdo completo do documento é fornecido
+      const inFilter = sourceFiles.map(f => `"${f.replace(/"/g, '\\"')}"`).join(',')
+      const directRes = await fetch(
+        `${SUPABASE_URL}/rest/v1/knowledge_chunks?source_file=in.(${encodeURIComponent(inFilter)})&chunk_index=gte.0&select=content,source_file&order=chunk_index.asc&limit=30`,
+        { headers: { 'Content-Type': 'application/json', apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } },
+      )
+      if (!directRes.ok) {
+        console.log('[RAG] busca direta falhou:', directRes.status)
+        return null
+      }
+      chunks = (await directRes.json()).map((c: { content: string; source_file: string }) => ({ ...c, similarity: 1.0 }))
+      console.log(`[RAG] busca direta: ${chunks.length} chunks de ${sourceFiles.length} fontes`)
+    } else {
+      // Busca semântica normal (todas as fontes)
+      if (!GEMINI_KEY) return null
+      const embRes = await fetch(`${EMBED_URL}?key=${GEMINI_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: { parts: [{ text: query }] }, outputDimensionality: 768 }),
+      })
+      if (!embRes.ok) return null
+      const embData = await embRes.json()
+      const embedding = embData.embedding?.values as number[]
+      if (!embedding?.length) return null
+
+      const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/search_knowledge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` },
+        body: JSON.stringify({ query_embedding: '[' + embedding.join(',') + ']', match_threshold: 0.3, match_count: 10 }),
+      })
+      if (!rpcRes.ok) return null
+      chunks = await rpcRes.json()
     }
+
     if (!chunks?.length) { console.log('[RAG] nenhum chunk encontrado'); return null }
     console.log(`[RAG] ${chunks.length} chunks encontrados, sim: ${chunks.map(c => c.similarity.toFixed(2)).join(', ')}`)
 
@@ -385,9 +392,12 @@ Deno.serve(async (req) => {
         if (ragResult) {
           sysPrompt += `
 
-CONTEXTO RAG: A Pousinox fabrica fixadores de porcelanato usando chapas de aço inox 304 e 430. Quando os documentos mencionam "chapa inox 304", "chapa inox 430", "ensaios mecânicos" ou relatórios do "SENAI/LAMAT", eles se referem a ensaios realizados no PRODUTO FINAL da Pousinox (fixadores de porcelanato).
-
-REGRA RAG OBRIGATÓRIA: Quando documentos forem fornecidos, sua resposta DEVE ser baseada neles. SEMPRE cite os documentos consultados pelo nome entre aspas. Combine as informações dos documentos com seu conhecimento sobre a empresa. Se os documentos não contêm informação relevante para a pergunta, diga "Os documentos consultados não contêm essa informação" e responda com base no contexto geral.`
+REGRA RAG OBRIGATÓRIA — ANTI-ALUCINAÇÃO:
+1. Sua resposta DEVE ser baseada EXCLUSIVAMENTE nos documentos fornecidos abaixo.
+2. SEMPRE cite os documentos consultados pelo nome entre aspas.
+3. Se os documentos NÃO contêm informação suficiente para responder, diga EXATAMENTE: "Os documentos consultados não contêm essa informação." e PARE. NÃO invente, NÃO complete com conhecimento geral, NÃO suponha.
+4. NÃO associe o conteúdo dos documentos a nenhuma empresa ou contexto externo — descreva o que os documentos dizem, nada mais.
+5. Se o documento parece incompleto ou contém apenas metadados, informe: "O conteúdo indexado deste documento parece incompleto ou contém apenas metadados."`
           let lastUserContent = [...messages].reverse().find((m: { role: string; content: string }) => m.role === 'user')?.content ?? ''
           lastUserContent = lastUserContent.replace(/\n*\[NOTA:.*$/s, '').trim()
           const ragMessage = ragResult.context + '\n\nCom base nos documentos acima, responda a seguinte pergunta:\n\n' + lastUserContent
