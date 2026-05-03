@@ -52,14 +52,20 @@ CONTEXTO BASE (use apenas como referência, NÃO repita literalmente):
 - Pousinox — fabricante de equipamentos em aço inox, Pouso Alegre/MG, desde 2001
 - Carro-chefe: equipamentos e mobiliário em inox sob medida (bancadas, fogões industriais, coifas, corrimãos, lava-botas, etc.)
 - O fixador de porcelanato é apenas UM dos produtos — é um insert metálico parafusado na parede que impede a QUEDA do porcelanato
-- SOBRE O FIXADOR: é instalado ENTRE a parede e o porcelanato. Impede DESPRENDIMENTO. NÃO é adicionado à argamassa, NÃO protege a superfície, NÃO substitui argamassa. É segurança mecânica ADICIONAL
+- SOBRE O FIXADOR: é instalado ENTRE a parede e o porcelanato. Impede DESPRENDIMENTO. NÃO é adicionado à argamassa, NÃO protege a superfície, NÃO substitui argamassa. É segurança mecânica ADICIONAL. Modelos: Inox 304 (com laudo LAMAT/SENAI) e Inox 430 (econômico). Aberturas: 5mm (revestimentos 5-8mm) e 11mm (revestimentos 9-14mm). Dimensão padrão: 120×40×0.8mm. Sob medida disponível.
 - Sites: pousinox.com.br | fixadorporcelanato.com.br
+- SEGMENTOS DE ATUAÇÃO: Açougues e Frigoríficos, Restaurantes e Food Service, Hospitais e Clínicas, Hotéis e Hotelaria, Supermercados, Padarias, Construção Civil, Arquitetura e Engenharia, Indústria Alimentícia, Indústria Farmacêutica, Laticínios, Condomínios Residenciais, Laboratórios, Pet Shops e Veterinárias
+- PRODUTOS POR SEGMENTO: bancadas, pias, mesas, coifas, fogões industriais, estufas, corrimãos, guarda-corpos, lava-botas, tanques, prateleiras, carrinhos, suportes, fixadores de porcelanato, projetos sob medida
 
 REGRAS:
 - Priorize informações da BUSCA WEB (quando disponível) sobre este contexto base
 - NÃO invente dados que não tenha (CNPJ, faturamento, número de funcionários, etc.)
 - Se não souber, diga honestamente
-- Seja conciso e preciso`;
+- Seja CONCISO e DIRETO — máximo 3-5 frases por resposta. Sem rodeios, sem pedir desculpas, sem inventar cenários
+- NUNCA diga "você está correto em questionar" ou frases similares — vá direto à resposta
+- NÃO invente justificativas para perguntas que não foram feitas
+- Quando listar dados, use bullets curtos. Sem explicações redundantes
+- Todos os segmentos listados acima são IGUALMENTE importantes — não priorize uns sobre outros`;
 
 // Cache do conteúdo do site (válido por 1 hora)
 let siteCache: { content: string; fetchedAt: number } | null = null;
@@ -261,15 +267,42 @@ async function fetchOverview(): Promise<string> {
   const sb = getSupabase();
   const counts: Record<string, number> = {};
   const tables = [
+    // Comercial
     ['produtos', 'Produtos'],
     ['produtos_catalogo', 'Catálogo padronizado'],
     ['clientes', 'Clientes'],
     ['prospeccao', 'Prospects'],
-    ['projetos', 'Projetos'],
+    ['projetos', 'Projetos sob medida'],
     ['pipeline_deals', 'Deals no pipeline'],
     ['vendas', 'Vendas'],
-    ['fin_lancamentos', 'Lançamentos financeiros'],
     ['followups', 'Follow-ups'],
+    ['calculadora_leads', 'Leads calculadora'],
+    // Fixadores
+    ['fixador_modelos', 'Modelos de fixador'],
+    // Compras
+    ['solicitacoes_compra', 'Solicitações de compra'],
+    ['cotacoes_compra', 'Cotações de compra'],
+    ['pedidos_compra', 'Pedidos de compra'],
+    ['recebimentos_compra', 'Recebimentos de compra'],
+    // Estoque
+    ['estoque_itens', 'Itens de estoque (MP/PA)'],
+    ['estoque_movimentacoes', 'Movimentações de estoque'],
+    // Produção / Operação
+    ['ordens_producao', 'Ordens de produção'],
+    ['ordens_manutencao', 'Ordens de manutenção'],
+    ['ativos_manutencao', 'Ativos/Equipamentos'],
+    // Fiscal
+    ['docs_fiscais_recebidos', 'NFs recebidas'],
+    ['docs_fiscais_emitidos', 'NFs emitidas'],
+    // Financeiro
+    ['fin_lancamentos', 'Lançamentos financeiros'],
+    ['fin_movimentacoes', 'Movimentações financeiras (caixa)'],
+    ['fin_categorias', 'Categorias financeiras'],
+    // Marketing
+    ['materiais_comerciais', 'Materiais comerciais'],
+    ['market_keywords', 'Keywords de mercado'],
+    // Qualidade
+    ['inspecoes', 'Inspeções de qualidade'],
   ];
 
   await Promise.all(tables.map(async ([table, label]) => {
@@ -317,6 +350,19 @@ async function fetchDetail(messages: Message[]): Promise<string> {
       const { count } = await sb.from('prospeccao').select('*', { count: 'exact', head: true });
       results.push(`PROSPECÇÃO: ${count || 0} prospects`);
     }
+    if (/segmento|setor|nicho|atua[cç][aã]o|portf[oó]lio/i.test(recent)) {
+      const { data: segProj } = await sb.from('projetos').select('segmento').not('segmento', 'is', null);
+      const { data: segProsp } = await sb.from('prospeccao').select('segmento').not('segmento', 'is', null).limit(1000);
+      const { data: portfolio } = await sb.from('portfolio_produtos').select('segmento, nome').limit(50);
+      const segsProj = [...new Set((segProj || []).map(p => p.segmento).filter(Boolean))];
+      const segsProsp = [...new Set((segProsp || []).map(p => p.segmento).filter(Boolean))];
+      if (segsProj.length) results.push(`SEGMENTOS EM PROJETOS (${segsProj.length}): ${segsProj.join(', ')}`);
+      if (segsProsp.length) results.push(`SEGMENTOS EM PROSPECÇÃO (${segsProsp.length}): ${segsProsp.join(', ')}`);
+      if (portfolio?.length) {
+        const segPort = [...new Set(portfolio.map(p => p.segmento).filter(Boolean))];
+        results.push(`SEGMENTOS NO PORTFÓLIO (${segPort.length}): ${segPort.join(', ')}`);
+      }
+    }
     if (/vend[ae]|pedido/i.test(recent)) {
       const { data } = await sb.from('vendas').select('id, cliente_nome, valor_total, status, created_at').order('created_at', { ascending: false }).limit(5);
       if (data?.length) results.push(`VENDAS RECENTES:\n${data.map(v => `- ${v.cliente_nome || 'N/A'} R$${v.valor_total || 0} (${v.status})`).join('\n')}`);
@@ -337,9 +383,73 @@ async function fetchDetail(messages: Message[]): Promise<string> {
         results.push(`FINANCEIRO: Receitas R$${rec.toFixed(2)} | Despesas R$${desp.toFixed(2)} | ${data.filter(l => l.status === 'pendente').length} pendentes`);
       }
     }
-    if (/projet|sob.?medida|ordem|produç/i.test(recent)) {
+    if (/projet|sob.?medida/i.test(recent)) {
       const { data } = await sb.from('projetos').select('titulo, cliente, segmento, status, valor').order('created_at', { ascending: false }).limit(5);
       if (data?.length) results.push(`PROJETOS RECENTES:\n${data.map(p => `- ${p.titulo} | ${p.cliente || 'N/A'} | ${p.status} ${p.valor ? `R$${p.valor}` : ''}`).join('\n')}`);
+    }
+    // Produção
+    if (/produ[cç][aã]o|ordem.?produ|op\b/i.test(recent)) {
+      const { data } = await sb.from('ordens_producao').select('numero, titulo, status, data_inicio, data_conclusao').order('created_at', { ascending: false }).limit(5);
+      if (data?.length) results.push(`ORDENS DE PRODUÇÃO:\n${data.map(o => `- ${o.numero} ${o.titulo || ''} (${o.status})`).join('\n')}`);
+    }
+    // Compras
+    if (/compra|solicita[cç][aã]o|cota[cç][aã]o|fornecedor|recebimento/i.test(recent)) {
+      const [sc, pc, rc] = await Promise.all([
+        sb.from('solicitacoes_compra').select('numero, descricao, status, created_at').order('created_at', { ascending: false }).limit(5),
+        sb.from('pedidos_compra').select('numero, fornecedor_nome, valor_total, status').order('created_at', { ascending: false }).limit(5),
+        sb.from('recebimentos_compra').select('numero, pedido_numero, status').order('created_at', { ascending: false }).limit(5),
+      ]);
+      if (sc.data?.length) results.push(`SOLICITAÇÕES DE COMPRA:\n${sc.data.map(s => `- ${s.numero} ${s.descricao || ''} (${s.status})`).join('\n')}`);
+      if (pc.data?.length) results.push(`PEDIDOS DE COMPRA:\n${pc.data.map(p => `- ${p.numero} ${p.fornecedor_nome || ''} R$${p.valor_total || 0} (${p.status})`).join('\n')}`);
+      if (rc.data?.length) results.push(`RECEBIMENTOS:\n${rc.data.map(r => `- ${r.numero} ref ${r.pedido_numero || ''} (${r.status})`).join('\n')}`);
+    }
+    // Estoque
+    if (/estoque|mat[eé]ria.?prima|mp\b|pa\b|saldo|inventário/i.test(recent)) {
+      const { data } = await sb.from('estoque_itens').select('codigo, nome, tipo, unidade, saldo_atual, estoque_minimo, custo_medio').eq('ativo', true).limit(20);
+      if (data?.length) {
+        const abaixo = data.filter(i => i.estoque_minimo && i.saldo_atual < i.estoque_minimo);
+        results.push(`ESTOQUE (${data.length} itens ativos):\n${data.map(i => `- ${i.codigo} ${i.nome} [${i.tipo}] Saldo: ${i.saldo_atual} ${i.unidade}${i.custo_medio ? ` R$${i.custo_medio}` : ''}`).join('\n')}${abaixo.length ? `\n⚠️ ${abaixo.length} item(ns) ABAIXO do mínimo: ${abaixo.map(i => i.codigo).join(', ')}` : ''}`);
+      }
+    }
+    // Manutenção
+    if (/manuten[cç][aã]o|ativo|equipamento|om\b/i.test(recent)) {
+      const { data: ativos } = await sb.from('ativos_manutencao').select('codigo, nome, categoria, status').limit(10);
+      const { data: ordens } = await sb.from('ordens_manutencao').select('numero, tipo, prioridade, status, custo_realizado').order('created_at', { ascending: false }).limit(5);
+      if (ativos?.length) results.push(`ATIVOS: ${ativos.map(a => `- ${a.codigo} ${a.nome} (${a.status})`).join('\n')}`);
+      if (ordens?.length) results.push(`ORDENS MANUTENÇÃO:\n${ordens.map(o => `- ${o.numero} ${o.tipo}/${o.prioridade} (${o.status})${o.custo_realizado ? ` R$${o.custo_realizado}` : ''}`).join('\n')}`);
+    }
+    // Fiscal
+    if (/fiscal|nf.?e|nota.?fiscal|nf\b|documento.?fiscal/i.test(recent)) {
+      const [nfr, nfe] = await Promise.all([
+        sb.from('docs_fiscais_recebidos').select('numero, emitente_nome, valor_total, status').order('created_at', { ascending: false }).limit(5),
+        sb.from('docs_fiscais_emitidos').select('numero, destinatario_nome, valor_total, status').order('created_at', { ascending: false }).limit(5),
+      ]);
+      if (nfr.data?.length) results.push(`NFs RECEBIDAS:\n${nfr.data.map(n => `- NF ${n.numero} ${n.emitente_nome || ''} R$${n.valor_total || 0} (${n.status})`).join('\n')}`);
+      if (nfe.data?.length) results.push(`NFs EMITIDAS:\n${nfe.data.map(n => `- NF ${n.numero} ${n.destinatario_nome || ''} R$${n.valor_total || 0} (${n.status})`).join('\n')}`);
+    }
+    // Fixadores
+    if (/fixador|modelo|calculadora|abertura/i.test(recent)) {
+      const { data: modelos } = await sb.from('fixador_modelos').select('nome, material, espessura_mm, abertura_aba_mm, ativo').eq('ativo', true);
+      const { data: leads } = await sb.from('calculadora_leads').select('nome, whatsapp, empresa, verificado, calculos, criado_em').order('criado_em', { ascending: false }).limit(10);
+      if (modelos?.length) results.push(`MODELOS FIXADOR:\n${modelos.map(m => `- ${m.nome} (${m.material}) ${m.espessura_mm}mm abertura ${m.abertura_aba_mm || '?'}mm`).join('\n')}`);
+      if (leads?.length) results.push(`LEADS CALCULADORA (últimos 10):\n${leads.map(l => `- ${l.nome} ${l.whatsapp}${l.empresa ? ` (${l.empresa})` : ''} ${l.verificado ? '✅' : '⏳'} ${l.calculos || 0} cálculos`).join('\n')}`);
+    }
+    // Marketing / Mercado
+    if (/marketing|campanha|keyword|mercado|demanda|busca|seo/i.test(recent)) {
+      const { data: kw } = await sb.from('market_keywords').select('termo, uf, volume_mensal, intencao, camada').order('volume_mensal', { ascending: false }).limit(15);
+      if (kw?.length) results.push(`KEYWORDS DE MERCADO (top 15):\n${kw.map(k => `- "${k.termo}" ${k.uf || ''} vol:${k.volume_mensal || 0} (${k.intencao || 'n/a'}) [${k.camada}]`).join('\n')}`);
+      const { data: mat } = await sb.from('materiais_comerciais').select('titulo, tipo, envios').order('envios', { ascending: false }).limit(10);
+      if (mat?.length) results.push(`MATERIAIS COMERCIAIS:\n${mat.map(m => `- ${m.titulo} [${m.tipo}] ${m.envios || 0} envios`).join('\n')}`);
+    }
+    // Qualidade
+    if (/qualidade|inspe[cç][aã]o|nc\b|n[aã]o.?conformidade/i.test(recent)) {
+      const { data } = await sb.from('inspecoes').select('id, tipo_origem, origem_label, resultado, created_at').order('created_at', { ascending: false }).limit(5);
+      if (data?.length) results.push(`INSPEÇÕES RECENTES:\n${data.map(i => `- ${i.origem_label || 'N/A'} → ${i.resultado}`).join('\n')}`);
+    }
+    // Assistente IA / Knowledge base
+    if (/assistente|conhecimento|knowledge|documento|base.?de.?dados|rag/i.test(recent)) {
+      const { data } = await sb.from('ai_knowledge_docs').select('titulo, tipo, created_at').order('created_at', { ascending: false }).limit(10);
+      if (data?.length) results.push(`BASE DE CONHECIMENTO (${data.length} docs):\n${data.map(d => `- ${d.titulo} [${d.tipo}]`).join('\n')}`);
     }
   } catch { /* silencia erros de tabelas inexistentes */ }
 
