@@ -204,9 +204,9 @@
   margin: 4px 12px 0; padding: 0;
 }
 .webSearchInputRow {
-  display: flex; align-items: center; gap: 0;
+  display: flex; align-items: center; gap: 6px;
   border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;
-  background: #fff; transition: border-color 0.15s;
+  background: #fff; transition: border-color 0.15s; padding-left: 10px;
 }
 .webSearchInputRow:focus-within { border-color: #93c5fd; }
 .webSearchInput {
@@ -231,6 +231,45 @@
 }
 .webSearchBtn:hover { background: #1B3A5C; color: #fff; }
 .webSearchBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.webSearchLoading {
+  font-size: 0.7rem; color: #9ca3af; padding: 6px 0 0; text-align: center;
+}
+.webResultsList {
+  margin-top: 6px; display: flex; flex-direction: column; gap: 4px;
+}
+.webResultItem {
+  display: flex; align-items: flex-start; gap: 6px;
+  padding: 8px 10px; background: #fff; border: 1px solid #e5e7eb;
+  border-radius: 8px; transition: border-color 0.15s;
+}
+.webResultItem:hover { border-color: #93c5fd; }
+.webResultInfo { flex: 1; min-width: 0; }
+.webResultTitle {
+  font-size: 0.72rem; font-weight: 600; color: #1B3A5C;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.webResultSnippet {
+  font-size: 0.65rem; color: #6b7280; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.webResultUrl {
+  font-size: 0.6rem; color: #9ca3af; margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.webResultAdd {
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid #e5e7eb;
+  background: #fff; color: #2563eb; cursor: pointer; font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.15s; font-weight: 700;
+}
+.webResultAdd:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+.webResultAdd:disabled { opacity: 0.4; cursor: wait; }
+.webResultsClose {
+  background: none; border: none; cursor: pointer; font-size: 0.65rem;
+  color: #9ca3af; padding: 4px 0; font-family: inherit; text-align: center;
+}
+.webResultsClose:hover { color: #ef4444; }
 
 .composerMeta {
   display: flex; flex-direction: column; align-items: center;

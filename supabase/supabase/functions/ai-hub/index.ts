@@ -782,6 +782,19 @@ serve(async (req) => {
     }
 
     // ── Health check — testa modelos ativos com prompt simples ──
+    if (action === "web_search") {
+      const { query, source } = body;
+      if (!query) return jsonRes({ error: "query obrigatório" }, 400);
+      let results: SearchResult[] = [];
+      if (source === 'brave') results = await searchBrave(query);
+      else if (source === 'serper') results = await searchSerper(query);
+      else {
+        results = await searchBrave(query);
+        if (!results.length) results = await searchSerper(query);
+      }
+      return jsonRes({ ok: true, results });
+    }
+
     if (action === "health_check") {
       const sb = getSupabase();
       const activeModels = await getActiveModels(sb);

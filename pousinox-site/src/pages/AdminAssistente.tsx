@@ -664,6 +664,9 @@ export default function AdminAssistente() {
   const [guiaDetalhe, setGuiaDetalhe] = useState<Record<string, unknown> | null>(null)
   const [searchSource, setSearchSource] = useState<string>(() => localStorage.getItem('assistente_search') || 'auto')
   const [webQuery, setWebQuery] = useState('')
+  const [webResults, setWebResults] = useState<{ title: string; url: string; snippet: string }[]>([])
+  const [webSearching, setWebSearching] = useState(false)
+  const [indexingUrl, setIndexingUrl] = useState<string | null>(null)
   const [customPrompt, setCustomPrompt] = useState(() => localStorage.getItem('assistente_custom_prompt') || '')
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -710,6 +713,36 @@ export default function AdminAssistente() {
     const { data } = await supabaseAdmin.from('knowledge_guias').select('*').eq('id', id).single()
     if (data) setGuiaDetalhe(data)
   }, [guiaExpandido])
+
+  const buscarWeb = useCallback(async () => {
+    const q = webQuery.trim()
+    if (!q || webSearching) return
+    setWebSearching(true)
+    setWebResults([])
+    try {
+      const { data, error } = await supabaseAdmin.functions.invoke('ai-hub', {
+        body: { action: 'web_search', query: q, source: searchSource === 'none' ? 'auto' : searchSource },
+      })
+      if (error) throw error
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data
+      setWebResults(parsed.results || [])
+    } catch (err) { console.error('[web_search]', err) }
+    finally { setWebSearching(false) }
+  }, [webQuery, searchSource, webSearching])
+
+  const indexarUrl = useCallback(async (url: string) => {
+    setIndexingUrl(url)
+    try {
+      const { data, error } = await supabaseAdmin.functions.invoke('indexar-documento', { body: { url, filename: url } })
+      if (error) throw error
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data
+      if (parsed.success) {
+        setWebResults(prev => prev.filter(r => r.url !== url))
+        setDocCount(c => c + 1)
+      }
+    } catch (err) { console.error('[indexar-url]', err) }
+    finally { setIndexingUrl(null) }
+  }, [])
 
   const enviar = useCallback(async (texto?: string, forceSearchSource?: string) => {
     const msg = (texto || input).trim()
@@ -932,23 +965,37 @@ export default function AdminAssistente() {
           {/* Busca web */}
           <div className={s.webSearchBox}>
             <div className={s.webSearchInputRow}>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0}}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
               <input
                 className={s.webSearchInput}
                 placeholder="Pesquise novas fontes na web"
                 value={webQuery}
                 onChange={e => setWebQuery(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && webQuery.trim()) { const src = searchSource !== 'none' ? searchSource : 'auto'; enviar(webQuery.trim(), src); setWebQuery(''); setMobileTab('chat') } }}
+                onKeyDown={e => { if (e.key === 'Enter' && webQuery.trim()) buscarWeb() }}
               />
-              <button className={s.webSearchBtn} disabled={!webQuery.trim()} onClick={() => { if (webQuery.trim()) { const src = searchSource !== 'none' ? searchSource : 'auto'; enviar(webQuery.trim(), src); setWebQuery(''); setMobileTab('chat') } }}>→</button>
+              <button className={s.webSearchBtn} disabled={!webQuery.trim() || webSearching} onClick={buscarWeb}>→</button>
             </div>
-            <div className={s.webSearchRow}>
-              <select className={s.webSearchSelect} value={searchSource} onChange={e => { setSearchSource(e.target.value); localStorage.setItem('assistente_search', e.target.value) }}>
-                <option value="none">Sem busca</option>
-                <option value="auto">Auto</option>
-                <option value="brave">Brave</option>
-                <option value="google">Google</option>
-              </select>
-            </div>
+            {webSearching && <div className={s.webSearchLoading}>Buscando...</div>}
+            {webResults.length > 0 && (
+              <div className={s.webResultsList}>
+                {webResults.map((r, i) => (
+                  <div key={i} className={s.webResultItem}>
+                    <div className={s.webResultInfo}>
+                      <div className={s.webResultTitle}>{r.title}</div>
+                      <div className={s.webResultSnippet}>{r.snippet}</div>
+                      <div className={s.webResultUrl}>{r.url}</div>
+                    </div>
+                    <button
+                      className={s.webResultAdd}
+                      onClick={() => indexarUrl(r.url)}
+                      disabled={indexingUrl === r.url}
+                      title="Adicionar como fonte"
+                    >{indexingUrl === r.url ? '...' : '+'}</button>
+                  </div>
+                ))}
+                <button className={s.webResultsClose} onClick={() => setWebResults([])}>Fechar resultados</button>
+              </div>
+            )}
           </div>
 
           {/* Histórico de conversas */}
