@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { supabaseAdmin } from '../lib/supabase'
+import { supabase, supabaseAdmin } from '../lib/supabase'
 import { aiHubChat } from '../lib/aiHelper'
 import UsageDashboard from '../components/assistente/UsageDashboard'
 import ModelSelector, { ModelBadge, type ModelKey } from '../components/assistente/ModelSelector'
@@ -670,6 +670,7 @@ export default function AdminAssistente() {
   const [pendingTools, setPendingTools] = useState<{ tools: ToolCall[]; historico: { role: string; content: string }[] } | null>(null)
   const [ragEnabled, setRagEnabled] = useState(() => localStorage.getItem('assistente_rag') === '1')
   const [activeSources, setActiveSources] = useState<string[]>([])
+  const [userName, setUserName] = useState('')
   const [revisorAtivo, setRevisorAtivo] = useState(false)
   const [showKb, setShowKb] = useState(false)
   const [showGuias, setShowGuias] = useState(false)
@@ -686,6 +687,15 @@ export default function AdminAssistente() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Auto-save: persiste msgs na thread ativa
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.id) {
+        supabaseAdmin.from('admin_perfis').select('nome').eq('user_id', session.user.id).single()
+          .then(({ data: p }) => { if (p?.nome) setUserName(p.nome.split(' ')[0]) })
+      }
+    })
+  }, [])
+
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs))
     if (!activeThreadId || msgs.length === 0) return
@@ -1166,7 +1176,7 @@ export default function AdminAssistente() {
         </div>
         {msgs.length === 0 ? (
           <div className={s.welcome}>
-            <h2 className={s.welcomeTitle}>Olá, como posso ajudar?</h2>
+            <h2 className={s.welcomeTitle}>Olá{userName ? ` ${userName}` : ''}, como posso ajudar?</h2>
             <p className={s.welcomeSub}>Use os atalhos abaixo ou digite sua pergunta.</p>
             <div className={s.sugestoes}>
               {[...PRESETS].sort(() => Math.random() - 0.5).slice(0, 4).map((p, i) => (
@@ -1256,7 +1266,7 @@ export default function AdminAssistente() {
               onKeyDown={onKey}
               rows={1}
             />
-            <span className={s.composerFontes}>{activeSources.length > 0 && activeSources.length < docCount ? `${activeSources.length}/${docCount}` : docCount} fonte{docCount !== 1 ? 's' : ''}</span>
+            <span className={s.composerFontes}>{activeSources.length > 0 ? activeSources.length : docCount} fonte{(activeSources.length > 0 ? activeSources.length : docCount) !== 1 ? 's' : ''}</span>
             <button className={s.composerSend} onClick={() => enviar()} disabled={loading || !input.trim()} aria-label="Enviar">
               <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
