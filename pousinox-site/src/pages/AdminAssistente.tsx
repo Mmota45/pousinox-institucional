@@ -612,10 +612,7 @@ const STORAGE_KEY = 'pousinox_assistente_msgs'
 const THREADS_KEY = 'pousinox_assistente_threads'
 interface Thread { id: string; title: string; msgs: Msg[]; date: string }
 
-function loadMsgs(): Msg[] {
-  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : [] }
-  catch { return [] }
-}
+function newThreadId() { return Date.now().toString() }
 
 function loadThreads(): Thread[] {
   try { const raw = localStorage.getItem(THREADS_KEY); return raw ? JSON.parse(raw) : [] }
@@ -624,6 +621,21 @@ function loadThreads(): Thread[] {
 
 function saveThreads(threads: Thread[]) {
   localStorage.setItem(THREADS_KEY, JSON.stringify(threads))
+}
+
+function loadActiveId(): string {
+  return localStorage.getItem('assistente_active_thread') || ''
+}
+
+function loadMsgs(): Msg[] {
+  const id = loadActiveId()
+  if (id) {
+    const threads = loadThreads()
+    const t = threads.find(t => t.id === id)
+    if (t) return t.msgs
+  }
+  try { const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : [] }
+  catch { return [] }
 }
 
 
@@ -650,6 +662,7 @@ function RAGSources({ sources }: { sources: RAGSource[] }) {
 export default function AdminAssistente() {
   const [msgs, setMsgs] = useState<Msg[]>(loadMsgs)
   const [threads, setThreads] = useState<Thread[]>(loadThreads)
+  const [activeThreadId, setActiveThreadId] = useState<string>(loadActiveId)
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [showUsage, setShowUsage] = useState(false)
@@ -671,31 +684,77 @@ export default function AdminAssistente() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
+  // Auto-save: persiste msgs na thread ativa
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs))
+    if (!activeThreadId || msgs.length === 0) return
+    setThreads(prev => {
+      const updated = prev.map(t => t.id === activeThreadId ? { ...t, msgs, date: new Date().toLocaleDateString('pt-BR') } : t)
+      saveThreads(updated)
+      return updated
+    })
+  }, [msgs, activeThreadId])
+
+  function novaConversa() {
+    // Salvar conversa atual se tiver mensagens e não estiver salva
+    if (msgs.length > 0 && !activeThreadId) {
+      const firstUser = msgs.find(m => m.role === 'user')
+      const title = firstUser ? firstUser.content.slice(0, 50) + (firstUser.content.length > 50 ? '…' : '') : 'Conversa'
+      const thread: Thread = { id: newThreadId(), title, msgs, date: new Date().toLocaleDateString('pt-BR') }
+      const updated = [thread, ...threads].slice(0, 30)
+      setThreads(updated)
+      saveThreads(updated)
+    }
+    setMsgs([])
+    setActiveThreadId('')
+    localStorage.setItem('assistente_active_thread', '')
+  }
+
   function salvarConversa() {
     if (msgs.length === 0) return
+    if (activeThreadId) return // já auto-salva
     const firstUser = msgs.find(m => m.role === 'user')
     const title = firstUser ? firstUser.content.slice(0, 50) + (firstUser.content.length > 50 ? '…' : '') : 'Conversa'
-    const thread: Thread = { id: Date.now().toString(), title, msgs, date: new Date().toLocaleDateString('pt-BR') }
-    const updated = [thread, ...threads].slice(0, 20)
+    const id = newThreadId()
+    const thread: Thread = { id, title, msgs, date: new Date().toLocaleDateString('pt-BR') }
+    const updated = [thread, ...threads].slice(0, 30)
     setThreads(updated)
     saveThreads(updated)
-    setMsgs([])
+    setActiveThreadId(id)
+    localStorage.setItem('assistente_active_thread', id)
   }
 
   function carregarConversa(t: Thread) {
+    // Salvar conversa atual se não salva
+    if (msgs.length > 0 && !activeThreadId) {
+      const firstUser = msgs.find(m => m.role === 'user')
+      const title = firstUser ? firstUser.content.slice(0, 50) + (firstUser.content.length > 50 ? '…' : '') : 'Conversa'
+      const thread: Thread = { id: newThreadId(), title, msgs, date: new Date().toLocaleDateString('pt-BR') }
+      const updated = [thread, ...threads].slice(0, 30)
+      setThreads(updated)
+      saveThreads(updated)
+    }
     setMsgs(t.msgs)
+    setActiveThreadId(t.id)
+    localStorage.setItem('assistente_active_thread', t.id)
   }
 
   function excluirConversa(id: string) {
     const updated = threads.filter(t => t.id !== id)
     setThreads(updated)
     saveThreads(updated)
+    if (activeThreadId === id) {
+      setActiveThreadId('')
+      localStorage.setItem('assistente_active_thread', '')
+      setMsgs([])
+    }
   }
 
-  // Persistir mensagens no localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs))
-  }, [msgs])
+  function renomearConversa(id: string, novoTitulo: string) {
+    const updated = threads.map(t => t.id === id ? { ...t, title: novoTitulo } : t)
+    setThreads(updated)
+    saveThreads(updated)
+  }
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -749,6 +808,17 @@ export default function AdminAssistente() {
     if (!msg || loading) return
     setInput('')
     const userMsg: Msg = { role: 'user', content: msg }
+    // Auto-criar thread na primeira mensagem
+    if (msgs.length === 0 && !activeThreadId) {
+      const id = newThreadId()
+      const title = msg.slice(0, 50) + (msg.length > 50 ? '…' : '')
+      const thread: Thread = { id, title, msgs: [userMsg], date: new Date().toLocaleDateString('pt-BR') }
+      const updated = [thread, ...threads].slice(0, 30)
+      setThreads(updated)
+      saveThreads(updated)
+      setActiveThreadId(id)
+      localStorage.setItem('assistente_active_thread', id)
+    }
     setMsgs(prev => [...prev, userMsg])
     setLoading(true)
     try {
@@ -1003,13 +1073,14 @@ export default function AdminAssistente() {
             <button className={s.histSectionBtn} onClick={() => setShowKb(v => !v)}>{icoFolder} Conversas {threads.length > 0 ? `(${threads.length})` : ''} {showKb ? '▾' : '▸'}</button>
             {showKb && (
               <div className={s.histList}>
-                <button className={s.histNovaBtn} onClick={() => { setMsgs([]); setMobileTab('chat') }} style={{ width: '100%', marginBottom: 6 }}>+ Nova conversa</button>
+                <button className={s.histNovaBtn} onClick={() => { novaConversa(); setMobileTab('chat') }} style={{ width: '100%', marginBottom: 6 }}>+ Nova conversa</button>
                 {threads.map(t => (
-                  <div key={t.id} className={s.histItem}>
+                  <div key={t.id} className={`${s.histItem} ${t.id === activeThreadId ? s.histItemActive : ''}`}>
                     <button className={s.histItemBtn} onClick={() => { carregarConversa(t); setMobileTab('chat') }}>
                       <span className={s.histItemTitulo}>{t.title}</span>
                       <span className={s.histItemData}>{t.date}</span>
                     </button>
+                    <button className={s.histItemRename} onClick={() => { const n = prompt('Renomear conversa:', t.title); if (n?.trim()) renomearConversa(t.id, n.trim()) }} title="Renomear">✎</button>
                     <button className={s.histItemExcluir} onClick={() => excluirConversa(t.id)} title="Excluir">✕</button>
                   </div>
                 ))}

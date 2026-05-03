@@ -342,16 +342,24 @@
 }
 .histNovaBtn:hover { background: #2C5F8A; }
 .histList { flex: 1; overflow-y: auto; padding: 8px; }
-.histItem { display: flex; align-items: center; gap: 4px; border-radius: 8px; transition: background .15s; }
+.histItem { display: flex; align-items: center; gap: 2px; border-radius: 8px; transition: background .15s; }
 .histItem:hover { background: #f5f7fa; }
+.histItemActive { background: #eff6ff; border: 1px solid #bfdbfe; }
+.histItemActive:hover { background: #dbeafe; }
 .histItemBtn {
   flex: 1; background: none; border: none; cursor: pointer;
-  padding: 10px 12px; text-align: left; min-width: 0;
+  padding: 8px 10px; text-align: left; min-width: 0;
 }
-.histItemTitulo { display: block; font-size: 0.82rem; color: #3A3F47; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.histItemData { font-size: 0.68rem; color: #9ca3af; }
+.histItemTitulo { display: block; font-size: 0.78rem; color: #3A3F47; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.histItemData { font-size: 0.65rem; color: #9ca3af; }
+.histItemRename {
+  width: 24px; height: 24px; border-radius: 6px; border: none;
+  background: transparent; color: #9ca3af; cursor: pointer;
+  font-size: 0.7rem; flex-shrink: 0; transition: all .15s;
+}
+.histItemRename:hover { background: #e0f2fe; color: #2563eb; }
 .histItemExcluir {
-  width: 28px; height: 28px; border-radius: 6px; border: none;
+  width: 24px; height: 24px; border-radius: 6px; border: none;
   background: transparent; color: #9ca3af; cursor: pointer;
   font-size: 0.7rem; flex-shrink: 0; transition: all .15s;
 }
