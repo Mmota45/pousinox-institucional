@@ -1,4 +1,5 @@
 import { useState, useCallback, type ReactNode } from 'react'
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { supabaseAdmin } from '../../lib/supabase'
 import s from './StudioPanel.module.css'
 
@@ -46,6 +47,57 @@ function SlideViewer({ content }: { content: string }) {
   return viewer
 }
 
+const COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#f97316']
+
+interface InfographicData {
+  titulo: string
+  kpis?: { label: string; valor: string; cor?: string }[]
+  barras?: { nome: string; valor: number }[]
+  pizza?: { nome: string; valor: number }[]
+  lista?: string[]
+}
+
+function InfographicViewer({ content }: { content: string }) {
+  let data: InfographicData
+  try {
+    const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+    data = JSON.parse(cleaned)
+  } catch { return <div className={s.outputContent}>{content}</div> }
+
+  return (
+    <div className={s.infographic}>
+      <div className={s.infoTitle}>{data.titulo}</div>
+      {data.kpis && (
+        <div className={s.infoKpis}>
+          {data.kpis.map((k, i) => (
+            <div key={i} className={s.infoKpi} style={{ borderLeftColor: k.cor || COLORS[i % COLORS.length] }}>
+              <div className={s.infoKpiVal}>{k.valor}</div>
+              <div className={s.infoKpiLabel}>{k.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {data.barras && data.barras.length > 0 && (
+        <div className={s.infoChart}>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={data.barras}><XAxis dataKey="nome" tick={{ fontSize: 10 }} /><YAxis tick={{ fontSize: 10 }} /><Tooltip /><Bar dataKey="valor" radius={[4,4,0,0]}>{data.barras.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Bar></BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+      {data.pizza && data.pizza.length > 0 && (
+        <div className={s.infoChart}>
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart><Pie data={data.pizza} dataKey="valor" nameKey="nome" cx="50%" cy="50%" outerRadius={70} label={({ nome }) => nome}>{data.pizza.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+      {data.lista && (
+        <ul className={s.infoLista}>{data.lista.map((item, i) => <li key={i}>{item}</li>)}</ul>
+      )}
+    </div>
+  )
+}
+
 interface StudioOutput {
   id: string
   tipo: string
@@ -69,6 +121,15 @@ const CARDS = [
   { tipo: 'tabela', icon: svgCard('M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18', '#f59e0b'), label: 'Tabela de Dados', desc: 'Dados extraidos em formato tabular', prompt: 'Extraia todos os dados estruturados das fontes e organize em tabela markdown com colunas relevantes. Use | para colunas.' },
   { tipo: 'teste', icon: svgCard('M22 11.08V12a10 10 0 11-5.93-9.14 M22 4L12 14.01l-3-3', '#10b981'), label: 'Teste', desc: 'Quiz interativo com respostas', prompt: 'Gere um quiz com 10 perguntas de múltipla escolha (A, B, C, D) baseadas nas fontes. Formato:\n\n**Pergunta N:** texto\nA) ...\nB) ...\nC) ...\nD) ...\n**Resposta:** letra — explicação breve\n\n---' },
   { tipo: 'pontos', icon: svgCard('M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10zM12 18a6 6 0 100-12 6 6 0 000 12zM12 14a2 2 0 100-4 2 2 0 000 4z', '#f97316'), label: 'Pontos-Chave', desc: 'Top 10-15 insights ordenados', prompt: 'Liste os 10-15 pontos-chave mais importantes das fontes, ordenados por relevância. Use bullets com explicação breve.' },
+  { tipo: 'infografico', icon: svgCard('M18 20V10M12 20V4M6 20v-6M3 3v18h18', '#ec4899'), label: 'Infográfico', desc: 'KPIs e gráficos visuais', prompt: `Gere um infográfico baseado nas fontes. Retorne APENAS um JSON válido (sem markdown, sem \`\`\`):
+{
+  "titulo": "Título do Infográfico",
+  "kpis": [{ "label": "Métrica", "valor": "123", "cor": "#6366f1" }],
+  "barras": [{ "nome": "Item", "valor": 50 }],
+  "pizza": [{ "nome": "Categoria", "valor": 30 }],
+  "lista": ["Insight 1", "Insight 2"]
+}
+Inclua 3-5 KPIs, dados para gráfico de barras OU pizza (escolha o mais adequado), e 3-5 insights na lista.` },
   { tipo: 'apresentacao', icon: svgCard('M2 3h20v14H2zM8 21h8M12 17v4', '#8b5cf6'), label: 'Apresentação', desc: 'Slides com tópicos principais', prompt: `Gere uma apresentação de slides baseada nas fontes. Retorne APENAS um JSON array válido (sem markdown, sem \`\`\`), onde cada item é um slide:
 [
   { "titulo": "Título do Slide", "bullets": ["Ponto 1", "Ponto 2", "Ponto 3"], "nota": "Nota opcional do apresentador" }
@@ -205,7 +266,9 @@ export default function StudioPanel({ fonteCount, onGenerate, onCollapse, onGuia
                     <div className={s.outputBody}>
                       {out.tipo === 'apresentacao'
                         ? <SlideViewer content={out.conteudo} />
-                        : <div className={s.outputContent}>{out.conteudo}</div>
+                        : out.tipo === 'infografico'
+                          ? <InfographicViewer content={out.conteudo} />
+                          : <div className={s.outputContent}>{out.conteudo}</div>
                       }
                       <div className={s.outputActions}>
                         <button className={s.outputBtn} onClick={() => navigator.clipboard.writeText(out.conteudo)}><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block',verticalAlign:'-1px',marginRight:4}}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>Copiar</button>

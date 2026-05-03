@@ -252,6 +252,32 @@
 
 .notaDel:hover { color: #dc2626; background: #fee2e2; }
 
+/* ── Infographic ── */
+.infographic {
+  background: #f8fafc; border-radius: 12px; padding: 16px; overflow: hidden;
+}
+.infoTitle {
+  font-size: 0.95rem; font-weight: 700; color: #1B3A5C; margin-bottom: 12px; text-align: center;
+}
+.infoKpis {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 14px;
+}
+.infoKpi {
+  background: #fff; border-radius: 8px; padding: 10px 12px;
+  border-left: 3px solid #6366f1; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.infoKpiVal { font-size: 1.1rem; font-weight: 700; color: #1B3A5C; }
+.infoKpiLabel { font-size: 0.65rem; color: #6b7280; margin-top: 2px; }
+.infoChart { margin-bottom: 12px; }
+.infoLista {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.infoLista li {
+  font-size: 0.75rem; color: #3A3F47; padding: 4px 0 4px 14px; position: relative;
+}
+.infoLista li::before { content: '→'; position: absolute; left: 0; color: #6366f1; }
+
 /* ── Slide Viewer ── */
 .slideWrap {
   background: #1B3A5C; border-radius: 12px; overflow: hidden;
