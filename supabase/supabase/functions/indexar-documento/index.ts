@@ -87,19 +87,40 @@ async function generateEmbedding(text: string): Promise<number[]> {
   return data.embedding.values as number[]
 }
 
+// ── Scrape URL via Jina Reader ──────────────────────────────────────────────
+async function scrapeUrl(url: string): Promise<string> {
+  const res = await fetch(`https://r.jina.ai/${url}`, {
+    headers: { 'Accept': 'text/plain', 'X-Return-Format': 'text' },
+  })
+  if (!res.ok) throw new Error(`Jina Reader ${res.status}: ${await res.text()}`)
+  return await res.text()
+}
+
 // ── Handler ─────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
-    const { file_base64, mime_type, filename, metadata } = await req.json()
-    if (!file_base64 || !filename) return jsonRes({ error: 'file_base64 e filename são obrigatórios' }, 400)
+    const body = await req.json()
+    const { file_base64, mime_type, metadata } = body
+    let filename = body.filename as string
+    const url = body.url as string
+
+    if (!url && (!file_base64 || !filename)) return jsonRes({ error: 'file_base64+filename ou url são obrigatórios' }, 400)
     if (!GEMINI_KEY) return jsonRes({ error: 'GEMINI_KEY não configurada' }, 500)
 
     // Decodificar e extrair texto
     let texto: string
 
-    if (mime_type === 'application/pdf') {
+    if (url) {
+      // Scrape de URL
+      texto = await scrapeUrl(url)
+      if (!filename) {
+        try { filename = new URL(url).hostname + new URL(url).pathname.replace(/\//g, '_') }
+        catch { filename = url.slice(0, 60) }
+      }
+      console.log('[indexar] URL scraped:', url, texto.length, 'chars')
+    } else if (mime_type === 'application/pdf') {
       texto = await extractTextFromPdf(file_base64)
     } else {
       const bytes = Uint8Array.from(atob(file_base64), c => c.charCodeAt(0))

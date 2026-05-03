@@ -25,6 +25,37 @@
 .uploadBtn:hover { background: #eff6ff; border-color: #2563eb; }
 .uploadBtn:disabled { opacity: 0.4; cursor: wait; }
 
+.urlBar { padding: 0 16px; }
+.urlToggle {
+  background: none; border: none; cursor: pointer; font-size: 0.75rem;
+  color: #6b7280; display: flex; align-items: center; gap: 4px;
+  padding: 4px 0; font-family: inherit;
+}
+.urlToggle:hover { color: #2563eb; }
+.urlInputWrap {
+  display: flex; align-items: center; gap: 4px;
+  background: #f5f7fa; border: 1px solid #e5e7eb; border-radius: 8px;
+  padding: 4px 6px;
+}
+.urlInput {
+  flex: 1; border: none; background: transparent; font-size: 0.75rem;
+  color: #3A3F47; outline: none; font-family: inherit; min-width: 0;
+}
+.urlInput::placeholder { color: #9ca3af; }
+.urlSend {
+  width: 24px; height: 24px; border-radius: 6px; border: none;
+  background: #2563eb; color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.urlSend:hover { background: #1d4ed8; }
+.urlSend:disabled { background: #e5e7eb; color: #9ca3af; cursor: not-allowed; }
+.urlCancel {
+  background: none; border: none; cursor: pointer; color: #9ca3af;
+  font-size: 0.8rem; padding: 2px; flex-shrink: 0;
+}
+.urlCancel:hover { color: #ef4444; }
+
 .docList {
   display: flex;
   flex-direction: column;

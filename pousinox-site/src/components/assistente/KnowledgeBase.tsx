@@ -33,6 +33,8 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, 
   const [expandedDoc, setExpandedDoc] = useState<string | null>(null)
   const [perguntas, setPerguntas] = useState<string[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [urlInput, setUrlInput] = useState('')
+  const [showUrlInput, setShowUrlInput] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const fetchDocs = useCallback(async () => {
@@ -182,6 +184,35 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, 
     setUploading(false)
   }, [fetchDocs])
 
+  const handleUrlAdd = useCallback(async () => {
+    const url = urlInput.trim()
+    if (!url) return
+    setUploading(true)
+    setProgress('Extraindo conteúdo da URL...')
+    try {
+      const { data, error } = await supabaseAdmin.functions.invoke('indexar-documento', {
+        body: { url, filename: url },
+      })
+      if (error) throw new Error(typeof error === 'object' ? JSON.stringify(error) : String(error))
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data
+      if (parsed.success) {
+        setProgress('URL indexada com sucesso')
+        if (parsed.perguntas_sugeridas?.length) setPerguntas(parsed.perguntas_sugeridas.slice(0, 5))
+        fetchDocs()
+      } else {
+        setProgress('Erro ao indexar URL')
+      }
+    } catch (err) {
+      console.error('[KB] erro URL:', err)
+      setProgress(`Erro: ${err instanceof Error ? err.message : 'desconhecido'}`)
+    } finally {
+      setUrlInput('')
+      setShowUrlInput(false)
+      setUploading(false)
+      setTimeout(() => setProgress(''), 5000)
+    }
+  }, [urlInput, fetchDocs])
+
   const handleDelete = useCallback(async (sourceFile: string) => {
     if (!confirm(`Excluir "${sourceFile}" da base de conhecimento?`)) return
     await supabaseAdmin.from('knowledge_chunks').delete().eq('source_file', sourceFile)
@@ -209,8 +240,34 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, 
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
       >
-        {uploading ? '⏳ Processando...' : '+ Adicionar fontes'}
+        {uploading ? 'Processando...' : '+ Adicionar fontes'}
       </button>
+
+      <div className={s.urlBar}>
+        {showUrlInput ? (
+          <div className={s.urlInputWrap}>
+            <input
+              className={s.urlInput}
+              type="url"
+              placeholder="https://exemplo.com/artigo"
+              value={urlInput}
+              onChange={e => setUrlInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && urlInput.trim()) handleUrlAdd() }}
+              disabled={uploading}
+              autoFocus
+            />
+            <button className={s.urlSend} disabled={uploading || !urlInput.trim()} onClick={handleUrlAdd}>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+            <button className={s.urlCancel} onClick={() => { setShowUrlInput(false); setUrlInput('') }}>✕</button>
+          </div>
+        ) : (
+          <button className={s.urlToggle} onClick={() => setShowUrlInput(true)} disabled={uploading}>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+            Adicionar URL
+          </button>
+        )}
+      </div>
 
       {progress && (
         <div className={`${s.progress} ${progress.startsWith('✅') ? s.progressOk : progress.startsWith('❌') ? s.progressErr : s.progressLoading}`}>
