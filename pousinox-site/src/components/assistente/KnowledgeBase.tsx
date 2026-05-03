@@ -12,9 +12,20 @@ interface Props {
   ragEnabled: boolean
   onRagToggle: (v: boolean) => void
   onAskQuestion?: (q: string) => void
+  onDocCountChange?: (count: number) => void
 }
 
-export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }: Props) {
+function docIcon(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase() || ''
+  if (['pdf'].includes(ext)) return '📄'
+  if (['csv', 'xlsx', 'xls'].includes(ext)) return '📊'
+  if (['mp3', 'ogg', 'wav', 'm4a', 'webm', 'opus'].includes(ext)) return '🎙️'
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) return '🖼️'
+  if (['md', 'txt'].includes(ext)) return '📝'
+  return '📎'
+}
+
+export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, onDocCountChange }: Props) {
   const [docs, setDocs] = useState<DocGroup[]>([])
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState('')
@@ -40,8 +51,10 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }
         groups[r.source_file].chunks++
       }
     })
-    setDocs(Object.entries(groups).map(([source_file, g]) => ({ source_file, ...g })))
-  }, [])
+    const docList = Object.entries(groups).map(([source_file, g]) => ({ source_file, ...g }))
+    setDocs(docList)
+    onDocCountChange?.(docList.length)
+  }, [onDocCountChange])
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
 
@@ -177,10 +190,11 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }
 
   return (
     <div className={s.panel}>
-      <div className={s.ragToggle}>
+      <label className={s.ragToggle}>
         <input type="checkbox" checked={ragEnabled} onChange={e => onRagToggle(e.target.checked)} />
+        <span className={`${s.switch} ${ragEnabled ? s.switchOn : ''}`} />
         <span>Consultar base de conhecimento</span>
-      </div>
+      </label>
 
       <input
         ref={inputRef}
@@ -195,7 +209,7 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
       >
-        {uploading ? '⏳ Processando...' : '📚 Adicionar documento ou áudio'}
+        {uploading ? '⏳ Processando...' : '+ Adicionar fontes'}
       </button>
 
       {progress && (
@@ -220,7 +234,9 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }
       {docs.length > 0 ? (
         <div>
           <button className={s.docsToggle} onClick={() => setDocsOpen(v => !v)}>
-            {docsOpen ? '▾' : '▸'} {docs.length} documento{docs.length !== 1 ? 's' : ''} indexado{docs.length !== 1 ? 's' : ''}
+            <span>{docsOpen ? '▾' : '▸'}</span>
+            <span>Documentos</span>
+            <span className={s.docsBadge}>{docs.length}</span>
           </button>
           {docsOpen && (
             <div className={s.docList}>
@@ -237,6 +253,7 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }
                 <div key={d.source_file}>
                   <div className={s.docItem}>
                     <input type="checkbox" checked={selected.has(d.source_file)} onChange={() => toggleSelect(d.source_file)} style={{ flexShrink: 0 }} />
+                    <span className={s.docTypeIcon}>{docIcon(d.source_file)}</span>
                     <span
                       className={s.docInfo}
                       title={d.source_file}
@@ -258,7 +275,11 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion }
           )}
         </div>
       ) : (
-        <div className={s.emptyDocs}>Nenhum documento indexado</div>
+        <div className={s.emptyDocs}>
+          <div className={s.emptyIcon}>📄</div>
+          <p className={s.emptyTitle}>As fontes salvas vão aparecer aqui</p>
+          <p className={s.emptySub}>Clique em "Adicionar fontes" para incluir arquivos PDF, texto, CSV ou áudio.</p>
+        </div>
       )}
     </div>
   )

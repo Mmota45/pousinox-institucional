@@ -8,37 +8,45 @@
 }
 
 .uploadBtn {
-  background: #eff6ff;
+  background: #fff;
   border: 1px dashed #93c5fd;
-  border-radius: 6px;
-  padding: 8px;
-  font-size: 0.6rem;
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin: 0 16px;
+  font-size: 0.78rem;
   color: #2563eb;
   cursor: pointer;
   text-align: center;
   font-family: inherit;
-  transition: background 0.08s;
+  transition: all 0.15s;
+  font-weight: 500;
 }
 
-.uploadBtn:hover { background: #dbeafe; }
+.uploadBtn:hover { background: #eff6ff; border-color: #2563eb; }
 .uploadBtn:disabled { opacity: 0.4; cursor: wait; }
 
 .docList {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
+  padding: 0 12px;
 }
 
 .docItem {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  background: #f9fafb;
-  border: 1px solid #ebedf0;
-  border-radius: 5px;
-  font-size: 0.58rem;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  transition: all 0.1s;
 }
+
+.docItem:hover { background: #f5f7fa; border-color: #d1d5db; }
+
+.docTypeIcon { font-size: 1rem; flex-shrink: 0; }
 
 .docIcon { flex-shrink: 0; }
 
@@ -70,36 +78,82 @@
 
 .docDel:hover { color: #dc2626; }
 
+/* Switch toggle */
 .ragToggle {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.58rem;
-  color: #6b7280;
-  padding: 2px 0;
+  gap: 10px;
+  font-size: 0.75rem;
+  color: #374151;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 500;
 }
 
-.ragToggle input { accent-color: #2563eb; }
+.ragToggle input { display: none; }
+
+.switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: #d1d5db;
+  border-radius: 10px;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.switchOn { background: #2563eb; }
+.switchOn::after { transform: translateX(16px); }
 
 .docsToggle {
   background: none;
   border: none;
-  font-size: 0.58rem;
-  color: #6b7280;
+  font-size: 0.78rem;
+  color: #374151;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 10px 16px;
   font-family: inherit;
   width: 100%;
   text-align: left;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.docsToggle:hover { color: #111827; }
+.docsToggle:hover { color: #1B3A5C; background: #f5f7fa; }
+
+.docsBadge {
+  background: #e5e7eb;
+  color: #6b7280;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
 
 .emptyDocs {
-  font-size: 0.56rem;
-  color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  padding: 6px 0;
+  padding: 32px 20px;
 }
+.emptyIcon { font-size: 2rem; opacity: 0.5; margin-bottom: 10px; }
+.emptyTitle { font-size: 0.78rem; font-weight: 600; color: #3A3F47; margin: 0 0 4px; }
+.emptySub { font-size: 0.68rem; color: #9ca3af; margin: 0; line-height: 1.5; }
 
 .progress {
   font-size: 0.58rem;

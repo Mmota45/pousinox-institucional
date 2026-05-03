@@ -564,7 +564,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/admin/assistente',
-    label: 'Assistente IA',
+    label: 'Hub IA',
     permissao: 'assistente',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -574,16 +574,7 @@ const NAV_ITEMS: NavItem[] = [
       </svg>
     ),
   },
-  {
-    to: '/admin/ia',
-    label: 'Hub de IA',
-    permissao: 'ia',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
-      </svg>
-    ),
-  },
+  // Hub de IA unificado no Assistente
   {
     to: '/admin/uso',
     label: 'Uso e Custos',
@@ -604,16 +595,7 @@ const NAV_ITEMS: NavItem[] = [
       </svg>
     ),
   },
-  {
-    to: '/admin/knowledge',
-    label: 'Base de Conhecimento',
-    permissao: 'knowledge',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-      </svg>
-    ),
-  },
+  // Base de Conhecimento unificada no Assistente
   {
     to: '/admin/usuarios',
     label: 'Usuários',
@@ -1314,7 +1296,7 @@ export default function AdminLayout() {
           </nav>
         </aside>
 
-        <main className={styles.content} style={location.pathname === '/admin/ia' || location.pathname === '/admin/assistente' ? { padding: 0, overflow: 'hidden' } : undefined}>
+        <main className={styles.content} style={location.pathname === '/admin/assistente' ? { padding: 0, overflow: 'hidden' } : undefined}>
           {semPermissao ? <Navigate to={primeiroAcessivel} replace /> : <RouterOutlet />}
         </main>
       </div>

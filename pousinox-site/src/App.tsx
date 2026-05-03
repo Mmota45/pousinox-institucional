@@ -24,7 +24,7 @@ import AdminOutlet from './pages/AdminOutlet'
 import AdminEstoque from './pages/AdminEstoque'
 import AdminVendas from './pages/AdminVendas'
 import AdminCentralVendas from './pages/AdminCentralVendas'
-import AdminIA from './pages/AdminIA'
+// AdminIA unificado no AdminAssistente
 import AdminRelatorios from './pages/AdminRelatorios'
 import AdminCanvaCallback from './pages/AdminCanvaCallback'
 import AdminAnaliseNF from './pages/AdminAnaliseNF'
@@ -68,7 +68,7 @@ import AdminFeatureFlags from './pages/AdminFeatureFlags'
 import AdminFixadores from './pages/AdminFixadores'
 import AdminAssistente from './pages/AdminAssistente'
 import AdminUso from './pages/AdminUso'
-import AdminKnowledge from './pages/AdminKnowledge'
+// AdminKnowledge unificado no AdminAssistente
 import AdminPortfolio from './pages/AdminPortfolio'
 import AdminSite from './pages/AdminSite'
 import Privacidade from './pages/Privacidade'
@@ -155,7 +155,7 @@ function App() {
             <Route path="estoque" element={<AdminEstoque />} />
             <Route path="vendas" element={<AdminVendas />} />
             <Route path="central-vendas" element={<AdminCentralVendas />} />
-            <Route path="ia" element={<AdminIA />} />
+            <Route path="ia" element={<Navigate to="/admin/assistente" replace />} />
             <Route path="relatorios" element={<AdminRelatorios />} />
             <Route path="configuracao-financeiro" element={<AdminConfiguracaoFinanceiro />} />
             <Route path="analise-nf" element={<AdminAnaliseNF />} />
@@ -194,7 +194,7 @@ function App() {
             <Route path="portfolio"          element={<AdminPortfolio />} />
             <Route path="assistente"          element={<AdminAssistente />} />
             <Route path="uso"                element={<AdminUso />} />
-            <Route path="knowledge"          element={<AdminKnowledge />} />
+            <Route path="knowledge"          element={<Navigate to="/admin/assistente" replace />} />
             <Route path="site"               element={<AdminSite />} />
             <Route path="canva-callback"    element={<AdminCanvaCallback />} />
           </Route>

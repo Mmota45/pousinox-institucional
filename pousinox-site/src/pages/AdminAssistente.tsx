@@ -6,12 +6,13 @@ import ModelSelector, { ModelBadge, type ModelKey } from '../components/assisten
 import ActionConfirm from '../components/assistente/ActionConfirm'
 import FileUpload from '../components/assistente/FileUpload'
 import KnowledgeBase from '../components/assistente/KnowledgeBase'
+import StudioPanel from '../components/assistente/StudioPanel'
 import type { ToolCall, ActionResult } from '../components/assistente/actions/executeAction'
 import ChartRenderer, { type ChartConfig } from '../components/assistente/ChartRenderer'
 import s from './AdminAssistente.module.css'
 
 interface RAGSource { file: string; excerpt: string; similarity: number; chunks: number }
-interface Msg { role: 'user' | 'assistant'; content: string; model?: string; rag_sources?: RAGSource[] }
+interface Msg { role: 'user' | 'assistant'; content: string; model?: string; rag_sources?: RAGSource[]; badges?: string[] }
 
 /* ════════════════════════════════════════════════════════════
    Icons (inline SVG — no deps)
@@ -394,9 +395,9 @@ function PlainResponse({ blocks, onFollowUp }: { blocks: Block[]; onFollowUp?: (
                 <div
                   key={j}
                   className={`${s.hlCard} ${s.hlCardClickable} ${warn ? s.hlCardWarn : ''}`}
-                  onClick={() => onFollowUp?.(`Aprofunde: ${plainItem}`)}
+                  onClick={() => onFollowUp?.(plainItem)}
                   role="button"
-                  title="Clique para aprofundar"
+                  title="Clique para perguntar"
                 >
                   {fmt(item)}
                 </div>
@@ -426,6 +427,33 @@ function PlainResponse({ blocks, onFollowUp }: { blocks: Block[]; onFollowUp?: (
 /* ════════════════════════════════════════════════════════════
    Config
    ════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════
+   Intelligent model routing (from AdminIA)
+   ════════════════════════════════════════════════════════════ */
+function escolherProviderModelo(texto: string): { provider: string; modelo: string; motivo: string } {
+  const t = texto.toLowerCase()
+  if (/\b(código|code|programa|function|sql|api|bug|html|css|javascript|typescript|react|python|script|deploy|docker|git)\b/.test(t))
+    return { provider: 'openrouter', modelo: 'qwen/qwen3-coder-480b:free', motivo: 'Código → Qwen3 Coder 480B' }
+  if (/\b(raciocín|lógic[ao]|matemátic|calcul[aeo]|demonstr|prov[ae]r?\b|equação|fórmula|resolver)\b/.test(t))
+    return { provider: 'openrouter', modelo: 'deepseek/deepseek-r1:free', motivo: 'Raciocínio → DeepSeek R1' }
+  if (/\b(analis[ea]|estratégia|relatório|report|planeja|mercado|comparar|pesquis[ea]|estud[oa]|dados|dashboard)\b/.test(t))
+    return { provider: 'gemini', modelo: 'gemini-2.5-flash', motivo: 'Análise/estratégia → Gemini 2.5 Flash' }
+  if (/\b(pitch|vend[ae]|comercial|marketing|post|instagram|facebook|cliente|proposta|email|campanha|texto|redação)\b/.test(t))
+    return { provider: 'cohere', modelo: 'command-a-03-2025', motivo: 'Comercial/marketing → Cohere Command A' }
+  if (/\b(traduz|translate|resum[oa]|summarize|sintetiz)\b/.test(t))
+    return { provider: 'openrouter', modelo: 'google/gemini-2.5-flash-exp:free', motivo: 'Tradução/resumo → Gemini Flash (free)' }
+  if (/\b(cri[ea]|ideia|brainstorm|sugir[ae]|inov[ae]|imagin[ea]|banner|design|inspiração)\b/.test(t))
+    return { provider: 'groq', modelo: 'llama-3.3-70b-versatile', motivo: 'Criativo → Llama 3.3 70B' }
+  return { provider: 'groq', modelo: 'llama-3.3-70b-versatile', motivo: 'Geral → Llama 3.3 70B' }
+}
+
+const SEARCH_SOURCES = [
+  { id: 'auto', label: '🔍 Auto' },
+  { id: 'brave', label: '🦁 Brave' },
+  { id: 'serper', label: '🔎 Google' },
+  { id: 'none', label: '❌ Sem busca' },
+] as const
+
 const PRESETS = [
   { label: '📊 Resumo financeiro', prompt: 'Faça um resumo financeiro do mês atual: receitas, despesas, saldo, principais categorias.' },
   { label: '🏭 Status produção', prompt: 'Qual o status atual das ordens de produção? Quantas estão em andamento, planejadas e concluídas este mês?' },
@@ -441,38 +469,40 @@ const PRESETS = [
   { label: '📝 Conteúdo site', prompt: 'Qual o status dos conteúdos do site? Quantos posts publicados, rascunhos pendentes e temas cobertos.' },
 ]
 
-const SYSTEM_PROMPT = `Você é o assistente interno da Pousinox, indústria metalúrgica de Pouso Alegre/MG.
+const SYSTEM_PROMPT = `Você é o assistente inteligente da **Pousinox** — indústria metalúrgica especializada em aço inoxidável, fundada em 2001 em Pouso Alegre/MG.
 
-SOBRE A EMPRESA:
-- Razão social: POUSINOX LTDA | CNPJ: 12.115.379/0001-64
-- CNAE principal: 2829-1/99 — Fabricação de máquinas, equipamentos, peças e acessórios de uso geral
-- Segmento: fabricação de peças, fixadores, acessórios e componentes em aço inoxidável
-- Produtos: fixadores de porcelanato, suportes, abraçadeiras, peças sob medida, corte a laser inox, entre centenas de itens
-- CNAEs secundários: manutenção de equipamentos (3319-8/00), comércio atacadista (4693-1/00), varejo (4789-0/99)
-- Porte: Empresa de Pequeno Porte
-- Localização: Av. Antonio Mariosa, 4545 — Santa Angelina, Pouso Alegre/MG
+IDENTIDADE DA EMPRESA (use naturalmente, NÃO liste como ficha cadastral):
+- **Pousinox** é especializada na **fabricação de produtos** em aço inoxidável: equipamentos, mobiliário e peças sob medida — bancadas, fogões industriais, coifas, corrimãos, lava-botas, tanques, prateleiras, carrinhos e centenas de outros itens
+- **Fixador de porcelanato** (produto recente, um dos centenas): insert metálico em aço inox (modelos 304 e 430) parafusado na parede, que impede a queda do revestimento cerâmico. Segurança mecânica complementar à argamassa. Para detalhes sobre laudos e ensaios, consulte os documentos da base de conhecimento
+- **Corte a laser** em aço inox para peças e projetos sob medida
+- Atende 14+ segmentos: construção civil, restaurantes/food service, hospitais, hotéis, supermercados, açougues/frigoríficos, indústria alimentícia, condomínios, laboratórios, entre outros
+- Abrangência: desde projetos unitários sob medida até demandas industriais em série
+- Sites: pousinox.com.br | fixadorporcelanato.com.br
 
-Seu papel:
-- Analisar dados do ERP (financeiro, estoque, produção, vendas, pipeline, qualidade, manutenção, prospecção, mercado)
-- Gerar resumos executivos e insights acionáveis
-- Responder em português brasileiro, de forma concisa e direta
-- Quando os dados forem fornecidos em contexto, analisar e responder com base neles
-- Se não tiver dados suficientes, dizer claramente o que falta
-- NUNCA invente, fabrique ou simule dados. Se os dados do sistema não contêm a informação, diga "Não encontrei dados para..." em vez de criar exemplos fictícios. Dados inventados são PROIBIDOS. Só use números e nomes que estejam explicitamente nos dados fornecidos entre "--- DADOS DO SISTEMA ---"
+DADOS CADASTRAIS (citar APENAS quando perguntado diretamente):
+- CNPJ: 12.115.379/0001-64 | Empresa de Pequeno Porte
+- Endereço: Av. Antonio Mariosa, 4545 — Santa Angelina, Pouso Alegre/MG
+- NÃO misture dados cadastrais (CNPJ, porte) com descrições de atuação ou produtos
 
-REGRAS DE FORMATAÇÃO (obrigatório):
-- Use markdown padrão: # para títulos, **negrito**, - para bullets
-- Tabelas DEVEM usar sintaxe markdown com pipes: | Col1 | Col2 |, com separador |---|---|
-- Nunca use tabs para alinhar colunas — sempre pipes |
-- Valores monetários: R$ 1.234,56
-- Formato direto, profissional, sem rodeios
-- GRÁFICOS: quando o usuário pedir gráfico/chart ou quando dados numéricos se beneficiariam de visualização, inclua um bloco \`\`\`chart com JSON: {"type":"bar|line|pie|area","title":"Título","data":[{"name":"A","value":10}],"xKey":"name","yKeys":["value"],"colors":["#2563eb"]}. O bloco será renderizado como gráfico interativo.
-- DESTAQUES: ao final de TODA resposta (curta ou longa, com ou sem tabela), inclua 2-4 destaques usando blockquote. Cada destaque em uma linha separada, começando com > e um emoji relevante. Exemplos:
-  > 📌 Faturamento cresceu 15% vs mês anterior
-  > ⚠️ 3 itens abaixo do estoque mínimo
-  > 💡 Segmento construção civil concentra 40% da receita
-  > 🏆 Cliente XYZ é o maior comprador do trimestre
-  Os destaques devem ser insights acionáveis, dados-chave ou alertas relevantes da resposta.`
+TOM E ESTILO:
+- Fale como um consultor interno experiente — direto, útil, com personalidade
+- Seja conciso mas completo. Não repita dados óbvios. Não peça desculpas
+- Quando falar da Pousinox, fale com propriedade e orgulho (é a SUA empresa)
+- Use dados reais do sistema quando disponíveis — números, nomes, datas concretas
+- NUNCA invente dados. Se não tiver, diga "não tenho essa informação no sistema"
+
+CAPACIDADES:
+- Analisar dados do ERP: financeiro, estoque, produção, vendas, pipeline, qualidade, manutenção, prospecção, mercado
+- Gerar insights acionáveis e resumos executivos
+- Responder sobre produtos, segmentos, processos e estratégia
+
+FORMATAÇÃO:
+- Markdown: **negrito**, bullets, tabelas com pipes |
+- Valores: R$ 1.234,56
+- GRÁFICOS: quando dados numéricos se beneficiariam, inclua \`\`\`chart com JSON: {"type":"bar|line|pie|area","title":"Título","data":[{"name":"A","value":10}],"xKey":"name","yKeys":["value"],"colors":["#2563eb"]}
+- SUGESTÕES: ao final, inclua 2-4 PERGUNTAS de follow-up usando blockquote (>). TODAS devem terminar com "?". SEM emojis. Máximo 8 palavras cada.
+  ERRADO (NÃO faça assim): > Faturamento crescente  |  > Equipamentos de alta qualidade
+  CERTO (faça assim): > Qual o faturamento deste mês?  |  > Quais produtos mais vendem?  |  > Como está o estoque atual?`
 
 /* ════════════════════════════════════════════════════════════
    Data fetching — context from Supabase
@@ -589,6 +619,13 @@ export default function AdminAssistente() {
   const [ragEnabled, setRagEnabled] = useState(() => localStorage.getItem('assistente_rag') === '1')
   const [revisorAtivo, setRevisorAtivo] = useState(false)
   const [showKb, setShowKb] = useState(false)
+  const [showGuias, setShowGuias] = useState(false)
+  const [guias, setGuias] = useState<{ id: string; titulo: string; categoria: string; nivel: string }[]>([])
+  const [guiaExpandido, setGuiaExpandido] = useState<string | null>(null)
+  const [guiaDetalhe, setGuiaDetalhe] = useState<Record<string, unknown> | null>(null)
+  const [searchSource, setSearchSource] = useState<string>(() => localStorage.getItem('assistente_search') || 'auto')
+  const [webQuery, setWebQuery] = useState('')
+  const [customPrompt, setCustomPrompt] = useState(() => localStorage.getItem('assistente_custom_prompt') || '')
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -622,7 +659,20 @@ export default function AdminAssistente() {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
   }, [msgs])
 
-  const enviar = useCallback(async (texto?: string) => {
+  // Carregar guias do knowledge
+  useEffect(() => {
+    supabaseAdmin.from('knowledge_guias').select('id, titulo, categoria, nivel').eq('ativo', true).order('categoria').order('titulo')
+      .then(({ data }) => { if (data) setGuias(data) })
+  }, [])
+
+  const carregarGuia = useCallback(async (id: string) => {
+    if (guiaExpandido === id) { setGuiaExpandido(null); setGuiaDetalhe(null); return }
+    setGuiaExpandido(id)
+    const { data } = await supabaseAdmin.from('knowledge_guias').select('*').eq('id', id).single()
+    if (data) setGuiaDetalhe(data)
+  }, [guiaExpandido])
+
+  const enviar = useCallback(async (texto?: string, forceSearchSource?: string) => {
     const msg = (texto || input).trim()
     if (!msg || loading) return
     setInput('')
@@ -641,10 +691,73 @@ export default function AdminAssistente() {
         if (contexto) historico[historico.length - 1] = { ...historico[historico.length - 1], content: historico[historico.length - 1].content + outputHint + contexto }
         else historico[historico.length - 1] = { ...historico[historico.length - 1], content: historico[historico.length - 1].content + outputHint }
       }
-      console.log('[Assistente] ragEnabled:', ragEnabled, 'modelo:', modelo, 'msgs:', historico.length)
-      const { data, error } = await supabaseAdmin.functions.invoke('assistente-chat', { body: { messages: historico, system: ragEnabled ? '' : SYSTEM_PROMPT, model: modelo, rag: ragEnabled } })
+      // Roteamento inteligente quando modelo=auto
+      // Mapear para modelos válidos do assistente-chat: haiku, sonnet, gemini, groq, cerebras, mistral
+      let usarModelo: string | undefined
+      let motivo = ''
+      if (modelo === 'auto') {
+        const escolha = escolherProviderModelo(msg)
+        motivo = escolha.motivo
+        // Mapear provider→modelo válido no edge function
+        const providerMap: Record<string, string> = {
+          groq: 'groq',
+          gemini: 'gemini',
+          cohere: 'groq', // fallback
+          openrouter: 'cerebras', // fallback para modelos grandes
+        }
+        usarModelo = providerMap[escolha.provider] || 'groq'
+      }
+
+      const systemFinal = SYSTEM_PROMPT + (customPrompt ? `\n\nInstruções do usuário: ${customPrompt}` : '')
+      console.log('[Assistente] ragEnabled:', ragEnabled, 'modelo:', modelo, 'search:', searchSource, 'roteamento:', motivo || 'manual', 'msgs:', historico.length)
+
+      let data: Record<string, unknown>, error: unknown
+      const effectiveSearch = forceSearchSource || searchSource
+
+      if (ragEnabled && !forceSearchSource) {
+        // RAG ativo — rotear via assistente-chat (suporta embeddings)
+        // Groq funciona bem para RAG e tem API key configurada
+        const ragModel = (modelo !== 'auto') ? modelo : 'groq'
+        const res = await supabaseAdmin.functions.invoke('assistente-chat', {
+          body: {
+            messages: historico,
+            system: systemFinal,
+            model: ragModel,
+            rag: true,
+          },
+        })
+        data = res.data ? (typeof res.data === 'string' ? JSON.parse(res.data) : res.data) : {}
+        error = res.error
+      } else {
+        // Sempre via ai-hub — tem contexto rico (banco + site + busca web)
+        const providerModel = usarModelo || modelo
+        const provMap: Record<string, { provider: string; model: string }> = {
+          groq: { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+          gemini: { provider: 'gemini', model: 'gemini-2.0-flash' },
+          cerebras: { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+          auto: { provider: 'groq', model: 'llama-3.3-70b-versatile' },
+        }
+        const target = provMap[providerModel] || provMap.groq
+        const res = await supabaseAdmin.functions.invoke('ai-hub', {
+          body: {
+            action: 'chat',
+            provider: target.provider,
+            model: target.model,
+            messages: historico,
+            search_source: effectiveSearch === 'none' ? 'auto' : effectiveSearch,
+            ...(systemFinal ? { system: systemFinal } : {}),
+          },
+        })
+        data = res.data ? (typeof res.data === 'string' ? JSON.parse(res.data) : res.data) : {}
+        error = res.error
+        // Normalizar resposta ai-hub → formato assistente-chat
+        if (data?.ok && data?.response) {
+          data = { content: data.response as string, model: `${target.provider}/${target.model}`, web_search: data?.web_search || false }
+        }
+      }
       if (error) throw new Error(typeof error === 'object' ? JSON.stringify(error) : String(error))
-      const parsed = typeof data === 'string' ? JSON.parse(data) : data
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const parsed = data as any
       // Se tem tool_calls, mostrar modal de confirmação
       if (parsed?.tool_calls?.length) {
         if (parsed.content) setMsgs(prev => [...prev, { role: 'assistant', content: parsed.content, model: parsed.model }])
@@ -652,9 +765,12 @@ export default function AdminAssistente() {
         setLoading(false)
         return
       }
-      const ragInfo = parsed?.rag_used ? '\n\n📚 _Resposta baseada na base de conhecimento_' : ''
-      const mainContent = (parsed?.content || parsed?.message || parsed?.error || 'Sem resposta.') + ragInfo
-      setMsgs(prev => [...prev, { role: 'assistant', content: mainContent, model: parsed?.model, rag_sources: parsed?.rag_sources }])
+      const mainContent = parsed?.content || parsed?.message || parsed?.error || 'Sem resposta.'
+      const msgBadges: string[] = []
+      if (parsed?.rag_used) msgBadges.push('📚 RAG')
+      if (parsed?.web_search) msgBadges.push('🌐 Web')
+      if (motivo) msgBadges.push(`🤖 ${motivo}`)
+      setMsgs(prev => [...prev, { role: 'assistant', content: mainContent, model: parsed?.model, rag_sources: parsed?.rag_sources, badges: msgBadges.length ? msgBadges : undefined }])
 
       // Modo Revisor: segunda IA valida a resposta
       if (revisorAtivo && mainContent && !parsed?.error) {
@@ -675,7 +791,7 @@ export default function AdminAssistente() {
       setLoading(false)
       setTimeout(() => inputRef.current?.focus(), 50)
     }
-  }, [input, loading, msgs, modelo, ragEnabled, revisorAtivo])
+  }, [input, loading, msgs, modelo, ragEnabled, revisorAtivo, searchSource])
 
   // Após confirmação das ações, enviar tool_results de volta ao Claude
   const handleActionComplete = useCallback(async (results: { tool_id: string; result: ActionResult }[]) => {
@@ -723,42 +839,127 @@ export default function AdminAssistente() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar() }
   }
 
-  const [showHist, setShowHist] = useState(false)
   const [metaAberto, setMetaAberto] = useState(false)
+  const [mobileTab, setMobileTab] = useState<'fontes' | 'chat' | 'studio'>('chat')
+  const [docCount, setDocCount] = useState(0)
+
+  // Studio: generate output using RAG context
+  const handleStudioGenerate = useCallback(async (_tipo: string, prompt: string) => {
+    const historico = [{ role: 'user', content: prompt + '\n\nUse as fontes da base de conhecimento para gerar o conteúdo.' }]
+    const { data, error } = await supabaseAdmin.functions.invoke('assistente-chat', {
+      body: { messages: historico, system: SYSTEM_PROMPT, model: modelo, rag: true },
+    })
+    if (error) throw new Error(typeof error === 'object' ? JSON.stringify(error) : String(error))
+    const parsed = typeof data === 'string' ? JSON.parse(data) : data
+    return parsed?.content || parsed?.message || 'Sem resultado.'
+  }, [modelo])
 
   return (
     <div className={s.wrap}>
-      {/* Drawer Histórico */}
-      {showHist && <div className={s.histOverlay} onClick={() => setShowHist(false)} />}
-      <div className={`${s.histDrawer} ${showHist ? s.histDrawerOpen : ''}`}>
-        <div className={s.histHeader}>
-          <span className={s.histTitle}>Conversas</span>
-          <button className={s.histNovaBtn} onClick={() => { setMsgs([]); setShowHist(false) }}>+ Nova</button>
+      {/* Mobile tabs */}
+      <div className={s.mobileTabs}>
+        <button className={`${s.mobileTab} ${mobileTab === 'fontes' ? s.mobileTabActive : ''}`} onClick={() => setMobileTab('fontes')}>📎 Fontes</button>
+        <button className={`${s.mobileTab} ${mobileTab === 'chat' ? s.mobileTabActive : ''}`} onClick={() => setMobileTab('chat')}>💬 Conversa</button>
+        <button className={`${s.mobileTab} ${mobileTab === 'studio' ? s.mobileTabActive : ''}`} onClick={() => setMobileTab('studio')}>✨ Estúdio</button>
+      </div>
+
+      {/* LEFT — Fontes */}
+      <div className={`${s.fontePanel} ${mobileTab === 'fontes' ? s.fontePanelMobileVisible : ''}`}>
+        <div className={s.fonteHeader}>
+          <span className={s.fonteTitle}>Fontes</span>
         </div>
-        <div className={s.histList}>
-          {threads.map(t => (
-            <div key={t.id} className={s.histItem}>
-              <button className={s.histItemBtn} onClick={() => { carregarConversa(t); setShowHist(false) }}>
-                <span className={s.histItemTitulo}>{t.title}</span>
-                <span className={s.histItemData}>{t.date}</span>
-              </button>
-              <button className={s.histItemExcluir} onClick={() => excluirConversa(t.id)} title="Excluir">✕</button>
+        <div className={s.fonteBody}>
+          <KnowledgeBase
+            ragEnabled={ragEnabled}
+            onRagToggle={v => { setRagEnabled(v); localStorage.setItem('assistente_rag', v ? '1' : '0') }}
+            onAskQuestion={q => { setInput(q); setMobileTab('chat'); setTimeout(() => inputRef.current?.focus(), 50) }}
+            onDocCountChange={setDocCount}
+          />
+
+          {/* Busca web */}
+          <div className={s.webSearchBox}>
+            <div className={s.webSearchInputRow}>
+              <input
+                className={s.webSearchInput}
+                placeholder="Pesquise novas fontes na web"
+                value={webQuery}
+                onChange={e => setWebQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && webQuery.trim()) { const src = searchSource !== 'none' ? searchSource : 'auto'; enviar(webQuery.trim(), src); setWebQuery(''); setMobileTab('chat') } }}
+              />
+              <button className={s.webSearchBtn} disabled={!webQuery.trim()} onClick={() => { if (webQuery.trim()) { const src = searchSource !== 'none' ? searchSource : 'auto'; enviar(webQuery.trim(), src); setWebQuery(''); setMobileTab('chat') } }}>→</button>
             </div>
-          ))}
-          {threads.length === 0 && <p className={s.histVazio}>Nenhuma conversa salva</p>}
-        </div>
-        {/* KB e custos no drawer */}
-        <div className={s.histSection}>
-          <button className={s.histSectionBtn} onClick={() => setShowKb(v => !v)}>📚 Base Conhecimento {showKb ? '▾' : '▸'}</button>
-          {showKb && <KnowledgeBase ragEnabled={ragEnabled} onRagToggle={v => { setRagEnabled(v); localStorage.setItem('assistente_rag', v ? '1' : '0') }} onAskQuestion={q => { setInput(q); setShowHist(false); setTimeout(() => inputRef.current?.focus(), 50) }} />}
-        </div>
-        <div className={s.histSection}>
-          <button className={s.histSectionBtn} onClick={() => setShowUsage(v => !v)}>💰 Custos API {showUsage ? '▾' : '▸'}</button>
-          {showUsage && <UsageDashboard />}
+            <div className={s.webSearchRow}>
+              <select className={s.webSearchSelect} value={searchSource} onChange={e => { setSearchSource(e.target.value); localStorage.setItem('assistente_search', e.target.value) }}>
+                <option value="none">Sem busca</option>
+                <option value="auto">Auto</option>
+                <option value="brave">Brave</option>
+                <option value="google">Google</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Histórico de conversas */}
+          <div className={s.histSection}>
+            <button className={s.histSectionBtn} onClick={() => setShowKb(v => !v)}>📂 Conversas {threads.length > 0 ? `(${threads.length})` : ''} {showKb ? '▾' : '▸'}</button>
+            {showKb && (
+              <div className={s.histList}>
+                <button className={s.histNovaBtn} onClick={() => { setMsgs([]); setMobileTab('chat') }} style={{ width: '100%', marginBottom: 6 }}>+ Nova conversa</button>
+                {threads.map(t => (
+                  <div key={t.id} className={s.histItem}>
+                    <button className={s.histItemBtn} onClick={() => { carregarConversa(t); setMobileTab('chat') }}>
+                      <span className={s.histItemTitulo}>{t.title}</span>
+                      <span className={s.histItemData}>{t.date}</span>
+                    </button>
+                    <button className={s.histItemExcluir} onClick={() => excluirConversa(t.id)} title="Excluir">✕</button>
+                  </div>
+                ))}
+                {threads.length === 0 && <p className={s.histVazio}>Nenhuma conversa salva</p>}
+              </div>
+            )}
+          </div>
+
+          {/* Guias de conhecimento */}
+          <div className={s.histSection}>
+            <button className={s.histSectionBtn} onClick={() => setShowGuias(v => !v)}>📘 Guias {guias.length > 0 ? `(${guias.length})` : ''} {showGuias ? '▾' : '▸'}</button>
+            {showGuias && (
+              <div className={s.guiasList}>
+                {guias.length === 0 && <p className={s.histVazio}>Nenhum guia cadastrado</p>}
+                {guias.map(g => (
+                  <div key={g.id} className={s.guiaItem}>
+                    <button className={s.guiaItemBtn} onClick={() => carregarGuia(g.id)}>
+                      <span className={s.guiaItemTitulo}>{g.titulo}</span>
+                      <span className={s.guiaItemMeta}>{g.categoria} · {g.nivel}</span>
+                    </button>
+                    {guiaExpandido === g.id && guiaDetalhe && (
+                      <div className={s.guiaDetalhe}>
+                        {(guiaDetalhe as Record<string, string>).o_que_e && <div className={s.guiaBloco}><strong>O que é</strong><p>{(guiaDetalhe as Record<string, string>).o_que_e}</p></div>}
+                        {(guiaDetalhe as Record<string, string>).quando_usar && <div className={s.guiaBloco}><strong>Quando usar</strong><p>{(guiaDetalhe as Record<string, string>).quando_usar}</p></div>}
+                        {(guiaDetalhe as Record<string, string>).como_fazer && <div className={s.guiaBloco}><strong>Como fazer</strong><pre className={s.guiaCodigo}>{(guiaDetalhe as Record<string, string>).como_fazer}</pre></div>}
+                        {(guiaDetalhe as Record<string, string>).onde_fazer && <div className={s.guiaBloco}><strong>Onde fazer</strong><p>{(guiaDetalhe as Record<string, string>).onde_fazer}</p></div>}
+                        {(guiaDetalhe as Record<string, string>).por_que && <div className={s.guiaBloco}><strong>Por quê</strong><p>{(guiaDetalhe as Record<string, string>).por_que}</p></div>}
+                        <button className={s.guiaUsarBtn} onClick={() => { setInput(`Explique sobre: ${(guiaDetalhe as Record<string, string>).titulo}`); setMobileTab('chat'); setTimeout(() => inputRef.current?.focus(), 50) }}>💬 Perguntar à IA</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className={s.histSection}>
+            <button className={s.histSectionBtn} onClick={() => setShowUsage(v => !v)}>💰 Custos API {showUsage ? '▾' : '▸'}</button>
+            {showUsage && <UsageDashboard />}
+          </div>
         </div>
       </div>
 
+      {/* CENTER — Conversa */}
       <div className={s.chatArea}>
+        {msgs.length > 0 && (
+          <div className={s.chatHeader}>
+            <span className={s.chatTitle}>{msgs.find(m => m.role === 'user')?.content.slice(0, 60) || 'Nova conversa'}</span>
+          </div>
+        )}
         {msgs.length === 0 ? (
           <div className={s.welcome}>
             <h2 className={s.welcomeTitle}>Assistente Pousinox</h2>
@@ -782,11 +983,33 @@ export default function AdminAssistente() {
                   </div>
                 ) : (
                   <div key={i} className={s.botRow}>
-                    <div className={s.botContent}>
-                      <RenderResponse text={m.content} onFollowUp={enviar} />
-                      {m.rag_sources?.length ? <RAGSources sources={m.rag_sources} /> : null}
-                      <ModelBadge model={m.model} />
-                    </div>
+                    {(() => {
+                      const lines = m.content.split('\n')
+                      const sugLines = lines.filter(l => l.trim().startsWith('>'))
+                      const mainText = lines.filter(l => !l.trim().startsWith('>')).join('\n').trimEnd()
+                      const suggestions = sugLines.map(l => l.trim().replace(/^>\s*/, '').replace(/\*\*/g, '').replace(/^[^\w\sÀ-ÿ]*\s*/, '').trim()).filter(s => s && s.endsWith('?'))
+                      return (
+                        <>
+                          <div className={s.botContent}>
+                            <RenderResponse text={mainText} onFollowUp={enviar} />
+                            {m.rag_sources?.length ? <RAGSources sources={m.rag_sources} /> : null}
+                            <div className={s.msgMeta}>
+                              <ModelBadge model={m.model} />
+                              {m.badges?.map((b, j) => <span key={j} className={s.msgBadge}>{b}</span>)}
+                            </div>
+                          </div>
+                          {suggestions.length > 0 && (
+                            <div className={s.suggestionsBar}>
+                              {suggestions.map((sug, j) => (
+                                <button key={j} className={s.suggestionChip} onClick={() => enviar(sug)}>
+                                  {sug}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )
+                    })()}
                   </div>
                 )
               ))}
@@ -814,38 +1037,46 @@ export default function AdminAssistente() {
               onKeyDown={onKey}
               rows={1}
             />
+            {docCount > 0 && <span className={s.composerFontes}>{docCount} fonte{docCount !== 1 ? 's' : ''}</span>}
             <button className={s.composerSend} onClick={() => enviar()} disabled={loading || !input.trim()} aria-label="Enviar">
               <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
           </div>
           <div className={s.composerMeta}>
             <div className={s.metaRow}>
-              <button className={s.metaToggle} onClick={() => setMetaAberto(v => !v)}>
-                <span>🤖 {modelo === 'auto' ? 'Auto' : modelo}</span>
-                {revisorAtivo && <><span className={s.metaDot}>·</span><span>🔍 Revisor</span></>}
-                {ragEnabled && <><span className={s.metaDot}>·</span><span>📚 RAG</span></>}
-                <span className={`${s.metaChevron} ${metaAberto ? s.metaChevronAberto : ''}`}>▾</span>
-              </button>
-              <button className={s.metaBtn} onClick={() => setShowHist(v => !v)}>📂 Histórico{threads.length > 0 ? ` (${threads.length})` : ''}</button>
+              <select
+                className={s.metaSelect}
+                value={modelo}
+                onChange={e => { setModelo(e.target.value as ModelKey); localStorage.setItem('assistente_modelo', e.target.value) }}
+              >
+                <option value="auto">🤖 Auto</option>
+                <option value="gemini">💎 Gemini</option>
+                <option value="groq">⚡ Groq</option>
+                <option value="cerebras">🧠 Cerebras</option>
+                <option value="mistral">🌀 Mistral</option>
+                <option value="haiku">🍃 Haiku</option>
+                <option value="sonnet">🎵 Sonnet</option>
+              </select>
+              <select
+                className={s.metaSelect}
+                value={searchSource}
+                onChange={e => { setSearchSource(e.target.value); localStorage.setItem('assistente_search', e.target.value) }}
+              >
+                {SEARCH_SOURCES.map(src => <option key={src.id} value={src.id}>{src.label}</option>)}
+              </select>
               {msgs.length > 0 && <button className={s.metaBtn} onClick={salvarConversa}>💾 Salvar</button>}
               {msgs.length > 0 && <button className={s.metaBtn} onClick={() => setMsgs([])}>+ Nova</button>}
             </div>
-            {metaAberto && (
-              <div className={s.metaExpandido}>
-                <div className={s.metaGrupo}>
-                  <span className={s.metaLabel}>Modelo</span>
-                  <ModelSelector value={modelo} onChange={m => { setModelo(m); localStorage.setItem('assistente_modelo', m) }} />
-                </div>
-                <div className={s.metaGrupo}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
-                    <input type="checkbox" checked={revisorAtivo} onChange={e => setRevisorAtivo(e.target.checked)} />
-                    🔍 Modo Revisor <span style={{ color: '#94a3b8', fontSize: 11 }}>(segunda IA valida)</span>
-                  </label>
-                </div>
-              </div>
-            )}
           </div>
         </div>
+      </div>
+
+      {/* RIGHT — Estúdio */}
+      <div className={`${s.studioPanel} ${mobileTab === 'studio' ? s.studioPanelMobileVisible : ''}`}>
+        <StudioPanel fonteCount={docCount} onGenerate={handleStudioGenerate} onGuiaSaved={() => {
+          supabaseAdmin.from('knowledge_guias').select('id, titulo, categoria, nivel').eq('ativo', true).order('categoria').order('titulo')
+            .then(({ data }) => { if (data) setGuias(data) })
+        }} />
       </div>
 
       {pendingTools && (

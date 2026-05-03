@@ -361,9 +361,9 @@ Deno.serve(async (req) => {
       }
       console.log('[AUTO] roteado para:', resolvedKey)
     }
-    const cfg = MODELS[resolvedKey] ?? MODELS.gemini
-    const DESTAQUE_HINT = '\n\nOBRIGATÓRIO: Ao final de TODA resposta, inclua 2-4 destaques usando blockquote (linhas começando com > e emoji). Ex:\n> 📌 Insight importante\n> ⚠️ Alerta relevante'
-    let sysPrompt = (system || 'Você é um assistente empresarial. Responda em português brasileiro.') + DESTAQUE_HINT
+    let cfg = MODELS[resolvedKey] ?? MODELS.gemini
+    let sysPrompt = system || 'Você é um assistente empresarial. Responda em português brasileiro.'
+    sysPrompt += '\n\nIMPORTANTE: Ao final de toda resposta, inclua 2-4 perguntas de follow-up usando blockquote (>). DEVEM ser perguntas terminando com "?", curtas, sem emojis. Exemplo:\n> Qual o faturamento deste mês?\n> Quais produtos mais vendem?'
 
     // RAG: buscar documentos relevantes e injetar no system prompt
     let ragUsed = false
@@ -377,15 +377,11 @@ Deno.serve(async (req) => {
         const ragResult = await searchRAG(query)
         console.log('[RAG] contexto encontrado:', ragResult ? ragResult.context.length + ' chars' : 'nenhum')
         if (ragResult) {
-          sysPrompt = `Você é o assistente da Pousinox, indústria que fabrica FIXADORES DE PORCELANATO em aço inoxidável 304 e 430 (espessura 0.8mm), localizada em Pouso Alegre/MG.
+          sysPrompt += `
 
-CONTEXTO IMPORTANTE: A Pousinox fabrica fixadores de porcelanato usando chapas de aço inox 304 e 430. Quando os documentos mencionam "chapa inox 304", "chapa inox 430", "ensaios mecânicos" ou relatórios do "SENAI/LAMAT", eles se referem a ensaios realizados no PRODUTO FINAL da Pousinox (fixadores de porcelanato). As chapas são o material dos fixadores.
+CONTEXTO RAG: A Pousinox fabrica fixadores de porcelanato usando chapas de aço inox 304 e 430. Quando os documentos mencionam "chapa inox 304", "chapa inox 430", "ensaios mecânicos" ou relatórios do "SENAI/LAMAT", eles se referem a ensaios realizados no PRODUTO FINAL da Pousinox (fixadores de porcelanato).
 
-REGRA ABSOLUTA: Sua resposta DEVE ser baseada nos documentos fornecidos na mensagem do usuário (entre "--- DOCUMENTOS RELEVANTES ---" e "--- FIM DOCUMENTOS ---"). NÃO diga que não tem informação se os documentos contêm a resposta. NÃO mencione "ERP", "módulos" ou "dados do sistema". Ao citar um documento, use o nome do arquivo entre aspas (ex: "nome-do-arquivo.pdf").
-
-NUNCA invente, fabrique ou simule dados. Só cite informações que estejam explicitamente nos documentos fornecidos. Se não encontrar a resposta nos documentos, diga claramente.
-
-Responda em português brasileiro, de forma concisa e profissional.`
+REGRA RAG OBRIGATÓRIA: Quando documentos forem fornecidos, sua resposta DEVE ser baseada neles. SEMPRE cite os documentos consultados pelo nome entre aspas. Combine as informações dos documentos com seu conhecimento sobre a empresa. Se os documentos não contêm informação relevante para a pergunta, diga "Os documentos consultados não contêm essa informação" e responda com base no contexto geral.`
           let lastUserContent = [...messages].reverse().find((m: { role: string; content: string }) => m.role === 'user')?.content ?? ''
           lastUserContent = lastUserContent.replace(/\n*\[NOTA:.*$/s, '').trim()
           const ragMessage = ragResult.context + '\n\nCom base nos documentos acima, responda a seguinte pergunta:\n\n' + lastUserContent
@@ -421,14 +417,43 @@ Responda em português brasileiro, de forma concisa e profissional.`
     }
 
     console.log('[CALL] provider:', cfg.provider, 'msgs:', messages.length, 'sysPrompt (100):', sysPrompt.slice(0, 100))
-    if (cfg.provider === 'gemini') {
-      const r = await callGemini(cfg.id, messages as { role: string; content: string }[], sysPrompt)
-      result = { ...r, tool_calls: undefined }
-    } else if (cfg.provider === 'openai_compat') {
-      const r = await callOpenAICompat(cfg, messages as { role: string; content: string }[], sysPrompt)
-      result = { ...r, tool_calls: undefined }
-    } else {
-      result = await callAnthropic(cfg.id, messages, sysPrompt, cfg.maxTokens)
+
+    const callModel = async (c: ModelCfg) => {
+      if (c.provider === 'gemini') {
+        const r = await callGemini(c.id, messages as { role: string; content: string }[], sysPrompt)
+        return { ...r, tool_calls: undefined } as typeof result
+      } else if (c.provider === 'openai_compat') {
+        const r = await callOpenAICompat(c, messages as { role: string; content: string }[], sysPrompt)
+        return { ...r, tool_calls: undefined } as typeof result
+      } else {
+        return await callAnthropic(c.id, messages, sysPrompt, c.maxTokens)
+      }
+    }
+
+    try {
+      result = await callModel(cfg)
+    } catch (err: unknown) {
+      const errMsg = String(err)
+      if (errMsg.includes('429') || errMsg.includes('rate_limit')) {
+        // Fallback: tentar cerebras → mistral
+        const fallbacks = ['cerebras', 'mistral'].filter(k => k !== resolvedKey)
+        console.log('[FALLBACK] rate limit em', cfg.id, '→ tentando:', fallbacks)
+        let ok = false
+        for (const fb of fallbacks) {
+          const fbCfg = MODELS[fb]
+          if (!fbCfg || (fbCfg.keyEnv && !Deno.env.get(fbCfg.keyEnv))) continue
+          try {
+            result = await callModel(fbCfg)
+            cfg = fbCfg
+            ok = true
+            console.log('[FALLBACK] sucesso com', fb)
+            break
+          } catch { continue }
+        }
+        if (!ok) throw err
+      } else {
+        throw err
+      }
     }
 
     logUsage('assistente-chat', cfg.id, result.usage.input_tokens, result.usage.output_tokens)

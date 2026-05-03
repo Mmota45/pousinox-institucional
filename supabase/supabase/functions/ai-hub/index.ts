@@ -57,15 +57,14 @@ CONTEXTO BASE (use apenas como referência, NÃO repita literalmente):
 - SEGMENTOS DE ATUAÇÃO: Açougues e Frigoríficos, Restaurantes e Food Service, Hospitais e Clínicas, Hotéis e Hotelaria, Supermercados, Padarias, Construção Civil, Arquitetura e Engenharia, Indústria Alimentícia, Indústria Farmacêutica, Laticínios, Condomínios Residenciais, Laboratórios, Pet Shops e Veterinárias
 - PRODUTOS POR SEGMENTO: bancadas, pias, mesas, coifas, fogões industriais, estufas, corrimãos, guarda-corpos, lava-botas, tanques, prateleiras, carrinhos, suportes, fixadores de porcelanato, projetos sob medida
 
-REGRAS:
-- Priorize informações da BUSCA WEB (quando disponível) sobre este contexto base
+REGRAS OBRIGATÓRIAS (NUNCA VIOLE):
+- SOBRE A POUSINOX: use EXCLUSIVAMENTE o CONTEXTO BASE acima. A Pousinox é fabricante de equipamentos em aço inox e fixadores de porcelanato. NÃO é hotel, NÃO é hospedagem, NÃO é pousada. Se não tiver certeza sobre um dado, diga "não tenho essa informação".
 - NÃO invente dados que não tenha (CNPJ, faturamento, número de funcionários, etc.)
-- Se não souber, diga honestamente
-- Seja CONCISO e DIRETO — máximo 3-5 frases por resposta. Sem rodeios, sem pedir desculpas, sem inventar cenários
-- NUNCA diga "você está correto em questionar" ou frases similares — vá direto à resposta
-- NÃO invente justificativas para perguntas que não foram feitas
-- Quando listar dados, use bullets curtos. Sem explicações redundantes
-- Todos os segmentos listados acima são IGUALMENTE importantes — não priorize uns sobre outros`;
+- Priorize: 1º Contexto Base → 2º Banco de dados → 3º Site próprio → 4º Busca web → 5º Conhecimento geral
+- Seja CONCISO e DIRETO — máximo 3-5 frases por resposta
+- NUNCA diga "você está correto em questionar" — vá direto à resposta
+- Quando listar dados, use bullets curtos
+- Todos os segmentos listados acima são IGUALMENTE importantes`;
 
 // Cache do conteúdo do site (válido por 1 hora)
 let siteCache: { content: string; fetchedAt: number } | null = null;
@@ -481,10 +480,11 @@ Seja preciso e honesto. NUNCA invente informações.`);
   return parts.join('\n');
 }
 
-async function injectSystem(messages: Message[], searchSource?: string): Promise<{ msgs: Message[]; didSearch: boolean; didDb: boolean }> {
+async function injectSystem(messages: Message[], searchSource?: string, extraSystem?: string): Promise<{ msgs: Message[]; didSearch: boolean; didDb: boolean }> {
   if (messages.length > 0 && messages[0].role === 'system') return { msgs: messages, didSearch: false, didDb: false };
 
   const skipSearch = searchSource === 'none';
+  const forceSearch = !skipSearch && searchSource && searchSource !== 'auto';
 
   // Sempre: overview + site. Paralelo.
   const [overview, siteContent, detail] = await Promise.all([
@@ -495,11 +495,14 @@ async function injectSystem(messages: Message[], searchSource?: string): Promise
 
   const hasDbDetail = !!detail;
 
-  // Busca web: só se não for pergunta interna com dados do banco
-  const searchQuery = skipSearch ? null : shouldSearch(messages, hasDbDetail);
+  // Busca web: fonte explícita (brave/serper) → forçar busca; auto → shouldSearch decide
+  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')?.content || '';
+  const searchQuery = skipSearch ? null : (forceSearch ? lastUserMsg : shouldSearch(messages, hasDbDetail));
   const searchResults = searchQuery ? await webSearch(searchQuery, searchSource === 'auto' ? undefined : searchSource) : '';
 
-  const systemPrompt = await buildSystemPrompt(overview, detail, siteContent, searchResults);
+  let systemPrompt = await buildSystemPrompt(overview, detail, siteContent, searchResults);
+  if (extraSystem) systemPrompt += '\n\n' + extraSystem;
+
   return {
     msgs: [{ role: 'system', content: systemPrompt }, ...messages],
     didSearch: !!searchResults,
@@ -513,7 +516,7 @@ async function callGroq(model: string, msgs: Message[]): Promise<string> {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model, messages: msgs }),
+    body: JSON.stringify({ model, messages: msgs, temperature: 0.2 }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error?.message ?? JSON.stringify(data));
@@ -612,7 +615,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { provider, model, messages, action, search_source } = body;
+    const { provider, model, messages, action, search_source, system: extraSystem } = body;
 
     if (action === "models") {
       const sb = getSupabase();
@@ -826,7 +829,7 @@ serve(async (req) => {
     }
 
     // Pré-processa: injeta system prompt + banco + busca web (se necessário)
-    const { msgs: preparedMsgs, didSearch, didDb } = await injectSystem(messages, search_source);
+    const { msgs: preparedMsgs, didSearch, didDb } = await injectSystem(messages, search_source, extraSystem);
 
     let response: string;
     switch (provider) {

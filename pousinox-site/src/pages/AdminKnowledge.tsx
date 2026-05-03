@@ -1613,6 +1613,43 @@ function MapaMental({ guias, onAcesso, perplexityUrl }: { guias: Guia[]; onAcess
   )
 }
 
+async function indexarGuiaParaIA(guia: Guia) {
+  const texto = [
+    `# ${guia.titulo}`,
+    `Categoria: ${guia.categoria} | Nível: ${guia.nivel}`,
+    `Tags: ${guia.tags.join(', ')}`,
+    '',
+    '## O que é',
+    guia.oQueE,
+    '',
+    '## Quando usar',
+    guia.quandoUsar,
+    '',
+    '## Como fazer',
+    guia.comoFazer,
+    '',
+    '## Onde fazer',
+    guia.ondeFazer,
+    '',
+    '## Por quê',
+    guia.porQue,
+  ].join('\n')
+
+  const encoder = new TextEncoder()
+  const bytes = encoder.encode(texto)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  const base64 = btoa(binary)
+
+  const { data, error } = await supabaseAdmin.functions.invoke('indexar-documento', {
+    body: { file_base64: base64, mime_type: 'text/plain', filename: `guia-${guia.id}.txt` },
+  })
+  if (error) throw new Error(typeof error === 'object' ? JSON.stringify(error) : String(error))
+  const parsed = typeof data === 'string' ? JSON.parse(data) : data
+  if (!parsed.success) throw new Error('Falha ao indexar')
+  return parsed
+}
+
 export default function AdminKnowledge() {
   const [busca, setBusca] = useState('')
   const [catAtiva, setCatAtiva] = useState<Categoria | 'todos'>('todos')
@@ -1623,6 +1660,8 @@ export default function AdminKnowledge() {
   const [acessos, setAcessos] = useState<Record<string, number>>({})
   const [navUrl, setNavUrl] = useState<string | null>(null)
   const [navInput, setNavInput] = useState('')
+  const [indexandoIA, setIndexandoIA] = useState(false)
+  const [iaStatus, setIaStatus] = useState<string | null>(null)
 
   useEffect(() => {
     setGuiasDinamicos(loadGuiasDinamicos())
@@ -1716,6 +1755,23 @@ export default function AdminKnowledge() {
             <a className={styles.btnPerplexity} style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)' }} href={perplexityUrl(guiaAbertoObj.titulo)} target="_blank" rel="noopener noreferrer">
               Perplexity
             </a>
+            <button
+              className={styles.btnPerplexity}
+              style={{ background: 'linear-gradient(135deg, #059669, #047857)' }}
+              disabled={indexandoIA}
+              onClick={async () => {
+                setIndexandoIA(true); setIaStatus(null)
+                try {
+                  await indexarGuiaParaIA(guiaAbertoObj)
+                  setIaStatus('✅ Guia indexado na base IA!')
+                } catch (err) {
+                  setIaStatus(`❌ Erro: ${(err as Error).message}`)
+                } finally { setIndexandoIA(false); setTimeout(() => setIaStatus(null), 4000) }
+              }}
+            >
+              {indexandoIA ? '⏳ Indexando...' : '🧠 Ensinar à IA'}
+            </button>
+            {iaStatus && <span style={{ fontSize: '0.78rem', padding: '4px 8px' }}>{iaStatus}</span>}
             {guiaAbertoObj.id.startsWith('user-') && guiaAbertoObj.rascunho && (
               <button className={styles.btnPrimary} onClick={() => aprovarGuia(guiaAbertoObj.id)} style={{ fontSize: '0.85rem' }}>
                 Aprovar
