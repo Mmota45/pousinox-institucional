@@ -1,4 +1,18 @@
 {
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /c/Users/marco/Pousinox_Site/pousinox-site && npx tsc -b --noEmit 2>&1 | grep -E 'error TS' | head -5; exit 0",
+            "async": true
+          }
+        ]
+      }
+    ]
+  },
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
@@ -65,7 +79,34 @@
       "Bash(git merge:*)",
       "WebFetch(domain:www.pousinox.com.br)",
       "Bash(npx wrangler:*)",
-      "Bash(PGPASSWORD='qpSSwIBG4Hp9MP4Q' psql:*)"
+      "Bash(PGPASSWORD='qpSSwIBG4Hp9MP4Q' psql:*)",
+      "Bash(cp:*)",
+      "mcp__claude_ai_Canva__generate-design",
+      "mcp__claude_ai_Canva__create-design-from-candidate",
+      "WebFetch(domain:developer.z-api.io)",
+      "WebFetch(domain:www.postman.com)",
+      "WebFetch(domain:stripe.com)",
+      "Bash(git status:*)",
+      "WebFetch(domain:www.drogasil.com.br)",
+      "WebFetch(domain:repositorio.ufsc.br)",
+      "WebFetch(domain:repositorio.ufmg.br)",
+      "WebFetch(domain:ct.ufpb.br)",
+      "WebFetch(domain:www.teses.usp.br)",
+      "WebFetch(domain:www.granprometal.com.br)",
+      "WebFetch(domain:ldacabamentos.com.br)",
+      "WebFetch(domain:www.normas.com.br)",
+      "Bash(cp \"C:/Users/marco/Downloads/fixador-porcelanato-5mm.png\" \"C:/Users/marco/Pousinox_Site/pousinox-site/public/images/fixadores/\")",
+      "Bash(cp \"C:/Users/marco/Downloads/fixador-porcelanato-11mm.png\" \"C:/Users/marco/Pousinox_Site/pousinox-site/public/images/fixadores/\")",
+      "Bash(npx lighthouse:*)",
+      "Bash(disown)",
+      "WebFetch(domain:www.eliane.com)",
+      "WebFetch(domain:www.portobello.com.br)",
+      "WebFetch(domain:especificadorvirtual.portobello.com.br)",
+      "WebFetch(domain:www.leroymerlin.com.br)",
+      "WebFetch(domain:www.telhanorte.com.br)",
+      "WebFetch(domain:youtu.be)",
+      "WebFetch(domain:www.youtube.com)",
+      "Bash(deno check:*)"
     ]
   }
 }

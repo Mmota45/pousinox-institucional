@@ -490,7 +490,7 @@ const PRESETS = [
 const SYSTEM_PROMPT = `Você é o assistente inteligente da **Pousinox** — indústria metalúrgica especializada em aço inoxidável, fundada em 2001 em Pouso Alegre/MG.
 
 IDENTIDADE DA EMPRESA (use naturalmente, NÃO liste como ficha cadastral):
-- **Pousinox** é especializada na **fabricação de produtos** em aço inoxidável: equipamentos, mobiliário e peças sob medida — bancadas, fogões industriais, coifas, corrimãos, lava-botas, tanques, prateleiras, carrinhos e centenas de outros itens
+- **Pousinox** é especializada na **fabricaç��o de produtos** em aço inoxidável: equipamentos, mobiliário e peças sob medida — bancadas, fogões industriais, coifas, corrimãos, lava-botas, tanques, prateleiras, carrinhos e centenas de outros itens
 - **Fixador de porcelanato** (produto recente, um dos centenas): insert metálico em aço inox (modelos 304 e 430) parafusado na parede, que impede a queda do revestimento cerâmico. Segurança mecânica complementar à argamassa. Para detalhes sobre laudos e ensaios, consulte os documentos da base de conhecimento
 - **Corte a laser** em aço inox para peças e projetos sob medida
 - Atende 14+ segmentos: construção civil, restaurantes/food service, hospitais, hotéis, supermercados, açougues/frigoríficos, indústria alimentícia, condomínios, laboratórios, entre outros
@@ -599,7 +599,6 @@ async function buscarContexto(prompt: string): Promise<string> {
 
   await Promise.all(queries)
 
-  console.log(`[Assistente] Contexto: ${partes.length} blocos carregados`, partes.map(p => p.split('\n')[0]))
   return partes.length
     ? `\n\n--- DADOS DO SISTEMA (use SOMENTE estes dados para responder) ---\nIMPORTANTE: Use APENAS os nomes, valores e informações abaixo. NÃO invente nenhum dado que não esteja listado aqui.\n\n${partes.join('\n\n')}\n--- FIM DOS DADOS ---`
     : '\n\n[NOTA: Nenhum dado do sistema foi encontrado para esta pergunta. Diga claramente que não há dados disponíveis. NÃO invente exemplos ou dados fictícios.]'
@@ -610,7 +609,7 @@ async function buscarContexto(prompt: string): Promise<string> {
    ════════════════════════════════════════════════════════════ */
 const STORAGE_KEY = 'pousinox_assistente_msgs'
 const THREADS_KEY = 'pousinox_assistente_threads'
-interface Thread { id: string; title: string; msgs: Msg[]; date: string }
+interface Thread { id: string; title: string; msgs: Msg[]; date: string; activeSources?: string[] }
 
 function newThreadId() { return Date.now().toString() }
 
@@ -669,7 +668,15 @@ export default function AdminAssistente() {
   const [modelo, setModelo] = useState<ModelKey>(() => (localStorage.getItem('assistente_modelo') as ModelKey) || 'auto')
   const [pendingTools, setPendingTools] = useState<{ tools: ToolCall[]; historico: { role: string; content: string }[] } | null>(null)
   const [ragEnabled, setRagEnabled] = useState(() => localStorage.getItem('assistente_rag') === '1')
-  const [activeSources, setActiveSources] = useState<string[]>([])
+  const [activeSources, setActiveSources] = useState<string[]>(() => {
+    const id = loadActiveId()
+    if (id) {
+      const t = loadThreads().find(t => t.id === id)
+      if (t?.activeSources) return t.activeSources
+    }
+    return []
+  })
+  const [threadSources, setThreadSources] = useState<string[]>(activeSources)
   const [userName, setUserName] = useState('')
   const [feedback, setFeedback] = useState<Record<number, 'up' | 'down'>>(() => {
     try { return JSON.parse(localStorage.getItem('assistente_feedback') || '{}') } catch { return {} }
@@ -711,23 +718,25 @@ export default function AdminAssistente() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(msgs))
     if (!activeThreadId || msgs.length === 0) return
     setThreads(prev => {
-      const updated = prev.map(t => t.id === activeThreadId ? { ...t, msgs, date: new Date().toLocaleDateString('pt-BR') } : t)
+      const updated = prev.map(t => t.id === activeThreadId ? { ...t, msgs, activeSources, date: new Date().toLocaleDateString('pt-BR') } : t)
       saveThreads(updated)
       return updated
     })
-  }, [msgs, activeThreadId])
+  }, [msgs, activeThreadId, activeSources])
 
   function novaConversa() {
     // Salvar conversa atual se tiver mensagens e não estiver salva
     if (msgs.length > 0 && !activeThreadId) {
       const firstUser = msgs.find(m => m.role === 'user')
       const title = firstUser ? firstUser.content.slice(0, 50) + (firstUser.content.length > 50 ? '…' : '') : 'Conversa'
-      const thread: Thread = { id: newThreadId(), title, msgs, date: new Date().toLocaleDateString('pt-BR') }
+      const thread: Thread = { id: newThreadId(), title, msgs, activeSources, date: new Date().toLocaleDateString('pt-BR') }
       const updated = [thread, ...threads].slice(0, 30)
       setThreads(updated)
       saveThreads(updated)
     }
     setMsgs([])
+    setActiveSources([])
+    setThreadSources([])
     setActiveThreadId('')
     localStorage.setItem('assistente_active_thread', '')
   }
@@ -738,7 +747,7 @@ export default function AdminAssistente() {
     const firstUser = msgs.find(m => m.role === 'user')
     const title = firstUser ? firstUser.content.slice(0, 50) + (firstUser.content.length > 50 ? '…' : '') : 'Conversa'
     const id = newThreadId()
-    const thread: Thread = { id, title, msgs, date: new Date().toLocaleDateString('pt-BR') }
+    const thread: Thread = { id, title, msgs, activeSources, date: new Date().toLocaleDateString('pt-BR') }
     const updated = [thread, ...threads].slice(0, 30)
     setThreads(updated)
     saveThreads(updated)
@@ -751,12 +760,15 @@ export default function AdminAssistente() {
     if (msgs.length > 0 && !activeThreadId) {
       const firstUser = msgs.find(m => m.role === 'user')
       const title = firstUser ? firstUser.content.slice(0, 50) + (firstUser.content.length > 50 ? '…' : '') : 'Conversa'
-      const thread: Thread = { id: newThreadId(), title, msgs, date: new Date().toLocaleDateString('pt-BR') }
+      const thread: Thread = { id: newThreadId(), title, msgs, activeSources, date: new Date().toLocaleDateString('pt-BR') }
       const updated = [thread, ...threads].slice(0, 30)
       setThreads(updated)
       saveThreads(updated)
     }
     setMsgs(t.msgs)
+    const src = t.activeSources || []
+    setActiveSources(src)
+    setThreadSources(src)
     setActiveThreadId(t.id)
     localStorage.setItem('assistente_active_thread', t.id)
   }
@@ -1059,6 +1071,7 @@ export default function AdminAssistente() {
             onAskQuestion={q => { setInput(q); setMobileTab('chat'); setTimeout(() => inputRef.current?.focus(), 50) }}
             onDocCountChange={setDocCount}
             onActiveSourcesChange={setActiveSources}
+            initialSources={threadSources}
           />
 
           {/* Busca web */}
@@ -1224,7 +1237,7 @@ export default function AdminAssistente() {
                             <RenderResponse text={mainText} onFollowUp={enviar} />
                             {m.rag_sources?.length ? <RAGSources sources={m.rag_sources} /> : null}
                             <div className={s.msgActions}>
-                              <button className={s.msgActionBtn} title="Salvar nas observacoes" onClick={() => { const notas = JSON.parse(localStorage.getItem('studio_notas') || '[]'); notas.unshift({ text: mainText.slice(0, 500), date: new Date().toLocaleString('pt-BR') }); localStorage.setItem('studio_notas', JSON.stringify(notas.slice(0, 30))); }}>
+                              <button className={s.msgActionBtn} title="Salvar nas observações" onClick={() => { const notas = JSON.parse(localStorage.getItem('pousinox_studio_notas') || '[]'); notas.unshift({ id: Date.now().toString(), tipo: 'chat', titulo: 'Resposta do assistente', conteudo: mainText.slice(0, 2000), criado_em: new Date().toLocaleString('pt-BR') }); localStorage.setItem('pousinox_studio_notas', JSON.stringify(notas.slice(0, 30))); }}>
                                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
                                 Salvar nas observacoes
                               </button>

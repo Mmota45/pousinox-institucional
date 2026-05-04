@@ -8,7 +8,7 @@
 import { logUsage } from '../_shared/logUsage.ts'
 
 const ANTHROPIC_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? ''
-const GEMINI_KEY    = Deno.env.get('GEMINI_KEY') ?? ''
+const GEMINI_KEY    = Deno.env.get('GEMINI_KEY') ?? Deno.env.get('GEMINI_API_KEY') ?? ''
 const GROQ_KEY      = Deno.env.get('GROQ_API_KEY') ?? ''
 const CEREBRAS_KEY  = Deno.env.get('CEREBRAS_API_KEY') ?? ''
 const MISTRAL_KEY   = Deno.env.get('MISTRAL_API_KEY') ?? ''
@@ -212,11 +212,16 @@ async function callGemini(
 
   if (!res.ok) {
     const err = await res.text()
-    throw new Error(`Gemini API ${res.status}: ${err}`)
+    console.error('[GEMINI] erro:', res.status, err.slice(0, 300))
+    throw new Error(`Gemini API ${res.status}: ${err.slice(0, 200)}`)
   }
 
   const data = await res.json()
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  if (!text && data.candidates?.[0]?.finishReason === 'SAFETY') {
+    console.warn('[GEMINI] resposta bloqueada por safety filter')
+    throw new Error('Gemini safety filter blocked response')
+  }
   const um = data.usageMetadata
   return {
     content: text,
@@ -430,6 +435,9 @@ REGRA RAG OBRIGATÓRIA — ANTI-ALUCINAÇÃO:
           // Substituir messages por nova array com apenas a mensagem RAG
           while (messages.length > 0) messages.pop()
           messages.push({ role: 'user', content: ragMessage })
+        } else {
+          // RAG ligado mas nenhum documento relevante encontrado
+          sysPrompt += '\n\nNenhum documento relevante foi encontrado na base de conhecimento para esta pergunta. Responda apenas com informações que você tem certeza. Se não souber, diga "Não encontrei informações sobre isso na base de conhecimento." NÃO invente dados, números, listas de produtos ou informações específicas sobre a empresa.'
         }
       }
     } else {
@@ -472,25 +480,24 @@ REGRA RAG OBRIGATÓRIA — ANTI-ALUCINAÇÃO:
       result = await callModel(cfg)
     } catch (err: unknown) {
       const errMsg = String(err)
-      if (errMsg.includes('429') || errMsg.includes('rate_limit')) {
-        // Fallback: gemini primeiro (melhor para RAG), depois cerebras → mistral
-        const fallbacks = ['gemini', 'cerebras', 'mistral'].filter(k => k !== resolvedKey)
-        console.log('[FALLBACK] rate limit em', cfg.id, '→ tentando:', fallbacks)
-        let ok = false
-        for (const fb of fallbacks) {
-          const fbCfg = MODELS[fb]
-          if (!fbCfg || (fbCfg.keyEnv && !Deno.env.get(fbCfg.keyEnv))) continue
-          try {
-            result = await callModel(fbCfg)
-            cfg = fbCfg
-            ok = true
-            console.log('[FALLBACK] sucesso com', fb)
-            break
-          } catch { continue }
-        }
-        if (!ok) throw err
-      } else {
-        throw err
+      console.error('[ERROR] modelo principal falhou:', cfg.id, errMsg.slice(0, 200))
+      // Fallback para qualquer erro (rate limit, safety filter, timeout, etc.)
+      const fallbacks = ['gemini', 'groq', 'mistral'].filter(k => k !== resolvedKey)
+      console.log('[FALLBACK] tentando:', fallbacks)
+      let ok = false
+      for (const fb of fallbacks) {
+        const fbCfg = MODELS[fb]
+        if (!fbCfg || (fbCfg.keyEnv && !Deno.env.get(fbCfg.keyEnv))) continue
+        try {
+          result = await callModel(fbCfg)
+          cfg = fbCfg
+          ok = true
+          console.log('[FALLBACK] sucesso com', fb)
+          break
+        } catch (fbErr) { console.warn('[FALLBACK]', fb, 'falhou:', String(fbErr).slice(0, 100)); continue }
+      }
+      if (!ok) {
+        return jsonRes({ content: 'Todos os modelos falharam. Tente novamente em alguns instantes.', model: 'erro', usage: { input_tokens: 0, output_tokens: 0 } })
       }
     }
 

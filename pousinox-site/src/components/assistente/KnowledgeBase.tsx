@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { supabaseAdmin } from '../../lib/supabase'
 import s from './KnowledgeBase.module.css'
 
@@ -14,6 +14,7 @@ interface Props {
   onAskQuestion?: (q: string) => void
   onDocCountChange?: (count: number) => void
   onActiveSourcesChange?: (sources: string[]) => void
+  initialSources?: string[]
 }
 
 function docIcon(filename: string): string {
@@ -26,7 +27,7 @@ function docIcon(filename: string): string {
   return '📎'
 }
 
-export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, onDocCountChange, onActiveSourcesChange }: Props) {
+export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, onDocCountChange, onActiveSourcesChange, initialSources }: Props) {
   const [docs, setDocs] = useState<DocGroup[]>([])
   const [uploading, setUploading] = useState(false)
   const [progress, setProgress] = useState('')
@@ -61,6 +62,22 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, 
   }, [onDocCountChange])
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
+
+  // Restaurar fontes ao trocar de conversa
+  const prevSourcesRef = useRef<string>('')
+  useEffect(() => {
+    if (!initialSources) return
+    const key = JSON.stringify([...initialSources].sort())
+    if (key === prevSourcesRef.current) return
+    prevSourcesRef.current = key
+    if (initialSources.length === 0 || (docs.length > 0 && initialSources.length === docs.length)) {
+      setSelectAll(true)
+      setSelected(new Set())
+    } else {
+      setSelectAll(false)
+      setSelected(new Set(initialSources))
+    }
+  }, [initialSources])
 
   // Notificar parent das fontes ativas (fora do render)
   useEffect(() => {

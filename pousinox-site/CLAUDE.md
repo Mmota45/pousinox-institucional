@@ -101,7 +101,7 @@ Rotas `/admin/*` com layout próprio (`AdminLayout`). Todos os módulos usam `su
 | `/admin/usuarios` | `AdminUsuarios` | Configuração | ✅ |
 | `/admin/estudo-mercado` | `AdminEstudoMercado` | Comercial | ✅ cruzamento interno×externo, import GKP, score por UF — ver abaixo |
 | `/admin/fixadores` | `AdminFixadores` | Catálogo | ✅ CRUD modelos, regras de cálculo, consumíveis |
-| `/admin/assistente` | `AdminAssistente` | IA | ✅ chat multi-modelo, knowledge base, agentes |
+| `/admin/assistente` | `AdminAssistente` | IA | ✅ chat multi-modelo, knowledge base, RAG anti-alucinação, fontes por thread, feedback 👍👎, studio notas |
 | `/admin/site` | `AdminSite` | Marketing | ✅ CMS páginas e seções do site |
 | `/admin/frete` | `AdminFrete` | Operação | ✅ configuração de frete Correios + Braspress |
 | `/admin/feature-flags` | `AdminFeatureFlags` | Configuração | ✅ flags públicas e internas |

@@ -353,13 +353,15 @@ export default function StudioPanel({ fonteCount, onGenerate, onCollapse, onGuia
           <div className={s.notasTitle}><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{display:'inline-block',verticalAlign:'-2px',marginRight:4}}><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>Notas salvas ({notas.length})</div>
           {notas.map(nota => (
             <div key={nota.id} className={s.notaItem}>
-              <button
+              <div
                 className={s.notaHeader}
+                role="button"
+                tabIndex={0}
                 onClick={() => setExpandedOutput(expandedOutput === `n-${nota.id}` ? null : `n-${nota.id}`)}
               >
                 <span>{CARDS.find(c => c.tipo === nota.tipo)?.icon} {nota.titulo}</span>
                 <button className={s.notaDel} onClick={e => { e.stopPropagation(); excluirNota(nota.id) }}>✕</button>
-              </button>
+              </div>
               {expandedOutput === `n-${nota.id}` && (
                 <div className={s.outputBody}>
                   <div className={s.outputContent}>{nota.conteudo}</div>
