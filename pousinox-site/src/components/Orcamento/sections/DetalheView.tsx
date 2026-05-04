@@ -182,19 +182,7 @@ export default function DetalheView({
           </div>
         )}
 
-        {/* Histórico */}
-        {historico.length > 0 && (
-          <div className={`${styles.detalheCard} ${styles.detalheCardFull}`}>
-            <div className={styles.detalheCardTitle}>Histórico</div>
-            {historico.slice(0, 10).map((h, i) => (
-              <div key={i} className={styles.detalheCampo} style={{ display: 'flex', gap: 8 }}>
-                <span style={{ color: '#94a3b8', fontSize: '0.76rem', minWidth: 100 }}>{fmtDataISO(h.criado_em)}</span>
-                <span>{EVENTO_LABEL[h.evento] ?? h.evento}{h.descricao ? ` — ${h.descricao}` : ''}</span>
-                {h.usuario && <span style={{ color: '#94a3b8', fontSize: '0.76rem' }}>por {h.usuario}</span>}
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Histórico movido para painel direito (CollapsibleSection) */}
       </div>
     </div>
   )

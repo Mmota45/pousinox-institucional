@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 scripts/
+
+# Playwright
+e2e/.auth/
+screenshots/

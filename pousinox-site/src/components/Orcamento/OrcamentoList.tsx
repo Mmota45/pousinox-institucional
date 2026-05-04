@@ -42,7 +42,12 @@ export default function OrcamentoList({
       {/* Header */}
       <div className={s.panelHeader}>
         <span className={s.panelTitle}>Orçamentos</span>
-        <button className={s.btnNovo} onClick={onNovo} style={{ padding: '5px 12px', fontSize: '0.76rem' }}>+ Novo</button>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {lista.length > 0 && (
+            <button className={s.btnMini} onClick={onExportCsv} style={{ fontSize: '0.74rem', padding: '4px 8px' }} title="Exportar CSV">📥</button>
+          )}
+          <button className={s.btnNovo} onClick={onNovo} style={{ padding: '5px 12px', fontSize: '0.76rem' }}>+ Novo</button>
+        </div>
       </div>
 
       {/* Search */}
@@ -56,7 +61,7 @@ export default function OrcamentoList({
       </div>
 
       {/* Filtros */}
-      <div style={{ padding: '6px 10px', display: 'flex', gap: 4, overflowX: 'auto', flexShrink: 0 }}>
+      <div style={{ padding: '6px 10px', display: 'flex', gap: 4, flexWrap: 'wrap', flexShrink: 0 }}>
         {(['todos', 'rascunho', 'enviado', 'aprovado', 'recusado', 'cancelado'] as const).map(st => (
           <button
             key={st}
@@ -67,9 +72,6 @@ export default function OrcamentoList({
             {st === 'todos' ? 'Todos' : STATUS_CFG[st as Status].label}
           </button>
         ))}
-        {lista.length > 0 && (
-          <button className={s.filtroBtn} onClick={onExportCsv} style={{ padding: '4px 8px', fontSize: '0.7rem', minHeight: 26 }}>📥</button>
-        )}
       </div>
 
       {/* Lista */}
@@ -99,12 +101,12 @@ export default function OrcamentoList({
                   <span className={s.listItemData}>{fmtDataISO(o.criado_em)}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 4, marginTop: 4 }} onClick={e => e.stopPropagation()}>
-                  <button className={s.btnMini} onClick={() => onEditar(o.id)} title="Editar" style={{ fontSize: '0.7rem', padding: '3px 6px' }}>✏️</button>
+                  <button className={s.btnMini} onClick={() => onEditar(o.id)} title="Editar" style={{ fontSize: '0.78rem', padding: '4px 8px' }}>✏️</button>
                   {isAdminUser && (
                     <button
                       className={`${s.btnMini} ${s.btnMiniDanger}`}
                       title="Excluir"
-                      style={{ fontSize: '0.7rem', padding: '3px 6px' }}
+                      style={{ fontSize: '0.78rem', padding: '4px 8px' }}
                       onClick={() => { if (window.confirm(`Excluir orçamento ${o.numero}?`)) onExcluir(o.id) }}
                     >🗑</button>
                   )}

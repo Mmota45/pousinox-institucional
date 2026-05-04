@@ -5,7 +5,9 @@
   gap: 10px;
   background: #e0e3e8;
   padding: 10px;
-  height: 100%;
+  /* Compensa padding do .content parent (32px) para ocupar 100% da tela */
+  margin: -32px;
+  height: calc(100vh - 56px); /* 56px = topbar */
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -125,7 +127,9 @@
 @media (max-width: 768px) {
   .hubWrap, .hubWrapListHidden, .hubWrapActionsHidden, .hubWrapBothHidden {
     display: flex; flex-direction: column; padding: 0; gap: 0;
-    height: auto; overflow: auto; grid-template-columns: none;
+    margin: -16px -12px; margin-bottom: -32px;
+    height: calc(100dvh - 56px);
+    overflow: hidden; grid-template-columns: none;
   }
   .mobileTabs { display: flex; }
   .listPanel, .editorPanel, .actionsPanel {

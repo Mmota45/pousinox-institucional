@@ -128,24 +128,26 @@ export default function ResumoSidebar({
         </div>
 
         {/* Ações principais */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           <button className={styles.btnPrimary} onClick={() => onSalvar()} disabled={salvando} style={{ width: '100%' }}>
             {salvando ? 'Salvando...' : '💾 Salvar'}
           </button>
-          <button className={styles.btnImprimir} onClick={onImprimir} style={{ minWidth: 60 }}>
-            🖨️ PDF
-          </button>
-          {onCanva && (
-            <button
-              className={styles.btnImprimir}
-              onClick={onCanva}
-              disabled={gerandoCanva}
-              style={{ minWidth: 60, background: '#7c3aed', color: '#fff', border: 'none' }}
-              title="Gerar proposta visual no Canva"
-            >
-              {gerandoCanva ? '⏳' : '🎨'}
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button className={styles.btnImprimir} onClick={onImprimir} style={{ flex: 1 }}>
+              🖨️ PDF
             </button>
-          )}
+            {onCanva && (
+              <button
+                className={styles.btnImprimir}
+                onClick={onCanva}
+                disabled={gerandoCanva}
+                style={{ flex: 1, background: '#f3f0ff', color: '#7c3aed', borderColor: '#c4b5fd' }}
+                title="Gerar proposta visual no Canva"
+              >
+                {gerandoCanva ? '⏳' : '🎨 Canva'}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Ações de status */}

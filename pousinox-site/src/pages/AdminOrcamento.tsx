@@ -843,17 +843,17 @@ export default function AdminOrcamento() {
         </div>
       )}
 
-      {/* Mobile tabs */}
-      <div className={styles.mobileTabs}>
-        {(['lista', 'editor', 'acoes'] as const).map(tab => (
-          <button key={tab} className={`${styles.mobileTab} ${mobileTab === tab ? styles.mobileTabActive : ''}`}
-            onClick={() => setMobileTab(tab)}>
-            {tab === 'lista' ? 'Lista' : tab === 'editor' ? 'Orçamento' : 'Ações'}
-          </button>
-        ))}
-      </div>
-
       <div className={styles.hubWrap}>
+
+        {/* Mobile tabs */}
+        <div className={styles.mobileTabs}>
+          {(['lista', 'editor', 'acoes'] as const).map(tab => (
+            <button key={tab} className={`${styles.mobileTab} ${mobileTab === tab ? styles.mobileTabActive : ''}`}
+              onClick={() => setMobileTab(tab)}>
+              {tab === 'lista' ? 'Lista' : tab === 'editor' ? 'Orçamento' : 'Ações'}
+            </button>
+          ))}
+        </div>
 
         {/* ═══ LEFT PANEL — Lista ═══ */}
         <div className={`${styles.listPanel} ${mobileTab !== 'lista' ? styles.mobileHidden : ''}`}>
@@ -878,14 +878,14 @@ export default function AdminOrcamento() {
                 {!hasOrcamento ? 'Orçamento' : modoEditor ? (editandoId ? `Editando ${numero}` : 'Novo') : `Detalhe ${numero}`}
               </span>
               {hasOrcamento && !modoEditor && (
-                <button className={styles.btnMini} onClick={() => setModoEditor(true)} title="Editar">✏️</button>
+                <button className={styles.btnMini} onClick={() => setModoEditor(true)} style={{ fontSize: '0.74rem', padding: '4px 10px' }}>✏️ Editar</button>
               )}
               {hasOrcamento && modoEditor && (
-                <button className={styles.btnMini} onClick={() => setModoEditor(false)} title="Ver detalhe">👁</button>
+                <button className={styles.btnMini} onClick={() => setModoEditor(false)} style={{ fontSize: '0.74rem', padding: '4px 10px' }}>👁 Ver</button>
               )}
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className={styles.panelCollapseBtn} onClick={() => setDrawerOpen(true)} title="Config">⚙️</button>
+              <button className={styles.btnMini} onClick={() => setDrawerOpen(true)} style={{ fontSize: '0.74rem', padding: '4px 10px' }}>⚙️ Config</button>
             </div>
           </div>
 
@@ -929,7 +929,7 @@ export default function AdminOrcamento() {
                 </div>
               )}
 
-              <CollapsibleSection title="📋 Emissão" defaultOpen>
+              <CollapsibleSection title="📋 Emissão">
                 <div className={styles.row2}>
                   <div className={styles.fg}>
                     <label>Empresa emissora</label>
@@ -969,12 +969,12 @@ export default function AdminOrcamento() {
                 styles={styles}
               />
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 10px', margin: '8px 0' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                   <input type="checkbox" checked={modoProposta} onChange={e => setModoProposta(e.target.checked)} style={{ width: 18, height: 18 }} />
                   📄 Proposta Comercial
                 </label>
-                {!modoProposta && <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Ative para adicionar seções de apresentação, escopo, cronograma e garantias</span>}
+                {!modoProposta && <span style={{ fontSize: '0.78rem', color: '#94a3b8', flex: '1 1 100%' }}>Ative para adicionar seções de apresentação, escopo, cronograma e garantias</span>}
                 {modoProposta && editandoId && (
                   <CompartilharProposta
                     orcamentoId={editandoId}
@@ -1109,18 +1109,22 @@ export default function AdminOrcamento() {
                 />
 
                 {editandoId && (
-                  <LinksSection
-                    editandoId={editandoId} links={links} gerandoLink={gerandoLink}
-                    novoLinkDest={novoLinkDest} setNovoLinkDest={setNovoLinkDest}
-                    acessosLink={acessosLink} expandedLink={expandedLink}
-                    carregarLinks={carregarLinks} toggleAcessos={toggleAcessos}
-                    gerarLink={gerarLink} desativarLink={desativarLink} linkUrl={linkUrl}
-                    showMsg={showMsg} vendedores={vendedores} vendedorId={vendedorId}
-                    cliente={cliente} numero={numero} styles={styles}
-                  />
+                  <CollapsibleSection title={`🔗 Links ${links.length ? `(${links.length})` : ''}`}>
+                    <LinksSection
+                      editandoId={editandoId} links={links} gerandoLink={gerandoLink}
+                      novoLinkDest={novoLinkDest} setNovoLinkDest={setNovoLinkDest}
+                      acessosLink={acessosLink} expandedLink={expandedLink}
+                      carregarLinks={carregarLinks} toggleAcessos={toggleAcessos}
+                      gerarLink={gerarLink} desativarLink={desativarLink} linkUrl={linkUrl}
+                      showMsg={showMsg} vendedores={vendedores} vendedorId={vendedorId}
+                      cliente={cliente} numero={numero} styles={styles}
+                    />
+                  </CollapsibleSection>
                 )}
 
-                <HistoricoSection historico={historico} styles={styles} />
+                <CollapsibleSection title={`📜 Histórico ${historico.length ? `(${historico.length})` : ''}`}>
+                  <HistoricoSection historico={historico} styles={styles} />
+                </CollapsibleSection>
               </>
             ) : (
               <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem' }}>
