@@ -70,7 +70,7 @@ Rotas `/admin/*` com layout próprio (`AdminLayout`). Todos os módulos usam `su
 | `/admin/pipeline` | `AdminPipeline` | Comercial | ✅ deals, estágios, recebível |
 | `/admin/central-vendas` | `AdminCentralVendas` | Comercial | ✅ scoring on-the-fly, hot list, follow-ups, materiais, dashboard, WhatsApp por segmento, validação Z-API |
 | `/admin/ia` | `AdminIA` | IA | ✅ multi-provider (Groq/Gemini/OpenRouter), busca web (Brave+Serper), consulta DB automática, roteamento inteligente |
-| `/admin/orcamento` | `AdminOrcamento` | Comercial | ✅ hub 3 painéis (lista+editor+ações) |
+| `/admin/orcamento` | `AdminOrcamento` | Comercial | ✅ hub 3 painéis (lista+editor+ações), envio email Brevo + WhatsApp Z-API, monitor acessos proposta/laudos |
 | `/admin/vendas` | `AdminVendas` | Comercial | ✅ |
 | `/admin/clientes` | `AdminClientes` | Comercial | ✅ importação NFSTok + RFM |
 | `/admin/leads` | `AdminLeads` | Marketing | ✅ |
@@ -497,6 +497,24 @@ Inteligência de mercado — cruzamento entre histórico interno (NFs + clientes
 - **Tabelas:** `orcamento_especificacoes` + `orcamento_especificacao_itens`
 - **Preços:** `fixador_modelos.preco_unitario` e `fixador_consumiveis.preco_unitario`
 - **Obs:** coluna `ordem` NÃO existe em `orcamento_especificacao_itens` — usar `order('id')`
+
+## SEO
+
+- **Componente:** `src/components/SEO/SEO.tsx` — Helmet wrapper com LocalBusiness schema, OG, Twitter Cards
+- **FAQ Schema:** Home (5), Sobre (3), Segmentos (2 dinâmicas), Calculadora (10) — via prop `extraSchema`
+- **Product Schema:** Calculadora — fixador como produto com rating e preço
+- **WebApplication Schema:** Calculadora
+- **Sitemap:** `public/sitemap.xml` (25 URLs)
+- **Robots:** `public/robots.txt` (bloqueia `/admin/`)
+- **Skill:** `/radar-seo` — análise automática GSC com classificação de queries e recomendações
+
+## Email e WhatsApp (Orçamento)
+
+- **Edge function:** `enviar-email` — Brevo (email) + Z-API (WhatsApp)
+- **Rate limit:** 15 WhatsApps/dia via `activity_log`
+- **QR calculadora:** incluído automaticamente para segmentos de construção civil
+- **Links:** hardcoded `https://www.pousinox.com.br` (não depende de `window.location.origin`)
+- **DNS Brevo:** SPF + DKIM + DMARC configurados no Wix
 
 ## Comandos
 
