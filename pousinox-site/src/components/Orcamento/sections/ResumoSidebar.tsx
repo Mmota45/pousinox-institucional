@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Save, FileText, Palette, Send, CheckCircle, XCircle, DollarSign, Package, Tag, File, X, Trash2, Loader2, Check, MessageCircle, Eye, Edit3 } from 'lucide-react'
-import type { Status, Instalacao } from '../types'
+import type { Status, Instalacao, OrcLink } from '../types'
 import { fmtBRL, STATUS_CFG } from '../types'
 import type { FreteSummary } from '../../../types/frete'
 import { supabaseAdmin } from '../../../lib/supabase'
@@ -96,6 +96,8 @@ interface Props {
   clienteWhatsapp: string
   enviandoWa: boolean
   onEnviarWhatsApp: () => void
+  // Links proposta
+  links: OrcLink[]
   // Laudos
   laudos: LaudoRef[]
   // Excluir
@@ -116,6 +118,7 @@ export default function ResumoSidebar({
   onGerarEtiqueta, onBaixarRotulo, onBaixarDace, onCancelarEtiqueta,
   clienteEmail, enviandoEmail, onEnviarEmail,
   clienteWhatsapp, enviandoWa, onEnviarWhatsApp,
+  links,
   laudos,
   editandoId, isAdminUser, confirmExcluir, setConfirmExcluir, onExcluir,
   styles,
@@ -270,6 +273,21 @@ export default function ResumoSidebar({
             </button>
           </>}
         </div>
+
+        {/* Proposta — acessos */}
+        {links.filter(l => l.ativo).length > 0 && <>
+          <div className={styles.sidebarDivider} />
+          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: 4 }}>Proposta — Acessos</div>
+          {links.filter(l => l.ativo).map(l => (
+            <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', padding: '4px 0' }}>
+              <Eye size={12} style={{ color: '#2563eb', flexShrink: 0 }} />
+              <span style={{ color: '#2563eb', fontWeight: 600 }}>{l.visualizacoes} views</span>
+              <span style={{ color: '#64748b' }}>·</span>
+              <span style={{ color: '#16a34a', fontWeight: 600 }}>{l.downloads} downloads</span>
+              {l.destinatario && <span style={{ color: '#94a3b8', marginLeft: 'auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{l.destinatario}</span>}
+            </div>
+          ))}
+        </>}
 
         {/* Laudos — acessos */}
         {laudos.length > 0 && <>
