@@ -684,11 +684,13 @@ export default function AdminOrcamento() {
       // Salvar antes de enviar
       await salvar()
       // Gerar link se não existir (com destinatário preenchido)
-      let url = linkUrl(links[0])
+      let url = ''
       if (!links.length) {
         setNovoLinkDest(cliente.empresa || cliente.nome)
         await gerarLink()
         await carregarLinks(editandoId)
+      } else {
+        url = linkUrl(links[0])
       }
       // Pegar link atualizado
       const { data: linkD } = await supabaseAdmin
