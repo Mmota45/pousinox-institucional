@@ -34,6 +34,10 @@ interface Props {
   onBaixarRotulo: () => void
   onBaixarDace: () => void
   onCancelarEtiqueta: () => void
+  // E-mail
+  clienteEmail: string
+  enviandoEmail: boolean
+  onEnviarEmail: () => void
   // Excluir
   editandoId: number | null
   isAdminUser: boolean
@@ -50,6 +54,7 @@ export default function ResumoSidebar({
   finLancId, gerandoRec, onGerarReceivel,
   etiquetaPreId, gerandoEtiq, baixandoRotulo, baixandoDace, cancelandoEtiq,
   onGerarEtiqueta, onBaixarRotulo, onBaixarDace, onCancelarEtiqueta,
+  clienteEmail, enviandoEmail, onEnviarEmail,
   editandoId, isAdminUser, confirmExcluir, setConfirmExcluir, onExcluir,
   styles,
 }: Props) {
@@ -153,7 +158,12 @@ export default function ResumoSidebar({
         {/* Ações de status */}
         <div className={styles.sidebarDivider} />
         <div className={styles.sidebarActions}>
-          {status === 'rascunho' && (
+          {status === 'rascunho' && clienteEmail && (
+            <button className={styles.btnEnviar} onClick={onEnviarEmail} disabled={enviandoEmail || salvando} style={{ width: '100%' }}>
+              {enviandoEmail ? <Loader2 size={15} className="spin" /> : <Send size={15} />} {enviandoEmail ? 'Enviando...' : 'Enviar por E-mail'}
+            </button>
+          )}
+          {status === 'rascunho' && !clienteEmail && (
             <button className={styles.btnEnviar} onClick={() => onSalvar('enviado')} disabled={salvando} style={{ width: '100%' }}>
               <Send size={15} /> Marcar Enviado
             </button>

@@ -112,6 +112,7 @@ export default function AdminOrcamento() {
   const [salvando, setSalvando]     = useState(false)
   const [gerandoRec, setGerandoRec] = useState(false)
   const [gerandoCanva, setGerandoCanva] = useState(false)
+  const [enviandoEmail, setEnviandoEmail] = useState(false)
   const [nomeUsuario, setNomeUsuario] = useState('')
   const [msg, setMsg]               = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const showMsg = useCallback((tipo: 'ok' | 'erro', texto: string) => {
@@ -676,6 +677,61 @@ export default function AdminOrcamento() {
     }
   }
 
+  async function enviarEmail() {
+    if (!editandoId || !cliente.email) return
+    setEnviandoEmail(true)
+    try {
+      // Salvar antes de enviar
+      await salvar()
+      // Gerar link se não existir (com destinatário preenchido)
+      let url = linkUrl(links[0])
+      if (!links.length) {
+        setNovoLinkDest(cliente.empresa || cliente.nome)
+        await gerarLink()
+        await carregarLinks(editandoId)
+      }
+      // Pegar link atualizado
+      const { data: linkD } = await supabaseAdmin
+        .from('orcamento_links').select('token, short_code')
+        .eq('orcamento_id', editandoId).eq('ativo', true).limit(1).maybeSingle()
+      if (linkD) {
+        const l = linkD as any
+        url = l.short_code
+          ? `${window.location.origin}/p/${l.short_code}`
+          : `${window.location.origin}/view/orcamento/${l.token}`
+      }
+
+      // Preparar laudos com links e senhas
+      const laudos = (proposta.laudos || []).map(l => ({
+        nome: l.nome || 'Laudo Técnico',
+        link: `${window.location.origin}/laudo/${l.watermark_id}`,
+        senha: l.senha,
+      }))
+
+      const { data, error } = await supabaseAdmin.functions.invoke('enviar-email', {
+        body: {
+          acao: 'orcamento',
+          para: cliente.email,
+          nome: cliente.empresa || cliente.nome,
+          numero,
+          link: url,
+          vendedor: nomeUsuario,
+          laudos,
+        }
+      })
+      if (error) throw error
+      if (data?.ok) {
+        showMsg('ok', 'E-mail enviado com sucesso!')
+        await salvar('enviado')
+      } else {
+        showMsg('erro', data?.erro || 'Erro ao enviar e-mail')
+      }
+    } catch (e: any) {
+      showMsg('erro', e.message || 'Erro ao enviar e-mail')
+    }
+    setEnviandoEmail(false)
+  }
+
   async function gerarReceivel() {
     if (!editandoId) return
     setGerandoRec(true)
@@ -1103,6 +1159,7 @@ export default function AdminOrcamento() {
                   baixandoRotulo={baixandoRotulo} baixandoDace={baixandoDace} cancelandoEtiq={cancelandoEtiq}
                   onGerarEtiqueta={gerarEtiqueta} onBaixarRotulo={baixarRotulo}
                   onBaixarDace={baixarDace} onCancelarEtiqueta={cancelarEtiqueta}
+                  clienteEmail={cliente.email || ''} enviandoEmail={enviandoEmail} onEnviarEmail={enviarEmail}
                   editandoId={editandoId} isAdminUser={isAdminUser}
                   confirmExcluir={confirmExcluir} setConfirmExcluir={setConfirmExcluir}
                   onExcluir={excluirOrcamento}
