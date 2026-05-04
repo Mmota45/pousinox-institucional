@@ -1,4 +1,4 @@
-import { Save, FileText, Palette, Send, CheckCircle, XCircle, DollarSign, Package, Tag, File, X, Trash2, Loader2, Check } from 'lucide-react'
+import { Save, FileText, Palette, Send, CheckCircle, XCircle, DollarSign, Package, Tag, File, X, Trash2, Loader2, Check, MessageCircle } from 'lucide-react'
 import type { Status, Instalacao } from '../types'
 import { fmtBRL, STATUS_CFG } from '../types'
 import type { FreteSummary } from '../../../types/frete'
@@ -38,6 +38,10 @@ interface Props {
   clienteEmail: string
   enviandoEmail: boolean
   onEnviarEmail: () => void
+  // WhatsApp
+  clienteWhatsapp: string
+  enviandoWa: boolean
+  onEnviarWhatsApp: () => void
   // Excluir
   editandoId: number | null
   isAdminUser: boolean
@@ -55,6 +59,7 @@ export default function ResumoSidebar({
   etiquetaPreId, gerandoEtiq, baixandoRotulo, baixandoDace, cancelandoEtiq,
   onGerarEtiqueta, onBaixarRotulo, onBaixarDace, onCancelarEtiqueta,
   clienteEmail, enviandoEmail, onEnviarEmail,
+  clienteWhatsapp, enviandoWa, onEnviarWhatsApp,
   editandoId, isAdminUser, confirmExcluir, setConfirmExcluir, onExcluir,
   styles,
 }: Props) {
@@ -169,6 +174,11 @@ export default function ResumoSidebar({
             </button>
           )}
           {status === 'enviado' && <>
+            {clienteWhatsapp && (
+              <button className={styles.btnEnviar} onClick={onEnviarWhatsApp} disabled={enviandoWa || salvando} style={{ width: '100%', background: '#25d366', borderColor: '#25d366', color: '#fff' }}>
+                {enviandoWa ? <Loader2 size={15} className="spin" /> : <MessageCircle size={15} />} {enviandoWa ? 'Enviando...' : 'Enviar WhatsApp'}
+              </button>
+            )}
             <button className={styles.btnAprovar} onClick={() => onSalvar('aprovado')} disabled={salvando} style={{ width: '100%' }}>
               <CheckCircle size={15} /> Aprovado
             </button>

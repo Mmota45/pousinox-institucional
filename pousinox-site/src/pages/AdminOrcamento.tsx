@@ -113,6 +113,7 @@ export default function AdminOrcamento() {
   const [gerandoRec, setGerandoRec] = useState(false)
   const [gerandoCanva, setGerandoCanva] = useState(false)
   const [enviandoEmail, setEnviandoEmail] = useState(false)
+  const [enviandoWa, setEnviandoWa] = useState(false)
   const [nomeUsuario, setNomeUsuario] = useState('')
   const [msg, setMsg]               = useState<{ tipo: 'ok' | 'erro'; texto: string } | null>(null)
   const showMsg = useCallback((tipo: 'ok' | 'erro', texto: string) => {
@@ -737,6 +738,57 @@ export default function AdminOrcamento() {
     setEnviandoEmail(false)
   }
 
+  async function enviarWhatsApp() {
+    const wa = cliente.whatsapp || (cliente.telefone_is_whatsapp ? cliente.telefone : '')
+    if (!editandoId || !wa) return
+    setEnviandoWa(true)
+    try {
+      let url = ''
+      if (links.length) {
+        url = linkUrl(links[0])
+      } else {
+        setNovoLinkDest(cliente.empresa || cliente.nome)
+        await gerarLink()
+        await carregarLinks(editandoId)
+      }
+      const { data: linkD } = await supabaseAdmin
+        .from('orcamento_links').select('token, short_code')
+        .eq('orcamento_id', editandoId).eq('ativo', true).limit(1).maybeSingle()
+      if (linkD) {
+        const l = linkD as any
+        url = l.short_code
+          ? `${window.location.origin}/p/${l.short_code}`
+          : `${window.location.origin}/view/orcamento/${l.token}`
+      }
+      const { data, error } = await supabaseAdmin.functions.invoke('enviar-email', {
+        body: {
+          acao: 'orcamento',
+          para: '',
+          nome: cliente.nome || '',
+          empresa: cliente.empresa || '',
+          numero,
+          link: url,
+          vendedor: nomeUsuario,
+          whatsapp: wa,
+          laudos: (proposta.laudos || []).map(l => ({
+            nome: l.nome || 'Laudo Técnico',
+            link: `${window.location.origin}/laudo/${l.watermark_id}`,
+            senha: l.senha,
+          })),
+        }
+      })
+      if (error) throw error
+      if (data?.whatsapp_enviado) {
+        showMsg('ok', 'WhatsApp enviado com sucesso!')
+      } else {
+        showMsg('erro', data?.erro || 'Erro ao enviar WhatsApp')
+      }
+    } catch (e: any) {
+      showMsg('erro', e.message || 'Erro ao enviar WhatsApp')
+    }
+    setEnviandoWa(false)
+  }
+
   async function gerarReceivel() {
     if (!editandoId) return
     setGerandoRec(true)
@@ -1165,6 +1217,7 @@ export default function AdminOrcamento() {
                   onGerarEtiqueta={gerarEtiqueta} onBaixarRotulo={baixarRotulo}
                   onBaixarDace={baixarDace} onCancelarEtiqueta={cancelarEtiqueta}
                   clienteEmail={cliente.email || ''} enviandoEmail={enviandoEmail} onEnviarEmail={enviarEmail}
+                  clienteWhatsapp={cliente.whatsapp || (cliente.telefone_is_whatsapp ? cliente.telefone : '') || ''} enviandoWa={enviandoWa} onEnviarWhatsApp={enviarWhatsApp}
                   editandoId={editandoId} isAdminUser={isAdminUser}
                   confirmExcluir={confirmExcluir} setConfirmExcluir={setConfirmExcluir}
                   onExcluir={excluirOrcamento}
