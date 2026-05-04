@@ -480,6 +480,23 @@ Inteligência de mercado — cruzamento entre histórico interno (NFs + clientes
 | `/laudo/:id` | `LaudoAcesso` | Acesso protegido a laudo técnico |
 | `/proposta/:id` | `PropostaAcesso` | Acesso público a proposta comercial |
 | `/print/especificacao/:id` | `PrintEspecificacao` | PDF especificação de materiais |
+| `/print/orcamento/:id` | `PrintOrcamento` | PDF orçamento com especificação técnica, preços estimados, DiagramaFixador e QR code |
+
+## Componentes Reutilizáveis
+
+| Componente | Localização | Descrição |
+|---|---|---|
+| `DiagramaFixador` | `src/components/DiagramaFixador/DiagramaFixador.tsx` | SVG posicionamento dos grampos. Props: `fixadoresPorPeca`, `larguraCm`, `alturaCm`, `larguraFixadorMm?`, `label?` |
+| `LaudoProtegido` | `src/components/LaudoProtegido/LaudoProtegido.tsx` | Gerador de laudo protegido com watermark. Suporta multi-select e merge de PDFs. Props: `multi?`, `onGerado` |
+
+## Especificação Técnica de Materiais
+
+- **Cálculo:** `src/lib/calcularEspecificacao.ts` — fórmula dinâmica de consumíveis calibrada com dados de campo
+- **Hook:** `src/components/Orcamento/hooks/useEspecificacao.ts` — suporta múltiplas medidas por orçamento
+- **Tipos:** `src/components/Orcamento/especificacaoTypes.ts`
+- **Tabelas:** `orcamento_especificacoes` + `orcamento_especificacao_itens`
+- **Preços:** `fixador_modelos.preco_unitario` e `fixador_consumiveis.preco_unitario`
+- **Obs:** coluna `ordem` NÃO existe em `orcamento_especificacao_itens` — usar `order('id')`
 
 ## Comandos
 

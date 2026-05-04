@@ -1,4 +1,4 @@
-import { Save, FileText, Palette, Send, CheckCircle, XCircle, DollarSign, Package, Tag, File, X, Trash2, Loader2 } from 'lucide-react'
+import { Save, FileText, Palette, Send, CheckCircle, XCircle, DollarSign, Package, Tag, File, X, Trash2, Loader2, Check } from 'lucide-react'
 import type { Status, Instalacao } from '../types'
 import { fmtBRL, STATUS_CFG } from '../types'
 import type { FreteSummary } from '../../../types/frete'
@@ -173,7 +173,7 @@ export default function ResumoSidebar({
             </button>
           )}
           {status === 'aprovado' && finLancId && (
-            <span className={styles.receivelOk} style={{ textAlign: 'center', display: 'block' }}>✓ Recebível #{finLancId}</span>
+            <span className={styles.receivelOk} style={{ textAlign: 'center', display: 'block' }}><Check size={13} style={{ verticalAlign: 'middle' }} /> Recebível #{finLancId}</span>
           )}
 
           {status === 'aprovado' && !etiquetaPreId && (

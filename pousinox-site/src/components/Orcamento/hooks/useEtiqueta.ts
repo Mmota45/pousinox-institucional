@@ -83,7 +83,7 @@ export function useEtiqueta(params: UseEtiquetaParams) {
 
       setEtiquetaPreId(idPre)
       await supabaseAdmin.from('orcamentos').update({ etiqueta_pre_id: idPre }).eq('id', editandoId)
-      showMsg('ok', `Pré-postagem criada! Clique em "🏷 Baixar Rótulo" para imprimir a etiqueta.`)
+      showMsg('ok', `Pré-postagem criada! Clique em "Baixar Rótulo" para imprimir a etiqueta.`)
 
       await supabaseAdmin.from('orcamentos_historico').insert({ orcamento_id: editandoId, evento: 'etiqueta_gerada', descricao: `ID Correios: ${idPre}`, usuario: nomeUsuario || null })
       const { data: hd } = await supabaseAdmin.from('orcamentos_historico').select('*').eq('orcamento_id', editandoId).order('criado_em', { ascending: false })

@@ -14,6 +14,9 @@ export interface FixadorModelo {
   laudo_laboratorio: string | null
   laudo_data: string | null
   laudo_resumo: string | null
+  largura_mm: number | null
+  comprimento_mm: number | null
+  abertura_aba_mm: number | null
 }
 
 export interface RegraCalculo {

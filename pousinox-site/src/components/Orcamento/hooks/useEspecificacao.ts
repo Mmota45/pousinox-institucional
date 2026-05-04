@@ -21,10 +21,13 @@ export function useEspecificacao({ orcamentoId, onItensAdded }: UseEspecificacao
   const [modelos, setModelos] = useState<FixadorModelo[]>([])
   const [regras, setRegras] = useState<RegraCalculo[]>(REGRAS_PADRAO)
   const [consumiveis, setConsumiveis] = useState<Consumivel[]>(CONSUMIVEIS_PADRAO)
-  const [especSalva, setEspecSalva] = useState<EspecificacaoSalva | null>(null)
+  const [especsSalvas, setEspecsSalvas] = useState<EspecificacaoSalva[]>([])
   const [resultado, setResultado] = useState<ResultadoEspecificacao | null>(null)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
+
+  // Compat: single especSalva (última editada ou null)
+  const especSalva = especsSalvas.length > 0 ? especsSalvas[especsSalvas.length - 1] : null
 
   // Carregar dados de referência
   useEffect(() => {
@@ -36,34 +39,47 @@ export function useEspecificacao({ orcamentoId, onItensAdded }: UseEspecificacao
       ])
       if (mRes.data) setModelos(mRes.data)
       if (rRes.data?.length) setRegras(rRes.data)
-      if (cRes.data?.length) setConsumiveis(cRes.data)
+      if (cRes.data?.length) {
+        // Deduplicar por tipo base (ex: "Bucha prego 6x38" e "Bucha" → manter só o primeiro)
+        const seen = new Set<string>()
+        setConsumiveis(cRes.data.filter(c => {
+          const base = c.nome.toLowerCase().split(/[\s(]/)[0] // primeira palavra: "bucha", "adesivo", "disco", "broca", "fixador", "parafuso"
+          if (seen.has(c.nome)) return false
+          if (seen.has(base) && c.tipo === 'consumivel') return false
+          seen.add(c.nome)
+          seen.add(base)
+          return true
+        }))
+      }
     }
     load()
   }, [])
 
-  // Carregar especificação existente do orçamento
+  // Carregar todas as especificações do orçamento
   useEffect(() => {
     if (!orcamentoId) return
-    async function loadEspec() {
+    async function loadEspecs() {
       const { data } = await supabaseAdmin
         .from('orcamento_especificacoes')
         .select('*')
         .eq('orcamento_id', orcamentoId)
-        .order('criado_em', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (data) {
-        setEspecSalva(data)
-        // Carregar itens
-        const { data: itens } = await supabaseAdmin
+        .order('criado_em', { ascending: true })
+      if (data && data.length > 0) {
+        // Carregar itens de todas as especificações
+        const ids = data.map(d => d.id)
+        const { data: todosItens } = await supabaseAdmin
           .from('orcamento_especificacao_itens')
-          .select('nome, quantidade, unidade, tipo')
-          .eq('especificacao_id', data.id)
+          .select('especificacao_id, nome, quantidade, unidade, tipo')
+          .in('especificacao_id', ids)
           .order('criado_em')
-        if (itens) setEspecSalva(prev => prev ? { ...prev, itens } : prev)
+        const especsCompletas = data.map(d => ({
+          ...d,
+          itens: (todosItens || []).filter(it => it.especificacao_id === d.id),
+        }))
+        setEspecsSalvas(especsCompletas)
       }
     }
-    loadEspec()
+    loadEspecs()
   }, [orcamentoId])
 
   const calcular = useCallback((input: EspecificacaoInput) => {
@@ -76,13 +92,12 @@ export function useEspecificacao({ orcamentoId, onItensAdded }: UseEspecificacao
     return res
   }, [regras, consumiveis])
 
-  const salvar = useCallback(async (input: EspecificacaoInput, res: ResultadoEspecificacao) => {
+  const salvar = useCallback(async (input: EspecificacaoInput, res: ResultadoEspecificacao, editId?: number) => {
     if (!orcamentoId) { setErro('Salve o orçamento antes.'); return null }
     setLoading(true)
     setErro(null)
 
     try {
-      // Upsert especificação
       const payload = {
         orcamento_id: orcamentoId,
         modelo_id: input.modelo_id || null,
@@ -102,14 +117,13 @@ export function useEspecificacao({ orcamentoId, onItensAdded }: UseEspecificacao
       }
 
       let especId: number
-      if (especSalva?.id) {
+      if (editId) {
         const { error } = await supabaseAdmin
           .from('orcamento_especificacoes')
           .update(payload)
-          .eq('id', especSalva.id)
+          .eq('id', editId)
         if (error) throw error
-        especId = especSalva.id
-        // Limpar itens antigos
+        especId = editId
         await supabaseAdmin.from('orcamento_especificacao_itens').delete().eq('especificacao_id', especId)
       } else {
         const { data, error } = await supabaseAdmin
@@ -131,7 +145,12 @@ export function useEspecificacao({ orcamentoId, onItensAdded }: UseEspecificacao
       }))
       await supabaseAdmin.from('orcamento_especificacao_itens').insert(itensPayload)
 
-      setEspecSalva({ ...payload, id: especId, criado_em: new Date().toISOString(), itens: res.itens } as EspecificacaoSalva)
+      const novaEspec = { ...payload, id: especId, criado_em: new Date().toISOString(), itens: res.itens } as EspecificacaoSalva
+      setEspecsSalvas(prev => {
+        const idx = prev.findIndex(e => e.id === especId)
+        if (idx >= 0) return prev.map((e, i) => i === idx ? novaEspec : e)
+        return [...prev, novaEspec]
+      })
       return especId
     } catch (err) {
       setErro((err as Error).message)
@@ -139,7 +158,7 @@ export function useEspecificacao({ orcamentoId, onItensAdded }: UseEspecificacao
     } finally {
       setLoading(false)
     }
-  }, [orcamentoId, especSalva])
+  }, [orcamentoId])
 
   const adicionarAoOrcamento = useCallback((res: ResultadoEspecificacao, modelo?: FixadorModelo) => {
     const novosItens: Item[] = res.itens.map(it => ({
@@ -151,7 +170,7 @@ export function useEspecificacao({ orcamentoId, onItensAdded }: UseEspecificacao
       unidade: it.unidade,
       valorUnit: '',
       obs_tecnica: it.tipo === 'fixador' && res.revisao_tecnica
-        ? `⚠️ Revisão técnica: ${res.revisao_motivos.join('; ')}`
+        ? `Revisão técnica: ${res.revisao_motivos.join('; ')}`
         : undefined,
     }))
 
@@ -159,16 +178,31 @@ export function useEspecificacao({ orcamentoId, onItensAdded }: UseEspecificacao
     return novosItens
   }, [onItensAdded])
 
+  const removerEspec = useCallback(async (especId: number) => {
+    setLoading(true)
+    try {
+      await supabaseAdmin.from('orcamento_especificacao_itens').delete().eq('especificacao_id', especId)
+      await supabaseAdmin.from('orcamento_especificacoes').delete().eq('id', especId)
+      setEspecsSalvas(prev => prev.filter(e => e.id !== especId))
+    } catch (err) {
+      setErro((err as Error).message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   return {
     modelos,
     regras,
     consumiveis,
     resultado,
     especSalva,
+    especsSalvas,
     loading,
     erro,
     calcular,
     salvar,
+    removerEspec,
     adicionarAoOrcamento,
     setResultado,
     setErro,

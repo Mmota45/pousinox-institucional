@@ -1,4 +1,4 @@
-import { MessageCircle, Smartphone, Monitor } from 'lucide-react'
+import { MessageCircle, Link, RefreshCw, Eye, Download, ChevronDown, ChevronRight, ClipboardCopy, Mail, X, Info } from 'lucide-react'
 import type { OrcLink, Vendedor, ClienteInfo } from '../types'
 
 interface Props {
@@ -33,8 +33,8 @@ export default function LinksSection({
       <div className={styles.sectionTitle}>Links de Rastreamento</div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
         <input className={styles.input} style={{ flex: 1 }} placeholder="Destinatário (ex: João — Construtora ABC)" value={novoLinkDest} onChange={e => setNovoLinkDest(e.target.value)} />
-        <button className={styles.btnAddItem} onClick={gerarLink} disabled={gerandoLink}>{gerandoLink ? '...' : '🔗 Gerar link'}</button>
-        <button className={styles.btnSecondary} onClick={() => editandoId && carregarLinks(editandoId)} title="Atualizar contadores">↻</button>
+        <button className={styles.btnAddItem} onClick={gerarLink} disabled={gerandoLink}>{gerandoLink ? '...' : <><Link size={14} /> Gerar link</>}</button>
+        <button className={styles.btnSecondary} onClick={() => editandoId && carregarLinks(editandoId)} title="Atualizar contadores"><RefreshCw size={14} /></button>
       </div>
       {links.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -45,15 +45,15 @@ export default function LinksSection({
                   <span style={{ fontWeight: 600, color: '#1e293b' }}>{l.destinatario || '— Sem destinatário —'}</span>
                   {!l.ativo && <span style={{ marginLeft: 6, color: '#94a3b8' }}>(inativo)</span>}
                   <div style={{ color: '#64748b', marginTop: 2 }}>
-                    {l.visualizacoes > 0 ? `👁 ${l.visualizacoes} visualiz. · ` : ''}
-                    {l.downloads > 0 ? `⬇️ ${l.downloads} download(s) · ` : ''}
+                    {l.visualizacoes > 0 ? <><Eye size={12} /> {l.visualizacoes} visualiz. · </> : ''}
+                    {l.downloads > 0 ? <><Download size={12} /> {l.downloads} download(s) · </> : ''}
                     {l.primeiro_acesso ? `1º acesso: ${new Date(l.primeiro_acesso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}` : 'Nunca acessado'}
                     {l.visualizacoes > 0 && (
                       <span
                         style={{ marginLeft: 8, cursor: 'pointer', color: '#3b82f6', textDecoration: 'underline' }}
                         onClick={() => toggleAcessos(l.id)}
                       >
-                        {expandedLink === l.id ? '▾ ocultar detalhes' : '▸ ver por IP'}
+                        {expandedLink === l.id ? <><ChevronDown size={12} /> ocultar detalhes</> : <><ChevronRight size={12} /> ver por IP</>}
                       </span>
                     )}
                   </div>
@@ -96,7 +96,7 @@ export default function LinksSection({
                     <>
                       <button className={styles.btnAddItem} style={{ padding: '3px 10px', fontSize: '0.72rem' }}
                         onClick={() => { navigator.clipboard.writeText(linkUrl(l)); showMsg('ok', 'Link copiado!') }}>
-                        📋 Copiar
+                        <ClipboardCopy size={14} /> Copiar
                       </button>
                       {(() => {
                         const vend = vendedores.find(v => v.id === vendedorId)
@@ -122,12 +122,12 @@ export default function LinksSection({
                             </a>
                             <a href={`mailto:${l.destinatario ?? ''}?subject=${encodeURIComponent(`Orçamento ${numero} — Pousinox`)}&body=${encodeURIComponent(corpo(assinaturaEmail))}`}
                               className={styles.btnAddItem} style={{ padding: '3px 10px', fontSize: '0.72rem', textDecoration: 'none' }}>
-                              ✉️ E-mail
+                              <Mail size={14} /> E-mail
                             </a>
                           </>
                         )
                       })()}
-                      <button className={styles.btnRemoveItem} onClick={() => desativarLink(l.id)} title="Desativar link">✕</button>
+                      <button className={styles.btnRemoveItem} onClick={() => desativarLink(l.id)} title="Desativar link"><X size={14} /></button>
                     </>
                   )}
                 </div>
@@ -138,7 +138,7 @@ export default function LinksSection({
         </div>
       )}
       <div style={{ fontSize: '0.70rem', color: '#94a3b8', marginTop: 6 }}>
-        ℹ️ Cada link é único por destinatário. O rastreamento registra acessos via link — PDFs baixados offline não são rastreados.
+        <Info size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Cada link é único por destinatário. O rastreamento registra acessos via link — PDFs baixados offline não são rastreados.
       </div>
     </div>
   )

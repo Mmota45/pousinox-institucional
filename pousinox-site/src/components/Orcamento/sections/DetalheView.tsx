@@ -1,3 +1,4 @@
+import { Pencil, FileText, Check, Paperclip } from 'lucide-react'
 import type {
   EmpresaEmissora, Vendedor, Item, Instalacao, DadoBancario,
   Anexo, HistoricoItem, Status,
@@ -58,8 +59,8 @@ export default function DetalheView({
           <span className={styles.statusBadge} style={{ background: cfg?.cor + '22', color: cfg?.cor }}>{cfg?.label}</span>
         </div>
         <div className={styles.detalheActions}>
-          <button className={styles.btnPrimary} onClick={onEditar}>✏️ Editar</button>
-          <button className={styles.btnImprimir} onClick={onImprimir}>🖨 PDF</button>
+          <button className={styles.btnPrimary} onClick={onEditar}><Pencil size={13} /> Editar</button>
+          <button className={styles.btnImprimir} onClick={onImprimir}><FileText size={13} /> PDF</button>
         </div>
       </div>
 
@@ -167,7 +168,7 @@ export default function DetalheView({
             <div className={styles.detalheCardTitle}>Anexos ({anexos.length})</div>
             {anexos.map(a => (
               <div key={a.id ?? a.nome} className={styles.detalheCampo}>
-                <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>📎 {a.nome}</a>
+                <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}><Paperclip size={12} /> {a.nome}</a>
                 {a.tamanho && <span style={{ color: '#94a3b8', fontSize: '0.76rem', marginLeft: 6 }}>{(a.tamanho / 1024).toFixed(0)} KB</span>}
               </div>
             ))}
@@ -178,7 +179,7 @@ export default function DetalheView({
         {finLancId && (
           <div className={styles.detalheCard}>
             <div className={styles.detalheCardTitle}>Financeiro</div>
-            <div className={styles.detalheCampo} style={{ color: '#16a34a', fontWeight: 600 }}>✓ Recebível #{finLancId} vinculado</div>
+            <div className={styles.detalheCampo} style={{ color: '#16a34a', fontWeight: 600 }}><Check size={13} style={{ verticalAlign: 'middle' }} /> Recebível #{finLancId} vinculado</div>
           </div>
         )}
 

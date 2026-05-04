@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ChevronUp, ChevronDown } from 'lucide-react'
 import type { HistoricoItem } from '../types'
 import { EVENTO_LABEL } from '../types'
 
@@ -44,7 +45,7 @@ export default function HistoricoSection({ historico, styles }: Props) {
       {grupos.length > 5 && (
         <button type="button" onClick={() => setVerTodo(v => !v)}
           style={{ marginTop: 8, fontSize: '0.78rem', color: '#1a5fa8', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>
-          {verTodo ? '▲ Ver menos' : `▼ Ver histórico completo (${grupos.length} entradas)`}
+          {verTodo ? <><ChevronUp size={13} /> Ver menos</> : <><ChevronDown size={13} /> Ver histórico completo ({grupos.length} entradas)</>}
         </button>
       )}
     </div>

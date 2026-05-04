@@ -51,11 +51,10 @@ export const REGRAS_PADRAO: RegraCalculo[] = [
 
 export const CONSUMIVEIS_PADRAO: Consumivel[] = [
   { id: 1, nome: 'Fixador / Grampo', tipo: 'fixador', unidade: 'UN', proporcao_por: 1, ordem: 1 },
-  { id: 2, nome: 'Parafuso', tipo: 'consumivel', unidade: 'UN', proporcao_por: 1, ordem: 2 },
-  { id: 3, nome: 'Bucha', tipo: 'consumivel', unidade: 'UN', proporcao_por: 1, ordem: 3 },
-  { id: 4, nome: 'Adesivo PU/MS', tipo: 'consumivel', unidade: 'UN', proporcao_por: 90, ordem: 4 },
-  { id: 5, nome: 'Disco de Corte', tipo: 'consumivel', unidade: 'UN', proporcao_por: 120, ordem: 5 },
-  { id: 6, nome: 'Broca', tipo: 'consumivel', unidade: 'UN', proporcao_por: 150, ordem: 6 },
+  { id: 2, nome: 'Bucha prego 6x38', tipo: 'consumivel', unidade: 'UN', proporcao_por: 1, ordem: 2 },
+  { id: 3, nome: 'Adesivo PU/MS', tipo: 'consumivel', unidade: 'UN', proporcao_por: 78, ordem: 3 },
+  { id: 4, nome: 'Disco de Corte', tipo: 'consumivel', unidade: 'UN', proporcao_por: 87, ordem: 4 },
+  { id: 5, nome: 'Broca', tipo: 'consumivel', unidade: 'UN', proporcao_por: 116, ordem: 5 },
 ]
 
 // ── Engine ───────────────────────────────────────────────────────────────────
@@ -151,27 +150,47 @@ export function calcularEspecificacao(
     revisao_motivos.push('Espessura não informada para peça pesada')
   }
   if (input.revisao_manual) {
-    revisao_motivos.push('Revisão técnica marcada manualmente')
+    revisao_motivos.push('Revisão do responsável técnico recomendada')
   }
 
   const revisao_tecnica = revisao_motivos.length > 0
 
   // 6. Itens derivados
-  const itens: ItemCalculado[] = consumiveis
-    .filter(c => c.tipo !== 'acessorio')
+  // Proporção dinâmica: ratio = base + coef × total_fixadores
+  // Calibrado com dados de campo (2 pontos: 698 e 2520 fixadores)
+  const PROPORCAO_DINAMICA: Array<{ match: RegExp; base: number; coef: number }> = [
+    { match: /pu|adesivo/i,  base: 72.85, coef: 0.00681 },
+    { match: /disco/i,       base: 74.70, coef: 0.01798 },
+    { match: /broca/i,       base: 104.08, coef: 0.01751 },
+  ]
+
+  // Fixador como primeiro item
+  const itensFixador: ItemCalculado[] = [
+    { nome: 'Fixador / Grampo', quantidade: total_fixadores, unidade: 'UN', tipo: 'fixador' },
+  ]
+  const itensConsumiveis: ItemCalculado[] = consumiveis
+    .filter(c => c.tipo !== 'acessorio' && c.tipo !== 'fixador')
     .sort((a, b) => a.ordem - b.ordem)
-    .map(c => ({
-      nome: c.nome,
-      quantidade: c.proporcao_por === 1
-        ? total_fixadores
-        : Math.ceil(total_fixadores / c.proporcao_por),
-      unidade: c.unidade,
-      tipo: c.tipo,
-    }))
+    .map(c => {
+      let quantidade: number
+      if (c.proporcao_por === 1) {
+        quantidade = total_fixadores
+      } else {
+        const dinamico = PROPORCAO_DINAMICA.find(d => d.match.test(c.nome))
+        if (dinamico) {
+          const ratio = dinamico.base + dinamico.coef * total_fixadores
+          quantidade = Math.round(total_fixadores / ratio)
+        } else {
+          quantidade = Math.round(total_fixadores / c.proporcao_por)
+        }
+      }
+      return { nome: c.nome, quantidade, unidade: c.unidade, tipo: c.tipo }
+    })
+  const itens = [...itensFixador, ...itensConsumiveis]
 
   // 7. Status
   const status = revisao_motivos.some(m =>
-    m.includes('fora da faixa') || m.includes('manualmente')
+    m.includes('fora da faixa') || m.includes('manualmente') || m.includes('responsável técnico')
   )
     ? 'revisao' as const
     : revisao_tecnica

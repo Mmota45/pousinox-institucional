@@ -4,6 +4,7 @@
  */
 
 import { useState } from 'react'
+import { Lock, CheckCircle, ClipboardCopy, Check, AlertTriangle, X } from 'lucide-react'
 import { supabaseAdmin } from '../../lib/supabase'
 
 interface Props {
@@ -93,7 +94,7 @@ export default function CompartilharProposta({ orcamentoId, empresa, cnpj, conta
   return (
     <>
       <button onClick={() => setAberto(true)} type="button" style={btnMain}>
-        🔒 Compartilhar Proposta Protegida
+        <Lock size={14} /> Compartilhar Proposta Protegida
       </button>
 
       {aberto && (
@@ -101,9 +102,9 @@ export default function CompartilharProposta({ orcamentoId, empresa, cnpj, conta
           <div style={modal} onClick={e => e.stopPropagation()}>
             <div style={modalHeader}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#1a1a2e', margin: 0 }}>
-                {resultado ? '✅ Link Gerado' : '🔒 Compartilhar Proposta Protegida'}
+                {resultado ? <><CheckCircle size={16} /> Link Gerado</> : <><Lock size={16} /> Compartilhar Proposta Protegida</>}
               </h3>
-              <button onClick={fechar} style={btnClose}>✕</button>
+              <button onClick={fechar} style={btnClose}><X size={16} /></button>
             </div>
 
             {resultado ? (
@@ -116,7 +117,7 @@ export default function CompartilharProposta({ orcamentoId, empresa, cnpj, conta
                   <span style={labelSm}>Link de acesso:</span>
                   <div style={rowCopy}>
                     <code style={codeBox}>{resultado.link}</code>
-                    <button style={btnCopiar} onClick={() => copiar('link')}>{copiado === 'link' ? '✓' : '📋'}</button>
+                    <button style={btnCopiar} onClick={() => copiar('link')}>{copiado === 'link' ? <Check size={14} /> : <ClipboardCopy size={14} />}</button>
                   </div>
                 </div>
 
@@ -124,7 +125,7 @@ export default function CompartilharProposta({ orcamentoId, empresa, cnpj, conta
                   <span style={labelSm}>Senha:</span>
                   <div style={rowCopy}>
                     <code style={codeBox}>{resultado.senha}</code>
-                    <button style={btnCopiar} onClick={() => copiar('senha')}>{copiado === 'senha' ? '✓' : '📋'}</button>
+                    <button style={btnCopiar} onClick={() => copiar('senha')}>{copiado === 'senha' ? <Check size={14} /> : <ClipboardCopy size={14} />}</button>
                   </div>
                 </div>
 
@@ -133,7 +134,7 @@ export default function CompartilharProposta({ orcamentoId, empresa, cnpj, conta
                   <span>Max acessos: {resultado.max_downloads}</span>
                 </div>
 
-                <div style={avisoSenha}>⚠️ A senha não será exibida novamente. Anote ou compartilhe agora.</div>
+                <div style={avisoSenha}><AlertTriangle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> A senha não será exibida novamente. Anote ou compartilhe agora.</div>
               </div>
             ) : (
               <>
@@ -196,7 +197,7 @@ export default function CompartilharProposta({ orcamentoId, empresa, cnpj, conta
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
                   <button onClick={fechar} style={btnCancel}>Cancelar</button>
                   <button onClick={gerar} disabled={gerando} style={btnConfirm}>
-                    {gerando ? 'Gerando…' : '🔒 Gerar Link Protegido'}
+                    {gerando ? 'Gerando…' : <><Lock size={14} /> Gerar Link Protegido</>}
                   </button>
                 </div>
               </>

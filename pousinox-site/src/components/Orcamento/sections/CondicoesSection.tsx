@@ -1,4 +1,4 @@
-import { Settings } from 'lucide-react'
+import { Settings, DollarSign } from 'lucide-react'
 import CollapsibleSection from '../../CollapsibleSection/CollapsibleSection'
 import type { DadoBancario } from '../types'
 import { COND_PAGAMENTO, formatarDadoBancario } from '../types'
@@ -16,6 +16,8 @@ interface Props {
   validadeDias: string
   setValidadeDias: (v: string) => void
   dataEmissao: string
+  observacoes: string
+  setObservacoes: (v: string) => void
   onOpenConfig: () => void
   styles: Record<string, string>
 }
@@ -23,10 +25,10 @@ interface Props {
 export default function CondicoesSection({
   condicoes, setCondicoes, dadosBancarios, dadosBancariosSel, setDadosBancariosSel,
   dadosPagamento, setDadosPagamento, prazoEntrega, setPrazoEntrega,
-  validadeDias, setValidadeDias, dataEmissao, onOpenConfig, styles,
+  validadeDias, setValidadeDias, dataEmissao, observacoes, setObservacoes, onOpenConfig, styles,
 }: Props) {
   return (
-    <CollapsibleSection title="💰 Condições Comerciais">
+    <CollapsibleSection title={<><DollarSign size={16} /> Condições Comerciais</>}>
       <div className={styles.fg}>
         <label>Pagamento <span style={{ fontWeight: 400, color: '#64748b', fontSize: '0.78em' }}>(selecione uma ou mais)</span></label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', marginTop: 4 }}>
@@ -95,6 +97,12 @@ export default function CondicoesSection({
       <div className={styles.row2}>
         <div className={styles.fg}><label>Validade (dias)</label><input className={styles.input} type="number" min="1" value={validadeDias} onChange={e => setValidadeDias(e.target.value)} /></div>
         <div className={styles.fg}><label>Emissão</label><input className={styles.input} value={dataEmissao} readOnly style={{ background: '#f8fafc' }} /></div>
+      </div>
+      <div className={styles.fg}>
+        <label>Observações</label>
+        <textarea className={`${styles.input} ${styles.textarea}`} rows={3}
+          placeholder="Ex: Os itens e valores serão incluídos após retorno das especificações validadas pelo responsável técnico..."
+          value={observacoes} onChange={e => setObservacoes(e.target.value)} />
       </div>
     </CollapsibleSection>
   )

@@ -11,6 +11,8 @@
 
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { Lock, Unlock, ShieldCheck, Microscope, Ruler, ExternalLink } from 'lucide-react'
+import DiagramaFixador from '../components/DiagramaFixador/DiagramaFixador'
 import { supabaseAdmin } from '../lib/supabase'
 
 interface OrcResult {
@@ -18,6 +20,7 @@ interface OrcResult {
   itens: any[]
   anexos: any[]
   dados_bancarios: any[]
+  especificacao: any | null
   watermark: { empresa: string; cnpj: string; watermark_id: string }
   downloads_restantes: number
 }
@@ -71,11 +74,11 @@ export default function PropostaAcesso() {
               placeholder="Senha de acesso" style={inputStyle} autoFocus disabled={loading} />
             {erro && <p style={erroStyle}>{erro}</p>}
             <button type="submit" style={btnStyle} disabled={loading}>
-              {loading ? 'Verificando…' : '🔓 Acessar Proposta'}
+              {loading ? 'Verificando…' : <><Unlock size={16} /> Acessar Proposta</>}
             </button>
           </form>
           <p style={footerText}>
-            🔒 Documento confidencial com marca d'água rastreável.<br />O acesso é registrado e auditável.
+            <Lock size={12} style={{ verticalAlign: 'middle' }} /> Documento confidencial com marca d'água rastreável.<br />O acesso é registrado e auditável.
           </p>
           <div style={footer}>
             <span>pousinox.com.br</span>
@@ -127,7 +130,7 @@ export default function PropostaAcesso() {
 
       {/* Banner de aviso */}
       <div style={avisoBanner}>
-        🔒 Documento protegido — Destinatário: <strong>{wm.empresa}</strong>
+        <Lock size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Documento protegido — Destinatário: <strong>{wm.empresa}</strong>
         {wm.cnpj && <> · CNPJ: {wm.cnpj}</>}
         {dados.downloads_restantes >= 0 && <> · Acessos restantes: {dados.downloads_restantes}</>}
       </div>
@@ -211,6 +214,43 @@ export default function PropostaAcesso() {
             </div>
           </div>
 
+          {/* Especificação Técnica */}
+          {dados.especificacao && (
+            <>
+              <SectionTitle label="ESPECIFICAÇÃO TÉCNICA" />
+              <EspecificacaoBlock espec={dados.especificacao} />
+            </>
+          )}
+
+          {/* Laudo Técnico Protegido */}
+          {modoProposta && proposta?.laudo_link_id && (
+            <>
+              <SectionTitle label="ENSAIO TÉCNICO" />
+              <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <ShieldCheck size={18} style={{ color: '#16a34a', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1B3A5C' }}>Material com ensaio técnico rastreável</div>
+                    <div style={{ fontSize: '0.78rem', color: '#5a6578', marginTop: 2 }}>
+                      O laudo de ensaio técnico do material de fabricação está disponível para consulta protegida.
+                    </div>
+                  </div>
+                </div>
+                <a
+                  href={`/laudo/${proposta.laudo_link_id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#1B3A5C', color: '#fff', textDecoration: 'none', borderRadius: 8, padding: '10px 18px', fontSize: '0.85rem', fontWeight: 600, alignSelf: 'flex-start' }}
+                >
+                  <Microscope size={16} /> Acessar Laudo Completo <ExternalLink size={14} />
+                </a>
+                <p style={{ fontSize: '0.72rem', color: '#94a3b8', margin: 0 }}>
+                  O laudo técnico completo está protegido. A senha de acesso foi enviada separadamente.
+                </p>
+              </div>
+            </>
+          )}
+
           {/* Seções da proposta pós-itens */}
           {modoProposta && proposta && (
             <>
@@ -243,7 +283,7 @@ export default function PropostaAcesso() {
 
           {/* Rodapé rastreável */}
           <div style={rodape}>
-            <span>🔒 DOCUMENTO CONFIDENCIAL · uso restrito ao destinatário identificado</span>
+            <span><Lock size={12} style={{ verticalAlign: 'middle', marginRight: 4 }} /> DOCUMENTO CONFIDENCIAL · uso restrito ao destinatário identificado</span>
             <span>ID rastreável: <strong>{wm.watermark_id.slice(0, 8)}</strong> · {new Date().toLocaleDateString('pt-BR')}</span>
           </div>
         </div>
@@ -259,6 +299,66 @@ function SectionTitle({ label }: { label: string }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 20, marginBottom: 8 }}>
       <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#2C5F8A' }} />
       <span style={{ fontSize: '0.58rem', fontWeight: 700, color: '#2C5F8A', letterSpacing: '0.16em', textTransform: 'uppercase' as const }}>{label}</span>
+    </div>
+  )
+}
+
+function EspecificacaoBlock({ espec }: { espec: any }) {
+  const itensEspec = espec.orcamento_especificacao_itens || []
+  const modelo = espec.modelo
+  return (
+    <div style={cardStyle}>
+      {modelo && (
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#1B3A5C', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Ruler size={16} /> {modelo.nome}
+          </div>
+          <div style={{ fontSize: '0.78rem', color: '#5a6578', marginTop: 2 }}>
+            Material: {modelo.material} · Espessura: {modelo.espessura_mm || '—'}mm
+            {modelo.possui_laudo && <> · <ShieldCheck size={12} style={{ verticalAlign: 'middle' }} /> Ensaio técnico rastreável{modelo.laudo_laboratorio ? ` (${modelo.laudo_laboratorio})` : ''}</>}
+          </div>
+        </div>
+      )}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 10 }}>
+        <div style={kpiStyle}><div style={kpiLabel}>Área total</div><div style={kpiValue}>{espec.area_total_m2} m²</div></div>
+        <div style={kpiStyle}><div style={kpiLabel}>Peça</div><div style={kpiValue}>{espec.largura_cm}×{espec.altura_cm} cm</div></div>
+        {espec.total_fixadores && <div style={{ ...kpiStyle, background: '#eff6ff', borderColor: '#bfdbfe' }}><div style={kpiLabel}>Total fixadores</div><div style={{ ...kpiValue, color: '#1d4ed8' }}>{espec.total_fixadores}</div></div>}
+        {espec.qtd_pecas && <div style={kpiStyle}><div style={kpiLabel}>Peças (c/ perda)</div><div style={kpiValue}>{espec.qtd_pecas}</div></div>}
+      </div>
+      {itensEspec.length > 0 && (
+        <table style={{ ...tableStyle, fontSize: '0.78rem' }}>
+          <thead><tr><th style={{ ...th, textAlign: 'left' }}>Material</th><th style={th}>Qtd</th><th style={th}>Un</th></tr></thead>
+          <tbody>
+            {itensEspec.map((it: any, i: number) => (
+              <tr key={i}><td style={{ ...td, textAlign: 'left' }}>{it.nome}</td><td style={td}>{it.quantidade}</td><td style={td}>{it.unidade}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {espec.fixadores_por_peca && espec.largura_cm && espec.altura_cm && (
+        <DiagramaFixador
+          fixadoresPorPeca={espec.fixadores_por_peca}
+          larguraCm={espec.largura_cm}
+          alturaCm={espec.altura_cm}
+          larguraFixadorMm={modelo?.largura_mm}
+        />
+      )}
+      {espec.revisao_tecnica && (
+        <div style={{ marginTop: 8, fontSize: '0.78rem', color: '#92400e', background: '#fffbeb', borderRadius: 6, padding: '6px 10px', borderLeft: '3px solid #f59e0b' }}>
+          Revisão técnica recomendada antes da execução
+        </div>
+      )}
+      <div style={{ marginTop: 12, textAlign: 'center' }}>
+        <a
+          href="/fixador-porcelanato/calculadora"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: '#1d4ed8', textDecoration: 'none', padding: '6px 14px', border: '1px solid #bfdbfe', borderRadius: 6, background: '#eff6ff' }}
+        >
+          <Ruler size={14} /> Simular outras dimensões na calculadora
+          <ExternalLink size={12} />
+        </a>
+      </div>
     </div>
   )
 }
@@ -347,3 +447,7 @@ const rodape: React.CSSProperties = {
   display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#8896a6',
   flexWrap: 'wrap', gap: 4,
 }
+
+const kpiStyle: React.CSSProperties = { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '8px 12px' }
+const kpiLabel: React.CSSProperties = { fontSize: '0.68rem', color: '#64748b', fontWeight: 500, marginBottom: 2 }
+const kpiValue: React.CSSProperties = { fontSize: '1rem', fontWeight: 700, color: '#1a1a2e' }

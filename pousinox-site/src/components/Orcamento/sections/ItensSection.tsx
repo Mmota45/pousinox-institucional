@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Package, Sparkles, Loader2, Search, Store, X } from 'lucide-react'
 import CollapsibleSection from '../../CollapsibleSection/CollapsibleSection'
 import type { Item, ProdutoResult, OutletResult, ExibirProposta } from '../types'
 import { UNIDADES, fmtBRL } from '../types'
@@ -72,7 +73,7 @@ export default function ItensSection({
   }
 
   return (
-    <CollapsibleSection title="📦 Itens" defaultOpen>
+    <CollapsibleSection title={<><Package size={16} /> Itens</>} defaultOpen>
       <div className={styles.itensHeader}>
         <span className={styles.itemDesc}>Descrição</span>
         <span className={styles.itemQtd}>Qtd</span>
@@ -95,7 +96,7 @@ export default function ItensSection({
                     disabled={aiLoadingIdx !== null}
                     title="Sugerir descrição com IA"
                     style={{ background:'none', border:'none', cursor:'pointer', fontSize:16, opacity: aiLoadingIdx === i ? 0.5 : 1, padding: '2px 4px', flexShrink: 0 }}
-                  >{aiLoadingIdx === i ? '⏳' : '✨'}</button>
+                  >{aiLoadingIdx === i ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}</button>
                 )}
               </div>
               {exibir.obsTecnicaItens && (
@@ -108,7 +109,7 @@ export default function ItensSection({
             </select>
             <input className={`${styles.input} ${styles.itemVu}`} type="number" min="0" step="any" placeholder="0,00" value={item.valorUnit} onChange={e => updateItem(i, 'valorUnit', e.target.value)} />
             <span className={styles.itemTotal}>{q > 0 && v > 0 ? fmtBRL(q * v) : '—'}</span>
-            <button className={styles.btnRemoveItem} onClick={() => removeItem(i)}>✕</button>
+            <button className={styles.btnRemoveItem} onClick={() => removeItem(i)}><X size={14} /></button>
           </div>
         )
       })}
@@ -159,8 +160,8 @@ export default function ItensSection({
       )}
       <div className={styles.itensActions}>
         <button className={styles.btnAddItem} onClick={addItem}>+ Linha manual</button>
-        <button className={styles.btnAddItem} onClick={() => { setShowBuscaProduto(v => !v); setShowBuscaOutlet(false) }}>🔍 Catálogo</button>
-        <button className={styles.btnAddItem} onClick={() => { setShowBuscaOutlet(v => !v); setShowBuscaProduto(false) }}>🏪 Pronta Entrega</button>
+        <button className={styles.btnAddItem} onClick={() => { setShowBuscaProduto(v => !v); setShowBuscaOutlet(false) }}><Search size={14} /> Catálogo</button>
+        <button className={styles.btnAddItem} onClick={() => { setShowBuscaOutlet(v => !v); setShowBuscaProduto(false) }}><Store size={14} /> Pronta Entrega</button>
       </div>
       <div className={styles.totaisWrap}>
         <div className={styles.totaisRow}><span>Subtotal</span><span>{fmt(subtotal)}</span></div>

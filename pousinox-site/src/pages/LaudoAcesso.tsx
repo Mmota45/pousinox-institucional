@@ -107,7 +107,6 @@ export default function LaudoAcesso() {
             src={`${sucesso.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
             style={viewerIframe}
             title="Laudo Protegido"
-            sandbox="allow-same-origin"
           />
         </div>
 

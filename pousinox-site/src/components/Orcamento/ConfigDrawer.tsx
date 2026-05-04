@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Settings, Pencil, Trash2, X } from 'lucide-react'
 import { supabaseAdmin } from '../../lib/supabase'
 import { maskCEP } from '../../lib/masks'
 import { formatarDadoBancario } from './types'
@@ -68,8 +69,16 @@ export default function ConfigDrawer({
 
   async function salvarEmpresa() {
     if (!formEmpresa.nome_fantasia?.trim()) return
-    if (editEmpresaId) { await supabaseAdmin.from('empresas_emissoras').update(formEmpresa).eq('id', editEmpresaId) }
-    else { await supabaseAdmin.from('empresas_emissoras').insert({ ...formEmpresa, ativa: true }) }
+    if (editEmpresaId) {
+      const { id: _id, ...payload } = formEmpresa as EmpresaEmissora
+      const { error } = await supabaseAdmin.from('empresas_emissoras').update(payload).eq('id', editEmpresaId)
+      if (error) { showMsg('erro', 'Erro ao salvar: ' + error.message); return }
+      showMsg('ok', 'Empresa atualizada!')
+    } else {
+      const { error } = await supabaseAdmin.from('empresas_emissoras').insert({ ...formEmpresa, ativa: true })
+      if (error) { showMsg('erro', 'Erro ao criar: ' + error.message); return }
+      showMsg('ok', 'Empresa criada!')
+    }
     setFormEmpresa({}); setEditEmpresaId(null); carregarEmpresas()
   }
 
@@ -105,8 +114,8 @@ export default function ConfigDrawer({
       <div className={styles.drawerBackdrop} onClick={onClose} />
       <div className={styles.drawer}>
         <div className={styles.drawerHeader}>
-          <span className={styles.drawerTitle}>⚙️ Configurações</span>
-          <button className={styles.drawerClose} onClick={onClose}>✕</button>
+          <span className={styles.drawerTitle}><Settings size={16} /> Configurações</span>
+          <button className={styles.drawerClose} onClick={onClose}><X size={16} /></button>
         </div>
         <div className={styles.drawerTabs}>
           {TABS.map(t => (
@@ -193,12 +202,12 @@ export default function ConfigDrawer({
                       <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                         <input type="file" accept="image/*" id={`drw-logo-${e.id}`} style={{ display: 'none' }} onChange={ev => ev.target.files?.[0] && uploadLogo(ev.target.files[0], e.id, ev.target as HTMLInputElement)} />
                         <label htmlFor={`drw-logo-${e.id}`} style={{ fontSize: '0.7rem', cursor: 'pointer', color: '#1a5fa8', fontWeight: 600 }}>{uploadandoLogo ? '...' : '⬆'}</label>
-                        <button className={styles.btnRemoveItem} style={{ width: 24, height: 24, fontSize: '0.7rem' }} onClick={() => { setEditEmpresaId(e.id); setFormEmpresa({ ...e }) }}>✏️</button>
+                        <button className={styles.btnRemoveItem} style={{ width: 24, height: 24, fontSize: '0.7rem' }} onClick={() => { setEditEmpresaId(e.id); setFormEmpresa({ ...e }) }}><Pencil size={12} /></button>
                         <button className={styles.btnRemoveItem} style={{ width: 24, height: 24, fontSize: '0.7rem' }} onClick={async () => {
                           if (!window.confirm(`Excluir "${e.nome_fantasia}"?`)) return
                           await supabaseAdmin.from('empresas_emissoras').update({ ativa: false }).eq('id', e.id)
                           carregarEmpresas()
-                        }}>🗑</button>
+                        }}><Trash2 size={12} /></button>
                       </div>
                     </div>
                   ))}
@@ -232,7 +241,7 @@ export default function ConfigDrawer({
                         <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>{v.nome}</div>
                         <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{v.email || ''}{v.comissao_pct > 0 ? ` · ${v.comissao_pct}%` : ''}</div>
                       </div>
-                      <button className={styles.btnRemoveItem} style={{ width: 24, height: 24, fontSize: '0.7rem' }} onClick={() => { setEditVendedorId(v.id); setFormVendedor({ ...v }) }}>✏️</button>
+                      <button className={styles.btnRemoveItem} style={{ width: 24, height: 24, fontSize: '0.7rem' }} onClick={() => { setEditVendedorId(v.id); setFormVendedor({ ...v }) }}><Pencil size={12} /></button>
                     </div>
                   ))}
                 </div>

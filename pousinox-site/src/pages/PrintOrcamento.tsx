@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabaseAdmin } from '../lib/supabase'
+import QRCode from 'qrcode'
+import DiagramaFixador from '../components/DiagramaFixador/DiagramaFixador'
+import type { EspecificacaoSalva, ItemCalculado } from '../components/Orcamento/especificacaoTypes'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -245,6 +248,11 @@ const S = {
 export default function PrintOrcamento() {
   const { id } = useParams<{ id: string }>()
   const [data, setData] = useState<OrcData | null>(null)
+  const [especificacoes, setEspecificacoes] = useState<EspecificacaoSalva[]>([])
+  const [modeloNomes, setModeloNomes] = useState<Record<number, string>>({})
+  const [precosMateriais, setPrecosMateriais] = useState<Record<string, number>>({}) // nome → preco_unitario
+  const [precosModelo, setPrecosModelo] = useState<Record<number, number>>({}) // modelo_id → preco_unitario
+  const [qrCalcUrl, setQrCalcUrl] = useState<string | null>(null)
   const [erro, setErro] = useState('')
   const [viewUrl, setViewUrl] = useState<string | null>(null)
   const params = new URLSearchParams(window.location.search)
@@ -290,6 +298,14 @@ export default function PrintOrcamento() {
     if (!data) return
     document.title = nomePdf(data)
   }, [data])
+
+  // Gerar QR code da calculadora quando há especificações
+  useEffect(() => {
+    if (especificacoes.length === 0) return
+    QRCode.toDataURL('https://fixadorporcelanato.com.br/fixador-porcelanato/calculadora', { width: 100, margin: 1 })
+      .then(url => setQrCalcUrl(url))
+      .catch(() => {})
+  }, [especificacoes])
 
   async function load(orcId: number) {
     const [{ data: orc }, { data: itensD }, { data: anexosD }, { data: linkD }] = await Promise.all([
@@ -379,6 +395,51 @@ export default function PrintOrcamento() {
       proposta: o.proposta_comercial ?? null,
     })
 
+    // Carregar especificações técnicas
+    const { data: especsD } = await supabaseAdmin
+      .from('orcamento_especificacoes').select('*')
+      .eq('orcamento_id', orcId).order('criado_em')
+    if (especsD && especsD.length > 0) {
+      // Carregar itens de cada especificação
+      const especIds = especsD.map((e: any) => e.id)
+      const { data: itensEspec } = await supabaseAdmin
+        .from('orcamento_especificacao_itens').select('*')
+        .in('especificacao_id', especIds).order('id')
+      const itensPorEspec: Record<number, ItemCalculado[]> = {}
+      for (const it of (itensEspec ?? []) as any[]) {
+        if (!itensPorEspec[it.especificacao_id]) itensPorEspec[it.especificacao_id] = []
+        itensPorEspec[it.especificacao_id].push({ nome: it.nome, quantidade: Number(it.quantidade), unidade: it.unidade, tipo: it.tipo })
+      }
+      const mapped = (especsD as any[]).map(e => ({ ...e, itens: itensPorEspec[e.id] ?? [] })) as EspecificacaoSalva[]
+      setEspecificacoes(mapped)
+      const precos: Record<string, number> = {}
+      // Buscar nomes + preços dos modelos e consumíveis
+      const modeloIds = [...new Set(mapped.filter(e => e.modelo_id).map(e => e.modelo_id!))]
+      const [modRes, consRes] = await Promise.all([
+        modeloIds.length > 0
+          ? supabaseAdmin.from('fixador_modelos').select('id, nome, preco_unitario').in('id', modeloIds)
+          : Promise.resolve({ data: [] }),
+        supabaseAdmin.from('fixador_consumiveis').select('nome, preco_unitario').eq('ativo', true),
+      ])
+      const precosM: Record<number, number> = {}
+      if (modRes.data) {
+        setModeloNomes(Object.fromEntries((modRes.data as any[]).map(m => [m.id, m.nome])))
+        for (const m of modRes.data as any[]) {
+          if (m.preco_unitario) {
+            precos[m.nome] = m.preco_unitario
+            precosM[m.id] = m.preco_unitario
+          }
+        }
+      }
+      setPrecosModelo(precosM)
+      if (consRes.data) {
+        for (const c of consRes.data as any[]) {
+          if (c.preco_unitario) precos[c.nome] = c.preco_unitario
+        }
+      }
+      setPrecosMateriais(precos)
+    }
+
     // Carregar dados bancários selecionados
     const ids: number[] = Array.isArray(o.dados_bancarios_ids) ? o.dados_bancarios_ids : []
     if (ids.length > 0) {
@@ -404,7 +465,7 @@ export default function PrintOrcamento() {
   if (erro) return <div style={S.loading}>{erro}</div>
   if (!data) return <div style={S.loading}>Carregando orçamento…</div>
 
-  return <Sheet d={data} viewUrl={viewUrl} isPreview={isPreview} />
+  return <Sheet d={data} viewUrl={viewUrl} isPreview={isPreview} especificacoes={especificacoes} modeloNomes={modeloNomes} precosMateriais={precosMateriais} precosModelo={precosModelo} qrCalcUrl={qrCalcUrl} />
 }
 
 function nomePdf(d: OrcData) {
@@ -412,7 +473,7 @@ function nomePdf(d: OrcData) {
   return `Proposta ${d.numero} — ${cli}`
 }
 
-function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; isPreview: boolean }) {
+function Sheet({ d, viewUrl, isPreview, especificacoes, modeloNomes, precosMateriais, precosModelo, qrCalcUrl }: { d: OrcData; viewUrl: string | null; isPreview: boolean; especificacoes: EspecificacaoSalva[]; modeloNomes: Record<number, string>; precosMateriais: Record<string, number>; precosModelo: Record<number, number>; qrCalcUrl: string | null }) {
   const subtotal = d.itens.reduce((s, i) => s + i.qtd * i.valor_unit, 0)
   const valorDesc = d.tipo_desconto === '%'
     ? subtotal * (d.desconto / 100)
@@ -686,7 +747,8 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
         </>
       )}
 
-      {/* Itens */}
+      {/* Itens — oculta tabela vazia quando toggle desligado */}
+      {(d.itens.filter(i => i.descricao.trim()).length > 0 || d.exibir.descricaoItensVazios) && (<>
       <div className="table-scroll">
       <table style={S.table}>
         <thead>
@@ -794,9 +856,134 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
         </div>
       </div>
       )}
+      </>)}
+
+      {/* Especificação Técnica */}
+      {especificacoes.length > 0 && (
+        <div style={{ marginBottom: 18, pageBreakInside: 'avoid' }}>
+          <div style={{ ...S.clienteTitle, marginBottom: 8 }}><div style={S.sectionDot} />ESPECIFICACAO TECNICA DE MATERIAIS</div>
+          {especificacoes.map((esp, idx) => {
+            const modelo = esp.modelo_id ? modeloNomes[esp.modelo_id] : null
+            const findPreco = (nome: string, tipo?: string) => {
+              // Fixador/Grampo → usar preço do modelo da especificação
+              if ((tipo === 'fixador' || /fixador|grampo/i.test(nome)) && esp.modelo_id && precosModelo[esp.modelo_id]) {
+                return precosModelo[esp.modelo_id]
+              }
+              if (precosMateriais[nome]) return precosMateriais[nome]
+              const lower = nome.toLowerCase()
+              for (const [k, v] of Object.entries(precosMateriais)) {
+                if (k.toLowerCase() === lower) return v
+                if (k.toLowerCase().startsWith(lower.split(/[\s(]/)[0]) || lower.startsWith(k.toLowerCase().split(/[\s(]/)[0])) return v
+              }
+              return 0
+            }
+            const hasPrecos = esp.itens?.some(i => findPreco(i.nome, i.tipo) > 0) ?? false
+            return (
+              <div key={esp.id} style={{ ...S.card, marginBottom: 10, pageBreakInside: 'avoid' }}>
+                {especificacoes.length > 1 && (
+                  <div style={{ fontSize: '0.62rem', fontWeight: 700, color: C.accent, marginBottom: 6 }}>
+                    Medida {idx + 1} — {esp.largura_cm} x {esp.altura_cm} cm
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                  {/* KPIs */}
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px 12px', marginBottom: 10 }}>
+                      {modelo && (
+                        <div><div style={S.fieldLabel}>Modelo</div><div style={{ ...S.fieldValue, fontWeight: 600, color: C.navy }}>{modelo}</div></div>
+                      )}
+                      <div><div style={S.fieldLabel}>Area Total</div><div style={S.fieldValue}>{esp.area_total_m2} m2</div></div>
+                      <div><div style={S.fieldLabel}>Dimensoes</div><div style={S.fieldValue}>{esp.largura_cm} x {esp.altura_cm} cm</div></div>
+                      <div><div style={S.fieldLabel}>Pecas</div><div style={S.fieldValue}>{esp.qtd_pecas ?? '—'} un ({esp.perda_pct}% perda)</div></div>
+                      <div><div style={S.fieldLabel}>Fixadores/Peca</div><div style={{ ...S.fieldValue, fontWeight: 700, color: C.navy }}>{esp.fixadores_por_peca ?? '—'}</div></div>
+                      <div><div style={S.fieldLabel}>Total Fixadores</div><div style={{ ...S.fieldValue, fontWeight: 700, color: C.navy }}>{esp.total_fixadores ?? '—'}</div></div>
+                    </div>
+                    {/* Tabela de materiais */}
+                    {esp.itens && esp.itens.length > 0 && (() => {
+                      let subtotalEspec = 0
+                      return (
+                      <table style={{ ...S.table, fontSize: '0.72rem' }}>
+                        <thead>
+                          <tr>
+                            <th style={{ ...S.th, padding: '6px 10px', fontSize: '0.62rem' }}>Material</th>
+                            <th style={{ ...S.thCenter, padding: '6px 10px', fontSize: '0.62rem', width: 70 }}>Qtd</th>
+                            <th style={{ ...S.thCenter, padding: '6px 10px', fontSize: '0.62rem', width: 40 }}>Un</th>
+                            {hasPrecos && <th style={{ ...S.thRight, padding: '6px 10px', fontSize: '0.62rem', width: 80 }}>Vl. Est.</th>}
+                            {hasPrecos && <th style={{ ...S.thRight, padding: '6px 10px', fontSize: '0.62rem', width: 90 }}>Total Est.</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {esp.itens.map((item, i) => {
+                            const preco = findPreco(item.nome, item.tipo)
+                            const qtd = Math.ceil(item.quantidade)
+                            const totalItem = preco * qtd
+                            subtotalEspec += totalItem
+                            return (
+                            <tr key={i} style={i % 2 === 1 ? S.trEven : undefined}>
+                              <td style={{ ...S.td, padding: '5px 10px' }}>{item.nome}</td>
+                              <td style={{ ...S.tdCenter, padding: '5px 10px', fontWeight: 600 }}>{qtd.toLocaleString('pt-BR')}</td>
+                              <td style={{ ...S.tdCenter, padding: '5px 10px' }}>{item.unidade}</td>
+                              {hasPrecos && <td style={{ ...S.tdRight, padding: '5px 10px', fontSize: '0.68rem' }}>{preco > 0 ? fmtBRL(preco) : '—'}</td>}
+                              {hasPrecos && <td style={{ ...S.tdRight, padding: '5px 10px', fontWeight: 600 }}>{totalItem > 0 ? fmtBRL(totalItem) : '—'}</td>}
+                            </tr>
+                            )
+                          })}
+                          {hasPrecos && subtotalEspec > 0 && (
+                            <tr style={{ background: C.bgSoft }}>
+                              <td colSpan={3} style={{ ...S.tdRight, padding: '6px 10px', fontWeight: 700, fontSize: '0.70rem', color: C.navy }}>Subtotal estimado</td>
+                              <td colSpan={2} style={{ ...S.tdRight, padding: '6px 10px', fontWeight: 800, fontSize: '0.76rem', color: C.navy }}>{fmtBRL(subtotalEspec)}</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                      )
+                    })()}
+                    {esp.revisao_tecnica && (
+                      <div style={{ marginTop: 6, fontSize: '0.68rem', color: '#b45309', background: '#fef3c7', borderRadius: 6, padding: '4px 8px' }}>
+                        {esp.revisao_motivos?.length ? esp.revisao_motivos.join(', ') : 'Revisão do responsável técnico recomendada'}
+                      </div>
+                    )}
+                  </div>
+                  {/* Diagrama */}
+                  {esp.fixadores_por_peca && esp.fixadores_por_peca > 0 && (
+                    <div style={{ flexShrink: 0, width: 180 }}>
+                      <DiagramaFixador
+                        fixadoresPorPeca={esp.fixadores_por_peca}
+                        larguraCm={esp.largura_cm}
+                        alturaCm={esp.altura_cm}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+          {/* Totais consolidados quando múltiplas medidas */}
+          {especificacoes.length > 1 && (
+            <div style={{ ...S.infoStrip, marginTop: 4, display: 'flex', gap: 24, fontSize: '0.74rem' }}>
+              <span><strong>Total geral:</strong> {especificacoes.reduce((s, e) => s + (e.total_fixadores ?? 0), 0).toLocaleString('pt-BR')} fixadores</span>
+              <span>{especificacoes.length} medidas de revestimento</span>
+              <span>{especificacoes.reduce((s, e) => s + e.area_total_m2, 0).toFixed(1)} m2 total</span>
+            </div>
+          )}
+          {/* QR Code da calculadora */}
+          {qrCalcUrl && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8, padding: '8px 12px', background: C.bgSoft, borderRadius: 8, border: `1px solid ${C.borderLight}` }}>
+              <img src={qrCalcUrl} alt="QR Calculadora" style={{ width: 64, height: 64, flexShrink: 0 }} />
+              <div>
+                <div style={{ fontSize: '0.70rem', fontWeight: 700, color: C.navy }}>Calculadora de Materiais</div>
+                <div style={{ fontSize: '0.64rem', color: C.textMuted, lineHeight: 1.5 }}>
+                  Simule outras dimensoes de revestimento com nossa ferramenta online gratuita.
+                </div>
+                <div style={{ fontSize: '0.58rem', color: C.textLight, marginTop: 2 }}>fixadorporcelanato.com.br</div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Condições */}
-      {(d.condicoes.length > 0 || d.prazo_entrega || d.validadeDias || (temFrete && d.exibir.detalhesLogistica) || (temInst && d.instalacao.texto)) && (
+      {(d.condicoes.length > 0 || d.prazo_entrega || d.validadeDias || (temFrete && d.exibir.detalhesLogistica) || (temInst && d.instalacao.texto) || d.observacoes) && (
         <div style={S.condicoes}>
           <div style={{ ...S.clienteTitle, marginBottom: 4 }}><div style={S.sectionDot} />CONDIÇÕES COMERCIAIS</div>
           {d.condicoes.length > 0 && (
@@ -829,6 +1016,11 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
           {temInst && d.instalacao.texto && (
             <div style={S.condicaoItem}><strong>Instalação:</strong> {d.instalacao.texto}</div>
           )}
+          {d.observacoes && (
+            <div style={{ ...S.condicaoItem, whiteSpace: 'pre-line' }}>
+              <strong>Observações:</strong> {d.observacoes}
+            </div>
+          )}
         </div>
       )}
 
@@ -854,14 +1046,6 @@ function Sheet({ d, viewUrl, isPreview }: { d: OrcData; viewUrl: string | null; 
             </div>
           )}
         </>
-      )}
-
-      {/* Observações */}
-      {d.observacoes && (
-        <div style={S.obsBox}>
-          <div style={S.obsTitle}><div style={S.sectionDot} />OBSERVAÇÕES</div>
-          <div style={{ whiteSpace: 'pre-line', fontSize: '0.72rem', color: '#475569', lineHeight: 1.6 }}>{d.observacoes}</div>
-        </div>
       )}
 
       {/* Anexos */}

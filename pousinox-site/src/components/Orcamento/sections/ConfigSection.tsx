@@ -1,3 +1,4 @@
+import { X, Camera } from 'lucide-react'
 import type { ExibirProposta } from '../types'
 
 interface Props {
@@ -50,6 +51,7 @@ export default function ConfigSection({
               ['obsTecnicaItens','Obs. técnica dos itens'],
               ['instMontagem','Instalação/montagem'],
               ['anexos','Anexos'],['detalhesLogistica','Detalhes logísticos'],
+              ['descricaoItensVazios','Descrição itens (quando vazio)'],
             ] as [keyof ExibirProposta, string][]).map(([key, label]) => (
               <label key={key} className={styles.toggleLabel}>
                 <input type="checkbox" checked={exibir[key]} onChange={e => setExibir(x=>({...x,[key]:e.target.checked}))} />
@@ -86,7 +88,7 @@ export default function ConfigSection({
                 <img src={imagemUrl} alt="Imagem orçamento" className={styles.imagemOrcThumb} />
                 <div className={styles.imagemOrcActions}>
                   <input className={styles.input} placeholder="URL da imagem" value={imagemUrl} onChange={e => setImagemUrl(e.target.value)} style={{ fontSize: '0.75rem' }} />
-                  <button className={styles.btnRemoveItem} onClick={() => setImagemUrl('')} title="Remover imagem">✕</button>
+                  <button className={styles.btnRemoveItem} onClick={() => setImagemUrl('')} title="Remover imagem"><X size={12} /></button>
                 </div>
               </div>
             ) : (
@@ -95,7 +97,7 @@ export default function ConfigSection({
                 <span style={{ color: '#94a3b8', fontSize: '0.78rem' }}>ou</span>
                 <input type="file" ref={imagemRef} accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && uploadImagem(e.target.files[0])} />
                 <button className={styles.btnAddItem} onClick={() => imagemRef.current?.click()} disabled={uploadandoImagem}>
-                  {uploadandoImagem ? 'Enviando...' : '📷 Upload'}
+                  {uploadandoImagem ? 'Enviando...' : <><Camera size={14} /> Upload</>}
                 </button>
               </div>
             )}

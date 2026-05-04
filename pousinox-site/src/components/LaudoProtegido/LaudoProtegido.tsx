@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
+import PDFMerger from 'pdf-merger-js'
 import { supabaseAdmin } from '../../lib/supabase'
 import styles from './LaudoProtegido.module.css'
 
@@ -26,14 +27,17 @@ interface Props {
   usuario?: string
   /** Callback ao gerar com sucesso */
   onGerado?: (result: GeradoResult) => void
+  /** Modo multi: permite selecionar vários laudos e gerar em lote */
+  multi?: boolean
 }
 
-interface GeradoResult {
+export interface GeradoResult {
   watermark_id: string
   senha: string
   link: string
   expira_em: string
   max_downloads: number
+  nome?: string
 }
 
 interface LaudoBase {
@@ -41,10 +45,13 @@ interface LaudoBase {
   size?: number
 }
 
-export default function LaudoProtegido({ empresa, cnpj, contato, email, usuario, onGerado }: Props) {
+export default function LaudoProtegido({ empresa, cnpj, contato, email, usuario, onGerado, multi }: Props) {
   const [aberto, setAberto] = useState(false)
   const [laudos, setLaudos] = useState<LaudoBase[]>([])
   const [laudoSel, setLaudoSel] = useState('')
+  const [laudosSel, setLaudosSel] = useState<Set<string>>(new Set())
+  const [gerandoLote, setGerandoLote] = useState(false)
+  const [progressoLote, setProgressoLote] = useState('')
   const [form, setForm] = useState({
     empresa: empresa || '',
     cnpj: cnpj || '',
@@ -229,6 +236,7 @@ export default function LaudoProtegido({ empresa, cnpj, contato, email, usuario,
         link: `${window.location.origin}${res.data.link}`,
         expira_em: res.data.expira_em,
         max_downloads: res.data.max_downloads,
+        nome: laudoSel.replace(/\.pdf$/i, ''),
       }
 
       setResultado(result)
@@ -237,6 +245,102 @@ export default function LaudoProtegido({ empresa, cnpj, contato, email, usuario,
       setErro((err as Error).message)
     } finally {
       setGerando(false)
+    }
+  }
+
+  function toggleLaudoSel(name: string) {
+    setLaudosSel(prev => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }
+
+  async function gerarComMerge() {
+    const selecionados = Array.from(laudosSel)
+    if (selecionados.length === 0) { setErro('Selecione pelo menos um laudo.'); return }
+    if (!form.empresa.trim()) { setErro('Informe a empresa destinatária.'); return }
+
+    setGerandoLote(true)
+    setErro(null)
+
+    try {
+      let laudoPath: string
+
+      if (selecionados.length === 1) {
+        laudoPath = selecionados[0]
+      } else {
+        // Mesclar PDFs com pdf-merger-js (suporta PDFs com proteção de permissão)
+        setProgressoLote('Mesclando PDFs...')
+        const merger = new PDFMerger()
+
+        for (let i = 0; i < selecionados.length; i++) {
+          const nome = selecionados[i]
+          setProgressoLote(`Baixando ${i + 1}/${selecionados.length}: ${nome}`)
+          const { data: blob, error } = await supabaseAdmin.storage
+            .from('laudos')
+            .download(nome)
+          if (error || !blob) throw new Error(`Erro ao baixar "${nome}": ${error?.message || 'sem dados'}`)
+
+          const buffer = await blob.arrayBuffer()
+          await merger.add(new Uint8Array(buffer))
+        }
+
+        setProgressoLote('Salvando PDF mesclado...')
+        const mergedBlob = await merger.saveAsBlob()
+        const mergedBytes = new Uint8Array(await mergedBlob.arrayBuffer())
+        const mergedName = `merged_${Date.now()}.pdf`
+        const { error: upErr } = await supabaseAdmin.storage
+          .from('laudos')
+          .upload(mergedName, mergedBytes, { contentType: 'application/pdf', upsert: true })
+        if (upErr) throw new Error(`Erro ao salvar mesclado: ${upErr.message}`)
+
+        laudoPath = mergedName
+        await carregarLaudos()
+      }
+
+      // Gerar laudo protegido
+      setProgressoLote('Gerando laudo protegido...')
+      const res = await supabaseAdmin.functions.invoke('proteger-pdf', {
+        body: {
+          action: 'gerar',
+          laudo_path: laudoPath,
+          destinatario: form.empresa.trim(),
+          cnpj: form.cnpj.trim() || undefined,
+          contato: form.contato.trim() || undefined,
+          email: form.email.trim() || undefined,
+          senha: form.senhaAuto ? undefined : form.senha.trim() || undefined,
+          enviado_por: usuario || undefined,
+          canal_envio: form.canal,
+          expira_horas: form.expiraHoras,
+          max_downloads: form.maxDownloads,
+          observacao: form.observacao.trim() || undefined,
+        },
+      })
+
+      if (res.error || !res.data?.ok) {
+        setErro(res.data?.error || res.error?.message || 'Erro ao gerar laudo protegido')
+        return
+      }
+
+      const result: GeradoResult = {
+        watermark_id: res.data.watermark_id,
+        senha: res.data.senha,
+        link: `${window.location.origin}${res.data.link}`,
+        expira_em: res.data.expira_em,
+        max_downloads: res.data.max_downloads,
+        nome: selecionados.length === 1 ? selecionados[0].replace(/\.pdf$/i, '') : `${selecionados.length} laudos mesclados`,
+      }
+
+      setResultado(result)
+      onGerado?.(result)
+      setLaudosSel(new Set())
+    } catch (err) {
+      setErro((err as Error).message)
+    } finally {
+      setGerandoLote(false)
+      setProgressoLote('')
     }
   }
 
@@ -305,7 +409,7 @@ export default function LaudoProtegido({ empresa, cnpj, contato, email, usuario,
 
                 <div className={styles.resultadoMeta}>
                   <span>Expira em: {formatarData(resultado.expira_em)}</span>
-                  <span>Max downloads: {resultado.max_downloads}</span>
+                  <span>Somente visualização online</span>
                 </div>
 
                 <div className={styles.avisoSenha}>
@@ -320,15 +424,32 @@ export default function LaudoProtegido({ empresa, cnpj, contato, email, usuario,
                   O acesso será protegido por senha com link expirável.
                 </p>
 
-                {/* Arquivo base — select + drop zone + upload */}
+                {/* Arquivo base — select ou multi-select + drop zone + upload */}
                 <div className={styles.label}>
-                  Arquivo base *
-                  <select className={styles.input} value={laudoSel} onChange={e => setLaudoSel(e.target.value)}>
-                    <option value="">Selecione o arquivo...</option>
-                    {laudos.map(l => (
-                      <option key={l.name} value={l.name}>{l.name}</option>
-                    ))}
-                  </select>
+                  {multi ? 'Arquivos base (selecione 1 ou mais) *' : 'Arquivo base *'}
+                  {multi ? (
+                    <div style={{ border: '1px solid #d1d5db', borderRadius: 6, maxHeight: 180, overflowY: 'auto', padding: 4, background: '#fff' }}>
+                      {laudos.length === 0 && <div style={{ padding: 8, color: '#999', fontSize: '0.78rem' }}>Nenhum arquivo no bucket</div>}
+                      {laudos.map(l => (
+                        <label key={l.name} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', cursor: 'pointer', fontSize: '0.82rem', borderRadius: 4, background: laudosSel.has(l.name) ? '#eff6ff' : 'transparent' }}>
+                          <input type="checkbox" checked={laudosSel.has(l.name)} onChange={() => toggleLaudoSel(l.name)} />
+                          {l.name}
+                        </label>
+                      ))}
+                      {laudosSel.size > 0 && (
+                        <div style={{ padding: '6px 8px', fontSize: '0.75rem', color: '#1d4ed8', fontWeight: 600, borderTop: '1px solid #e2e8f0', marginTop: 4 }}>
+                          {laudosSel.size} arquivo(s) selecionado(s) {laudosSel.size > 1 && '— serão mesclados em 1 PDF'}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <select className={styles.input} value={laudoSel} onChange={e => setLaudoSel(e.target.value)}>
+                      <option value="">Selecione o arquivo...</option>
+                      {laudos.map(l => (
+                        <option key={l.name} value={l.name}>{l.name}</option>
+                      ))}
+                    </select>
+                  )}
 
                   {/* Drop zone + upload */}
                   <label
@@ -342,11 +463,15 @@ export default function LaudoProtegido({ empresa, cnpj, contato, email, usuario,
                     <span>
                       {uploading
                         ? 'Enviando...'
-                        : laudoSel
-                          ? `✅ ${laudoSel}`
-                          : 'Arraste arquivos ou clique para selecionar'}
+                        : multi
+                          ? laudosSel.size > 0
+                            ? `${laudosSel.size} selecionado(s)`
+                            : 'Arraste arquivos ou clique para selecionar'
+                          : laudoSel
+                            ? `${laudoSel}`
+                            : 'Arraste arquivos ou clique para selecionar'}
                     </span>
-                    <span className={styles.dropHint}>PDF, imagens, vídeos e outros formatos · Máx 50MB</span>
+                    <span className={styles.dropHint}>PDF · Máx 50MB por arquivo</span>
                   </label>
                 </div>
 
@@ -427,15 +552,7 @@ export default function LaudoProtegido({ empresa, cnpj, contato, email, usuario,
                       <option value={720}>30 dias</option>
                     </select>
                   </label>
-                  <label className={styles.label}>
-                    Max acessos
-                    <select className={styles.input} value={form.maxDownloads} onChange={e => setForm(f => ({ ...f, maxDownloads: Number(e.target.value) }))}>
-                      <option value={1}>1</option>
-                      <option value={3}>3</option>
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                    </select>
-                  </label>
+                  {/* Max acessos oculto — somente visualização online */}
                   <label className={styles.label}>
                     Canal de envio
                     <select className={styles.input} value={form.canal} onChange={campo('canal')}>
@@ -456,9 +573,15 @@ export default function LaudoProtegido({ empresa, cnpj, contato, email, usuario,
 
                 <div className={styles.actions}>
                   <button className={styles.btnCancelar} onClick={fechar}>Cancelar</button>
-                  <button className={styles.btnConfirmar} onClick={gerar} disabled={gerando}>
-                    {gerando ? 'Gerando…' : '🔒 Gerar Laudo Protegido'}
-                  </button>
+                  {multi ? (
+                    <button className={styles.btnConfirmar} onClick={gerarComMerge} disabled={gerandoLote || laudosSel.size === 0}>
+                      {gerandoLote ? progressoLote || 'Gerando...' : `Gerar Laudo Protegido (${laudosSel.size} arquivo${laudosSel.size !== 1 ? 's' : ''})`}
+                    </button>
+                  ) : (
+                    <button className={styles.btnConfirmar} onClick={gerar} disabled={gerando}>
+                      {gerando ? 'Gerando...' : 'Gerar Laudo Protegido'}
+                    </button>
+                  )}
                 </div>
               </>
             )}

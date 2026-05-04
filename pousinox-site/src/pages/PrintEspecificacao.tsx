@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import DiagramaFixador from '../components/DiagramaFixador/DiagramaFixador'
 import { supabaseAdmin } from '../lib/supabase'
 
 interface EspecData {
@@ -24,7 +25,7 @@ interface EspecData {
   obs: string | null
   criado_em: string
   modelo: {
-    nome: string; material: string; espessura_mm: number | null
+    nome: string; material: string; espessura_mm: number | null; largura_mm: number | null
     acabamento: string | null; obs_tecnica: string | null
     possui_laudo: boolean; laudo_laboratorio: string | null; laudo_resumo: string | null
   } | null
@@ -164,6 +165,16 @@ export default function PrintEspecificacao() {
           <Field label="Fixadores por peça" value={`${data.fixadores_por_peca}`} />
           <Field label="Total de fixadores" value={`${data.total_fixadores}`} bold />
         </div>
+
+        {/* ── Diagrama de posicionamento ── */}
+        {data.fixadores_por_peca > 0 && data.largura_cm && data.altura_cm && (
+          <DiagramaFixador
+            fixadoresPorPeca={data.fixadores_por_peca}
+            larguraCm={data.largura_cm}
+            alturaCm={data.altura_cm}
+            larguraFixadorMm={data.modelo?.largura_mm ?? undefined}
+          />
+        )}
 
         {/* ── Status da análise ── */}
         {data.revisao_tecnica && (

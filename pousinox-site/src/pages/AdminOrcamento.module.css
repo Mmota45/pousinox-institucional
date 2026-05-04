@@ -436,7 +436,7 @@
 
 /* ── Itens ── */
 .itensHeader { display: none; }
-.itemRow   { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+.itemRow   { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
 .itemDesc  { flex: 1 1 100%; }
 .itemQtd   { flex: 1; }
 .itemUn    { flex: 1; }
@@ -448,7 +448,7 @@
   display: flex; align-items: center; justify-content: center;
 }
 .btnRemoveItem:hover { background: #fee2e2; color: #dc2626; }
-.itensActions { display: flex; gap: 8px; }
+.itensActions { display: flex; gap: 8px; margin-top: 6px; }
 .btnAddItem {
   background: #f9fafb; border: 1.5px dashed #d4dbe5; border-radius: 10px;
   padding: 7px 14px; font-size: 0.78rem; font-weight: 600; color: #6b7280;
@@ -460,8 +460,8 @@
 
 /* ── Totais ── */
 .totaisWrap {
-  background: linear-gradient(135deg, #f8fafc, #f0f4f8); border-radius: 12px; padding: 16px;
-  display: flex; flex-direction: column; gap: 6px; margin-top: 4px;
+  background: linear-gradient(135deg, #f8fafc, #f0f4f8); border-radius: 12px; padding: 18px;
+  display: flex; flex-direction: column; gap: 8px; margin-top: 10px;
   border: 1px solid #e5e7eb;
 }
 .totaisRow  { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; color: #374151; }

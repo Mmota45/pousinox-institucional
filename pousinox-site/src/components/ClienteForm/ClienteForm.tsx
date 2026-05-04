@@ -55,7 +55,7 @@ export interface ClienteFormProps {
 
 const CARGOS = [
   'Comprador(a)', 'Diretor(a)', 'Engenheiro(a)', 'Gerente', 'Proprietário(a)',
-  'Responsável Técnico', 'Financeiro', 'Administrativo', 'Arquiteto(a)', 'Outro',
+  'Responsável Técnico', 'Financeiro', 'Administrativo', 'Arquiteto(a)', 'Síndico(a)', 'Outro',
 ]
 
 // Perfis padrão (fallback quando tabela não existe ou está vazia)
@@ -92,11 +92,18 @@ export default function ClienteForm({ cliente, setCliente, styles }: ClienteForm
     if (buscaCliente.length < 2) { setResultadosCliente([]); return }
     const t = setTimeout(async () => {
       setLoadingCliente(true)
-      const termo = `%${buscaCliente}%`
-      const { data: pros } = await supabaseAdmin
+      const termo = buscaCliente.trim()
+      const soDigitos = termo.replace(/\D/g, '')
+      const isCnpj = soDigitos.length >= 8 && soDigitos.length <= 14 && /^\d+$/.test(soDigitos)
+      let query = supabaseAdmin
         .from('prospeccao')
         .select('cnpj, razao_social, telefone1, email, endereco, bairro, cidade, uf, cep, cliente_ativo')
-        .ilike('razao_social', termo).limit(10)
+      if (isCnpj) {
+        query = query.like('cnpj', `${soDigitos}%`)
+      } else {
+        query = query.ilike('razao_social', `%${termo}%`)
+      }
+      const { data: pros } = await query.limit(10)
       setResultadosCliente(
         ((pros ?? []) as any[]).map(p => ({
           cnpj: p.cnpj, nome: p.razao_social ?? '',

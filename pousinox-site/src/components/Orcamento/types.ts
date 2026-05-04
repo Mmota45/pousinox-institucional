@@ -62,6 +62,7 @@ export interface ExibirProposta {
   instMontagem: boolean
   anexos: boolean
   detalhesLogistica: boolean
+  descricaoItensVazios: boolean
 }
 
 export interface DadoBancario {
@@ -97,6 +98,7 @@ export const EXIBIR_DEFAULT: ExibirProposta = {
   email: false, emailNf: false, contatosAdicionais: false,
   cargo: false, endereco: false, enderecoEntrega: false, entResponsavel: false,
   obsTecnicaItens: false, instMontagem: false, anexos: false, detalhesLogistica: false,
+  descricaoItensVazios: true,
 }
 
 export const COND_PAGAMENTO = [
@@ -113,11 +115,11 @@ export const STATUS_CFG: Record<Status, { label: string; cor: string }> = {
 }
 
 export const EVENTO_LABEL: Record<string, string> = {
-  criado: '📝 Criado', editado: '✏️ Editado', status_alterado: '🔄 Status alterado',
-  impresso: '🖨️ Impresso/PDF', enviado: '📤 Marcado enviado',
-  aprovado: '✅ Aprovado', recusado: '❌ Recusado', cancelado: '🚫 Cancelado',
-  anexo_adicionado: '📎 Anexo adicionado', receivel_gerado: '💰 Recebível gerado',
-  etiqueta_gerada: '📦 Etiqueta gerada',
+  criado: 'Criado', editado: 'Editado', status_alterado: 'Status alterado',
+  impresso: 'Impresso/PDF', enviado: 'Marcado enviado',
+  aprovado: 'Aprovado', recusado: 'Recusado', cancelado: 'Cancelado',
+  anexo_adicionado: 'Anexo adicionado', receivel_gerado: 'Recebível gerado',
+  etiqueta_gerada: 'Etiqueta gerada',
 }
 
 export const ITEM_VAZIO: Item = { produto_id: null, descricao: '', qtd: '1', unidade: 'UN', valorUnit: '', obs_tecnica: '' }

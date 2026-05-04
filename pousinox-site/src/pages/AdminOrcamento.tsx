@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Pencil, Eye, Settings, ClipboardList, FileText, Link, History } from 'lucide-react'
+import { Pencil, Eye, Settings, ClipboardList, FileText, Link, History, AlertTriangle, User, Truck, Wrench, StickyNote, Paperclip, X, Camera, RefreshCw, ArrowLeft, Check } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase, supabaseAdmin } from '../lib/supabase'
 import styles from './AdminOrcamento.module.css'
@@ -363,8 +363,10 @@ export default function AdminOrcamento() {
       email: o.cliente_email ?? '', endereco: o.cliente_endereco ?? '',
       tipo_pessoa: o.cliente_tipo_pessoa ?? 'pj',
       perfil_comprador: o.perfil_comprador ?? '',
-      whatsapp: o.cliente_whatsapp ?? '', cargo: o.cliente_cargo ?? '',
-      cargo_outro: '', inscricao_estadual: o.cliente_inscricao_est ?? '',
+      whatsapp: o.cliente_whatsapp ?? '',
+      cargo: ['Comprador(a)','Diretor(a)','Engenheiro(a)','Gerente','Proprietário(a)','Responsável Técnico','Financeiro','Administrativo','Arquiteto(a)','Síndico(a)','Outro'].includes(o.cliente_cargo ?? '') ? (o.cliente_cargo ?? '') : (o.cliente_cargo ? 'Outro' : ''),
+      cargo_outro: ['Comprador(a)','Diretor(a)','Engenheiro(a)','Gerente','Proprietário(a)','Responsável Técnico','Financeiro','Administrativo','Arquiteto(a)','Síndico(a)','Outro'].includes(o.cliente_cargo ?? '') ? '' : (o.cliente_cargo ?? ''),
+      inscricao_estadual: o.cliente_inscricao_est ?? '',
       cep: o.cliente_cep ?? '', logradouro: o.cliente_logradouro ?? '',
       numero: o.cliente_numero ?? '', complemento: o.cliente_complemento ?? '',
       bairro: o.cliente_bairro ?? '', cidade: o.cliente_cidade ?? '', uf: o.cliente_uf ?? '',
@@ -898,7 +900,7 @@ export default function AdminOrcamento() {
               <div className={styles.editorEmptySub}>Escolha na lista à esquerda ou crie um novo.</div>
               {fromState?.returnTo && (
                 <button onClick={() => navigate(fromState.returnTo!)} className={styles.btnSecondary} style={{ marginTop: 16 }}>
-                  ← Voltar para {fromState.returnTo.includes('central') ? 'Central de Vendas' : fromState.returnTo.includes('projetos') ? 'Projetos' : 'módulo anterior'}
+                  <ArrowLeft size={13} /> Voltar para {fromState.returnTo.includes('central') ? 'Central de Vendas' : fromState.returnTo.includes('projetos') ? 'Projetos' : 'módulo anterior'}
                 </button>
               )}
             </div>
@@ -923,9 +925,9 @@ export default function AdminOrcamento() {
             <div className={styles.editorPanelBody}>
               {empresaDesatualizada && (
                 <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 10, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', color: '#92400e' }}>
-                  <span>⚠️ Dados da empresa desatualizados.</span>
+                  <span><AlertTriangle size={14} style={{ verticalAlign: 'middle' }} /> Dados da empresa desatualizados.</span>
                   <button onClick={() => salvar()} disabled={salvando} style={{ background: '#d97706', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: '0.80rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                    {salvando ? '...' : '↻ Atualizar'}
+                    {salvando ? '...' : <><RefreshCw size={13} /> Atualizar</>}
                   </button>
                 </div>
               )}
@@ -949,7 +951,7 @@ export default function AdminOrcamento() {
                 </div>
               </CollapsibleSection>
 
-              <CollapsibleSection title="👤 Destinatário">
+              <CollapsibleSection title={<><User size={16} /> Destinatário</>}>
                 <ClienteForm cliente={cliente} setCliente={setCliente} styles={styles} />
               </CollapsibleSection>
 
@@ -973,7 +975,7 @@ export default function AdminOrcamento() {
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 10px', margin: '8px 0' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
                   <input type="checkbox" checked={modoProposta} onChange={e => setModoProposta(e.target.checked)} style={{ width: 18, height: 18 }} />
-                  📄 Proposta Comercial
+                  <FileText size={14} style={{ verticalAlign: 'middle' }} /> Proposta Comercial
                 </label>
                 {!modoProposta && <span style={{ fontSize: '0.78rem', color: '#94a3b8', flex: '1 1 100%' }}>Ative para adicionar seções de apresentação, escopo, cronograma e garantias</span>}
                 {modoProposta && editandoId && (
@@ -992,7 +994,7 @@ export default function AdminOrcamento() {
                 <PropostaSection
                   proposta={proposta} setProposta={setProposta}
                   clienteNome={cliente.empresa || cliente.nome || cliente.empresa || ''}
-                  clienteSegmento={fromState?.prospect?.segmento || ''}
+                  clienteSegmento={fromState?.prospect?.segmento || (/fixador|grampo|bucha prego|porcelanato|disco|broca|pu /i.test(itens.map(i => i.descricao).join(' ')) ? 'Construção Civil' : '')}
                   itensResumo={itens.filter(i => i.descricao.trim()).map(i => `${i.descricao} (${i.qtd} ${i.unidade})`).join(', ')}
                   styles={styles}
                 />
@@ -1001,10 +1003,11 @@ export default function AdminOrcamento() {
               <EspecificacaoSection
                 orcamentoId={editandoId}
                 onItensAdded={novos => setItens(prev => [...prev.filter(i => i.descricao.trim()), ...novos])}
+                prospectSegmento={fromState?.prospect?.segmento}
                 styles={styles}
               />
 
-              <CollapsibleSection title="🚚 Frete & Logística">
+              <CollapsibleSection title={<><Truck size={16} /> Frete &amp; Logística</>}>
                 <FreteSection
                   orcamentoId={editandoId}
                   cepOrigem={empresaSel?.cep || '37550360'}
@@ -1016,7 +1019,7 @@ export default function AdminOrcamento() {
                 />
               </CollapsibleSection>
 
-              <CollapsibleSection title="🔧 Instalação / Montagem">
+              <CollapsibleSection title={<><Wrench size={16} /> Instalação / Montagem</>}>
                 <div className={styles.watermarkRow}>
                   <label className={styles.toggleLabel}>
                     <input type="checkbox" checked={instalacao.inclui} onChange={e => setInstalacao(i => ({ ...i, inclui: e.target.checked }))} />
@@ -1037,7 +1040,7 @@ export default function AdminOrcamento() {
                         <label>Valor (R$) — deixe 0 se incluso no preço</label>
                         <input className={styles.input} type="number" min="0" step="0.01" value={instalacao.valor} onChange={e => setInstalacao(i => ({ ...i, valor: e.target.value }))} />
                         {instalacao.modalidade === 'bonus' && valorInstBruto() > 0 && (
-                          <div style={{ fontSize: '0.72rem', color: '#16a34a', marginTop: 2 }}>✓ Aparece na proposta como benefício — não soma no total</div>
+                          <div style={{ fontSize: '0.72rem', color: '#16a34a', marginTop: 2 }}><Check size={13} style={{ verticalAlign: 'middle' }} /> Aparece na proposta como benefício — não soma no total</div>
                         )}
                       </div>
                     </div>
@@ -1053,28 +1056,25 @@ export default function AdminOrcamento() {
                 dadosPagamento={dadosPagamento} setDadosPagamento={setDadosPagamento}
                 prazoEntrega={prazoEntrega} setPrazoEntrega={setPrazoEntrega}
                 validadeDias={validadeDias} setValidadeDias={setValidadeDias}
-                dataEmissao={dataEmissao} onOpenConfig={() => setDrawerOpen(true)} styles={styles}
+                dataEmissao={dataEmissao} observacoes={observacoes} setObservacoes={setObservacoes}
+                onOpenConfig={() => setDrawerOpen(true)} styles={styles}
               />
 
-              <CollapsibleSection title="📝 Observações">
-                <div className={styles.fg}><textarea className={`${styles.input} ${styles.textarea}`} rows={4} value={observacoes} onChange={e => setObservacoes(e.target.value)} /></div>
-              </CollapsibleSection>
-
-              <CollapsibleSection title="📎 Anexos" count={anexos.length}>
+              <CollapsibleSection title={<><Paperclip size={16} /> Anexos</>} count={anexos.length}>
                 {anexos.length > 0 && (
                   <div className={styles.anexosList}>
                     {anexos.map(a => (
                       <div key={a.id ?? a.nome} className={styles.anexoItem}>
-                        <a href={a.url} target="_blank" rel="noreferrer" className={styles.anexoLink}>📎 {a.nome}</a>
+                        <a href={a.url} target="_blank" rel="noreferrer" className={styles.anexoLink}><Paperclip size={12} /> {a.nome}</a>
                         {a.tamanho && <span className={styles.anexoSize}>{(a.tamanho / 1024).toFixed(0)} KB</span>}
-                        {a.id && <button className={styles.btnRemoveItem} onClick={() => removerAnexo(a.id!)}>✕</button>}
+                        {a.id && <button className={styles.btnRemoveItem} onClick={() => removerAnexo(a.id!)}><X size={12} /></button>}
                       </div>
                     ))}
                   </div>
                 )}
                 <input type="file" ref={anexoRef} style={{ display: 'none' }} onChange={e => e.target.files?.[0] && uploadAnexo(e.target.files[0])} />
                 <button className={styles.btnAddItem} onClick={() => anexoRef.current?.click()} disabled={uploadandoAnexo}>
-                  {uploadandoAnexo ? 'Enviando...' : '📎 Anexar arquivo'}
+                  {uploadandoAnexo ? 'Enviando...' : <><Paperclip size={14} /> Anexar arquivo</>}
                 </button>
               </CollapsibleSection>
             </div>
