@@ -712,7 +712,8 @@ export default function AdminOrcamento() {
         body: {
           acao: 'orcamento',
           para: cliente.email,
-          nome: cliente.empresa || cliente.nome,
+          nome: cliente.nome || '',
+          empresa: cliente.empresa || '',
           numero,
           link: url,
           vendedor: nomeUsuario,
