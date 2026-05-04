@@ -1,4 +1,142 @@
-/* ── Layout ── */
+/* ── Hub 3-panel layout (NotebookLM pattern) ── */
+.hubWrap {
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  gap: 10px;
+  background: #e0e3e8;
+  padding: 10px;
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.hubWrapListHidden { grid-template-columns: 0px 1fr 300px; }
+.hubWrapActionsHidden { grid-template-columns: 280px 1fr 0px; }
+.hubWrapBothHidden { grid-template-columns: 0px 1fr 0px; }
+
+.listPanel {
+  display: flex; flex-direction: column; height: 100%;
+  background: #fff; overflow: hidden; border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.listPanelHidden { display: none; }
+
+.editorPanel {
+  display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.editorPanelBody {
+  flex: 1; overflow-y: auto; padding: 14px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.editorPanelBody::-webkit-scrollbar { width: 4px; }
+.editorPanelBody::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+.actionsPanel {
+  background: #fff; overflow: hidden; display: flex; flex-direction: column; height: 100%;
+  border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.actionsPanelHidden { display: none; }
+.actionsPanelBody {
+  flex: 1; overflow-y: auto; padding: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.actionsPanelBody::-webkit-scrollbar { width: 4px; }
+.actionsPanelBody::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+/* Panel headers */
+.panelHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px; height: 48px; min-height: 48px;
+  border-bottom: 1px solid #e5e7eb; box-sizing: border-box;
+}
+.panelTitle { font-size: 0.92rem; font-weight: 700; color: #1B3A5C; }
+
+/* Collapse buttons */
+.panelCollapseBtn {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #f5f7fa; border: 1px solid #e5e7eb;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; color: #64748b; transition: all 0.15s;
+  flex-shrink: 0;
+}
+.panelCollapseBtn:hover { background: #e0e3e8; color: #1B3A5C; }
+
+/* Editor empty state */
+.editorEmpty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: 1; padding: 40px 20px; text-align: center;
+}
+.editorEmptyIcon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.3; }
+.editorEmptyTitle { font-size: 0.92rem; font-weight: 600; color: #64748b; margin: 0 0 6px; }
+.editorEmptySub { font-size: 0.78rem; color: #9ca3af; margin: 0; line-height: 1.5; }
+
+/* Search in list panel */
+.listSearch { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+.listSearchInput {
+  width: 100%; padding: 7px 12px; border: 1.5px solid #e5e7eb;
+  border-radius: 20px; font-size: 0.8rem; font-family: inherit;
+  outline: none; background: #f8fafc; box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.listSearchInput:focus { border-color: #1a5fa8; background: #fff; }
+.listSearchInput::placeholder { color: #9ca3af; }
+
+/* List items in panel */
+.listScroll { flex: 1; overflow-y: auto; }
+.listScroll::-webkit-scrollbar { width: 4px; }
+.listScroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+.listItem {
+  padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f5f7fa;
+  transition: background 0.1s;
+}
+.listItem:hover { background: #f0f7ff; }
+.listItemActive { background: #eff6ff; border-left: 3px solid #1a5fa8; padding-left: 11px; }
+.listItemNum { font-size: 0.72rem; font-weight: 700; color: #1a5fa8; }
+.listItemCliente { font-size: 0.82rem; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.listItemMeta { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 3px; }
+.listItemTotal { font-size: 0.8rem; font-weight: 700; color: #0f172a; }
+.listItemData { font-size: 0.68rem; color: #94a3b8; }
+
+/* Actions panel sections */
+.actionBlock { display: flex; flex-direction: column; gap: 6px; }
+.actionBlockTitle {
+  font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: #64748b; padding-bottom: 4px;
+  border-bottom: 1px solid #f1f5f9;
+}
+.actionBtns { display: flex; flex-direction: column; gap: 6px; }
+
+/* Mobile tabs */
+.mobileTabs {
+  display: none;
+  background: #fff; border-bottom: 1px solid #e5e7eb;
+  padding: 0;
+}
+.mobileTab {
+  flex: 1; padding: 10px 0; border: none; background: none;
+  font-size: 0.82rem; font-weight: 600; color: #94a3b8;
+  cursor: pointer; font-family: inherit; text-align: center;
+  border-bottom: 2px solid transparent; transition: all 0.15s;
+}
+.mobileTab:hover { color: #64748b; }
+.mobileTabActive { color: #1B3A5C; border-bottom-color: #1B3A5C; }
+
+@media (max-width: 768px) {
+  .hubWrap, .hubWrapListHidden, .hubWrapActionsHidden, .hubWrapBothHidden {
+    display: flex; flex-direction: column; padding: 0; gap: 0;
+    height: auto; overflow: auto; grid-template-columns: none;
+  }
+  .mobileTabs { display: flex; }
+  .listPanel, .editorPanel, .actionsPanel {
+    border-radius: 0; height: auto; min-height: 0;
+    box-shadow: none;
+  }
+  .mobileHidden { display: none !important; }
+  .editorPanelBody { padding: 10px; }
+}
+
+/* Legacy wrap (used by sections internals) */
 .wrap { display: flex; flex-direction: column; gap: 10px; }
 
 /* ── Nav header (breadcrumb + actions) ── */

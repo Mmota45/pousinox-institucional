@@ -18,6 +18,7 @@ import ResumoSidebar from '../components/Orcamento/sections/ResumoSidebar'
 import ItensSection from '../components/Orcamento/sections/ItensSection'
 import CondicoesSection from '../components/Orcamento/sections/CondicoesSection'
 import DetalheView from '../components/Orcamento/sections/DetalheView'
+import OrcamentoList from '../components/Orcamento/OrcamentoList'
 import ConfigDrawer from '../components/Orcamento/ConfigDrawer'
 import PropostaSection, { type PropostaData, PROPOSTA_VAZIA } from '../components/Orcamento/sections/PropostaSection'
 import CompartilharProposta from '../components/Orcamento/CompartilharProposta'
@@ -26,7 +27,7 @@ import EspecificacaoSection from '../components/Orcamento/sections/Especificacao
 import type {
   EmpresaEmissora, Vendedor, OrcamentoResumo, Item, Instalacao, OrcLink,
   ExibirProposta, DadoBancario, Anexo, HistoricoItem, ProdutoResult,
-  OutletResult, Status, Vista, ClienteInfo, FreteSummary,
+  OutletResult, Status, ClienteInfo, FreteSummary,
 } from '../components/Orcamento/types'
 
 import {
@@ -60,13 +61,13 @@ export default function AdminOrcamento() {
     return null
   })()
 
-  const [vista, setVista]           = useState<Vista>('lista')
+  const [modoEditor, setModoEditor] = useState(false) // false=detalhe, true=editor
+  const [mobileTab, setMobileTab]   = useState<'lista' | 'editor' | 'acoes'>('lista')
   const [lista, setLista]           = useState<OrcamentoResumo[]>([])
   const [loadingLista, setLoadingLista] = useState(false)
   const lp = useLoadingProgress(4)
   const [filtroStatus, setFiltroStatus] = useState<Status | 'todos'>('todos')
-  const [ordenCol, setOrdenCol] = useState<string>('criado_em')
-  const [ordenDir, setOrdenDir] = useState<'asc' | 'desc'>('desc')
+  // ordenação agora dentro do OrcamentoList
   const [empresas, setEmpresas]     = useState<EmpresaEmissora[]>([])
   const [empresaId, setEmpresaId]   = useState<number | null>(null)
   const [uploadandoLogo, setUploadandoLogo] = useState(false)
@@ -250,7 +251,7 @@ export default function AdminOrcamento() {
       supabaseAdmin.rpc('next_orcamento_numero').then(({ data }) => {
         setNumero((data as string) ?? `${new Date().getFullYear()}/001`)
       })
-      setVista('editor')
+      setModoEditor(true); setMobileTab('editor')
     } else if (fromState?.prospect) {
       const pr = fromState.prospect
       setCliente({
@@ -267,7 +268,7 @@ export default function AdminOrcamento() {
       supabaseAdmin.rpc('next_orcamento_numero').then(({ data }) => {
         setNumero((data as string) ?? `${new Date().getFullYear()}/001`)
       })
-      setVista('editor')
+      setModoEditor(true); setMobileTab('editor')
     }
   }, [])
 
@@ -332,7 +333,7 @@ export default function AdminOrcamento() {
         await supabaseAdmin.from('orcamentos_historico').insert({ orcamento_id: newId, evento: 'criado', descricao: null, usuario: nomeUsuario || null })
         setHistorico([{ id: 0, evento: 'criado', descricao: null, usuario: nomeUsuario || null, criado_em: new Date().toISOString() }])
       }
-      setVista('editor')
+      setModoEditor(true); setMobileTab('editor')
       carregarLista()
     } catch (err) {
       console.error('Erro ao criar orçamento:', err)
@@ -340,7 +341,7 @@ export default function AdminOrcamento() {
     }
   }
 
-  async function carregarOrcamento(id: number, destino: Vista = 'editor') {
+  async function carregarOrcamento(id: number, destino: 'editor' | 'detalhe' = 'editor') {
     try {
     const [{ data: orc, error: errOrc }, { data: itensD }, { data: anexosD }, { data: histD }] = await Promise.all([
       supabaseAdmin.from('orcamentos').select('*').eq('id', id).single(),
@@ -422,7 +423,8 @@ export default function AdminOrcamento() {
       telefone_is_whatsapp: o.empresa_telefone_is_whatsapp ?? null,
     })
     await carregarLinks(id)
-    setVista(destino)
+    setModoEditor(destino === 'editor')
+    setMobileTab('editor')
     } catch (err) {
       console.error('Erro ao carregar orçamento:', err)
       showMsg('erro', 'Erro ao carregar orçamento.')
@@ -769,7 +771,7 @@ export default function AdminOrcamento() {
       if (error) throw error
       showMsg('ok', 'Orçamento excluído.')
       setConfirmExcluir(false)
-      if (vista === 'editor') setVista('lista')
+      if (modoEditor) { setEditandoId(null); setModoEditor(false); setMobileTab('lista') }
       carregarLista()
     } catch (err) {
       console.error('Erro ao excluir:', err)
@@ -820,178 +822,113 @@ export default function AdminOrcamento() {
   }
 
 
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const exportCsv = () => {
+    const rows = [['Número','Empresa','Cliente','Vendedor','Total','Status','Data']]
+    lista.forEach(o => rows.push([o.numero, o.empresa_nome ?? '', o.cliente_empresa || o.cliente_nome || '', o.vendedor_nome ?? '', String(o.total), STATUS_CFG[o.status as Status]?.label ?? o.status, fmtDataISO(o.criado_em)]))
+    const csv = rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(';')).join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `orcamentos-${filtroStatus}.csv`; a.click()
+  }
+
+  const hasOrcamento = editandoId != null
+
   // ── JSX ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className={styles.wrap}>
-
+    <>
       {msg && (
         <div className={`${styles.toast} ${msg.tipo === 'ok' ? styles.toastOk : styles.toastErro}`}>
           {msg.texto}
         </div>
       )}
 
-      {fromState?.returnTo && (
-        <button onClick={() => navigate(fromState.returnTo!)} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', color: '#475569', marginBottom: 8, fontFamily: 'inherit' }}>
-          ← Voltar para {fromState.returnTo.includes('central') ? 'Central de Vendas' : fromState.returnTo.includes('projetos') ? 'Projetos' : 'módulo anterior'}
-        </button>
-      )}
-      <div className={styles.navHeader}>
-        <nav className={styles.breadcrumb}>
-          <button className={styles.breadcrumbLink} onClick={() => setVista('lista')}>Orçamentos</button>
-          {vista === 'detalhe' && <>
-            <span className={styles.breadcrumbSep}>/</span>
-            <span className={styles.breadcrumbCurrent}>Detalhe</span>
-          </>}
-          {vista === 'editor' && <>
-            <span className={styles.breadcrumbSep}>/</span>
-            <span className={styles.breadcrumbCurrent}>{editandoId ? 'Editando' : 'Novo'}</span>
-          </>}
-        </nav>
-        <div className={styles.navActions}>
-          <button className={styles.navLink} onClick={() => setDrawerOpen(true)}>⚙️ Config</button>
-          <button className={styles.btnNovo} onClick={abrirNovo}>+ Novo Orçamento</button>
-        </div>
+      {/* Mobile tabs */}
+      <div className={styles.mobileTabs}>
+        {(['lista', 'editor', 'acoes'] as const).map(tab => (
+          <button key={tab} className={`${styles.mobileTab} ${mobileTab === tab ? styles.mobileTabActive : ''}`}
+            onClick={() => setMobileTab(tab)}>
+            {tab === 'lista' ? 'Lista' : tab === 'editor' ? 'Orçamento' : 'Ações'}
+          </button>
+        ))}
       </div>
 
-      {/* ═══ LISTA ═══ */}
-      {vista === 'lista' && (
-        <div className={styles.listaWrap}>
-          <div className={styles.listaFiltros}>
-            {(['todos', 'rascunho', 'enviado', 'aprovado', 'recusado', 'cancelado'] as const).map(s => (
-              <button key={s} className={`${styles.filtroBtn} ${filtroStatus === s ? styles.filtroBtnAtivo : ''}`} onClick={() => setFiltroStatus(s)}>
-                {s === 'todos' ? 'Todos' : STATUS_CFG[s as Status].label}
-              </button>
-            ))}
-            {lista.length > 0 && (
-              <button className={styles.filtroBtn} onClick={() => {
-                const rows = [['Número','Empresa','Cliente','Vendedor','Total','Status','Data']]
-                lista.forEach(o => rows.push([o.numero, o.empresa_nome ?? '', o.cliente_empresa || o.cliente_nome || '', o.vendedor_nome ?? '', String(o.total), STATUS_CFG[o.status as Status]?.label ?? o.status, fmtDataISO(o.criado_em)]))
-                const csv = rows.map(r => r.map(c => `"${c.replace(/"/g, '""')}"`).join(';')).join('\n')
-                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `orcamentos-${filtroStatus}.csv`; a.click()
-              }}>📥 CSV</button>
-            )}
+      <div className={styles.hubWrap}>
+
+        {/* ═══ LEFT PANEL — Lista ═══ */}
+        <div className={`${styles.listPanel} ${mobileTab !== 'lista' ? styles.mobileHidden : ''}`}>
+          <OrcamentoList
+            lista={lista} loading={loadingLista} editandoId={editandoId}
+            filtroStatus={filtroStatus} setFiltroStatus={setFiltroStatus}
+            ocultarValores={ocultarValores} isAdminUser={isAdminUser}
+            onSelecionar={id => carregarOrcamento(id, 'detalhe')}
+            onEditar={id => carregarOrcamento(id, 'editor')}
+            onNovo={abrirNovo} onExcluir={excluirOrcamento} onExportCsv={exportCsv}
+            styles={styles}
+          />
+        </div>
+
+        {/* ═══ CENTER PANEL — Editor / Detalhe / Empty ═══ */}
+        <div className={`${styles.editorPanel} ${mobileTab !== 'editor' ? styles.mobileHidden : ''}`}>
+
+          {/* Editor header bar */}
+          <div className={styles.panelHeader}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className={styles.panelTitle}>
+                {!hasOrcamento ? 'Orçamento' : modoEditor ? (editandoId ? `Editando ${numero}` : 'Novo') : `Detalhe ${numero}`}
+              </span>
+              {hasOrcamento && !modoEditor && (
+                <button className={styles.btnMini} onClick={() => setModoEditor(true)} title="Editar">✏️</button>
+              )}
+              {hasOrcamento && modoEditor && (
+                <button className={styles.btnMini} onClick={() => setModoEditor(false)} title="Ver detalhe">👁</button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button className={styles.panelCollapseBtn} onClick={() => setDrawerOpen(true)} title="Config">⚙️</button>
+            </div>
           </div>
-          {loadingLista ? (
-            <AdminLoading total={lp.total} current={lp.current} label="Carregando orçamentos..." />
-          ) : lista.length === 0 ? (
-            <div className={styles.vazio}>
-              <p>Nenhum orçamento encontrado.</p>
+
+          {/* Center content */}
+          {!hasOrcamento ? (
+            <div className={styles.editorEmpty}>
+              <div className={styles.editorEmptyIcon}>📋</div>
+              <div className={styles.editorEmptyTitle}>Selecione um orçamento</div>
+              <div className={styles.editorEmptySub}>Escolha na lista à esquerda ou crie um novo.</div>
+              {fromState?.returnTo && (
+                <button onClick={() => navigate(fromState.returnTo!)} className={styles.btnSecondary} style={{ marginTop: 16 }}>
+                  ← Voltar para {fromState.returnTo.includes('central') ? 'Central de Vendas' : fromState.returnTo.includes('projetos') ? 'Projetos' : 'módulo anterior'}
+                </button>
+              )}
+            </div>
+          ) : !modoEditor ? (
+            /* ═══ DETALHE (read-only) ═══ */
+            <div className={styles.editorPanelBody}>
+              <DetalheView
+                numero={numero} status={status} empresaSel={empresaSel} vendedores={vendedores}
+                vendedorId={vendedorId} cliente={cliente} itens={itens}
+                subtotal={subtotal()} valorDesc={valorDesc()} desconto={desconto} tipoDesc={tipoDesc}
+                valorFrete={valorFrete()} valorInst={valorInst()} total={total()} fmt={fmt}
+                freteSummary={freteSummaryRef.current} condicoes={condicoes}
+                dadosBancarios={dadosBancarios} dadosBancariosSel={dadosBancariosSel}
+                prazoEntrega={prazoEntrega} validadeDias={validadeDias} dataEmissao={dataEmissao}
+                instalacao={instalacao} observacoes={observacoes} anexos={anexos}
+                finLancId={finLancId} historico={historico}
+                onEditar={() => setModoEditor(true)} onImprimir={imprimir} styles={styles}
+              />
             </div>
           ) : (
-            <>
-              {/* Cards — mobile */}
-              <div className={styles.listaCards}>
-                {lista.map(o => {
-                  const cfg = STATUS_CFG[o.status as Status]
-                  return (
-                    <div key={o.id} className={styles.listaCard} onClick={() => carregarOrcamento(o.id, 'detalhe')} style={{ cursor: 'pointer' }}>
-                      <div className={styles.listaCardTopo}>
-                        <div>
-                          <div className={styles.listaCardNum}>{o.numero}</div>
-                          <div className={styles.listaCardEmpresa}>{o.cliente_empresa || o.cliente_nome || '—'}</div>
-                          <div className={styles.listaCardCliente}>{o.empresa_nome ?? ''} · {o.vendedor_nome ?? ''}</div>
-                        </div>
-                        <span className={styles.statusBadge} style={{ background: cfg?.cor + '22', color: cfg?.cor }}>{cfg?.label}</span>
-                      </div>
-                      <div className={styles.listaCardMeta}>
-                        <span className={styles.listaCardTotal}>{ocultarValores ? '••••' : fmtBRL(Number(o.total))}</span>
-                        <span className={styles.listaCardData}>{fmtDataISO(o.criado_em)}</span>
-                        <div className={styles.listaCardAcoes} onClick={e => e.stopPropagation()}>
-                          <button className={styles.btnMini} onClick={() => carregarOrcamento(o.id)} title="Editar">✏️</button>
-                          {isAdminUser && (
-                            <button className={`${styles.btnMini} ${styles.btnMiniDanger}`} title="Excluir"
-                              onClick={() => { if (window.confirm(`Excluir orçamento ${o.numero}?`)) excluirOrcamento(o.id) }}>🗑</button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-              {/* Tabela — tablet/desktop */}
-              <table className={styles.listaTable}>
-                <thead><tr>
-                  {[
-                    { key: 'numero', label: 'Número' }, { key: 'empresa_nome', label: 'Empresa' },
-                    { key: 'cliente_empresa', label: 'Cliente' }, { key: 'vendedor_nome', label: 'Vendedor' },
-                    { key: 'total', label: 'Total' }, { key: 'status', label: 'Status' },
-                    { key: 'criado_em', label: 'Data' },
-                  ].map(col => (
-                    <th key={col.key} onClick={() => { setOrdenDir(ordenCol === col.key && ordenDir === 'asc' ? 'desc' : 'asc'); setOrdenCol(col.key) }}
-                      style={{ cursor: 'pointer', userSelect: 'none' }}>
-                      {col.label} {ordenCol === col.key ? (ordenDir === 'asc' ? '▲' : '▼') : ''}
-                    </th>
-                  ))}
-                  <th></th>
-                </tr></thead>
-                <tbody>
-                  {[...lista].sort((a, b) => {
-                    const ak = (a as unknown as Record<string, unknown>)[ordenCol], bk = (b as unknown as Record<string, unknown>)[ordenCol]
-                    const av = typeof ak === 'number' ? ak : String(ak ?? '').toLowerCase()
-                    const bv = typeof bk === 'number' ? bk : String(bk ?? '').toLowerCase()
-                    if (av < bv) return ordenDir === 'asc' ? -1 : 1
-                    if (av > bv) return ordenDir === 'asc' ? 1 : -1
-                    return 0
-                  }).map(o => (
-                    <tr key={o.id} onClick={() => carregarOrcamento(o.id, 'detalhe')}>
-                      <td><strong style={{ color: '#1a5fa8' }}>{o.numero}</strong></td>
-                      <td>{o.empresa_nome ?? '—'}</td>
-                      <td className={styles.tdCliente} title={o.cliente_empresa || o.cliente_nome || ''}>{o.cliente_empresa || o.cliente_nome || '—'}</td>
-                      <td>{o.vendedor_nome ?? '—'}</td>
-                      <td style={{ fontWeight: 600 }}>{ocultarValores ? '••••' : fmtBRL(Number(o.total))}</td>
-                      <td><span className={styles.statusBadge} style={{ background: STATUS_CFG[o.status as Status]?.cor + '22', color: STATUS_CFG[o.status as Status]?.cor }}>{STATUS_CFG[o.status as Status]?.label}</span></td>
-                      <td style={{ color: '#64748b', fontSize: '0.78rem' }}>{fmtDataISO(o.criado_em)}</td>
-                      <td className={styles.tdAcoes} onClick={e => e.stopPropagation()}>
-                        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                          <button className={styles.btnMini} onClick={() => carregarOrcamento(o.id)} title="Editar">✏️</button>
-                          {isAdminUser && (
-                            <button className={`${styles.btnMini} ${styles.btnMiniDanger}`} title="Excluir"
-                              onClick={() => { if (window.confirm(`Excluir orçamento ${o.numero}? Esta ação não pode ser desfeita.`)) excluirOrcamento(o.id) }}>🗑</button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
-          )}
-        </div>
-      )}
+            /* ═══ EDITOR ═══ */
+            <div className={styles.editorPanelBody}>
+              {empresaDesatualizada && (
+                <div style={{ background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 10, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', color: '#92400e' }}>
+                  <span>⚠️ Dados da empresa desatualizados.</span>
+                  <button onClick={() => salvar()} disabled={salvando} style={{ background: '#d97706', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: '0.80rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    {salvando ? '...' : '↻ Atualizar'}
+                  </button>
+                </div>
+              )}
 
-      {/* ═══ DETALHE (read-only) ═══ */}
-      {vista === 'detalhe' && editandoId && (
-        <DetalheView
-          numero={numero} status={status} empresaSel={empresaSel} vendedores={vendedores}
-          vendedorId={vendedorId} cliente={cliente} itens={itens}
-          subtotal={subtotal()} valorDesc={valorDesc()} desconto={desconto} tipoDesc={tipoDesc}
-          valorFrete={valorFrete()} valorInst={valorInst()} total={total()} fmt={fmt}
-          freteSummary={freteSummaryRef.current} condicoes={condicoes}
-          dadosBancarios={dadosBancarios} dadosBancariosSel={dadosBancariosSel}
-          prazoEntrega={prazoEntrega} validadeDias={validadeDias} dataEmissao={dataEmissao}
-          instalacao={instalacao} observacoes={observacoes} anexos={anexos}
-          finLancId={finLancId} historico={historico}
-          onEditar={() => setVista('editor')} onImprimir={imprimir} styles={styles}
-        />
-      )}
-
-      {/* ═══ EDITOR ═══ */}
-      {vista === 'editor' && (
-        <>
-          {empresaDesatualizada && (
-            <div style={{ background: '#fef3c7', borderBottom: '1px solid #fcd34d', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10, fontSize: '0.82rem', color: '#92400e' }}>
-              <span>⚠️ Os dados da empresa emissora no PDF estão desatualizados em relação ao cadastro.</span>
-              <button onClick={() => salvar()} disabled={salvando} style={{ background: '#d97706', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: '0.80rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                {salvando ? '...' : '↻ Atualizar'}
-              </button>
-            </div>
-          )}
-
-          <div className={styles.layout}>
-            <div className={styles.layoutMain}>
-              {/* Empresa & Vendedor */}
               <CollapsibleSection title="📋 Emissão" defaultOpen>
                 <div className={styles.row2}>
                   <div className={styles.fg}>
@@ -1015,7 +952,6 @@ export default function AdminOrcamento() {
                 <ClienteForm cliente={cliente} setCliente={setCliente} styles={styles} />
               </CollapsibleSection>
 
-              {/* Itens */}
               <ItensSection
                 itens={itens} setItens={setItens} exibir={exibir}
                 subtotal={subtotal()} desconto={desconto} setDesconto={setDesconto}
@@ -1029,11 +965,10 @@ export default function AdminOrcamento() {
                 buscaOutlet={buscaOutlet} setBuscaOutlet={setBuscaOutlet}
                 resultadosOutlet={resultadosOutlet} loadingOutlet={loadingOutlet}
                 adicionarOutlet={adicionarOutlet}
-                clienteNome={cliente.nome || cliente.razao_social || ''}
+                clienteNome={cliente.nome || cliente.empresa || ''}
                 styles={styles}
               />
 
-              {/* Toggle Proposta Comercial */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '8px 0' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: '0.88rem', fontWeight: 600 }}>
                   <input type="checkbox" checked={modoProposta} onChange={e => setModoProposta(e.target.checked)} style={{ width: 18, height: 18 }} />
@@ -1043,7 +978,7 @@ export default function AdminOrcamento() {
                 {modoProposta && editandoId && (
                   <CompartilharProposta
                     orcamentoId={editandoId}
-                    empresa={cliente.empresa || cliente.nome || cliente.razao_social || ''}
+                    empresa={cliente.empresa || cliente.nome || cliente.empresa || ''}
                     cnpj={cliente.cnpj || ''}
                     contato={cliente.nome || ''}
                     email={cliente.email || ''}
@@ -1055,34 +990,31 @@ export default function AdminOrcamento() {
               {modoProposta && (
                 <PropostaSection
                   proposta={proposta} setProposta={setProposta}
-                  clienteNome={cliente.empresa || cliente.nome || cliente.razao_social || ''}
+                  clienteNome={cliente.empresa || cliente.nome || cliente.empresa || ''}
                   clienteSegmento={fromState?.prospect?.segmento || ''}
                   itensResumo={itens.filter(i => i.descricao.trim()).map(i => `${i.descricao} (${i.qtd} ${i.unidade})`).join(', ')}
                   styles={styles}
                 />
               )}
 
-              {/* Especificação Técnica de Materiais */}
               <EspecificacaoSection
                 orcamentoId={editandoId}
                 onItensAdded={novos => setItens(prev => [...prev.filter(i => i.descricao.trim()), ...novos])}
                 styles={styles}
               />
 
-              {/* Frete & Logística */}
               <CollapsibleSection title="🚚 Frete & Logística">
-              <FreteSection
-                orcamentoId={editandoId}
-                cepOrigem={empresaSel?.cep || '37550360'}
-                cepDestino={cliente.ent_diferente ? cliente.ent_cep : cliente.cep}
-                valorMercadoria={subtotal()}
-                parentStyles={styles}
-                onFreteChange={handleFreteChange}
-                usuario={nomeUsuario}
-              />
+                <FreteSection
+                  orcamentoId={editandoId}
+                  cepOrigem={empresaSel?.cep || '37550360'}
+                  cepDestino={cliente.ent_diferente ? cliente.ent_cep : cliente.cep}
+                  valorMercadoria={subtotal()}
+                  parentStyles={styles}
+                  onFreteChange={handleFreteChange}
+                  usuario={nomeUsuario}
+                />
               </CollapsibleSection>
 
-              {/* Instalação/Montagem */}
               <CollapsibleSection title="🔧 Instalação / Montagem">
                 <div className={styles.watermarkRow}>
                   <label className={styles.toggleLabel}>
@@ -1113,7 +1045,6 @@ export default function AdminOrcamento() {
                 )}
               </CollapsibleSection>
 
-              {/* Condições Comerciais */}
               <CondicoesSection
                 condicoes={condicoes} setCondicoes={setCondicoes}
                 dadosBancarios={dadosBancarios} dadosBancariosSel={dadosBancariosSel}
@@ -1124,14 +1055,10 @@ export default function AdminOrcamento() {
                 dataEmissao={dataEmissao} onOpenConfig={() => setDrawerOpen(true)} styles={styles}
               />
 
-              {/* Observações */}
               <CollapsibleSection title="📝 Observações">
                 <div className={styles.fg}><textarea className={`${styles.input} ${styles.textarea}`} rows={4} value={observacoes} onChange={e => setObservacoes(e.target.value)} /></div>
               </CollapsibleSection>
 
-              {/* Anexos & Rastreamento */}
-
-              {/* Anexos */}
               <CollapsibleSection title="📎 Anexos" count={anexos.length}>
                 {anexos.length > 0 && (
                   <div className={styles.anexosList}>
@@ -1149,46 +1076,61 @@ export default function AdminOrcamento() {
                   {uploadandoAnexo ? 'Enviando...' : '📎 Anexar arquivo'}
                 </button>
               </CollapsibleSection>
-
-              {/* Links de rastreamento */}
-              {editandoId && (
-                <LinksSection
-                  editandoId={editandoId} links={links} gerandoLink={gerandoLink}
-                  novoLinkDest={novoLinkDest} setNovoLinkDest={setNovoLinkDest}
-                  acessosLink={acessosLink} expandedLink={expandedLink}
-                  carregarLinks={carregarLinks} toggleAcessos={toggleAcessos}
-                  gerarLink={gerarLink} desativarLink={desativarLink} linkUrl={linkUrl}
-                  showMsg={showMsg} vendedores={vendedores} vendedorId={vendedorId}
-                  cliente={cliente} numero={numero} styles={styles}
-                />
-              )}
-
-              {/* Rastreabilidade */}
-              <HistoricoSection historico={historico} styles={styles} />
             </div>
+          )}
+        </div>
 
-            <ResumoSidebar
-              numero={numero} status={status}
-              empresaNome={empresaSel?.nome_fantasia ?? null}
-              clienteNome={cliente.empresa || cliente.nome}
-              subtotal={subtotal()} valorDesc={valorDesc()} tipoDesc={tipoDesc}
-              frete={freteSummaryRef.current} instalacao={instalacao}
-              total={total()} ocultarValores={ocultarValores}
-              salvando={salvando} onSalvar={(s) => salvar(s)} onImprimir={imprimir}
-              onCanva={gerarCanva} gerandoCanva={gerandoCanva}
-              finLancId={finLancId} gerandoRec={gerandoRec} onGerarReceivel={gerarReceivel}
-              etiquetaPreId={etiquetaPreId} gerandoEtiq={gerandoEtiq}
-              baixandoRotulo={baixandoRotulo} baixandoDace={baixandoDace} cancelandoEtiq={cancelandoEtiq}
-              onGerarEtiqueta={gerarEtiqueta} onBaixarRotulo={baixarRotulo}
-              onBaixarDace={baixarDace} onCancelarEtiqueta={cancelarEtiqueta}
-              editandoId={editandoId} isAdminUser={isAdminUser}
-              confirmExcluir={confirmExcluir} setConfirmExcluir={setConfirmExcluir}
-              onExcluir={excluirOrcamento}
-              styles={styles}
-            />
+        {/* ═══ RIGHT PANEL — Ações ═══ */}
+        <div className={`${styles.actionsPanel} ${mobileTab !== 'acoes' ? styles.mobileHidden : ''}`}>
+          <div className={styles.panelHeader}>
+            <span className={styles.panelTitle}>Ações</span>
           </div>
-        </>
-      )}
+          <div className={styles.actionsPanelBody}>
+            {hasOrcamento ? (
+              <>
+                <ResumoSidebar
+                  numero={numero} status={status}
+                  empresaNome={empresaSel?.nome_fantasia ?? null}
+                  clienteNome={cliente.empresa || cliente.nome}
+                  subtotal={subtotal()} valorDesc={valorDesc()} tipoDesc={tipoDesc}
+                  frete={freteSummaryRef.current} instalacao={instalacao}
+                  total={total()} ocultarValores={ocultarValores}
+                  salvando={salvando} onSalvar={(s) => salvar(s)} onImprimir={imprimir}
+                  onCanva={gerarCanva} gerandoCanva={gerandoCanva}
+                  finLancId={finLancId} gerandoRec={gerandoRec} onGerarReceivel={gerarReceivel}
+                  etiquetaPreId={etiquetaPreId} gerandoEtiq={gerandoEtiq}
+                  baixandoRotulo={baixandoRotulo} baixandoDace={baixandoDace} cancelandoEtiq={cancelandoEtiq}
+                  onGerarEtiqueta={gerarEtiqueta} onBaixarRotulo={baixarRotulo}
+                  onBaixarDace={baixarDace} onCancelarEtiqueta={cancelarEtiqueta}
+                  editandoId={editandoId} isAdminUser={isAdminUser}
+                  confirmExcluir={confirmExcluir} setConfirmExcluir={setConfirmExcluir}
+                  onExcluir={excluirOrcamento}
+                  styles={styles}
+                />
+
+                {editandoId && (
+                  <LinksSection
+                    editandoId={editandoId} links={links} gerandoLink={gerandoLink}
+                    novoLinkDest={novoLinkDest} setNovoLinkDest={setNovoLinkDest}
+                    acessosLink={acessosLink} expandedLink={expandedLink}
+                    carregarLinks={carregarLinks} toggleAcessos={toggleAcessos}
+                    gerarLink={gerarLink} desativarLink={desativarLink} linkUrl={linkUrl}
+                    showMsg={showMsg} vendedores={vendedores} vendedorId={vendedorId}
+                    cliente={cliente} numero={numero} styles={styles}
+                  />
+                )}
+
+                <HistoricoSection historico={historico} styles={styles} />
+              </>
+            ) : (
+              <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontSize: '0.82rem' }}>
+                Selecione um orçamento para ver ações.
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
 
       <ConfigDrawer
         open={drawerOpen} onClose={() => setDrawerOpen(false)}
@@ -1207,6 +1149,6 @@ export default function AdminOrcamento() {
         obsInternas={obsInternas} setObsInternas={setObsInternas}
         styles={styles}
       />
-    </div>
+    </>
   )
 }

@@ -70,7 +70,7 @@ Rotas `/admin/*` com layout próprio (`AdminLayout`). Todos os módulos usam `su
 | `/admin/pipeline` | `AdminPipeline` | Comercial | ✅ deals, estágios, recebível |
 | `/admin/central-vendas` | `AdminCentralVendas` | Comercial | ✅ scoring on-the-fly, hot list, follow-ups, materiais, dashboard, WhatsApp por segmento, validação Z-API |
 | `/admin/ia` | `AdminIA` | IA | ✅ multi-provider (Groq/Gemini/OpenRouter), busca web (Brave+Serper), consulta DB automática, roteamento inteligente |
-| `/admin/orcamento` | `AdminOrcamento` | Comercial | ✅ |
+| `/admin/orcamento` | `AdminOrcamento` | Comercial | ✅ hub 3 painéis (lista+editor+ações) |
 | `/admin/vendas` | `AdminVendas` | Comercial | ✅ |
 | `/admin/clientes` | `AdminClientes` | Comercial | ✅ importação NFSTok + RFM |
 | `/admin/leads` | `AdminLeads` | Marketing | ✅ |
