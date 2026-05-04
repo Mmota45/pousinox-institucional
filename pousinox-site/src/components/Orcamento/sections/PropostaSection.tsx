@@ -277,7 +277,7 @@ ${REGRAS_ANTI_ALUCINACAO}\n${DIRETRIZES_ESCRITA}\n${REVISAO_FINAL_CHECKLIST}`
             const segmentos = ['Construção Civil', 'Restaurantes e Food Service', 'Hospitalar e Clínicas', 'Hotelaria e Catering', 'Panificação e Confeitaria', 'Laboratório Farmacêutico', 'Comércio e Varejo', 'Arquitetura e Projetos Residenciais']
             // Colocar o segmento do cliente em primeiro na lista
             const ordered = [segmentoAtual, ...segmentos.filter(s => s !== segmentoAtual)].filter(Boolean)
-            const p1 = `A Pousinox é fabricante de soluções em aço inox, com sede e fabricação própria em Pouso Alegre/MG. A empresa atende diversos segmentos de mercado, incluindo ${ordered.slice(0, 5).join(', ')}, entre outros.`
+            const p1 = `A Pousinox é fabricante de soluções em aço inox, com sede e fabricação própria em Pouso Alegre/MG. A empresa atende mais de 19 segmentos, com destaque para Restaurantes e Food Service, Hospitalar e Clínicas, Supermercados e Varejo, Indústrias Farmacêuticas, Panificação e Confeitaria, Hotelaria e Catering, Arquitetura e Projetos Residenciais, Cozinhas Industriais e Construção Civil.`
             const p2 = segMap[segmentoAtual] || segMap['Construção Civil']
             upd('apresentacao', `${p1}\n\n${p2}`)
           }} style={{ fontSize: '0.75rem' }}>

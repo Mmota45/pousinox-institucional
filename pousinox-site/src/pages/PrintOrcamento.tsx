@@ -30,7 +30,7 @@ interface OrcData {
   }[]
   desconto: number; tipo_desconto: string; condicoes: string[]; prazo_entrega: string; dados_pagamento: string; dados_bancarios_texto: string[]
   observacoes: string; watermark_ativo: boolean; watermark_texto: string; watermark_logo: boolean
-  frete: { tipo: string; modalidade: string; valor: number; prazo: string; obs: string }
+  frete: { tipo: string; modalidade: string; valor: number; prazo: string; obs: string; provedor: string; servico: string }
   instalacao: { inclui: boolean; modalidade: string; texto: string; valor: number }
   exibir: Record<string, boolean>
   anexos: { nome: string; url: string }[]
@@ -253,6 +253,7 @@ export default function PrintOrcamento() {
   const [precosMateriais, setPrecosMateriais] = useState<Record<string, number>>({}) // nome → preco_unitario
   const [precosModelo, setPrecosModelo] = useState<Record<number, number>>({}) // modelo_id → preco_unitario
   const [qrCalcUrl, setQrCalcUrl] = useState<string | null>(null)
+  const [mapaFreteUrl, setMapaFreteUrl] = useState<string | null>(null)
   const [erro, setErro] = useState('')
   const [viewUrl, setViewUrl] = useState<string | null>(null)
   const params = new URLSearchParams(window.location.search)
@@ -306,6 +307,102 @@ export default function PrintOrcamento() {
       .then(url => setQrCalcUrl(url))
       .catch(() => {})
   }, [especificacoes])
+
+  // Gerar mapa estático de frete (origem → destino) via Canvas + OSM tiles
+  useEffect(() => {
+    if (!data?.cliente.cidade) return
+    const ORIG: [number, number] = [-22.23, -45.94] // Pouso Alegre/MG
+
+    async function gerarMapa() {
+      const q = `${data!.cliente.cidade}, ${data!.cliente.uf}, Brazil`
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, {
+          headers: { 'User-Agent': 'PousinoxPDF/1.0' }
+        })
+        const results = await r.json()
+        if (!results.length) return
+        const dest: [number, number] = [parseFloat(results[0].lat), parseFloat(results[0].lon)]
+
+        // Calcular centro e zoom
+        const centerLat = (ORIG[0] + dest[0]) / 2
+        const centerLon = (ORIG[1] + dest[1]) / 2
+        const maxDiff = Math.max(Math.abs(ORIG[0] - dest[0]), Math.abs(ORIG[1] - dest[1]))
+        const zoom = maxDiff > 15 ? 3 : maxDiff > 8 ? 4 : maxDiff > 4 ? 5 : 6
+
+        const W = 700, H = 350
+        const canvas = document.createElement('canvas')
+        canvas.width = W; canvas.height = H
+        const ctx = canvas.getContext('2d')!
+
+        // Converter lat/lon para pixel no tile system
+        const n = Math.pow(2, zoom)
+        const lonToX = (lon: number) => ((lon + 180) / 360) * n
+        const latToY = (lat: number) => {
+          const r = Math.PI / 180 * lat
+          return (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n
+        }
+        const cx = lonToX(centerLon), cy = latToY(centerLat)
+
+        // Tiles necessários
+        const tileSize = 256
+        const offsetX = W / 2 - (cx % 1) * tileSize
+        const offsetY = H / 2 - (cy % 1) * tileSize
+        const baseTileX = Math.floor(cx), baseTileY = Math.floor(cy)
+
+        const tilesX = Math.ceil(W / tileSize) + 1
+        const tilesY = Math.ceil(H / tileSize) + 1
+        const startTX = baseTileX - Math.floor(tilesX / 2)
+        const startTY = baseTileY - Math.floor(tilesY / 2)
+
+        // Carregar tiles
+        const tilePromises: Promise<void>[] = []
+        for (let dy = 0; dy < tilesY; dy++) {
+          for (let dx = 0; dx < tilesX; dx++) {
+            const tx = startTX + dx, ty = startTY + dy
+            if (tx < 0 || ty < 0 || tx >= n || ty >= n) continue
+            const px = offsetX + (tx - baseTileX) * tileSize
+            const py = offsetY + (ty - baseTileY) * tileSize
+            tilePromises.push(new Promise<void>(resolve => {
+              const img = new Image()
+              img.crossOrigin = 'anonymous'
+              img.onload = () => { ctx.drawImage(img, px, py, tileSize, tileSize); resolve() }
+              img.onerror = () => resolve()
+              img.src = `https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`
+            }))
+          }
+        }
+        await Promise.all(tilePromises)
+
+        // Converter coords para pixel no canvas
+        const toPixel = (lat: number, lon: number): [number, number] => {
+          const x = W / 2 + (lonToX(lon) - cx) * tileSize
+          const y = H / 2 + (latToY(lat) - cy) * tileSize
+          return [x, y]
+        }
+        const [ox, oy] = toPixel(ORIG[0], ORIG[1])
+        const [dx, dy] = toPixel(dest[0], dest[1])
+
+        // Linha tracejada entre os pontos
+        ctx.setLineDash([6, 4])
+        ctx.strokeStyle = '#1B3A5C'
+        ctx.lineWidth = 2
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(dx, dy); ctx.stroke()
+        ctx.setLineDash([])
+
+        // Pin origem (azul)
+        ctx.fillStyle = '#2563eb'
+        ctx.beginPath(); ctx.arc(ox, oy, 6, 0, Math.PI * 2); ctx.fill()
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke()
+        // Pin destino (vermelho)
+        ctx.fillStyle = '#dc2626'
+        ctx.beginPath(); ctx.arc(dx, dy, 6, 0, Math.PI * 2); ctx.fill()
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke()
+
+        setMapaFreteUrl(canvas.toDataURL('image/png'))
+      } catch {}
+    }
+    gerarMapa()
+  }, [data])
 
   async function load(orcId: number) {
     const [{ data: orc }, { data: itensD }, { data: anexosD }, { data: linkD }] = await Promise.all([
@@ -387,7 +484,7 @@ export default function PrintOrcamento() {
       prazo_entrega: o.prazo_entrega ?? '', dados_pagamento: o.dados_pagamento ?? '', dados_bancarios_texto: [] as string[],
       observacoes: o.observacoes ?? '',
       watermark_ativo: o.watermark_ativo ?? false, watermark_texto: o.watermark_texto ?? 'CONFIDENCIAL', watermark_logo: o.watermark_logo ?? false,
-      frete: { tipo: o.frete_tipo ?? '', modalidade: o.frete_modalidade ?? 'cobrar', valor: Number(o.frete_valor ?? 0), prazo: o.frete_prazo ?? '', obs: o.frete_obs ?? '' },
+      frete: { tipo: o.frete_tipo ?? '', modalidade: o.frete_modalidade ?? 'cobrar', valor: Number(o.frete_valor ?? 0), prazo: o.frete_prazo ?? '', obs: o.frete_obs ?? '', provedor: o.frete_provedor ?? '', servico: o.frete_servico ?? '' },
       instalacao: { inclui: o.inst_inclui ?? false, modalidade: o.inst_modalidade ?? 'cobrar', texto: o.inst_texto ?? '', valor: Number(o.inst_valor ?? 0) },
       exibir: { cnpj: false, inscricaoEstadual: false, telefone: true, whatsapp: false, email: false, emailNf: false, contatosAdicionais: false, cargo: false, endereco: false, enderecoEntrega: false, entResponsavel: false, obsTecnicaItens: false, instMontagem: false, anexos: false, detalhesLogistica: false, ...(o.exibir_config ?? {}) },
       anexos: (anexosD ?? []) as { nome: string; url: string }[],
@@ -465,7 +562,7 @@ export default function PrintOrcamento() {
   if (erro) return <div style={S.loading}>{erro}</div>
   if (!data) return <div style={S.loading}>Carregando orçamento…</div>
 
-  return <Sheet d={data} viewUrl={viewUrl} isPreview={isPreview} especificacoes={especificacoes} modeloNomes={modeloNomes} precosMateriais={precosMateriais} precosModelo={precosModelo} qrCalcUrl={qrCalcUrl} />
+  return <Sheet d={data} viewUrl={viewUrl} isPreview={isPreview} especificacoes={especificacoes} modeloNomes={modeloNomes} precosMateriais={precosMateriais} precosModelo={precosModelo} qrCalcUrl={qrCalcUrl} mapaFreteUrl={mapaFreteUrl} />
 }
 
 function nomePdf(d: OrcData) {
@@ -473,7 +570,7 @@ function nomePdf(d: OrcData) {
   return `Proposta ${d.numero} — ${cli}`
 }
 
-function Sheet({ d, viewUrl, isPreview, especificacoes, modeloNomes, precosMateriais, precosModelo, qrCalcUrl }: { d: OrcData; viewUrl: string | null; isPreview: boolean; especificacoes: EspecificacaoSalva[]; modeloNomes: Record<number, string>; precosMateriais: Record<string, number>; precosModelo: Record<number, number>; qrCalcUrl: string | null }) {
+function Sheet({ d, viewUrl, isPreview, especificacoes, modeloNomes, precosMateriais, precosModelo, qrCalcUrl, mapaFreteUrl }: { d: OrcData; viewUrl: string | null; isPreview: boolean; especificacoes: EspecificacaoSalva[]; modeloNomes: Record<number, string>; precosMateriais: Record<string, number>; precosModelo: Record<number, number>; qrCalcUrl: string | null; mapaFreteUrl: string | null }) {
   const subtotal = d.itens.reduce((s, i) => s + i.qtd * i.valor_unit, 0)
   const valorDesc = d.tipo_desconto === '%'
     ? subtotal * (d.desconto / 100)
@@ -729,7 +826,7 @@ function Sheet({ d, viewUrl, isPreview, especificacoes, modeloNomes, precosMater
           {d.proposta.apresentacao && (
             <div style={{ marginBottom: 18 }}>
               <div style={{ ...S.sectionTitle, background: C.navy, color: '#fff', padding: '8px 14px', borderRadius: '6px 6px 0 0', margin: 0 }}>🏭 Apresentação</div>
-              <div style={{ border: `1px solid ${C.border}`, borderTop: 'none', borderRadius: '0 0 6px 6px', padding: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '0.84rem' }}>{d.proposta.apresentacao}</div>
+              <div style={{ border: `1px solid ${C.border}`, borderTop: 'none', borderRadius: '0 0 6px 6px', padding: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: '0.84rem' }} dangerouslySetInnerHTML={{ __html: d.proposta.apresentacao.replace(/Construção Civil/g, '<strong>Construção Civil</strong>') }} />
             </div>
           )}
           {d.proposta.problema && (
@@ -861,7 +958,7 @@ function Sheet({ d, viewUrl, isPreview, especificacoes, modeloNomes, precosMater
       {/* Especificação Técnica */}
       {especificacoes.length > 0 && (
         <div style={{ marginBottom: 18, pageBreakInside: 'avoid' }}>
-          <div style={{ ...S.clienteTitle, marginBottom: 8 }}><div style={S.sectionDot} />ESPECIFICACAO TECNICA DE MATERIAIS</div>
+          <div style={{ ...S.clienteTitle, marginBottom: 8 }}><div style={S.sectionDot} />ESPECIFICAÇÃO TÉCNICA DE MATERIAIS</div>
           {especificacoes.map((esp, idx) => {
             const modelo = esp.modelo_id ? modeloNomes[esp.modelo_id] : null
             const findPreco = (nome: string, tipo?: string) => {
@@ -885,17 +982,17 @@ function Sheet({ d, viewUrl, isPreview, especificacoes, modeloNomes, precosMater
                     Medida {idx + 1} — {esp.largura_cm} x {esp.altura_cm} cm
                   </div>
                 )}
-                <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                  {/* KPIs */}
-                  <div style={{ flex: 1 }}>
+                <div>
+                  {/* KPIs + Tabela */}
+                  <div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px 12px', marginBottom: 10 }}>
                       {modelo && (
                         <div><div style={S.fieldLabel}>Modelo</div><div style={{ ...S.fieldValue, fontWeight: 600, color: C.navy }}>{modelo}</div></div>
                       )}
-                      <div><div style={S.fieldLabel}>Area Total</div><div style={S.fieldValue}>{esp.area_total_m2} m2</div></div>
-                      <div><div style={S.fieldLabel}>Dimensoes</div><div style={S.fieldValue}>{esp.largura_cm} x {esp.altura_cm} cm</div></div>
-                      <div><div style={S.fieldLabel}>Pecas</div><div style={S.fieldValue}>{esp.qtd_pecas ?? '—'} un ({esp.perda_pct}% perda)</div></div>
-                      <div><div style={S.fieldLabel}>Fixadores/Peca</div><div style={{ ...S.fieldValue, fontWeight: 700, color: C.navy }}>{esp.fixadores_por_peca ?? '—'}</div></div>
+                      <div><div style={S.fieldLabel}>Área Total</div><div style={S.fieldValue}>{esp.area_total_m2} m²</div></div>
+                      <div><div style={S.fieldLabel}>Dimensões</div><div style={S.fieldValue}>{esp.largura_cm} x {esp.altura_cm} cm</div></div>
+                      <div><div style={S.fieldLabel}>Peças</div><div style={S.fieldValue}>{esp.qtd_pecas ?? '—'} un ({esp.perda_pct}% perda)</div></div>
+                      <div><div style={S.fieldLabel}>Fixadores/Peça</div><div style={{ ...S.fieldValue, fontWeight: 700, color: C.navy }}>{esp.fixadores_por_peca ?? '—'}</div></div>
                       <div><div style={S.fieldLabel}>Total Fixadores</div><div style={{ ...S.fieldValue, fontWeight: 700, color: C.navy }}>{esp.total_fixadores ?? '—'}</div></div>
                     </div>
                     {/* Tabela de materiais */}
@@ -908,8 +1005,8 @@ function Sheet({ d, viewUrl, isPreview, especificacoes, modeloNomes, precosMater
                             <th style={{ ...S.th, padding: '6px 10px', fontSize: '0.62rem' }}>Material</th>
                             <th style={{ ...S.thCenter, padding: '6px 10px', fontSize: '0.62rem', width: 70 }}>Qtd</th>
                             <th style={{ ...S.thCenter, padding: '6px 10px', fontSize: '0.62rem', width: 40 }}>Un</th>
-                            {hasPrecos && <th style={{ ...S.thRight, padding: '6px 10px', fontSize: '0.62rem', width: 80 }}>Vl. Est.</th>}
-                            {hasPrecos && <th style={{ ...S.thRight, padding: '6px 10px', fontSize: '0.62rem', width: 90 }}>Total Est.</th>}
+                            {hasPrecos && <th style={{ ...S.thRight, padding: '6px 10px', fontSize: '0.62rem', width: 80 }}>Vl. est.</th>}
+                            {hasPrecos && <th style={{ ...S.thRight, padding: '6px 10px', fontSize: '0.62rem', width: 90 }}>Total est.</th>}
                           </tr>
                         </thead>
                         <tbody>
@@ -946,7 +1043,7 @@ function Sheet({ d, viewUrl, isPreview, especificacoes, modeloNomes, precosMater
                   </div>
                   {/* Diagrama */}
                   {esp.fixadores_por_peca && esp.fixadores_por_peca > 0 && (
-                    <div style={{ flexShrink: 0, width: 180 }}>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 8, maxWidth: 160, marginLeft: 'auto', marginRight: 'auto' }}>
                       <DiagramaFixador
                         fixadoresPorPeca={esp.fixadores_por_peca}
                         larguraCm={esp.largura_cm}
@@ -963,7 +1060,7 @@ function Sheet({ d, viewUrl, isPreview, especificacoes, modeloNomes, precosMater
             <div style={{ ...S.infoStrip, marginTop: 4, display: 'flex', gap: 24, fontSize: '0.74rem' }}>
               <span><strong>Total geral:</strong> {especificacoes.reduce((s, e) => s + (e.total_fixadores ?? 0), 0).toLocaleString('pt-BR')} fixadores</span>
               <span>{especificacoes.length} medidas de revestimento</span>
-              <span>{especificacoes.reduce((s, e) => s + e.area_total_m2, 0).toFixed(1)} m2 total</span>
+              <span>{especificacoes.reduce((s, e) => s + e.area_total_m2, 0).toFixed(1)} m² total</span>
             </div>
           )}
           {/* QR Code da calculadora */}
@@ -973,7 +1070,7 @@ function Sheet({ d, viewUrl, isPreview, especificacoes, modeloNomes, precosMater
               <div>
                 <div style={{ fontSize: '0.70rem', fontWeight: 700, color: C.navy }}>Calculadora de Materiais</div>
                 <div style={{ fontSize: '0.64rem', color: C.textMuted, lineHeight: 1.5 }}>
-                  Simule outras dimensoes de revestimento com nossa ferramenta online gratuita.
+                  Simule outras dimensões de revestimento com nossa ferramenta online gratuita.
                 </div>
                 <div style={{ fontSize: '0.58rem', color: C.textLight, marginTop: 2 }}>fixadorporcelanato.com.br</div>
               </div>
@@ -1007,18 +1104,37 @@ function Sheet({ d, viewUrl, isPreview, especificacoes, modeloNomes, precosMater
           {d.prazo_entrega && (
             <div style={S.condicaoItem}><strong>Prazo de Entrega:</strong> {d.prazo_entrega}</div>
           )}
-          {temFrete && d.exibir.detalhesLogistica && d.frete.prazo && (
-            <div style={S.condicaoItem}><strong>Prazo do Frete:</strong> {d.frete.prazo}</div>
-          )}
-          {temFrete && d.exibir.detalhesLogistica && d.frete.obs && (
-            <div style={S.condicaoItem}><strong>Logística:</strong> {d.frete.obs}</div>
-          )}
           {temInst && d.instalacao.texto && (
             <div style={S.condicaoItem}><strong>Instalação:</strong> {d.instalacao.texto}</div>
           )}
           {d.observacoes && (
             <div style={{ ...S.condicaoItem, whiteSpace: 'pre-line' }}>
               <strong>Observações:</strong> {d.observacoes}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Frete & Logística */}
+      {temFrete && d.exibir.detalhesLogistica && (
+        <div style={{ ...S.condicoes, pageBreakInside: 'avoid' }}>
+          <div style={{ ...S.clienteTitle, marginBottom: 4 }}><div style={S.sectionDot} />FRETE & LOGÍSTICA</div>
+          {d.frete.tipo && (
+            <div style={S.condicaoItem}><strong>Frete:</strong> {FRETE_TIPOS[d.frete.tipo] ?? d.frete.tipo} — {d.frete.modalidade === 'cobrar' ? 'Cobrar do cliente' : 'Bonificado'}</div>
+          )}
+          {d.frete.provedor && (
+            <div style={S.condicaoItem}><strong>Transportadora:</strong> {d.frete.provedor}{d.frete.servico ? ` — ${d.frete.servico}` : ''}</div>
+          )}
+          {d.frete.prazo && (
+            <div style={S.condicaoItem}><strong>Prazo do Frete:</strong> {d.frete.prazo}</div>
+          )}
+          {d.frete.obs && (
+            <div style={S.condicaoItem}><strong>Observações de Logística:</strong> {d.frete.obs}</div>
+          )}
+          {mapaFreteUrl && (
+            <div style={{ marginTop: 8, textAlign: 'center' }}>
+              <div style={{ fontSize: '0.68rem', fontWeight: 600, color: C.navy, marginBottom: 4 }}>Origem: 37550-360 → Destino: {d.cliente.cep}</div>
+              <img src={mapaFreteUrl} alt="Mapa de rota" style={{ maxWidth: '100%', borderRadius: 6, border: `1px solid ${C.borderLight}` }} />
             </div>
           )}
         </div>

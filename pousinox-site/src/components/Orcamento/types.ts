@@ -97,7 +97,7 @@ export const EXIBIR_DEFAULT: ExibirProposta = {
   cnpj: false, inscricaoEstadual: false, telefone: true, whatsapp: false,
   email: false, emailNf: false, contatosAdicionais: false,
   cargo: false, endereco: false, enderecoEntrega: false, entResponsavel: false,
-  obsTecnicaItens: false, instMontagem: false, anexos: false, detalhesLogistica: false,
+  obsTecnicaItens: false, instMontagem: false, anexos: false, detalhesLogistica: true,
   descricaoItensVazios: true,
 }
 
