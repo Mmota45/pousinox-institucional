@@ -2,9 +2,9 @@
 .hubWrap {
   display: grid;
   grid-template-columns: 280px 1fr 300px;
-  gap: 10px;
-  background: #e0e3e8;
-  padding: 10px;
+  gap: 12px;
+  background: #f1f5f9;
+  padding: 12px;
   /* Compensa padding do .content parent (32px) para ocupar 100% da tela */
   margin: -32px;
   height: calc(100vh - 56px); /* 56px = topbar */
@@ -17,15 +17,15 @@
 
 .listPanel {
   display: flex; flex-direction: column; height: 100%;
-  background: #fff; overflow: hidden; border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  background: #fff; overflow: hidden; border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.03);
 }
 .listPanelHidden { display: none; }
 
 .editorPanel {
   display: flex; flex-direction: column; overflow: hidden; min-height: 0;
-  background: #fff; border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  background: #fff; border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.03);
 }
 .editorPanelBody {
   flex: 1; overflow-y: auto; padding: 14px;
@@ -36,12 +36,12 @@
 
 .actionsPanel {
   background: #fff; overflow: hidden; display: flex; flex-direction: column; height: 100%;
-  border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.03);
 }
 .actionsPanelHidden { display: none; }
 .actionsPanelBody {
-  flex: 1; overflow-y: auto; padding: 12px;
-  display: flex; flex-direction: column; gap: 10px;
+  flex: 1; overflow-y: auto; padding: 14px;
+  display: flex; flex-direction: column; gap: 8px;
 }
 .actionsPanelBody::-webkit-scrollbar { width: 4px; }
 .actionsPanelBody::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
@@ -49,10 +49,11 @@
 /* Panel headers */
 .panelHeader {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 16px; height: 48px; min-height: 48px;
-  border-bottom: 1px solid #e5e7eb; box-sizing: border-box;
+  padding: 0 16px; height: 52px; min-height: 52px;
+  border-bottom: 1px solid #edf0f4; box-sizing: border-box;
+  background: #fafbfc;
 }
-.panelTitle { font-size: 0.92rem; font-weight: 700; color: #1B3A5C; }
+.panelTitle { font-size: 0.88rem; font-weight: 700; color: #1e293b; letter-spacing: -0.01em; }
 
 /* Collapse buttons */
 .panelCollapseBtn {
@@ -89,13 +90,13 @@
 .listScroll::-webkit-scrollbar { width: 4px; }
 .listScroll::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 .listItem {
-  padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f5f7fa;
+  padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f5f7fa;
   transition: background 0.1s;
 }
 .listItem:hover { background: #f0f7ff; }
-.listItemActive { background: #eff6ff; border-left: 3px solid #1a5fa8; padding-left: 11px; }
+.listItemActive { background: #f0f6ff; border-left: 3px solid #3b82f6; padding-left: 13px; }
 .listItemNum { font-size: 0.72rem; font-weight: 700; color: #1a5fa8; }
-.listItemCliente { font-size: 0.82rem; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.listItemCliente { font-size: 0.84rem; font-weight: 600; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .listItemMeta { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: 3px; }
 .listItemTotal { font-size: 0.8rem; font-weight: 700; color: #0f172a; }
 .listItemData { font-size: 0.68rem; color: #94a3b8; }
@@ -329,12 +330,12 @@
 }
 .listaFiltros::-webkit-scrollbar { display: none; }
 .filtroBtn {
-  padding: 6px 12px; border: 1.5px solid #e2e8f0; border-radius: 20px;
+  padding: 6px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
   background: #fff; color: #64748b; font-size: 0.78rem; font-weight: 600;
   cursor: pointer; font-family: inherit; white-space: nowrap; min-height: 32px;
 }
 .filtroBtn:hover { border-color: #94a3b8; }
-.filtroBtnAtivo { background: #0a1628; color: #fff; border-color: #0a1628; }
+.filtroBtnAtivo { background: linear-gradient(135deg, #1e293b, #334155); color: #fff; border-color: #334155; }
 
 /* Lista como cards no mobile */
 .listaTable { display: none; }
@@ -405,7 +406,7 @@
 .fg { display: flex; flex-direction: column; gap: 3px; }
 .fg label { font-size: 0.72rem; font-weight: 600; color: #4b5563; letter-spacing: 0.01em; }
 .input {
-  padding: 7px 12px; border: 1.5px solid #d1d5db; border-radius: 8px;
+  padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 10px;
   font-size: 0.84rem; font-family: inherit; outline: none;
   transition: border-color 0.2s, box-shadow 0.2s, background 0.15s; background: #fff;
   box-sizing: border-box; width: 100%; min-height: 36px;
@@ -413,8 +414,8 @@
 }
 .input::placeholder { color: #9ca3af; }
 .input:hover { border-color: #9ca3af; }
-.input:focus { border-color: #1a5fa8; box-shadow: 0 0 0 3px rgba(26,95,168,0.1); background: #fefefe; }
-.textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+.input:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.12); background: #fefefe; }
+.textarea { resize: vertical; min-height: 80px; line-height: 1.5; border-radius: 10px; }
 
 /* ── Busca dropdown ── */
 .buscaWrap { position: relative; }
@@ -449,7 +450,7 @@
 .btnRemoveItem:hover { background: #fee2e2; color: #dc2626; }
 .itensActions { display: flex; gap: 8px; }
 .btnAddItem {
-  background: #f9fafb; border: 1.5px dashed #cbd5e1; border-radius: 8px;
+  background: #f9fafb; border: 1.5px dashed #d4dbe5; border-radius: 10px;
   padding: 7px 14px; font-size: 0.78rem; font-weight: 600; color: #6b7280;
   cursor: pointer; font-family: inherit; min-height: 34px;
   transition: border-color 0.15s, color 0.15s, background 0.15s, box-shadow 0.15s;
@@ -632,7 +633,7 @@
   .listaTable .tdCliente { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .listaTable .tdAcoes { white-space: nowrap; }
   .btnMini {
-    padding: 5px 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
+    padding: 6px 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
     font-size: 0.75rem; cursor: pointer; font-family: inherit; transition: all 0.12s;
     color: #475569; line-height: 1;
   }

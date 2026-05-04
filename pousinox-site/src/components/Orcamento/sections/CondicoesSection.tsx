@@ -1,3 +1,4 @@
+import { Settings } from 'lucide-react'
 import CollapsibleSection from '../../CollapsibleSection/CollapsibleSection'
 import type { DadoBancario } from '../types'
 import { COND_PAGAMENTO, formatarDadoBancario } from '../types'
@@ -76,7 +77,7 @@ export default function CondicoesSection({
             </div>
           )}
           <button className={styles.btnAddItem} style={{ marginTop: 6, fontSize: '0.75rem' }} onClick={onOpenConfig}>
-            + Gerenciar contas (⚙️ Config)
+            + Gerenciar contas (<Settings size={13} style={{ display: 'inline' }} /> Config)
           </button>
 
           <div style={{ marginTop: 8 }}>

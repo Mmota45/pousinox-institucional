@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { Pencil, Eye, Settings, ClipboardList, FileText, Link, History } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase, supabaseAdmin } from '../lib/supabase'
 import styles from './AdminOrcamento.module.css'
@@ -878,21 +879,21 @@ export default function AdminOrcamento() {
                 {!hasOrcamento ? 'Orçamento' : modoEditor ? (editandoId ? `Editando ${numero}` : 'Novo') : `Detalhe ${numero}`}
               </span>
               {hasOrcamento && !modoEditor && (
-                <button className={styles.btnMini} onClick={() => setModoEditor(true)} style={{ fontSize: '0.74rem', padding: '4px 10px' }}>✏️ Editar</button>
+                <button className={styles.btnMini} onClick={() => setModoEditor(true)} style={{ fontSize: '0.74rem', padding: '4px 10px' }}><Pencil size={13} /> Editar</button>
               )}
               {hasOrcamento && modoEditor && (
-                <button className={styles.btnMini} onClick={() => setModoEditor(false)} style={{ fontSize: '0.74rem', padding: '4px 10px' }}>👁 Ver</button>
+                <button className={styles.btnMini} onClick={() => setModoEditor(false)} style={{ fontSize: '0.74rem', padding: '4px 10px' }}><Eye size={13} /> Ver</button>
               )}
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button className={styles.btnMini} onClick={() => setDrawerOpen(true)} style={{ fontSize: '0.74rem', padding: '4px 10px' }}>⚙️ Config</button>
+              <button className={styles.btnMini} onClick={() => setDrawerOpen(true)} style={{ fontSize: '0.74rem', padding: '4px 10px' }}><Settings size={13} /> Config</button>
             </div>
           </div>
 
           {/* Center content */}
           {!hasOrcamento ? (
             <div className={styles.editorEmpty}>
-              <div className={styles.editorEmptyIcon}>📋</div>
+              <div className={styles.editorEmptyIcon}><ClipboardList size={40} /></div>
               <div className={styles.editorEmptyTitle}>Selecione um orçamento</div>
               <div className={styles.editorEmptySub}>Escolha na lista à esquerda ou crie um novo.</div>
               {fromState?.returnTo && (
@@ -929,7 +930,7 @@ export default function AdminOrcamento() {
                 </div>
               )}
 
-              <CollapsibleSection title="📋 Emissão">
+              <CollapsibleSection title="Emissão">
                 <div className={styles.row2}>
                   <div className={styles.fg}>
                     <label>Empresa emissora</label>
@@ -1109,7 +1110,7 @@ export default function AdminOrcamento() {
                 />
 
                 {editandoId && (
-                  <CollapsibleSection title={`🔗 Links ${links.length ? `(${links.length})` : ''}`}>
+                  <CollapsibleSection title={`Links ${links.length ? `(${links.length})` : ''}`}>
                     <LinksSection
                       editandoId={editandoId} links={links} gerandoLink={gerandoLink}
                       novoLinkDest={novoLinkDest} setNovoLinkDest={setNovoLinkDest}
@@ -1122,7 +1123,7 @@ export default function AdminOrcamento() {
                   </CollapsibleSection>
                 )}
 
-                <CollapsibleSection title={`📜 Histórico ${historico.length ? `(${historico.length})` : ''}`}>
+                <CollapsibleSection title={`Histórico ${historico.length ? `(${historico.length})` : ''}`}>
                   <HistoricoSection historico={historico} styles={styles} />
                 </CollapsibleSection>
               </>

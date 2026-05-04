@@ -1,3 +1,4 @@
+import { Save, FileText, Palette, Send, CheckCircle, XCircle, DollarSign, Package, Tag, File, X, Trash2, Loader2 } from 'lucide-react'
 import type { Status, Instalacao } from '../types'
 import { fmtBRL, STATUS_CFG } from '../types'
 import type { FreteSummary } from '../../../types/frete'
@@ -59,11 +60,10 @@ export default function ResumoSidebar({
   const valorInst = instalacao.inclui && instalacao.modalidade === 'cobrar' ? (parseFloat(instalacao.valor.replace(',', '.')) || 0) : 0
 
   return (
-    <div className={styles.sidebar}>
-      <div className={styles.sidebarCard}>
+    <>
         <div className={styles.sidebarHeader}>
           <span className={styles.sidebarNumero}>{numero || 'Novo'}</span>
-          <span className={styles.statusBadge} style={{ background: cfg.cor + '22', color: cfg.cor }}>{cfg.label}</span>
+          <span className={styles.statusBadge} style={{ background: cfg.cor + '18', color: cfg.cor, borderRadius: 20 }}>{cfg.label}</span>
         </div>
 
         {empresaNome && (
@@ -129,12 +129,12 @@ export default function ResumoSidebar({
 
         {/* Ações principais */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <button className={styles.btnPrimary} onClick={() => onSalvar()} disabled={salvando} style={{ width: '100%' }}>
-            {salvando ? 'Salvando...' : '💾 Salvar'}
+          <button className={styles.btnPrimary} onClick={() => onSalvar()} disabled={salvando} style={{ width: '100%', background: 'linear-gradient(135deg, #1a5fa8, #2563eb)' }}>
+            {salvando ? <><Loader2 size={15} className="spin" /> Salvando...</> : <><Save size={15} /> Salvar</>}
           </button>
           <div style={{ display: 'flex', gap: 6 }}>
             <button className={styles.btnImprimir} onClick={onImprimir} style={{ flex: 1 }}>
-              🖨️ PDF
+              <FileText size={15} /> PDF
             </button>
             {onCanva && (
               <button
@@ -144,7 +144,7 @@ export default function ResumoSidebar({
                 style={{ flex: 1, background: '#f3f0ff', color: '#7c3aed', borderColor: '#c4b5fd' }}
                 title="Gerar proposta visual no Canva"
               >
-                {gerandoCanva ? '⏳' : '🎨 Canva'}
+                {gerandoCanva ? <Loader2 size={15} className="spin" /> : <><Palette size={15} /> Canva</>}
               </button>
             )}
           </div>
@@ -155,21 +155,21 @@ export default function ResumoSidebar({
         <div className={styles.sidebarActions}>
           {status === 'rascunho' && (
             <button className={styles.btnEnviar} onClick={() => onSalvar('enviado')} disabled={salvando} style={{ width: '100%' }}>
-              📤 Marcar Enviado
+              <Send size={15} /> Marcar Enviado
             </button>
           )}
           {status === 'enviado' && <>
             <button className={styles.btnAprovar} onClick={() => onSalvar('aprovado')} disabled={salvando} style={{ width: '100%' }}>
-              ✅ Aprovado
+              <CheckCircle size={15} /> Aprovado
             </button>
             <button className={styles.btnRecusar} onClick={() => onSalvar('recusado')} disabled={salvando} style={{ width: '100%' }}>
-              ❌ Recusado
+              <XCircle size={15} /> Recusado
             </button>
           </>}
 
           {status === 'aprovado' && !finLancId && (
             <button className={styles.btnReceivel} onClick={onGerarReceivel} disabled={gerandoRec} style={{ width: '100%' }}>
-              {gerandoRec ? '...' : '💰 Gerar Recebível'}
+              {gerandoRec ? <Loader2 size={15} className="spin" /> : <><DollarSign size={15} /> Gerar Recebível</>}
             </button>
           )}
           {status === 'aprovado' && finLancId && (
@@ -178,18 +178,18 @@ export default function ResumoSidebar({
 
           {status === 'aprovado' && !etiquetaPreId && (
             <button className={styles.btnEnviar} onClick={onGerarEtiqueta} disabled={gerandoEtiq} style={{ width: '100%' }}>
-              {gerandoEtiq ? '⏳ Gerando...' : '📦 Etiqueta Correios'}
+              {gerandoEtiq ? <><Loader2 size={15} className="spin" /> Gerando...</> : <><Package size={15} /> Etiqueta Correios</>}
             </button>
           )}
           {etiquetaPreId && <>
             <button className={styles.btnAprovar} onClick={onBaixarRotulo} disabled={baixandoRotulo} style={{ width: '100%' }}>
-              {baixandoRotulo ? '⏳ Processando...' : '🏷 Baixar Rótulo'}
+              {baixandoRotulo ? <><Loader2 size={15} className="spin" /> Processando...</> : <><Tag size={15} /> Baixar Rótulo</>}
             </button>
             <button className={styles.btnImprimir} onClick={onBaixarDace} disabled={baixandoDace} style={{ width: '100%' }}>
-              {baixandoDace ? '⏳ Gerando...' : '📄 DACE'}
+              {baixandoDace ? <><Loader2 size={15} className="spin" /> Gerando...</> : <><File size={15} /> DACE</>}
             </button>
             <button className={styles.btnRecusar} onClick={onCancelarEtiqueta} disabled={cancelandoEtiq} style={{ width: '100%', fontSize: '0.78rem' }}>
-              {cancelandoEtiq ? '⏳...' : '✕ Cancelar Envio'}
+              {cancelandoEtiq ? <Loader2 size={15} className="spin" /> : <><X size={15} /> Cancelar Envio</>}
             </button>
           </>}
         </div>
@@ -209,10 +209,9 @@ export default function ResumoSidebar({
             </div>
           ) : (
             <button style={{ width: '100%', background: 'transparent', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, padding: '6px 12px', cursor: 'pointer', fontSize: '0.78rem' }}
-              onClick={() => setConfirmExcluir(true)}>🗑 Excluir orçamento</button>
+              onClick={() => setConfirmExcluir(true)}><Trash2 size={14} /> Excluir orçamento</button>
           )}
         </>}
-      </div>
-    </div>
+    </>
   )
 }

@@ -1,3 +1,4 @@
+import { MessageCircle, Smartphone, Monitor } from 'lucide-react'
 import type { OrcLink, Vendedor, ClienteInfo } from '../types'
 
 interface Props {
@@ -74,7 +75,7 @@ export default function LinksSection({
                           <tbody>
                             {acessosLink[l.id].map((a: any, i: number) => {
                               const ua = a.user_agent ?? ''
-                              const device = /Mobile|Android|iPhone/i.test(ua) ? '📱 Mobile' : '🖥 Desktop'
+                              const device = /Mobile|Android|iPhone/i.test(ua) ? 'Mobile' : 'Desktop'
                               const browser = /Chrome/i.test(ua) ? 'Chrome' : /Firefox/i.test(ua) ? 'Firefox' : /Safari/i.test(ua) ? 'Safari' : 'Outro'
                               return (
                                 <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>
@@ -117,7 +118,7 @@ export default function LinksSection({
                           <>
                             <a href={`https://wa.me/?text=${encodeURIComponent(corpo(assinaturaWa))}`} target="_blank" rel="noreferrer"
                               className={styles.btnAddItem} style={{ padding: '3px 10px', fontSize: '0.72rem', textDecoration: 'none' }}>
-                              📲 WhatsApp
+                              <MessageCircle size={14} /> WhatsApp
                             </a>
                             <a href={`mailto:${l.destinatario ?? ''}?subject=${encodeURIComponent(`Orçamento ${numero} — Pousinox`)}&body=${encodeURIComponent(corpo(assinaturaEmail))}`}
                               className={styles.btnAddItem} style={{ padding: '3px 10px', fontSize: '0.72rem', textDecoration: 'none' }}>

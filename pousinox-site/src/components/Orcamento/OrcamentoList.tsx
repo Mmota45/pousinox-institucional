@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Download, Pencil, Trash2 } from 'lucide-react'
 import type { OrcamentoResumo, Status } from './types'
 import { STATUS_CFG, fmtBRL, fmtDataISO } from './types'
 
@@ -44,7 +45,7 @@ export default function OrcamentoList({
         <span className={s.panelTitle}>Orçamentos</span>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {lista.length > 0 && (
-            <button className={s.btnMini} onClick={onExportCsv} style={{ fontSize: '0.74rem', padding: '4px 8px' }} title="Exportar CSV">📥</button>
+            <button className={s.btnMini} onClick={onExportCsv} style={{ fontSize: '0.74rem', padding: '4px 8px' }} title="Exportar CSV"><Download size={14} /></button>
           )}
           <button className={s.btnNovo} onClick={onNovo} style={{ padding: '5px 12px', fontSize: '0.76rem' }}>+ Novo</button>
         </div>
@@ -101,14 +102,14 @@ export default function OrcamentoList({
                   <span className={s.listItemData}>{fmtDataISO(o.criado_em)}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 4, marginTop: 4 }} onClick={e => e.stopPropagation()}>
-                  <button className={s.btnMini} onClick={() => onEditar(o.id)} title="Editar" style={{ fontSize: '0.78rem', padding: '4px 8px' }}>✏️</button>
+                  <button className={s.btnMini} onClick={() => onEditar(o.id)} title="Editar" style={{ fontSize: '0.78rem', padding: '4px 8px' }}><Pencil size={13} /></button>
                   {isAdminUser && (
                     <button
                       className={`${s.btnMini} ${s.btnMiniDanger}`}
                       title="Excluir"
                       style={{ fontSize: '0.78rem', padding: '4px 8px' }}
                       onClick={() => { if (window.confirm(`Excluir orçamento ${o.numero}?`)) onExcluir(o.id) }}
-                    >🗑</button>
+                    ><Trash2 size={13} /></button>
                   )}
                 </div>
               </div>
