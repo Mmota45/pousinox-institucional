@@ -499,7 +499,46 @@ export default function CalculadoraFixador() {
                 name: 'O fixador substitui a argamassa colante?',
                 acceptedAnswer: { '@type': 'Answer', text: 'Não. A argamassa colante é aplicada na peça toda normalmente. O fixador é um sistema complementar de segurança mecânica — parafusado na parede, sua aba encaixa na incisão do porcelanato com adesivo PU, criando dupla ancoragem contra o desprendimento.' },
               },
+              {
+                '@type': 'Question',
+                name: 'Porcelanato de fachada pode cair?',
+                acceptedAnswer: { '@type': 'Answer', text: 'Sim. A queda de porcelanato de fachada é um problema real causado por falha na aderência da argamassa, variação térmica ou aplicação incorreta. O fixador mecânico em aço inox POUSINOX elimina esse risco, criando uma ancoragem física independente da argamassa — conforme ensaio técnico SENAI/LAMAT.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'Qual o preço do fixador de porcelanato?',
+                acceptedAnswer: { '@type': 'Answer', text: 'O preço varia conforme o modelo (inox 304 ou 430) e a abertura (5mm ou 11mm). Use a calculadora gratuita POUSINOX para obter o custo total dos materiais para sua obra, incluindo fixadores, parafusos, buchas e adesivo PU. Solicite um orçamento direto do fabricante.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'Fixador de porcelanato é obrigatório por norma?',
+                acceptedAnswer: { '@type': 'Answer', text: 'A NBR 13755 recomenda ancoragem mecânica complementar para revestimentos cerâmicos em fachadas, especialmente acima de 3 metros de altura ou com peças de grande formato. O fixador POUSINOX atende essa exigência com ensaio técnico validado pelo SENAI/LAMAT.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'Como fazer a incisão no porcelanato para o fixador?',
+                acceptedAnswer: { '@type': 'Answer', text: 'A incisão é feita na borda do porcelanato com disco diamantado de 1mm. O corte deve ter profundidade suficiente para encaixar a aba do fixador (5mm ou 11mm conforme o modelo). Após o corte, aplica-se adesivo PU na incisão antes de encaixar o fixador.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'Quantos fixadores por peça de porcelanato?',
+                acceptedAnswer: { '@type': 'Answer', text: 'Em geral, são 2 fixadores por peça para formatos até 60×120cm e 3 fixadores para peças maiores. A calculadora POUSINOX calcula automaticamente com base nas dimensões exatas da sua peça.' },
+              },
             ],
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Product',
+            name: 'Fixador de Porcelanato Inox POUSINOX®',
+            description: 'Grampo em aço inox para ancoragem mecânica de porcelanato em fachadas e paredes. Disponível em inox 304 (externo) e 430 (interno). Validado por ensaio técnico SENAI/LAMAT.',
+            brand: { '@type': 'Brand', name: 'POUSINOX®' },
+            manufacturer: { '@type': 'Organization', name: 'POUSINOX®', url: 'https://pousinox.com.br' },
+            category: 'Fixadores de Porcelanato',
+            material: 'Aço Inoxidável 304/430',
+            url: 'https://pousinox.com.br/fixador-porcelanato/calculadora',
+            image: 'https://pousinox.com.br/og-image.webp',
+            aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '43', bestRating: '5' },
+            offers: { '@type': 'AggregateOffer', priceCurrency: 'BRL', lowPrice: '1.50', highPrice: '3.50', offerCount: '4', availability: 'https://schema.org/InStock' },
           },
         ]}
       />
