@@ -231,6 +231,39 @@ export default function Home() {
         title="POUSINOX® — Fabricante de Equipamentos em Inox em Pouso Alegre, MG"
         description="Fábrica de equipamentos e mobiliário em aço inox sob medida em Pouso Alegre, MG. Bancadas, pias, carrinhos hospitalares, corrimãos e corte a laser para todo o Sul de Minas Gerais. 25 anos de experiência."
         path="/"
+        extraSchema={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [
+              {
+                '@type': 'Question',
+                name: 'O que a Pousinox fabrica?',
+                acceptedAnswer: { '@type': 'Answer', text: 'A Pousinox é fabricante de equipamentos e mobiliário em aço inox sob medida. Produzimos bancadas, mesas, pias, carrinhos hospitalares, corrimãos, fixadores de porcelanato e peças sob medida para mais de 19 segmentos, incluindo restaurantes, hospitais, supermercados, indústrias e construção civil.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'Onde fica a fábrica da Pousinox?',
+                acceptedAnswer: { '@type': 'Answer', text: 'A Pousinox fica em Pouso Alegre, no Sul de Minas Gerais. Temos fábrica própria e atendemos todo o Brasil, com destaque para MG, SP, RJ, PR e SC.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'A Pousinox faz corte a laser em inox?',
+                acceptedAnswer: { '@type': 'Answer', text: 'Sim. Oferecemos serviço de corte a laser em chapas de aço inox com alta precisão. Atendemos projetos sob medida e demandas industriais com prazo ágil.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'A Pousinox fabrica equipamentos sob medida?',
+                acceptedAnswer: { '@type': 'Answer', text: 'Sim. Todos os nossos produtos são fabricados sob medida conforme a necessidade do cliente. Desde bancadas para cozinhas industriais até carrinhos hospitalares e mobiliário para restaurantes.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'Como solicitar orçamento na Pousinox?',
+                acceptedAnswer: { '@type': 'Answer', text: 'Você pode solicitar orçamento pelo WhatsApp, pelo formulário de contato no site ou pelo e-mail comercial@pousinox.com.br. Nosso time responde em até 24 horas úteis.' },
+              },
+            ],
+          },
+        ]}
       />
       {/* Hero */}
       <section className={styles.hero}>

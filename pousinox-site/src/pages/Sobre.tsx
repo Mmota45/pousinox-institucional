@@ -32,6 +32,29 @@ export default function Sobre() {
         title="Sobre a POUSINOX® — Fábrica de Inox em Pouso Alegre, MG desde 2001"
         description="Fundada em 2001, a POUSINOX® fabrica equipamentos em aço inox sob medida em Pouso Alegre, MG. 25 anos atendendo restaurantes, hospitais e indústrias no Sul de Minas Gerais e em todo o Brasil."
         path="/sobre"
+        extraSchema={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [
+              {
+                '@type': 'Question',
+                name: 'Há quanto tempo a Pousinox existe?',
+                acceptedAnswer: { '@type': 'Answer', text: 'A Pousinox foi fundada em 2001 em Pouso Alegre, MG. São mais de 25 anos de experiência na fabricação de equipamentos em aço inox sob medida.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'A Pousinox atende fora de Minas Gerais?',
+                acceptedAnswer: { '@type': 'Answer', text: 'Sim. Embora a fábrica fique em Pouso Alegre/MG, atendemos todo o Brasil. Temos forte atuação em São Paulo, Rio de Janeiro, Paraná, Santa Catarina e Rio Grande do Sul, além de todo o Sul de Minas.' },
+              },
+              {
+                '@type': 'Question',
+                name: 'Quais segmentos a Pousinox atende?',
+                acceptedAnswer: { '@type': 'Answer', text: 'Atendemos mais de 19 segmentos: restaurantes e food service, hospitalar e clínicas, supermercados, indústrias farmacêuticas, panificação e confeitaria, hotelaria, arquitetura residencial, cozinhas industriais e construção civil, entre outros.' },
+              },
+            ],
+          },
+        ]}
       />
       {/* Page Header */}
       <div className={styles.pageHeader}>
