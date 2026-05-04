@@ -1,7 +1,61 @@
-import { Save, FileText, Palette, Send, CheckCircle, XCircle, DollarSign, Package, Tag, File, X, Trash2, Loader2, Check, MessageCircle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Save, FileText, Palette, Send, CheckCircle, XCircle, DollarSign, Package, Tag, File, X, Trash2, Loader2, Check, MessageCircle, Eye, Edit3 } from 'lucide-react'
 import type { Status, Instalacao } from '../types'
 import { fmtBRL, STATUS_CFG } from '../types'
 import type { FreteSummary } from '../../../types/frete'
+import { supabaseAdmin } from '../../../lib/supabase'
+
+interface LaudoRef { watermark_id: string; nome?: string }
+
+function LaudoStatsLine({ wid, nome }: { wid: string; nome?: string }) {
+  const [stats, setStats] = useState<{ downloads: number; max_downloads: number } | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    supabaseAdmin.from('docs_enviados').select('downloads, max_downloads')
+      .eq('watermark_id', wid).single()
+      .then(({ data }) => { if (data) setStats(data as any) })
+  }, [wid])
+
+  if (!stats) return null
+  const pct = stats.max_downloads > 0 ? stats.downloads / stats.max_downloads : 0
+  const cor = pct >= 0.8 ? '#dc2626' : pct >= 0.5 ? '#f59e0b' : '#16a34a'
+
+  async function salvar() {
+    const n = parseInt(val)
+    if (!n || n < stats!.downloads) return
+    setSaving(true)
+    await supabaseAdmin.from('docs_enviados').update({ max_downloads: n }).eq('watermark_id', wid)
+    setStats(prev => prev ? { ...prev, max_downloads: n } : prev)
+    setEditing(false)
+    setSaving(false)
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', padding: '4px 0' }}>
+      <Eye size={12} style={{ color: cor, flexShrink: 0 }} />
+      <span style={{ color: cor, fontWeight: 600 }}>{stats.downloads}/{stats.max_downloads}</span>
+      <span style={{ color: '#64748b', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nome || 'Laudo'}</span>
+      {!editing ? (
+        <button onClick={() => { setVal(String(stats.max_downloads)); setEditing(true) }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#6b7280' }} title="Alterar limite">
+          <Edit3 size={11} />
+        </button>
+      ) : (
+        <span style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }}>
+          <input type="number" value={val} onChange={e => setVal(e.target.value)}
+            style={{ width: 44, fontSize: '0.7rem', padding: '1px 3px', border: '1px solid #d1d5db', borderRadius: 3 }} min={stats.downloads} />
+          <button onClick={salvar} disabled={saving}
+            style={{ fontSize: '0.65rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 3, padding: '1px 5px', cursor: 'pointer' }}>OK</button>
+          <button onClick={() => setEditing(false)}
+            style={{ fontSize: '0.65rem', background: '#e5e7eb', border: 'none', borderRadius: 3, padding: '1px 5px', cursor: 'pointer' }}>✕</button>
+        </span>
+      )}
+    </div>
+  )
+}
 
 interface Props {
   numero: string
@@ -42,6 +96,8 @@ interface Props {
   clienteWhatsapp: string
   enviandoWa: boolean
   onEnviarWhatsApp: () => void
+  // Laudos
+  laudos: LaudoRef[]
   // Excluir
   editandoId: number | null
   isAdminUser: boolean
@@ -60,6 +116,7 @@ export default function ResumoSidebar({
   onGerarEtiqueta, onBaixarRotulo, onBaixarDace, onCancelarEtiqueta,
   clienteEmail, enviandoEmail, onEnviarEmail,
   clienteWhatsapp, enviandoWa, onEnviarWhatsApp,
+  laudos,
   editandoId, isAdminUser, confirmExcluir, setConfirmExcluir, onExcluir,
   styles,
 }: Props) {
@@ -213,6 +270,13 @@ export default function ResumoSidebar({
             </button>
           </>}
         </div>
+
+        {/* Laudos — acessos */}
+        {laudos.length > 0 && <>
+          <div className={styles.sidebarDivider} />
+          <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#334155', marginBottom: 4 }}>Laudos — Acessos</div>
+          {laudos.map(l => <LaudoStatsLine key={l.watermark_id} wid={l.watermark_id} nome={l.nome} />)}
+        </>}
 
         {/* Excluir */}
         {isAdminUser && editandoId && <>

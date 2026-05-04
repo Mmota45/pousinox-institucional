@@ -1220,6 +1220,7 @@ export default function AdminOrcamento() {
                   onBaixarDace={baixarDace} onCancelarEtiqueta={cancelarEtiqueta}
                   clienteEmail={cliente.email || ''} enviandoEmail={enviandoEmail} onEnviarEmail={enviarEmail}
                   clienteWhatsapp={cliente.whatsapp || (cliente.telefone_is_whatsapp ? cliente.telefone : '') || ''} enviandoWa={enviandoWa} onEnviarWhatsApp={enviarWhatsApp}
+                  laudos={(proposta.laudos || []).map(l => ({ watermark_id: l.watermark_id, nome: l.nome }))}
                   editandoId={editandoId} isAdminUser={isAdminUser}
                   confirmExcluir={confirmExcluir} setConfirmExcluir={setConfirmExcluir}
                   onExcluir={excluirOrcamento}

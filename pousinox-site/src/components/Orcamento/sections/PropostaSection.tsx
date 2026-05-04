@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { FileText, Building2, Target, Ruler, Calendar, Shield, Handshake, Search, Brain, Sparkles, Loader2, XCircle, Paperclip } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { FileText, Building2, Target, Ruler, Calendar, Shield, Handshake, Search, Brain, Sparkles, Loader2, XCircle, Paperclip, Eye, Edit3 } from 'lucide-react'
 import CollapsibleSection from '../../CollapsibleSection/CollapsibleSection'
 import { aiChat, aiParallel, aiHubChat, type MultiResult } from '../../../lib/aiHelper'
 import LaudoProtegido from '../../LaudoProtegido/LaudoProtegido'
@@ -36,6 +36,65 @@ export const PROPOSTA_VAZIA: PropostaData = {
   garantias: '',
   encerramento: '',
   revisaoFinal: '',
+}
+
+/* Badge de downloads + editar limite */
+function LaudoStats({ watermarkId }: { watermarkId: string }) {
+  const [stats, setStats] = useState<{ downloads: number; max_downloads: number } | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [novoLimite, setNovoLimite] = useState('')
+  const [salvando, setSalvando] = useState(false)
+
+  useEffect(() => {
+    supabaseAdmin.from('docs_enviados').select('downloads, max_downloads')
+      .eq('watermark_id', watermarkId).single()
+      .then(({ data }) => { if (data) setStats(data as any) })
+  }, [watermarkId])
+
+  if (!stats) return null
+
+  const pct = stats.max_downloads > 0 ? stats.downloads / stats.max_downloads : 0
+  const cor = pct >= 0.8 ? '#dc2626' : pct >= 0.5 ? '#f59e0b' : '#16a34a'
+
+  async function salvarLimite() {
+    const n = parseInt(novoLimite)
+    if (!n || n < stats!.downloads) return
+    setSalvando(true)
+    await supabaseAdmin.from('docs_enviados').update({ max_downloads: n }).eq('watermark_id', watermarkId)
+    setStats(prev => prev ? { ...prev, max_downloads: n } : prev)
+    setEditing(false)
+    setSalvando(false)
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+      <Eye size={12} style={{ color: cor }} />
+      <span style={{ fontSize: '0.72rem', color: cor, fontWeight: 600 }}>
+        {stats.downloads}/{stats.max_downloads} acessos
+      </span>
+      {!editing ? (
+        <button onClick={() => { setNovoLimite(String(stats.max_downloads)); setEditing(true) }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#6b7280' }}
+          title="Alterar limite">
+          <Edit3 size={11} />
+        </button>
+      ) : (
+        <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}>
+          <input type="number" value={novoLimite} onChange={e => setNovoLimite(e.target.value)}
+            style={{ width: 50, fontSize: '0.72rem', padding: '2px 4px', border: '1px solid #d1d5db', borderRadius: 4 }}
+            min={stats.downloads} />
+          <button onClick={salvarLimite} disabled={salvando}
+            style={{ fontSize: '0.68rem', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 6px', cursor: 'pointer' }}>
+            OK
+          </button>
+          <button onClick={() => setEditing(false)}
+            style={{ fontSize: '0.68rem', background: '#e5e7eb', border: 'none', borderRadius: 4, padding: '2px 6px', cursor: 'pointer' }}>
+            ✕
+          </button>
+        </span>
+      )}
+    </div>
+  )
 }
 
 interface Props {
@@ -395,6 +454,7 @@ NÃO mencione fixadores na apresentação. NÃO mencione o nome do cliente. Máx
             <div>
               <strong>Laudo {idx + 1}{laudo.nome ? ` — ${laudo.nome}` : ''}</strong>
               <div style={{ fontSize: '0.75rem', color: '#15803d', marginTop: 2 }}>ID: {laudo.watermark_id.slice(0, 8)}... · Senha salva</div>
+              <LaudoStats watermarkId={laudo.watermark_id} />
             </div>
             <button onClick={() => {
               setProposta(prev => ({ ...prev, laudos: (prev.laudos || []).filter((_, i) => i !== idx) }))
