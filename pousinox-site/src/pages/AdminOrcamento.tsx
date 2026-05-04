@@ -719,12 +719,14 @@ export default function AdminOrcamento() {
           numero,
           link: url,
           vendedor: nomeUsuario,
+          whatsapp: cliente.whatsapp || (cliente.telefone_is_whatsapp ? cliente.telefone : '') || '',
           laudos,
         }
       })
       if (error) throw error
       if (data?.ok) {
-        showMsg('ok', 'E-mail enviado com sucesso!')
+        const waMsg = data.whatsapp_enviado ? ' + WhatsApp' : ''
+        showMsg('ok', `E-mail enviado com sucesso!${waMsg}`)
         await salvar('enviado')
       } else {
         showMsg('erro', data?.erro || 'Erro ao enviar e-mail')
