@@ -700,14 +700,14 @@ export default function AdminOrcamento() {
       if (linkD) {
         const l = linkD as any
         url = l.short_code
-          ? `${window.location.origin}/p/${l.short_code}`
-          : `${window.location.origin}/view/orcamento/${l.token}`
+          ? `https://www.pousinox.com.br/p/${l.short_code}`
+          : `https://www.pousinox.com.br/view/orcamento/${l.token}`
       }
 
       // Preparar laudos com links e senhas
       const laudos = (proposta.laudos || []).map(l => ({
         nome: l.nome || 'Laudo Técnico',
-        link: `${window.location.origin}/laudo/${l.watermark_id}`,
+        link: `https://www.pousinox.com.br/laudo/${l.watermark_id}`,
         senha: l.senha,
       }))
 
@@ -758,8 +758,8 @@ export default function AdminOrcamento() {
       if (linkD) {
         const l = linkD as any
         url = l.short_code
-          ? `${window.location.origin}/p/${l.short_code}`
-          : `${window.location.origin}/view/orcamento/${l.token}`
+          ? `https://www.pousinox.com.br/p/${l.short_code}`
+          : `https://www.pousinox.com.br/view/orcamento/${l.token}`
       }
       const { data, error } = await supabaseAdmin.functions.invoke('enviar-email', {
         body: {
@@ -774,7 +774,7 @@ export default function AdminOrcamento() {
           whatsapp: wa,
           laudos: (proposta.laudos || []).map(l => ({
             nome: l.nome || 'Laudo Técnico',
-            link: `${window.location.origin}/laudo/${l.watermark_id}`,
+            link: `https://www.pousinox.com.br/laudo/${l.watermark_id}`,
             senha: l.senha,
           })),
         }
