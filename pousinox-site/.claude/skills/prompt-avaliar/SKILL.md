@@ -1,3 +1,7 @@
+---
+description: Avaliar qualidade de prompt existente e sugerir melhorias
+---
+
 # Prompt Avaliar
 
 Avalie a qualidade de um prompt existente e sugira melhorias.

@@ -1,3 +1,7 @@
+---
+description: Verificar RLS ativo em todas as tabelas admin
+---
+
 # Audit RLS
 
 Verificar se todas as tabelas admin têm Row Level Security ativo.

@@ -1,3 +1,7 @@
+---
+description: Commit padronizado com mensagem estruturada
+---
+
 # Commit
 
 Crie um commit padronizado com mensagem estruturada.

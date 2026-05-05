@@ -1,3 +1,7 @@
+---
+description: Montar prompts com exemplos para consistência
+---
+
 # Prompt Few-Shot
 
 Crie um prompt com exemplos (few-shot) para tarefas que precisam de consistência.

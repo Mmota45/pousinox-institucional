@@ -1,3 +1,7 @@
+---
+description: Lista follow-ups do dia com mensagem sugerida
+---
+
 # Follow-up Hoje
 
 Lista follow-ups do dia com contexto e mensagem sugerida.

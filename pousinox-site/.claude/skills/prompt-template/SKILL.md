@@ -1,3 +1,7 @@
+---
+description: Criar templates de prompt reutilizáveis com variáveis
+---
+
 # Prompt Template
 
 Crie um template de prompt reutilizável com variáveis dinâmicas.

@@ -1,3 +1,7 @@
+---
+description: Snapshot das tabelas críticas do Supabase antes de migrations
+---
+
 # Backup DB
 
 Snapshot das tabelas críticas do Supabase antes de migrations arriscadas.

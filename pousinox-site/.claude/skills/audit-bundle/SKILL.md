@@ -1,3 +1,7 @@
+---
+description: Análise do bundle — identificar lazy loads e otimizações
+---
+
 # Audit Bundle
 
 Analise o tamanho do bundle e identifique oportunidades de otimização.

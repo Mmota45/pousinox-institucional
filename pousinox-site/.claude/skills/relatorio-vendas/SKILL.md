@@ -1,3 +1,7 @@
+---
+description: KPIs de vendas do período direto do banco
+---
+
 # Relatorio Vendas
 
 KPIs de vendas do período direto do banco Supabase.

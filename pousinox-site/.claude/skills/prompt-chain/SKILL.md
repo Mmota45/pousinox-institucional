@@ -1,3 +1,7 @@
+---
+description: Desenhar pipelines multi-step de prompts
+---
+
 # Prompt Chain
 
 Monte uma cadeia de prompts (pipeline) onde a saída de um alimenta o próximo.

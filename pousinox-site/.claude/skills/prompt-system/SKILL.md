@@ -1,3 +1,7 @@
+---
+description: Criar system prompts otimizados para casos de uso
+---
+
 # Prompt System
 
 Crie um system prompt otimizado para um caso de uso específico.

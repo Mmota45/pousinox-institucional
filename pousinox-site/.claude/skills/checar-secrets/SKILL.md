@@ -1,3 +1,7 @@
+---
+description: Varrer código por chaves/tokens expostos
+---
+
 # Checar Secrets
 
 Varrer código por chaves, tokens ou credenciais expostos antes de commit.

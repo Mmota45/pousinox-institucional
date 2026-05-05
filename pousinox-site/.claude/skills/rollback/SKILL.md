@@ -1,3 +1,7 @@
+---
+description: Reverter último deploy rapidamente
+---
+
 # Rollback
 
 Reverter o último deploy rapidamente.
