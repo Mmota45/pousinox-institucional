@@ -1,18 +1,4 @@
 {
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "cd /c/Users/marco/Pousinox_Site/pousinox-site && npx tsc -b --noEmit 2>&1 | grep -E 'error TS' | head -5; exit 0",
-            "async": true
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
     "allow": [
       "Bash(npm install:*)",
@@ -106,7 +92,28 @@
       "WebFetch(domain:www.telhanorte.com.br)",
       "WebFetch(domain:youtu.be)",
       "WebFetch(domain:www.youtube.com)",
-      "Bash(deno check:*)"
+      "Bash(deno check:*)",
+      "Bash(printf '%s\\\\n' 'const fs = require\\(\"fs\"\\);' 'const lines = [\"# AdminOrcamento Hub Layout\", \"\", \"## Contexto\", \"- Arquivo: src/pages/AdminOrcamento.tsx 1212 linhas\", \"- Target: AdminAssistente 3-panel Hub\", \"\"];' 'fs.writeFileSync\\(\"C:/Users/marco/.claude/plans/radiant-hopping-kite-agent-afa4946044293ba35.md\", lines.join\\(\"\\\\n\"\\), \"utf8\"\\);' 'console.log\\(\"ok\"\\);')",
+      "Bash(xargs -I{} basename {})",
+      "Bash(npx playwright:*)",
+      "Bash(ADMIN_EMAIL=\"adm@pousinox.com.br\" ADMIN_PASSWORD=\"p@usinox2026!\" npx playwright test)",
+      "Bash(ADMIN_EMAIL=\"adm@pousinox.com.br\" ADMIN_PASSWORD=\"p@usinox2026!\" npx playwright test -g \"editor\")",
+      "Bash(ADMIN_EMAIL=\"adm@pousinox.com.br\" ADMIN_PASSWORD=\"p@usinox2026!\" npx playwright test -g \"editor\" --grep-invert \"scroll\")",
+      "Bash(git:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /c/Users/marco/Pousinox_Site/pousinox-site && npx tsc -b --noEmit 2>&1 | grep -E 'error TS' | head -5; exit 0",
+            "async": true
+          }
+        ]
+      }
     ]
   }
 }

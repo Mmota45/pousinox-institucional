@@ -457,11 +457,12 @@ serve(async (req) => {
         .update({ downloads: doc.downloads + 1 })
         .eq("id", doc.id);
 
-      // Carregar dados do orçamento
-      const [{ data: orc }, { data: itens }, { data: anexos }] = await Promise.all([
+      // Carregar dados do orçamento + especificação
+      const [{ data: orc }, { data: itens }, { data: anexos }, { data: espec }] = await Promise.all([
         sb.from("orcamentos").select("*").eq("id", doc.orcamento_id).single(),
         sb.from("itens_orcamento").select("*").eq("orcamento_id", doc.orcamento_id).order("ordem"),
         sb.from("orcamentos_anexos").select("nome, url").eq("orcamento_id", doc.orcamento_id).order("criado_em"),
+        sb.from("orcamento_especificacoes").select("*, orcamento_especificacao_itens(*)").eq("orcamento_id", doc.orcamento_id).maybeSingle(),
       ]);
 
       if (!orc) {
@@ -476,12 +477,20 @@ serve(async (req) => {
         dadosBancarios = bancos || [];
       }
 
+      // Carregar modelo do fixador se especificação existe
+      let modeloFixador = null;
+      if (espec?.modelo_id) {
+        const { data: modelo } = await sb.from("fixador_modelos").select("nome, material, espessura_mm, possui_laudo, laudo_laboratorio, laudo_resumo").eq("id", espec.modelo_id).single();
+        modeloFixador = modelo;
+      }
+
       return json({
         ok: true,
         orcamento: orc,
         itens: itens || [],
         anexos: anexos || [],
         dados_bancarios: dadosBancarios,
+        especificacao: espec ? { ...espec, modelo: modeloFixador } : null,
         watermark: {
           empresa: doc.empresa,
           cnpj: doc.cnpj,
