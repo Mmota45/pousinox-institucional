@@ -25,12 +25,17 @@ export default function Segmento() {
               {
                 '@type': 'Question',
                 name: `A Pousinox fabrica equipamentos em inox para ${seg.titulo}?`,
-                acceptedAnswer: { '@type': 'Answer', text: `Sim. A Pousinox fabrica equipamentos e mobiliário em aço inox sob medida para o segmento de ${seg.titulo}. Todos os produtos são fabricados na nossa fábrica em Pouso Alegre/MG com aço inox de alta qualidade.` },
+                acceptedAnswer: { '@type': 'Answer', text: `Sim. A Pousinox fabrica sob medida para ${seg.titulo}: ${seg.produtos.slice(0, 4).join(', ').toLowerCase()}, entre outros. Tudo produzido na nossa fábrica em Pouso Alegre/MG com aço inox AISI 304.` },
+              },
+              {
+                '@type': 'Question',
+                name: `Quais produtos em inox a Pousinox faz para ${seg.titulo}?`,
+                acceptedAnswer: { '@type': 'Answer', text: `Nossa linha para ${seg.titulo} inclui: ${seg.produtos.join(', ').toLowerCase()}. Todas as peças são fabricadas sob medida conforme as necessidades do seu projeto.` },
               },
               {
                 '@type': 'Question',
                 name: `Como solicitar orçamento de inox para ${seg.titulo}?`,
-                acceptedAnswer: { '@type': 'Answer', text: `Entre em contato pelo WhatsApp (35) 3423-8994, pelo formulário no site ou por e-mail. Envie as medidas e especificações desejadas e nossa equipe retorna em até 24 horas com o orçamento personalizado.` },
+                acceptedAnswer: { '@type': 'Answer', text: `Entre em contato pelo WhatsApp (35) 3423-8994, pelo formulário no site ou por e-mail comercial@pousinox.com.br. Envie as medidas e especificações desejadas e nossa equipe retorna em até 24 horas com orçamento personalizado para ${seg.titulo.toLowerCase()}.` },
               },
             ],
           },
