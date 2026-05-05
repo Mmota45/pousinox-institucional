@@ -195,6 +195,70 @@ Ativar ao:
 - Implementar dashboard ou relatório visual
 - Criar landing page ou seção pública
 
+## Hero com vídeo cinematográfico (premium)
+
+Elemento que diferencia site profissional de genérico: vídeo em loop na seção hero.
+
+### Quando usar
+- Landing pages de produto/serviço principal
+- Páginas de segmento (fachada, indústria)
+- Home institucional
+
+### Implementação
+```tsx
+<section className="hero">
+  <video
+    autoPlay
+    muted
+    loop
+    playsInline
+    className="hero-video"
+    poster="/assets/hero-poster.webp"  /* fallback enquanto carrega */
+  >
+    <source src="/assets/hero.mp4" type="video/mp4" />
+  </video>
+  <div className="hero-overlay" />  /* escurece para legibilidade */
+  <div className="hero-content">
+    <h1>Headline</h1>
+    <p>Subheadline</p>
+    <a className="btn-primary">CTA</a>
+  </div>
+</section>
+```
+
+```css
+.hero { position: relative; min-height: 80vh; overflow: hidden; }
+.hero-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 23, 36, 0.6),
+    rgba(15, 23, 36, 0.85)
+  );
+}
+.hero-content {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 80vh; text-align: center;
+  color: white; padding: var(--space-8);
+}
+```
+
+### Diretrizes do vídeo
+- **Duração:** 8-15 segundos (loop seamless)
+- **Resolução:** 1920×1080 min, comprimido <5MB (WebM preferível)
+- **Loop perfeito:** frame inicial = frame final (evitar corte brusco)
+- **Conteúdo Pousinox:** fachada com porcelanato, fábrica em operação, detalhe do fixador inox, instalação em obra
+- **Geração IA:** Higgsfield, Runway ou Kling — prompt cinematográfico em inglês com direção de câmera
+- **Fallback mobile:** poster estático (WebP) em conexões lentas — usar `<source media="(max-width: 768px)">`
+- **Performance:** lazy load com `preload="none"` se abaixo da dobra; `preload="auto"` se hero
+
 ## Anti-padrões (evitar)
 
 - ❌ Gradientes excessivos (max 1 por página)
