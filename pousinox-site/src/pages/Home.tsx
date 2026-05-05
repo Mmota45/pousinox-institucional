@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, Fragment } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { useSiteConfig, useSiteContadores, useSiteDepoimentos, useSiteEtapas, useSiteFaq } from '../hooks/useSiteData'
 import clienteAlvorada from '../assets/cliente-alvorada.png'
@@ -28,6 +28,7 @@ import catHotelaria from '../assets/cat-hotelaria.webp'
 import catComercio from '../assets/cat-comercio.webp'
 import catArquitetura from '../assets/cat-arquitetura.webp'
 import catLaboratorio from '../assets/cat-laboratorio.webp'
+import videoPoster from '../assets/video-poster.webp'
 import SEO from '../components/SEO/SEO'
 import styles from './Home.module.css'
 
@@ -155,6 +156,7 @@ export default function Home() {
   const dbEtapas = useSiteEtapas()
   const faqItems = useSiteFaq()
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [videoPlaying, setVideoPlaying] = useState(false)
 
   // Dados dinâmicos com fallback para hardcoded
   const activeStats = dbContadores.length > 0
@@ -176,6 +178,7 @@ export default function Home() {
   const fabricaTitulo = config.fabrica_titulo || 'Fabricação própria do início ao fim'
   const fabricaTexto = config.fabrica_texto || 'Tecnologia de corte a laser, dobradeira CNC e solda especializada — tudo feito internamente em Pouso Alegre, MG. Controle total sobre qualidade, prazo e acabamento de cada peça.'
   const fabricaVideoUrl = config.fabrica_video_url || 'https://www.youtube.com/embed/MMMGnD7oXZM'
+  const fabricaVideoId = fabricaVideoUrl.split('/').pop()?.split('?')[0] || 'MMMGnD7oXZM'
   const ctaTitulo = config.cta_titulo || 'Pronto para começar seu projeto?'
   const ctaSubtitulo = config.cta_subtitulo || 'Fale com nossos especialistas e receba um orçamento sem compromisso direto da fábrica.'
   const mapsUrl = config.google_maps_url || 'https://maps.app.goo.gl/bNAwCL7Jz4n3pJZx8'
@@ -239,7 +242,7 @@ export default function Home() {
               {
                 '@type': 'Question',
                 name: 'O que a Pousinox fabrica?',
-                acceptedAnswer: { '@type': 'Answer', text: 'A Pousinox é fabricante de equipamentos e mobiliário em aço inox sob medida. Produzimos bancadas, mesas, pias, carrinhos hospitalares, corrimãos, fixadores de porcelanato e peças sob medida para mais de 19 segmentos, incluindo restaurantes, hospitais, supermercados, indústrias e construção civil.' },
+                acceptedAnswer: { '@type': 'Answer', text: 'A Pousinox é fabricante de equipamentos, mobiliário e estruturas metálicas em aço inox sob medida. Produzimos bancadas, mesas, pias, carrinhos hospitalares, corrimãos, coifas e peças especiais para mais de 19 segmentos, incluindo restaurantes, hospitais, supermercados, indústrias e construção civil.' },
               },
               {
                 '@type': 'Question',
@@ -248,13 +251,13 @@ export default function Home() {
               },
               {
                 '@type': 'Question',
-                name: 'A Pousinox faz corte a laser em inox?',
-                acceptedAnswer: { '@type': 'Answer', text: 'Sim. Oferecemos serviço de corte a laser em chapas de aço inox com alta precisão. Atendemos projetos sob medida e demandas industriais com prazo ágil.' },
+                name: 'A Pousinox faz projetos sob medida em inox?',
+                acceptedAnswer: { '@type': 'Answer', text: 'Sim. Cada peça é fabricada sob medida conforme as necessidades do cliente. Desenvolvemos o projeto técnico, produzimos na nossa fábrica em Pouso Alegre/MG e entregamos com acabamento profissional. Atendemos restaurantes, hospitais, laboratórios, construtoras, hotéis e mais de 19 segmentos.' },
               },
               {
                 '@type': 'Question',
-                name: 'A Pousinox fabrica equipamentos sob medida?',
-                acceptedAnswer: { '@type': 'Answer', text: 'Sim. Todos os nossos produtos são fabricados sob medida conforme a necessidade do cliente. Desde bancadas para cozinhas industriais até carrinhos hospitalares e mobiliário para restaurantes.' },
+                name: 'Qual o prazo de entrega dos projetos?',
+                acceptedAnswer: { '@type': 'Answer', text: 'O prazo varia conforme a complexidade do projeto. Peças simples saem em 5 a 10 dias úteis. Projetos maiores, como cozinhas industriais completas, levam de 15 a 30 dias. Após a aprovação do desenho técnico, informamos o prazo exato antes de iniciar a fabricação.' },
               },
               {
                 '@type': 'Question',
@@ -347,6 +350,47 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Fábrica em operação */}
+      <section className={`section ${styles.fabricaSection}`}>
+        <div className="container">
+          <div className={styles.fabricaGrid}>
+            <div className={styles.fabricaVideo}>
+              {!videoPlaying ? (
+                <button className={styles.videoThumbnail} onClick={() => setVideoPlaying(true)} aria-label="Reproduzir vídeo da fábrica">
+                  <img
+                    src={videoPoster}
+                    alt="Fábrica Pousinox em operação"
+                    className={styles.videoThumb}
+                    loading="lazy"
+                  />
+                  <span className={styles.videoPlayBtn}>
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                      <circle cx="24" cy="24" r="24" fill="rgba(0,0,0,0.6)" />
+                      <path d="M19 15l14 9-14 9V15z" fill="white" />
+                    </svg>
+                  </span>
+                </button>
+              ) : (
+                <iframe
+                  src={`${fabricaVideoUrl}?autoplay=1`}
+                  title="Fábrica Pousinox em operação"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className={styles.videoFrame}
+                />
+              )}
+            </div>
+            <div className={styles.fabricaTexto}>
+              <span className={styles.fabricaEyebrow}>Nossa fábrica</span>
+              <h2 className="section-title">{fabricaTitulo}</h2>
+              <p>{fabricaTexto}</p>
+              <Link to="/sobre" className="btn-white">Conheça a POUSINOX®</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Categories */}
       <section className={`section ${styles.categories}`}>
         <div className="container">
@@ -413,30 +457,6 @@ export default function Home() {
                 <p className={styles.stepDesc}>{step.description}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Fábrica em operação */}
-      <section className={`section ${styles.fabricaSection}`}>
-        <div className="container">
-          <div className={styles.fabricaGrid}>
-            <div className={styles.fabricaVideo}>
-              <iframe
-                src={fabricaVideoUrl}
-                title="Corte a Laser em Chapas Metálicas — Pousinox"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className={styles.videoFrame}
-              />
-            </div>
-            <div className={styles.fabricaTexto}>
-              <span className={styles.fabricaEyebrow}>Nossa fábrica</span>
-              <h2 className="section-title">{fabricaTitulo}</h2>
-              <p>{fabricaTexto}</p>
-              <Link to="/sobre" className="btn-primary">Conheça a POUSINOX®</Link>
-            </div>
           </div>
         </div>
       </section>
@@ -548,61 +568,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Fixador de Porcelanato — teaser */}
-      <section className={`section ${styles.fixadorSection}`}>
-        <div className="container">
-          <div className={styles.fixadorGrid}>
-            <div className={styles.fixadorTexto}>
-              <span className={styles.fixadorEyebrow}>Solução técnica exclusiva</span>
-              <h2 className="section-title">Fixador de Porcelanato POUSINOX®</h2>
-              <p>
-                Sistema de fixação mecânica em aço inox para fachadas, grandes formatos e
-                áreas externas. Aprovado em ensaios laboratoriais LAMAT/SENAI —
-                a solução que construtoras e empreiteiras precisam para obras que durem décadas.
-              </p>
-              <ul className={styles.fixadorBullets}>
-                {[
-                  'Compatível com porcelanatos de 5 mm a 25 mm',
-                  'Resistência a cargas e variação térmica comprovada em laboratório',
-                  'Documentação técnica completa para projetos e licitações',
-                  'Produção sob demanda com entrega para todo o Brasil',
-                ].map(item => (
-                  <li key={item} className={styles.fixadorBullet}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <div className={styles.fixadorActions}>
-                <Link to="/fixador-porcelanato/orcamento" className="btn-primary">
-                  Solicitar Orçamento
-                </Link>
-                <Link to="/fixador-porcelanato/calculadora" className="btn-outline-dark">
-                  Calcular materiais →
-                </Link>
-              </div>
-            </div>
-            <div className={styles.fixadorVisual}>
-              <p className={styles.fixadorVisualTitle}>Desempenho comprovado</p>
-              {[
-                { value: '100%', label: 'Aço inox AISI 304', divider: true },
-                { value: 'LAMAT', label: 'Ensaio laboratorial SENAI', divider: true },
-                { value: '5–25mm', label: 'Espessuras compatíveis', divider: false },
-              ].map(({ value, label, divider }) => (
-                <Fragment key={value}>
-                  <div className={styles.fixadorStat}>
-                    <span className={styles.fixadorStatValue}>{value}</span>
-                    <span className={styles.fixadorStatLabel}>{label}</span>
-                  </div>
-                  {divider && <div className={styles.fixadorStatDivider} />}
-                </Fragment>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* FAQ */}
       {faqItems.length > 0 && (

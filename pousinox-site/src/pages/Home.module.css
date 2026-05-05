@@ -428,7 +428,7 @@
 
 /* How it works */
 .howItWorks {
-  background: var(--color-white);
+  background: var(--color-bg);
 }
 
 .stepsGrid {
@@ -486,13 +486,14 @@
 
 /* Fábrica */
 .fabricaSection {
-  background: var(--color-white);
+  background: linear-gradient(135deg, #0f1724 0%, #1a2332 100%);
+  padding: clamp(64px, 10vw, 100px) 0;
 }
 
 .fabricaGrid {
   display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 64px;
+  grid-template-columns: 380px 1fr;
+  gap: 72px;
   align-items: center;
 }
 
@@ -501,12 +502,50 @@
   justify-content: center;
 }
 
-.videoFrame {
-  width: 315px;
-  height: 560px;
-  border-radius: var(--radius-lg);
+.videoThumbnail {
+  position: relative;
+  width: 340px;
+  height: 600px;
+  border-radius: 20px;
+  overflow: hidden;
   border: none;
-  box-shadow: var(--shadow-lg);
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  background: #0f1724;
+}
+
+.videoThumbnail:hover {
+  transform: scale(1.02);
+  box-shadow: 0 24px 72px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.videoThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.videoPlayBtn {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+.videoThumbnail:hover .videoPlayBtn {
+  opacity: 0.9;
+}
+
+.videoFrame {
+  width: 340px;
+  height: 600px;
+  border-radius: 20px;
+  border: none;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .fabricaTexto {
@@ -516,17 +555,23 @@
 }
 
 .fabricaEyebrow {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: var(--color-primary);
+  color: var(--color-silver);
   text-transform: uppercase;
   letter-spacing: 3px;
 }
 
+.fabricaTexto h2 {
+  color: var(--color-white);
+}
+
 .fabricaTexto p {
   font-size: 1rem;
-  color: var(--color-text-light);
+  color: rgba(255, 255, 255, 0.7);
   line-height: 1.8;
+  border-left: 3px solid var(--color-silver);
+  padding-left: 16px;
 }
 
 /* Testimonials */
@@ -790,112 +835,6 @@
   margin-top: 8px;
 }
 
-/* Fixador de Porcelanato — teaser */
-.fixadorSection {
-  background: var(--color-bg);
-}
-
-.fixadorGrid {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 64px;
-  align-items: center;
-}
-
-.fixadorTexto {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.fixadorEyebrow {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-primary);
-  text-transform: uppercase;
-  letter-spacing: 3px;
-}
-
-.fixadorTexto p {
-  font-size: 1rem;
-  color: var(--color-text-light);
-  line-height: 1.8;
-}
-
-.fixadorBullets {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.fixadorBullet {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 0.92rem;
-  color: var(--color-text);
-  line-height: 1.5;
-}
-
-.fixadorBullet svg {
-  color: var(--color-primary);
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.fixadorActions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-}
-
-.fixadorVisual {
-  background: linear-gradient(135deg, var(--color-primary) 0%, #0f2440 100%);
-  border-radius: 16px;
-  padding: 36px 32px;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  box-shadow: 0 12px 40px rgba(27,58,92,0.25);
-}
-
-.fixadorVisualTitle {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
-  text-transform: uppercase;
-  letter-spacing: 3px;
-  margin-bottom: 20px;
-}
-
-.fixadorStat {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 16px 0;
-}
-
-.fixadorStatValue {
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--color-white);
-  line-height: 1;
-}
-
-.fixadorStatLabel {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.65);
-  line-height: 1.4;
-}
-
-.fixadorStatDivider {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.12);
-}
 
 /* Responsive */
 @media (max-width: 1024px) {
@@ -911,10 +850,6 @@
     display: none;
   }
 
-  .fixadorGrid {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
 }
 
 /* Corte a Laser — teaser */
@@ -1095,19 +1030,6 @@
     width: 100%;
   }
 
-  .fixadorGrid {
-    gap: 32px;
-  }
-
-  .fixadorActions {
-    flex-direction: column;
-  }
-
-  .fixadorActions > * {
-    width: 100%;
-    text-align: center;
-    justify-content: center;
-  }
 
   .categoryCard {
     flex: 0 0 260px;
@@ -1151,9 +1073,6 @@
     grid-template-columns: 1fr;
   }
 
-  .fixadorVisual {
-    padding: 28px 24px;
-  }
 
   .ctaActions {
     flex-direction: column;
