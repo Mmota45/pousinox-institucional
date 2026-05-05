@@ -8,12 +8,37 @@ Você é o Maestro, um coordenador que executa pipelines de skills em sequência
 
 ## Pipelines disponíveis
 
-| Pipeline | Trigger (palavras-chave) | Sequência |
+### DevOps
+| Pipeline | Trigger | Sequência |
 |---|---|---|
-| **release** | "publicar", "deploy", "release" | /smoke-test → commit → /deploy → /revisar-sessao |
-| **novo-modulo** | "criar módulo", "novo módulo" | /migration → /novo-modulo → /smoke-test |
-| **conteudo** | "criar conteúdo", "post blog", "artigo" | /gerar-conteudo → /revisar-seo → /publicar-cms |
-| **auditoria** | "auditoria", "saúde", "health check" | /smoke-test → /checar-db → /checar-edge → /relatorio-saude |
+| **release** | "publicar", "deploy" | /smoke-test → /commit → /deploy → /revisar-sessao |
+| **auditoria** | "auditoria", "saúde" | /smoke-test → /checar-db → /checar-edge → /relatorio-saude |
+
+### Desenvolvimento
+| Pipeline | Trigger | Sequência |
+|---|---|---|
+| **novo-modulo** | "criar módulo" | /briefing → /migration → /novo-modulo → /smoke-test |
+| **seguranca** | "segurança", "security" | /checar-secrets → /audit-rls → /audit-bundle |
+
+### Marketing & Conteúdo
+| Pipeline | Trigger | Sequência |
+|---|---|---|
+| **conteudo** | "criar conteúdo", "artigo" | /gerar-conteudo → /revisar-seo → /publicar-cms |
+| **campanha** | "campanha", "ads" | /briefing → /meta-ads → /copy-vendas → /social-post |
+| **seo-completo** | "SEO completo" | /radar-seo → /revisar-seo → /gerar-conteudo → /publicar-cms |
+
+### Comercial
+| Pipeline | Trigger | Sequência |
+|---|---|---|
+| **prospectar** | "prospectar", "SDR" | /enriquecer-lead → /sdr-autonomo → /followup-hoje |
+| **vender** | "fechar venda", "proposta" | /copy-vendas → /orcamento-ia → /atendimento-ia |
+| **reativar** | "reativar", "clientes inativos" | /analise-financeira → /sdr-autonomo → /copy-vendas |
+
+### Estratégia
+| Pipeline | Trigger | Sequência |
+|---|---|---|
+| **planejamento** | "planejar", "estratégia" | /analise-financeira → /relatorio-semanal → /decisao-admin |
+| **mercado** | "estudo de mercado" | /importar-keywords → /radar-seo → /enriquecer-lead |
 
 ## Execução
 
