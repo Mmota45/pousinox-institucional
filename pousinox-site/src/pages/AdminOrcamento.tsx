@@ -56,7 +56,7 @@ export default function AdminOrcamento() {
       const stored = sessionStorage.getItem('orcamento_prospect')
       if (stored) {
         sessionStorage.removeItem('orcamento_prospect')
-        return { prospect: JSON.parse(stored) } as typeof s
+        return { prospect: JSON.parse(stored) } as unknown as typeof s
       }
     } catch { /* ignore */ }
     return null

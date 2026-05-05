@@ -133,7 +133,6 @@ Responda exatamente no formato solicitado.` },
         alert('Erro IA: ' + (data?.error || error?.message || 'Erro desconhecido'))
       } else if (data?.response) {
         const resp = data.response.trim()
-        console.log('IA resp bruta:', resp)
         const tituloMatch = resp.match(/T[IÍ]TULO:\s*(.+)/i)
         const descMatch = resp.match(/DESCRI[CÇ][AÃ]O:\s*(.+)/i)
         setEditModelo(prev => {

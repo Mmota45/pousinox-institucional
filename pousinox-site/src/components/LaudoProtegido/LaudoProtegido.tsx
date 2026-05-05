@@ -67,7 +67,7 @@ export default function LaudoProtegido({ empresa, cnpj, contato, email, usuario,
   const [buscaEmpresa, setBuscaEmpresa] = useState('')
   const [sugestoes, setSugestoes] = useState<{ nome: string; cnpj: string; contato: string; email: string; fonte: string }[]>([])
   const [showSugestoes, setShowSugestoes] = useState(false)
-  const buscaTimer = useRef<ReturnType<typeof setTimeout>>()
+  const buscaTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [gerando, setGerando] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
@@ -288,7 +288,7 @@ export default function LaudoProtegido({ empresa, cnpj, contato, email, usuario,
         }
 
         setProgressoLote('Salvando PDF mesclado...')
-        const mergedBlob = await merger.saveAsBlob()
+        const mergedBlob = await (merger as any).saveAsBlob()
         const mergedBytes = new Uint8Array(await mergedBlob.arrayBuffer())
         const mergedName = `merged_${Date.now()}.pdf`
         const { error: upErr } = await supabaseAdmin.storage

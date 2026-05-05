@@ -198,18 +198,20 @@ export default function AdminClientes() {
     for (const [de, para] of Object.entries(SEGMENTO_ALIAS)) {
       setNormProgresso(`Normalizando "${de}" → "${para}"...`)
       // Match exato
-      const { count: c1 } = await supabaseAdmin
+      const { data: d1 } = await supabaseAdmin
         .from('clientes')
         .update({ segmento: para })
         .eq('segmento', de)
-        .select('*', { count: 'exact', head: true })
+        .select('id')
       // Match por prefixo (CNAE truncado)
-      const { count: c2 } = await supabaseAdmin
+      const { data: d2 } = await supabaseAdmin
         .from('clientes')
         .update({ segmento: para })
         .like('segmento', `${de}%`)
         .neq('segmento', para)
-        .select('*', { count: 'exact', head: true })
+        .select('id')
+      const c1 = d1?.length ?? 0
+      const c2 = d2?.length ?? 0
       const count = (c1 || 0) + (c2 || 0)
       total += count || 0
     }

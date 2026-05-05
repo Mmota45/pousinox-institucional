@@ -274,7 +274,7 @@ export default function EspecificacaoSection({ orcamentoId, onItensAdded, prospe
                   </div>
                   {/* Diagrama inline para cada medida */}
                   <DiagramaFixador
-                    fixadoresPorPeca={espec.fixadores_por_peca}
+                    fixadoresPorPeca={espec.fixadores_por_peca ?? 0}
                     larguraCm={espec.largura_cm}
                     alturaCm={espec.altura_cm}
                     larguraFixadorMm={modelo?.largura_mm ?? undefined}

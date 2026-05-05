@@ -399,7 +399,6 @@ pousinox.com.br`
       const uf = filtroUFs.length === 1 ? filtroUFs[0] : null
       const { data, error } = await supabaseAdmin.rpc('fn_top_prospects', { n: N_RPC, filtro_uf: uf })
       if (error) {
-        console.warn('fn_top_prospects falhou, buscando direto:', error.message)
         // Fallback: buscar direto da tabela
         let query = supabaseAdmin
           .from('prospeccao')
@@ -951,7 +950,7 @@ Produtos em estoque: ${drawerEstoque.slice(0, 5).map((e: any) => `${e.nome} (${e
     const system = 'Analista comercial B2B da Pousinox (aço inox). Analise o prospect e sugira a melhor estratégia de abordagem. Seja direto e prático. Máx 200 palavras. Português brasileiro.'
     try {
       const res = await aiChat(`Analise este prospect e sugira estratégia de abordagem:\n\n${ctx}`, system)
-      setIaAnalise(res)
+      setIaAnalise(res.content || 'Sem resultado')
     } catch { setIaAnalise('Erro ao gerar análise') }
     setIaLoadingTipo(null)
   }
@@ -971,7 +970,7 @@ Produção ativa: ${drawerProducao.length} OPs`
     const system = 'Gere um briefing executivo comercial para reunião de vendas da Pousinox (aço inox). Estrutura: 1) Perfil da empresa, 2) Oportunidade, 3) Produtos prioritários, 4) Argumentos regulatórios, 5) Próximos passos. Máx 250 palavras. Português brasileiro.'
     try {
       const res = await aiChat(`Gere briefing executivo para este prospect:\n\n${ctx}`, system)
-      setIaResumo(res)
+      setIaResumo(res.content || 'Sem resultado')
     } catch { setIaResumo('Erro ao gerar resumo') }
     setIaLoadingTipo(null)
   }
@@ -985,7 +984,7 @@ Portfólio: ${drawerPortfolio.slice(0, 5).map((sp: any) => sp.portfolio_produtos
     const system = 'Consultor de vendas B2B da Pousinox (fabricante de equipamentos em aço inox). Responda objeções comerciais com argumentos técnicos, regulatórios e de custo-benefício. Seja persuasivo mas honesto. Nunca invente dados ou certificações. Máx 150 palavras. Português brasileiro.'
     try {
       const res = await aiChat(`O prospect disse: "${iaObjecaoInput}"\n\nContexto:\n${ctx}\n\nComo responder esta objeção?`, system)
-      setIaObjecao(res)
+      setIaObjecao(res.content || 'Sem resultado')
     } catch { setIaObjecao('Erro ao gerar resposta') }
     setIaLoadingTipo(null)
   }
@@ -1017,7 +1016,7 @@ REGRAS:
 - Português brasileiro`
     try {
       const res = await aiChat(`Dúvida do cliente: "${iaConsultorInput}"\n\nContexto:\n${ctx}`, system)
-      setIaConsultor(res)
+      setIaConsultor(res.content || 'Sem resultado')
     } catch { setIaConsultor('Erro ao gerar resposta') }
     setIaLoadingTipo(null)
   }
@@ -1044,7 +1043,7 @@ REGRAS:
 - Português brasileiro`
     try {
       const res = await aiChat(`Gere comparativo técnico para o segmento "${drawerPs.segmento || 'geral'}":\n\nDados concorrentes:\n${concCtx}\n\nProdutos Pousinox:\n${produtos}`, system)
-      setIaComparativo(res)
+      setIaComparativo(res.content || 'Sem resultado')
     } catch { setIaComparativo('Erro ao gerar comparativo') }
     setIaLoadingTipo(null)
   }
@@ -1093,7 +1092,7 @@ Tom: profissional, consultivo. Português brasileiro. Máx 400 palavras.
 NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
     try {
       const res = await aiChat(`Gere proposta comercial:\n\n${ctx}`, system)
-      setIaProposta(res)
+      setIaProposta(res.content || 'Sem resultado')
     } catch { setIaProposta('Erro ao gerar proposta') }
     setIaLoadingTipo(null)
   }

@@ -194,7 +194,6 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, 
             throw new Error(`Falha na transcrição: ${(err as Error).message}`)
           }
 
-          console.log(`[KB] transcrição ok ${file.name}: ${transcricao.length} chars`)
           setProgress(`📚 Indexando transcrição de ${file.name}...`)
 
           // Converter transcrição para base64 (compatível UTF-8)
@@ -207,7 +206,6 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, 
           const { data, error } = await supabaseAdmin.functions.invoke('indexar-documento', {
             body: { file_base64: txtBase64, mime_type: 'text/plain', filename: `${file.name}.txt` },
           })
-          console.log(`[KB] indexar transcrição ${file.name}:`, { data, error })
           if (error) {
             const errMsg = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error))
             throw new Error(`Indexação falhou: ${errMsg}`)
@@ -222,10 +220,8 @@ export default function KnowledgeBase({ ragEnabled, onRagToggle, onAskQuestion, 
             body: { file_base64: base64, mime_type: file.type, filename: file.name },
           })
 
-          console.log(`[KB] ${file.name} →`, { data, error })
           if (error) throw new Error(typeof error === 'object' ? JSON.stringify(error) : String(error))
           const parsed = typeof data === 'string' ? JSON.parse(data) : data
-          console.log(`[KB] parsed:`, parsed)
 
           if (parsed.success) {
             ok++

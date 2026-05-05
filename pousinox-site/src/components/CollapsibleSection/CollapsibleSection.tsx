@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 import styles from './CollapsibleSection.module.css'
 
 interface Props {
-  title: string
+  title: ReactNode
   defaultOpen?: boolean
   count?: number
   children: ReactNode

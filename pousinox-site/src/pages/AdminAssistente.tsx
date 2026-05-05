@@ -529,14 +529,15 @@ async function buscarContexto(prompt: string): Promise<string> {
   const lower = prompt.toLowerCase()
   const partes: string[] = []
 
-  async function q(table: string, label: string, opts?: { filter?: (query: ReturnType<typeof supabaseAdmin.from>) => ReturnType<typeof supabaseAdmin.from>; limit?: number }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async function q(table: string, label: string, opts?: { filter?: (query: any) => any; limit?: number }) {
     try {
-      let query = supabaseAdmin.from(table).select('*')
-      if (opts?.filter) query = opts.filter(query) as typeof query
+      let query: any = supabaseAdmin.from(table).select('*')
+      if (opts?.filter) query = opts.filter(query)
       const { data, error } = await query.limit(opts?.limit ?? 30)
-      if (error) { console.warn(`[Assistente] Erro ${table}:`, error.message); return }
+      if (error) return
       if (data?.length) partes.push(`${label} (${data.length} registros):\n${JSON.stringify(data)}`)
-    } catch (e) { console.warn(`[Assistente] Falha ${table}:`, e) }
+    } catch (_) { /* silencioso */ }
   }
 
   const queries: Promise<void>[] = []
@@ -573,8 +574,25 @@ async function buscarContexto(prompt: string): Promise<string> {
     queries.push(q('campanhas', 'CAMPANHAS MARKETING', { limit: 20 }))
 
   // Conteúdo do site
-  if (lower.match(/conte[uú]do|blog|post|artigo|seo|página|pagina.*site|publicação|publicacao/))
+  if (lower.match(/conte[uú]do|blog|post|artigo|página|pagina.*site|publicação|publicacao/))
     queries.push(q('conteudos', 'CONTEÚDOS DO SITE', { limit: 20 }))
+
+  // Base de conhecimento (guias) — sempre buscar guias relevantes por texto
+  try {
+    const termos = lower.split(/\s+/).filter(t => t.length > 3).slice(0, 5)
+    if (termos.length > 0) {
+      const orFilter = termos.map(t => `titulo.ilike.%${t}%,o_que_e.ilike.%${t}%,como_fazer.ilike.%${t}%,quando_usar.ilike.%${t}%,por_que.ilike.%${t}%`).join(',')
+      const { data: guiasData } = await supabaseAdmin
+        .from('knowledge_guias')
+        .select('titulo,categoria,nivel,pasta,o_que_e,quando_usar,como_fazer,onde_fazer,por_que')
+        .eq('ativo', true)
+        .or(orFilter)
+        .limit(5)
+      if (guiasData?.length) {
+        partes.push(`BASE DE CONHECIMENTO — ${guiasData.length} guia(s) relevante(s):\n${JSON.stringify(guiasData)}`)
+      }
+    }
+  } catch (_) { /* silencioso */ }
 
   // Overview geral — sempre buscar contagens se nenhuma query específica foi acionada
   if (queries.length === 0) {
@@ -594,7 +612,7 @@ async function buscarContexto(prompt: string): Promise<string> {
       const labels = ['Clientes', 'Produtos', 'Ordens de Produção', 'Deals no Pipeline', 'Vendas', 'Orçamentos', 'Itens em Estoque', 'Projetos', 'Notas Fiscais', 'Prospects ativos']
       const overview = labels.map((l, i) => `- ${l}: ${counts[i].count ?? 0}`).join('\n')
       partes.push(`VISÃO GERAL DO SISTEMA (dados reais):\n${overview}`)
-    } catch (e) { console.warn('[Assistente] Erro overview:', e) }
+    } catch (_) { /* silencioso */ }
   }
 
   await Promise.all(queries)
@@ -856,12 +874,14 @@ export default function AdminAssistente() {
     setMsgs(prev => [...prev, userMsg])
     setLoading(true)
     try {
-      // Quando RAG ativo: não buscar contexto ERP e enviar só a última mensagem (sem histórico contaminante)
+      // Sempre buscar contexto do banco + guias, e combinar com documentos indexados (RAG)
+      const contexto = await buscarContexto(msg)
       let historico: { role: string; content: string }[]
       if (ragEnabled) {
-        historico = [{ role: 'user', content: msg + '\n\n**SAÍDA OBRIGATÓRIA**: Ao final, 2-4 linhas de destaque começando com > e emoji (ex: > 📌 Insight). NUNCA omita.' }]
+        // RAG ativo: mensagem única com contexto do banco para não contaminar embeddings
+        const ctxSuffix = contexto ? `\n\n${contexto}` : ''
+        historico = [{ role: 'user', content: msg + ctxSuffix + '\n\n**SAÍDA OBRIGATÓRIA**: Ao final, 2-4 linhas de destaque começando com > e emoji (ex: > 📌 Insight). NUNCA omita.' }]
       } else {
-        const contexto = await buscarContexto(msg)
         historico = [...msgs, userMsg].slice(-10).map(m => ({ role: m.role, content: m.content }))
         const outputHint = '\n\n**SAÍDA OBRIGATÓRIA**: 1) Tabela ordenada DESC pelo valor principal. 2) Ao final, 2-4 linhas de destaque começando com > e emoji (ex: > 📌 Insight). NUNCA omita os destaques.'
         if (contexto) historico[historico.length - 1] = { ...historico[historico.length - 1], content: historico[historico.length - 1].content + outputHint + contexto }
@@ -894,7 +914,8 @@ export default function AdminAssistente() {
       let data: Record<string, unknown>, error: unknown
       const effectiveSearch = forceSearchSource || searchSource
 
-      const useRag = ragEnabled || (activeSources.length > 0 && activeSources.length < docCount)
+      // Sempre usar RAG quando há documentos indexados OU toggle ativo
+      const useRag = ragEnabled || docCount > 0 || (activeSources.length > 0 && activeSources.length < docCount)
       if (useRag && !forceSearchSource) {
         // RAG ativo — rotear via assistente-chat (suporta embeddings)
         // Groq funciona bem para RAG e tem API key configurada
@@ -1028,9 +1049,11 @@ export default function AdminAssistente() {
   const [studioCollapsed, setStudioCollapsed] = useState(() => localStorage.getItem('assistente_studio_collapsed') === '1')
   const [docCount, setDocCount] = useState(0)
 
-  // Studio: generate output using RAG context
+  // Studio: generate output using RAG context + banco + guias
   const handleStudioGenerate = useCallback(async (_tipo: string, prompt: string) => {
-    const historico = [{ role: 'user', content: prompt + '\n\nUse as fontes da base de conhecimento para gerar o conteúdo.' }]
+    const contexto = await buscarContexto(prompt)
+    const ctxSuffix = contexto || ''
+    const historico = [{ role: 'user', content: prompt + '\n\nUse as fontes da base de conhecimento para gerar o conteúdo.' + ctxSuffix }]
     const { data, error } = await supabaseAdmin.functions.invoke('assistente-chat', {
       body: { messages: historico, system: SYSTEM_PROMPT, model: modelo, rag: true },
     })

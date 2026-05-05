@@ -450,7 +450,7 @@ export default function FreteSection({
                     {(() => {
                       const key = `${cepOrigem.replace(/\D/g, '')}-${cepDestino.replace(/\D/g, '')}`
                       const cached = distanciaCache.current[key]
-                      return cached ? <span className={css.proprioFormula}>~{cached.horas}h de viagem</span> : null
+                      return cached ? <span className={css.proprioFormula}>~{(cached as any).horas}h de viagem</span> : null
                     })()}
                   </div>
                 </div>

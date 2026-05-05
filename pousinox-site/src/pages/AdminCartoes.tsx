@@ -346,10 +346,10 @@ function FormCartao({ inicial, onSalvo, onCancelar }: FormProps) {
   }
 
   useEffect(() => {
-    supabaseAdmin
+    Promise.resolve(supabaseAdmin
       .from('produtos')
       .select('id, titulo, fotos')
-      .order('titulo')
+      .order('titulo'))
       .then(({ data, error }) => {
         if (error) { console.error('Erro ao carregar produtos:', error); return }
         if (data) {
@@ -365,7 +365,7 @@ function FormCartao({ inicial, onSalvo, onCancelar }: FormProps) {
           setProdutosDisponiveis(lista)
         }
       })
-      .catch(err => console.error('Erro ao carregar produtos:', err))
+      .catch((err: unknown) => console.error('Erro ao carregar produtos:', err))
   }, [])
 
   const slugSugerido = form.nome || form.empresa

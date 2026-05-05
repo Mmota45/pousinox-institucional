@@ -14,7 +14,19 @@ interface AiChatResult {
 }
 
 /** Chamada de texto via assistente-chat */
-export async function aiChat({ prompt, system, model = 'gemini' }: AiChatOpts): Promise<AiChatResult> {
+export async function aiChat(optsOrPrompt: AiChatOpts | string | { role: string; content: string }[], systemArg?: string): Promise<AiChatResult> {
+  let prompt: string, system: string, model: string
+  if (typeof optsOrPrompt === 'string') {
+    prompt = optsOrPrompt; system = systemArg || ''; model = 'gemini'
+  } else if (Array.isArray(optsOrPrompt)) {
+    prompt = optsOrPrompt.map(m => m.content).join('\n'); system = systemArg || ''; model = 'gemini'
+  } else {
+    prompt = optsOrPrompt.prompt; system = optsOrPrompt.system; model = optsOrPrompt.model || 'gemini'
+  }
+  return _aiChat({ prompt, system, model })
+}
+
+async function _aiChat({ prompt, system, model = 'gemini' }: AiChatOpts): Promise<AiChatResult> {
   const { data, error } = await supabaseAdmin.functions.invoke('assistente-chat', {
     body: {
       messages: [{ role: 'user', content: prompt }],

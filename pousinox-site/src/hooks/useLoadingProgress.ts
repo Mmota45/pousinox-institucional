@@ -30,8 +30,8 @@ export function useLoadingProgress(totalSteps: number) {
     setCurrent(0)
   }, [])
 
-  const wrap = useCallback(<T,>(promise: Promise<T>): Promise<T> =>
-    promise.then(r => { step(); return r }), [step])
+  const wrap = useCallback(<T,>(promise: PromiseLike<T>): Promise<T> =>
+    Promise.resolve(promise).then(r => { step(); return r }), [step])
 
   return { current, total: totalSteps, loading: current < totalSteps, step, reset, wrap }
 }

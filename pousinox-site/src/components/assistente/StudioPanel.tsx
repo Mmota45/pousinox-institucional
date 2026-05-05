@@ -87,7 +87,7 @@ function InfographicViewer({ content }: { content: string }) {
       {data.pizza && data.pizza.length > 0 && (
         <div className={s.infoChart}>
           <ResponsiveContainer width="100%" height={180}>
-            <PieChart><Pie data={data.pizza} dataKey="valor" nameKey="nome" cx="50%" cy="50%" outerRadius={70} label={({ nome }) => nome}>{data.pizza.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart>
+            <PieChart><Pie data={data.pizza} dataKey="valor" nameKey="nome" cx="50%" cy="50%" outerRadius={70} label={({ name }) => name}>{data.pizza.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip /></PieChart>
           </ResponsiveContainer>
         </div>
       )}

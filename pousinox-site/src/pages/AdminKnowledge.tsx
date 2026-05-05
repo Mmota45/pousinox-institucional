@@ -17,11 +17,13 @@ interface Guia {
   ondeFazer: string
   porQue: string
   rascunho?: boolean
+  pasta?: string
 }
 
 interface GuiaDinamico extends Guia {
   rascunho: boolean
   criadoEm: string
+  pasta: string
 }
 
 const CATEGORIAS: { value: Categoria | 'todos'; label: string }[] = [
@@ -1406,7 +1408,7 @@ Nunca invente nomes de funções, APIs ou comandos que não existam.`
 
       const parsed = JSON.parse(jsonMatch[0])
       const guia: GuiaDinamico = {
-        id: 'user-' + Date.now(),
+        id: 'temp-' + Date.now(),
         titulo: parsed.titulo || tema,
         categoria,
         nivel,
@@ -1418,6 +1420,7 @@ Nunca invente nomes de funções, APIs ou comandos que não existam.`
         porQue: parsed.porQue || '',
         rascunho: true,
         criadoEm: new Date().toISOString(),
+        pasta: categoria,
       }
       setRascunho(guia)
     } catch (e) {
@@ -1519,17 +1522,53 @@ Nunca invente nomes de funções, APIs ou comandos que não existam.`
   )
 }
 
-const STORAGE_KEY = 'pousinox_knowledge_guias'
 const ACESSOS_KEY = 'pousinox_knowledge_acessos'
 
-function loadGuiasDinamicos(): GuiaDinamico[] {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-  } catch { return [] }
+// Mapeamento snake_case (Supabase) → camelCase (frontend)
+function dbToGuia(row: Record<string, unknown>): GuiaDinamico {
+  return {
+    id: String(row.id),
+    titulo: (row.titulo as string) || '',
+    categoria: (row.categoria as Categoria) || 'comercial',
+    nivel: (row.nivel as Nivel) || 'iniciante',
+    tags: (row.tags as string[]) || [],
+    oQueE: (row.o_que_e as string) || '',
+    quandoUsar: (row.quando_usar as string) || '',
+    comoFazer: (row.como_fazer as string) || '',
+    ondeFazer: (row.onde_fazer as string) || '',
+    porQue: (row.por_que as string) || '',
+    rascunho: (row.rascunho as boolean) || false,
+    criadoEm: (row.criado_em as string) || new Date().toISOString(),
+    pasta: (row.pasta as string) || 'geral',
+  }
 }
 
-function saveGuiasDinamicos(guias: GuiaDinamico[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(guias))
+// Mapeamento camelCase (frontend) → snake_case (Supabase)
+function guiaToDb(g: GuiaDinamico) {
+  return {
+    titulo: g.titulo,
+    categoria: g.categoria,
+    nivel: g.nivel,
+    tags: g.tags,
+    o_que_e: g.oQueE,
+    quando_usar: g.quandoUsar,
+    como_fazer: g.comoFazer,
+    onde_fazer: g.ondeFazer,
+    por_que: g.porQue,
+    rascunho: g.rascunho,
+    pasta: g.pasta || 'geral',
+    ativo: true,
+  }
+}
+
+async function loadGuiasDinamicos(): Promise<GuiaDinamico[]> {
+  const { data, error } = await supabaseAdmin
+    .from('knowledge_guias')
+    .select('*')
+    .eq('ativo', true)
+    .order('criado_em', { ascending: false })
+  if (error || !data) return []
+  return data.map(dbToGuia)
 }
 
 function loadAcessos(): Record<string, number> {
@@ -1656,6 +1695,7 @@ export default function AdminKnowledge() {
   const [modalAberto, setModalAberto] = useState(false)
   const [guiasDinamicos, setGuiasDinamicos] = useState<GuiaDinamico[]>([])
   const [vista, setVista] = useState<Vista>('lista')
+  const [pastasAbertas, setPastasAbertas] = useState<Record<string, boolean>>({})
   const [guiaAberto, setGuiaAberto] = useState<string | null>(null)
   const [acessos, setAcessos] = useState<Record<string, number>>({})
   const [navUrl, setNavUrl] = useState<string | null>(null)
@@ -1664,7 +1704,7 @@ export default function AdminKnowledge() {
   const [iaStatus, setIaStatus] = useState<string | null>(null)
 
   useEffect(() => {
-    setGuiasDinamicos(loadGuiasDinamicos())
+    loadGuiasDinamicos().then(setGuiasDinamicos)
     setAcessos(loadAcessos())
   }, [])
 
@@ -1673,22 +1713,32 @@ export default function AdminKnowledge() {
 
   const todasGuias: Guia[] = [...GUIAS, ...guiasDinamicos]
 
-  const salvarGuia = (g: GuiaDinamico) => {
-    const atualizados = [...guiasDinamicos, g]
-    setGuiasDinamicos(atualizados)
-    saveGuiasDinamicos(atualizados)
+  const salvarGuia = async (g: GuiaDinamico) => {
+    const { data, error } = await supabaseAdmin
+      .from('knowledge_guias')
+      .insert(guiaToDb(g))
+      .select()
+      .single()
+    if (error) { alert('Erro ao salvar: ' + error.message); return }
+    setGuiasDinamicos(prev => [dbToGuia(data), ...prev])
   }
 
-  const aprovarGuia = (id: string) => {
-    const atualizados = guiasDinamicos.map(g => g.id === id ? { ...g, rascunho: false } : g)
-    setGuiasDinamicos(atualizados)
-    saveGuiasDinamicos(atualizados)
+  const aprovarGuia = async (id: string) => {
+    const { error } = await supabaseAdmin
+      .from('knowledge_guias')
+      .update({ rascunho: false })
+      .eq('id', id)
+    if (error) { alert('Erro ao aprovar: ' + error.message); return }
+    setGuiasDinamicos(prev => prev.map(g => g.id === id ? { ...g, rascunho: false } : g))
   }
 
-  const excluirGuia = (id: string) => {
-    const atualizados = guiasDinamicos.filter(g => g.id !== id)
-    setGuiasDinamicos(atualizados)
-    saveGuiasDinamicos(atualizados)
+  const excluirGuia = async (id: string) => {
+    const { error } = await supabaseAdmin
+      .from('knowledge_guias')
+      .update({ ativo: false })
+      .eq('id', id)
+    if (error) { alert('Erro ao excluir: ' + error.message); return }
+    setGuiasDinamicos(prev => prev.filter(g => g.id !== id))
   }
 
   const buscaLower = busca.toLowerCase()
@@ -1772,12 +1822,12 @@ export default function AdminKnowledge() {
               {indexandoIA ? '⏳ Indexando...' : '🧠 Ensinar à IA'}
             </button>
             {iaStatus && <span style={{ fontSize: '0.78rem', padding: '4px 8px' }}>{iaStatus}</span>}
-            {guiaAbertoObj.id.startsWith('user-') && guiaAbertoObj.rascunho && (
+            {guiasDinamicos.some(d => d.id === guiaAbertoObj.id) && guiaAbertoObj.rascunho && (
               <button className={styles.btnPrimary} onClick={() => aprovarGuia(guiaAbertoObj.id)} style={{ fontSize: '0.85rem' }}>
                 Aprovar
               </button>
             )}
-            {guiaAbertoObj.id.startsWith('user-') && (
+            {guiasDinamicos.some(d => d.id === guiaAbertoObj.id) && (
               <button className={styles.btnDanger} onClick={() => { excluirGuia(guiaAbertoObj.id); fecharGuia() }} style={{ fontSize: '0.85rem' }}>
                 Excluir
               </button>
@@ -1835,19 +1885,45 @@ export default function AdminKnowledge() {
 
               {filtradas.length === 0 ? (
                 <div className={styles.empty}>Nenhuma guia encontrada para "{busca}"</div>
-              ) : (
-                filtradas.map(g => (
-                  <div key={g.id} className={`${styles.cardCompact} ${g.rascunho ? styles.cardRascunho : ''}`} onClick={() => abrirGuia(g.id)}>
-                    <span className={styles.cardCompactTitle}>{g.titulo}</span>
-                    <div className={styles.cardCompactMeta}>
-                      {(acessos[g.id] || 0) > 0 && <span className={styles.badgeAcessos}>{acessos[g.id]}x</span>}
-                      <span className={styles[NIVEL_CLASS[g.nivel]]}>{NIVEL_LABEL[g.nivel]}</span>
-                      <span className={styles.badgeCat}>{CATEGORIAS.find(c => c.value === g.categoria)?.label}</span>
-                      {g.rascunho && <span className={styles.badgeRascunho}>Rascunho</span>}
+              ) : (() => {
+                // Agrupar por pasta
+                const porPasta: Record<string, typeof filtradas> = {}
+                filtradas.forEach(g => {
+                  const p = (g as GuiaDinamico).pasta || g.pasta || g.categoria || 'geral'
+                  if (!porPasta[p]) porPasta[p] = []
+                  porPasta[p].push(g)
+                })
+                const pastasOrdenadas = Object.keys(porPasta).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+                const togglePasta = (p: string) => setPastasAbertas(prev => ({ ...prev, [p]: !prev[p] }))
+                // Se buscando, todas abertas
+                const todasAbertas = !!busca
+
+                return pastasOrdenadas.map(pasta => {
+                  const aberta = todasAbertas || pastasAbertas[pasta] !== false
+                  const guiasDaPasta = porPasta[pasta]
+                  const pastaLabel = CATEGORIAS.find(c => c.value === pasta)?.label || pasta.charAt(0).toUpperCase() + pasta.slice(1)
+
+                  return (
+                    <div key={pasta} className={styles.pastaGroup}>
+                      <button className={styles.pastaHeader} onClick={() => togglePasta(pasta)}>
+                        <span className={styles.pastaIcon}>{aberta ? '▾' : '▸'}</span>
+                        <span className={styles.pastaLabel}>{pastaLabel}</span>
+                        <span className={styles.pastaCount}>{guiasDaPasta.length}</span>
+                      </button>
+                      {aberta && guiasDaPasta.map(g => (
+                        <div key={g.id} className={`${styles.cardCompact} ${g.rascunho ? styles.cardRascunho : ''}`} onClick={() => abrirGuia(g.id)}>
+                          <span className={styles.cardCompactTitle}>{g.titulo}</span>
+                          <div className={styles.cardCompactMeta}>
+                            {(acessos[g.id] || 0) > 0 && <span className={styles.badgeAcessos}>{acessos[g.id]}x</span>}
+                            <span className={styles[NIVEL_CLASS[g.nivel]]}>{NIVEL_LABEL[g.nivel]}</span>
+                            {g.rascunho && <span className={styles.badgeRascunho}>Rascunho</span>}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </div>
-                ))
-              )}
+                  )
+                })
+              })()}
             </>
           )}
         </>
