@@ -299,6 +299,42 @@
   color: #fff !important;
 }
 
+/* ── Sub-itens (children) ── */
+.navParentRow {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+.navParentRow > div { flex: 1; min-width: 0; }
+.navChildToggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  z-index: 1;
+}
+.navChildToggle:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.06); }
+.navChildren {
+  padding-left: 18px;
+  border-left: 1px solid rgba(255,255,255,0.08);
+  margin-left: 18px;
+  margin-bottom: 4px;
+}
+.navChildItem {
+  font-size: 0.8rem !important;
+  padding: 7px 10px !important;
+  opacity: 0.8;
+}
+.navChildItem:hover { opacity: 1; }
+.shellCollapsed .navChildToggle { display: none; }
+.shellCollapsed .navChildren { display: none; }
+
 .navIcon {
   display: flex;
   align-items: center;

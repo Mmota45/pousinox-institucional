@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Search, Target, List, Flame, BarChart3, ChevronDown, Globe, Phone, CircleDot, FileText, Trophy, Star, CheckCircle2, XCircle, Building2, MapPin, RefreshCw, User, Smartphone, Mail, MessageSquare, ArrowRight, AlertTriangle } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { supabaseAdmin } from '../lib/supabase'
 import styles from './AdminProspeccao.module.css'
@@ -100,7 +101,7 @@ function StatusBadge({
             ))
           ) : (
             <div style={{ padding: '10px 14px' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6d28d9', marginBottom: 6 }}>🏆 Valor da venda</div>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#6d28d9', marginBottom: 6 }}><Trophy size={13} color="#6d28d9" style={{ display: 'inline', verticalAlign: 'middle' }} /> Valor da venda</div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <input
                   type="number"
@@ -927,7 +928,7 @@ setClientesCidade(clientesPorCidade)
           {loading ? '...' : 'Buscar'}
         </button>
         <button style={{ padding: '6px 10px', background: 'linear-gradient(135deg,#1e1b4b,#312e81)', color: '#fff', border: 'none', borderRadius: 6, fontSize: '0.65rem', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}
-          onClick={() => setAgentProspector(true)}>🎯 Prospector IA</button>
+          onClick={() => setAgentProspector(true)}><Target size={13} color="#fff" style={{ display: 'inline', verticalAlign: 'middle' }} /> Prospector IA</button>
         <button
           className={styles.novoProspectBtn}
           onClick={() => { setModalCadastro(true); setCnpjInput(''); setDadosCnpjApi(null); setErroCnpj(null) }}
@@ -949,7 +950,7 @@ setClientesCidade(clientesPorCidade)
 
         {/* Busca + ações na mesma linha */}
         <div className={styles.filtroPrimario}>
-          <span className={styles.searchIcon}>🔍</span>
+          <span className={styles.searchIcon}><Search size={14} color="#f59e0b" /></span>
           <input
             className={styles.filtroInput}
             type="text"
@@ -1172,7 +1173,7 @@ setClientesCidade(clientesPorCidade)
       {/* ── Aviso de filtro insuficiente ── */}
       {ufs.length > 0 && mesorregioesSel.length === 0 && cidadesSel.length === 0 && segmentos.length === 0 && produtos.length === 0 && (
         <div style={{ fontSize: '0.82rem', color: '#92400e', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 14px' }}>
-          ⚠ Com apenas UF selecionada, adicione também mesorregião, cidade, segmento ou produto para evitar timeout.
+          <AlertTriangle size={14} color="#92400e" style={{ display: 'inline', verticalAlign: 'middle' }} /> Com apenas UF selecionada, adicione também mesorregião, cidade, segmento ou produto para evitar timeout.
         </div>
       )}
 
@@ -1359,23 +1360,23 @@ setClientesCidade(clientesPorCidade)
                 <button
                   className={`${styles.vistaTab} ${vistaAtiva === 'lista' ? styles.vistaTabAtiva : ''}`}
                   onClick={() => setVistaAtiva('lista')}
-                >☰ Lista</button>
+                ><List size={13} style={{ display: 'inline', verticalAlign: 'middle' }} /> Lista</button>
                 <button
                   className={`${styles.vistaTab} ${vistaAtiva === 'mapa' ? styles.vistaTabAtiva : ''}`}
                   onClick={() => { setVistaAtiva('mapa'); if (buscado && dadosMapa.length === 0) buscarMapa() }}
-                >⬡ Mapa</button>
+                ><MapPin size={13} color="#0ea5e9" style={{ display: 'inline', verticalAlign: 'middle' }} /> Mapa</button>
                 <button
                   className={`${styles.vistaTab} ${vistaAtiva === 'calor' ? styles.vistaTabAtiva : ''}`}
                   onClick={() => { setVistaAtiva('calor'); if (buscado && dadosMapa.length === 0) buscarMapa() }}
-                >🔥 Calor</button>
+                ><Flame size={13} color="#ef4444" style={{ display: 'inline', verticalAlign: 'middle' }} /> Calor</button>
                 <button
                   className={`${styles.vistaTab} ${vistaAtiva === 'cobertura' ? styles.vistaTabAtiva : ''}`}
                   onClick={() => { setVistaAtiva('cobertura'); if (coberturaData.length === 0) buscarCobertura() }}
-                >📊 Cobertura</button>
+                ><BarChart3 size={13} color="#0ea5e9" style={{ display: 'inline', verticalAlign: 'middle' }} /> Cobertura</button>
                 <button
                   className={`${styles.vistaTab} ${vistaAtiva === 'funil' ? styles.vistaTabAtiva : ''}`}
                   onClick={() => { setVistaAtiva('funil'); if (!funilData) buscarFunil() }}
-                >🔻 Funil</button>
+                ><ChevronDown size={13} color="#dc2626" style={{ display: 'inline', verticalAlign: 'middle' }} /> Funil</button>
               </div>
               {vistaAtiva === 'lista' && prospects.length > 0 && (
                 <button className={styles.exportBtn} onClick={exportarCSV}>↓ Exportar CSV</button>
@@ -1519,11 +1520,11 @@ setClientesCidade(clientesPorCidade)
               ) : (() => {
                 const f = funilData
                 const stages = [
-                  { label: '🌐 Mercado', value: f.mercado, color: '#3b82f6' },
-                  { label: '📞 Contatados', value: f.contatados, color: '#8b5cf6' },
-                  { label: '🟢 Interessados', value: f.interessados, color: '#16a34a' },
-                  { label: '📄 Orçamentos', value: f.orcamentos, color: '#d97706' },
-                  { label: '🏆 Vendas', value: f.vendas, color: '#dc2626' },
+                  { label: 'Mercado', icon: <Globe size={13} color="#3b82f6" style={{ display: 'inline', verticalAlign: 'middle' }} />, value: f.mercado, color: '#3b82f6' },
+                  { label: 'Contatados', icon: <Phone size={13} color="#8b5cf6" style={{ display: 'inline', verticalAlign: 'middle' }} />, value: f.contatados, color: '#8b5cf6' },
+                  { label: 'Interessados', icon: <CircleDot size={13} color="#16a34a" style={{ display: 'inline', verticalAlign: 'middle' }} />, value: f.interessados, color: '#16a34a' },
+                  { label: 'Orçamentos', icon: <FileText size={13} color="#d97706" style={{ display: 'inline', verticalAlign: 'middle' }} />, value: f.orcamentos, color: '#d97706' },
+                  { label: 'Vendas', icon: <Trophy size={13} color="#dc2626" style={{ display: 'inline', verticalAlign: 'middle' }} />, value: f.vendas, color: '#dc2626' },
                 ]
                 const maxVal = Math.max(...stages.map(s => s.value), 1)
                 const taxa = (val: number, base: number) => base > 0 ? ((val / base) * 100).toFixed(1) + '%' : '—'
@@ -1567,7 +1568,7 @@ setClientesCidade(clientesPorCidade)
                       {stages.map((s, i) => (
                         <div key={s.label}>
                           <div className={styles.funilStage}>
-                            <span className={styles.funilLabel}>{s.label}</span>
+                            <span className={styles.funilLabel}>{s.icon} {s.label}</span>
                             <span className={styles.funilCount}>{s.value.toLocaleString('pt-BR')}</span>
                             <div className={styles.funilBar}>
                               <div
@@ -1592,7 +1593,7 @@ setClientesCidade(clientesPorCidade)
           ) : loading ? (
             <div className={styles.loading}>Buscando prospects...</div>
           ) : erroQuery ? (
-            <div className={styles.vazio} style={{ color: '#dc2626' }}>⚠ {erroQuery}</div>
+            <div className={styles.vazio} style={{ color: '#dc2626' }}><AlertTriangle size={14} color="#dc2626" style={{ display: 'inline', verticalAlign: 'middle' }} /> {erroQuery}</div>
           ) : prospects.length === 0 ? (
             <div className={styles.vazio}>Nenhum prospect encontrado com os filtros selecionados.</div>
           ) : (
@@ -1890,11 +1891,11 @@ setClientesCidade(clientesPorCidade)
                   ]
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <span style={{ background: p.score >= 8 ? '#dcfce7' : p.score >= 5 ? '#fef9c3' : '#fee2e2', color: p.score >= 8 ? '#166534' : p.score >= 5 ? '#854d0e' : '#991b1b', borderRadius: 20, padding: '2px 10px', fontWeight: 600, alignSelf: 'flex-start' }}>⭐ {p.score}/10</span>
+                      <span style={{ background: p.score >= 8 ? '#dcfce7' : p.score >= 5 ? '#fef9c3' : '#fee2e2', color: p.score >= 8 ? '#166534' : p.score >= 5 ? '#854d0e' : '#991b1b', borderRadius: 20, padding: '2px 10px', fontWeight: 600, alignSelf: 'flex-start' }}><Star size={13} color="#eab308" style={{ display: 'inline', verticalAlign: 'middle' }} /> {p.score}/10</span>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: '6px 8px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
                         {criterios.map(c => (
                           <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem' }}>
-                            <span style={{ width: 14, textAlign: 'center' }}>{c.ok ? '✅' : '❌'}</span>
+                            <span style={{ width: 14, textAlign: 'center' }}>{c.ok ? <CheckCircle2 size={13} color="#16a34a" /> : <XCircle size={13} color="#ef4444" />}</span>
                             <span style={{ flex: 1, color: c.ok ? '#1e293b' : '#94a3b8' }}>{c.label}{c.extra ? ` — ${c.extra}` : ''}</span>
                             <span style={{ fontWeight: 600, color: c.ok ? '#15803d' : '#cbd5e1' }}>+{c.pts}/{c.max}</span>
                           </div>
@@ -1958,26 +1959,26 @@ setClientesCidade(clientesPorCidade)
                 <div style={{ display: 'grid', gridTemplateColumns: cnpjRaw.length === 14 && (p.endereco || p.cidade) ? '1fr 1fr 1fr' : cnpjRaw.length === 14 ? '1fr 1fr' : '1fr', gap: 6 }}>
                   <a href={`https://www.google.com/search?q=${googleQ}`} target="_blank" rel="noopener noreferrer"
                     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 8px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 500, textAlign: 'center' }}>
-                    <span style={{ fontSize: '1.2rem' }}>🔍</span>Google
+                    <Search size={18} color="#4285f4" />Google
                   </a>
                   {cnpjRaw.length === 14 && (
                     <a href={`https://www.cnpj.biz/${cnpjRaw}`} target="_blank" rel="noopener noreferrer"
                       style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 8px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 500, textAlign: 'center' }}>
-                      <span style={{ fontSize: '1.2rem' }}>🏢</span>CNPJ.biz
+                      <Building2 size={18} color="#64748b" />CNPJ.biz
                     </a>
                   )}
                   {(p.endereco || p.cidade) && (
                     <a href={`https://www.google.com/maps/dir/${encodeURIComponent('Av. Antonio Mariosa, 4545, Santa Angelina, Pouso Alegre, MG, 37550-360')}/${encodeURIComponent([p.endereco, p.bairro, p.cidade, p.uf].filter(Boolean).join(', '))}`}
                       target="_blank" rel="noopener noreferrer"
                       style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 8px', borderRadius: 8, background: '#f8fafc', border: '1px solid #e2e8f0', color: '#1e293b', textDecoration: 'none', fontSize: '0.75rem', fontWeight: 500, textAlign: 'center' }}>
-                      <span style={{ fontSize: '1.2rem' }}>📍</span>Maps
+                      <MapPin size={18} color="#ea4335" />Maps
                     </a>
                   )}
                 </div>
 
                 <button onClick={() => enriquecerProspect(p)} disabled={enriquecendo}
                   style={{ width: '100%', padding: '8px 0', background: enriquecendo ? '#f3f4f6' : '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: 8, fontWeight: 600, fontSize: '0.82rem', cursor: enriquecendo ? 'wait' : 'pointer' }}>
-                  {enriquecendo ? 'Consultando...' : '🔄 Enriquecer dados da Receita Federal'}
+                  {enriquecendo ? 'Consultando...' : <><RefreshCw size={14} color="#1d4ed8" style={{ display: 'inline', verticalAlign: 'middle' }} /> Enriquecer dados da Receita Federal</>}
                 </button>
               </>}
 
@@ -2000,10 +2001,10 @@ setClientesCidade(clientesPorCidade)
                   {/* Endereço principal (sede) */}
                   <div style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>🏢 Sede (Receita Federal)</span>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}><Building2 size={12} color="#64748b" style={{ display: 'inline', verticalAlign: 'middle' }} /> Sede (Receita Federal)</span>
                       {(p.endereco || p.cidade) && (
                         <a href={`https://www.google.com/maps/dir/${encodeURIComponent('Av. Antonio Mariosa, 4545, Santa Angelina, Pouso Alegre, MG, 37550-360')}/${encodeURIComponent([p.endereco, p.bairro, p.cidade, p.uf].filter(Boolean).join(', '))}`}
-                          target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#2563eb', textDecoration: 'none' }}>📍 Rota</a>
+                          target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#2563eb', textDecoration: 'none' }}><MapPin size={11} color="#2563eb" style={{ display: 'inline', verticalAlign: 'middle' }} /> Rota</a>
                       )}
                     </div>
                     {fld('Logradouro', p.endereco, 'Ex: Av. Principal, 123', saveProsp('endereco'))}
@@ -2036,7 +2037,7 @@ setClientesCidade(clientesPorCidade)
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           {(e.logradouro || e.cidade) && (
                             <a href={`https://www.google.com/maps/dir/${encodeURIComponent('Av. Antonio Mariosa, 4545, Santa Angelina, Pouso Alegre, MG, 37550-360')}/${encodeURIComponent([e.logradouro, e.bairro, e.cidade, e.uf].filter(Boolean).join(', '))}`}
-                              target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#2563eb', textDecoration: 'none' }}>📍 Rota</a>
+                              target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#2563eb', textDecoration: 'none' }}><MapPin size={11} color="#2563eb" style={{ display: 'inline', verticalAlign: 'middle' }} /> Rota</a>
                           )}
                           <button onClick={async () => {
                             await supabaseAdmin.from('prospeccao_enderecos').delete().eq('id', e.id)
@@ -2124,7 +2125,7 @@ setClientesCidade(clientesPorCidade)
               {drawerAba === 'contatos' && <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {/* Contato principal */}
                 <div style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>👤 Contato principal</span>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}><User size={12} color="#64748b" style={{ display: 'inline', verticalAlign: 'middle' }} /> Contato principal</span>
                   <input type="text" defaultValue={p.nome_contato ?? ''} placeholder="Nome do responsável..."
                     onBlur={async e => {
                       const val = e.target.value.trim() || null
@@ -2135,7 +2136,7 @@ setClientesCidade(clientesPorCidade)
                     }}
                     style={{ fontSize: '0.85rem', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: 6, fontFamily: 'inherit', background: '#fff', color: '#1e293b' }} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', minWidth: 16 }}>📞</span>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', minWidth: 16 }}><Phone size={14} color="#94a3b8" /></span>
                     <input type="tel" defaultValue={p.telefone1 ? fmtTel(p.telefone1) : ''} placeholder="Telefone principal..."
                       onBlur={async e => {
                         const val = e.target.value.replace(/\D/g, '') || null
@@ -2151,7 +2152,7 @@ setClientesCidade(clientesPorCidade)
                     </>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', minWidth: 16 }}>📱</span>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', minWidth: 16 }}><Smartphone size={14} color="#94a3b8" /></span>
                     <input type="tel" defaultValue={p.telefone2 ? fmtTel(p.telefone2) : ''} placeholder="Telefone secundário..."
                       onBlur={async e => {
                         const val = e.target.value.replace(/\D/g, '') || null
@@ -2167,7 +2168,7 @@ setClientesCidade(clientesPorCidade)
                     </>}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', minWidth: 16 }}>✉️</span>
+                    <span style={{ fontSize: '0.78rem', color: '#94a3b8', minWidth: 16 }}><Mail size={14} color="#94a3b8" /></span>
                     <input type="email" defaultValue={p.email ?? ''} placeholder="E-mail..."
                       onBlur={async e => {
                         const val = e.target.value.trim() || null
@@ -2278,7 +2279,7 @@ setClientesCidade(clientesPorCidade)
                 }} />
                 <button onClick={() => criarDealDireto(p)}
                   style={{ width: '100%', padding: '12px', background: 'var(--color-primary, #2563eb)', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer' }}>
-                  ➡ Criar deal no Pipeline
+                  <ArrowRight size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Criar deal no Pipeline
                 </button>
               </div>
             </div>

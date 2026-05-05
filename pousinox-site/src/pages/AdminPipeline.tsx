@@ -6,6 +6,7 @@ import { aiChat } from '../lib/aiHelper'
 import AgentFollowUp from '../components/assistente/AgentFollowUp'
 import AdminLoading from '../components/AdminLoading/AdminLoading'
 import { useLoadingProgress } from '../hooks/useLoadingProgress'
+import { RefreshCw, Trash2, Coins } from 'lucide-react'
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -498,13 +499,13 @@ export default function AdminPipeline() {
         {deal.estagio === 'ganho' && !deal.fin_lancamento_id && (
           <button className={`${styles.btnMini} ${styles.btnMiniRecebivel}`}
             disabled={gerandoId === deal.id} onClick={() => gerarRecebivel(deal)}>
-            💰
+            <Coins size={14} color="#d97706" />
           </button>
         )}
         {deal.estagio === 'ganho' && deal.fin_lancamento_id && (
           <span className={styles.badgeRecebivel}>✓ #{deal.fin_lancamento_id}</span>
         )}
-        <button className={`${styles.btnMini} ${styles.btnMiniExcluir}`} onClick={() => excluir(deal)}>🗑</button>
+        <button className={`${styles.btnMini} ${styles.btnMiniExcluir}`} onClick={() => excluir(deal)}><Trash2 size={14} color="#dc2626" /></button>
         <AiActionButton label="Proposta" icon="📝" small modelName="Groq" action={async () => {
           const r = await aiChat({
             prompt: `Deal: "${deal.titulo}"\nEmpresa: ${deal.empresa_nome || 'N/I'}\nCNPJ: ${deal.empresa_cnpj || 'N/I'}\nValor: R$ ${deal.valor_estimado || 0}\nEstágio: ${deal.estagio}\n\nGere uma proposta comercial profissional para fixadores de porcelanato em aço inox. Inclua: saudação, apresentação da Pousinox, benefícios do produto, condições comerciais sugeridas e fechamento.`,
@@ -536,7 +537,7 @@ export default function AdminPipeline() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button style={{ padding: '6px 14px', background: 'linear-gradient(135deg,#1e1b4b,#312e81)', color: '#fff', border: 'none', borderRadius: 6, fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'inherit' }}
-            onClick={() => setAgentFollowUp(true)}>🔄 Follow-up IA</button>
+            onClick={() => setAgentFollowUp(true)}><RefreshCw size={14} /> Follow-up IA</button>
           <button className={styles.btnPrimary} onClick={() => setFormAberto(f => !f)}>
             {formAberto ? '✕ Fechar' : '+ Novo Deal'}
           </button>
@@ -832,7 +833,7 @@ export default function AdminPipeline() {
                   {deal.estagio === 'ganho' && !deal.fin_lancamento_id && (
                     <button className={styles.btnRecebivel} disabled={gerandoId === deal.id}
                       onClick={() => gerarRecebivel(deal)}>
-                      {gerandoId === deal.id ? '...' : '💰 Recebível'}
+                      {gerandoId === deal.id ? '...' : <><Coins size={14} color="#d97706" /> Recebível</>}
                     </button>
                   )}
                   {deal.estagio === 'ganho' && deal.fin_lancamento_id && (
@@ -858,7 +859,7 @@ export default function AdminPipeline() {
                           )}
                           <button className={`${styles.menuItem} ${styles.menuItemDanger}`}
                             onClick={() => { excluir(deal); setMenuAberto(null) }}>
-                            🗑 Excluir
+                            <Trash2 size={14} color="#dc2626" /> Excluir
                           </button>
                         </div>
                       </>

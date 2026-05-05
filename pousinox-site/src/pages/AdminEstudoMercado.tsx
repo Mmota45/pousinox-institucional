@@ -4,6 +4,11 @@ import {
 } from 'recharts'
 import { supabaseAdmin } from '../lib/supabase'
 import { SearchableSelect } from '../components/SearchableSelect/SearchableSelect'
+import {
+  BarChart3, Search, Zap, Lightbulb, Building2, Pencil, Download, Upload,
+  Clock, CircleDot, Rocket, CheckCircle2, AlertTriangle, Minus, MailX, Globe,
+  Shield, Swords, AlertOctagon, Circle,
+} from 'lucide-react'
 import s from './AdminEstudoMercado.module.css'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -833,7 +838,7 @@ export default function AdminEstudoMercado() {
       <div>
         <div className={s.quadrantGrid}>
           <div className={`${s.quadrant} ${s['q-alta-oportunidade']}`}>
-            <div className={s.quadrantLabel}>🟢 Alta busca · Baixa venda — Mercado a atacar</div>
+            <div className={s.quadrantLabel}><CircleDot size={14} color="#22c55e" /> Alta busca · Baixa venda — Mercado a atacar</div>
             <div className={s.quadrantItems}>
               {groups.oportunidade.map(r => (
                 <span key={r.uf} className={s.quadrantTag}>{r.uf} <span className={s.quadrantScore}>{r.score}</span></span>
@@ -842,7 +847,7 @@ export default function AdminEstudoMercado() {
             </div>
           </div>
           <div className={`${s.quadrant} ${s['q-validado']}`}>
-            <div className={s.quadrantLabel}>🔵 Alta busca · Alta venda — Mercado validado</div>
+            <div className={s.quadrantLabel}><CircleDot size={14} color="#3b82f6" /> Alta busca · Alta venda — Mercado validado</div>
             <div className={s.quadrantItems}>
               {groups.validado.map(r => (
                 <span key={r.uf} className={s.quadrantTag}>{r.uf} <span className={s.quadrantScore}>{r.score}</span></span>
@@ -851,7 +856,7 @@ export default function AdminEstudoMercado() {
             </div>
           </div>
           <div className={`${s.quadrant} ${s['q-relacionamento']}`}>
-            <div className={s.quadrantLabel}>🟡 Baixa busca · Alta venda — Relacionamento</div>
+            <div className={s.quadrantLabel}><CircleDot size={14} color="#eab308" /> Baixa busca · Alta venda — Relacionamento</div>
             <div className={s.quadrantItems}>
               {groups.relacionamento.map(r => (
                 <span key={r.uf} className={s.quadrantTag}>{r.uf} <span className={s.quadrantScore}>{r.score}</span></span>
@@ -860,7 +865,7 @@ export default function AdminEstudoMercado() {
             </div>
           </div>
           <div className={`${s.quadrant} ${s['q-baixa']}`}>
-            <div className={s.quadrantLabel}>⚪ Baixa busca · Baixa venda — Baixa prioridade</div>
+            <div className={s.quadrantLabel}><Circle size={14} color="#94a3b8" /> Baixa busca · Baixa venda — Baixa prioridade</div>
             <div className={s.quadrantItems}>
               {groups.baixa.map(r => (
                 <span key={r.uf} className={s.quadrantTag}>{r.uf}</span>
@@ -882,7 +887,7 @@ export default function AdminEstudoMercado() {
   return (
     <div className={s.page}>
       <div className={s.header}>
-        <h1>📊 Estudo de Mercado {keywords.length > 0 && <span className={s.headerBadge}>{fmtNum(keywords.length)} keywords</span>}</h1>
+        <h1><BarChart3 size={22} color="#3b82f6" style={{ verticalAlign: 'middle', marginRight: 6 }} /> Estudo de Mercado {keywords.length > 0 && <span className={s.headerBadge}>{fmtNum(keywords.length)} keywords</span>}</h1>
         <p>Cruzamento entre histórico interno da Pousinox® e demanda de busca regional para identificar mercados validados, oportunidades e prioridades comerciais.</p>
       </div>
 
@@ -922,15 +927,15 @@ export default function AdminEstudoMercado() {
       {/* Tabs */}
       <div className={s.tabs}>
         {([
-          ['visao', '📊 Visão Geral'],
-          ['busca', '🔍 Busca Regional'],
-          ['externas', '🌐 Oportunidades Externas'],
-          ['cruzamento', '⚡ Cruzamento'],
-          ['recomendacoes', '💡 Recomendações'],
-          ['concorrencia', '🏢 Concorrência'],
-        ] as [TabId, string][]).map(([id, label]) => (
+          ['visao', 'Visão Geral', <BarChart3 size={14} color="#3b82f6" />],
+          ['busca', 'Busca Regional', <Search size={14} color="#6366f1" />],
+          ['externas', 'Oportunidades Externas', <Globe size={14} color="#0ea5e9" />],
+          ['cruzamento', 'Cruzamento', <Zap size={14} color="#f59e0b" />],
+          ['recomendacoes', 'Recomendações', <Lightbulb size={14} color="#f59e0b" />],
+          ['concorrencia', 'Concorrência', <Building2 size={14} color="#64748b" />],
+        ] as [TabId, string, React.ReactNode][]).map(([id, label, icon]) => (
           <button key={id} className={`${s.tab} ${tab === id ? s.tabAtiva : ''}`} onClick={() => setTab(id)}>
-            {label}
+            {icon} {label}
           </button>
         ))}
       </div>
@@ -1003,7 +1008,7 @@ export default function AdminEstudoMercado() {
           <div className={s.section}>
             <div className={s.sectionTitle}>Demanda × Presença por UF <span>normalizado 0–100 · quanto maior o score, maior o gap entre busca e presença comercial</span></div>
             {crossing.length === 0
-              ? <div className={s.empty}><span className={s.emptyIcon}>📭</span>Sem histórico suficiente para esta combinação de filtros. Ajuste UF, segmento ou período para ampliar a leitura.</div>
+              ? <div className={s.empty}><span className={s.emptyIcon}><MailX size={28} color="#94a3b8" /></span>Sem histórico suficiente para esta combinação de filtros. Ajuste UF, segmento ou período para ampliar a leitura.</div>
               : <QuadrantMatrix />}
           </div>
 
@@ -1047,13 +1052,13 @@ export default function AdminEstudoMercado() {
         <>
           <div className={s.toolbar}>
             <button className={s.btnPrimario} onClick={() => abrirForm()}>+ Adicionar keyword</button>
-            <button className={s.btnSecundario} onClick={() => fileRef.current?.click()}>📥 Importar CSV</button>
+            <button className={s.btnSecundario} onClick={() => fileRef.current?.click()}><Download size={14} color="#3b82f6" /> Importar CSV</button>
             <button className={s.btnSecundario} onClick={importarGsc} disabled={importandoGsc}
               style={importandoGsc ? { opacity: 0.6 } : undefined}>
-              {importandoGsc ? '⏳ Importando…' : '🔍 Importar do Google Search Console'}
+              {importandoGsc ? <><Clock size={14} color="#64748b" /> Importando…</> : <><Search size={14} color="#6366f1" /> Importar do Google Search Console</>}
             </button>
             {gscResult && <span style={{ fontSize: '0.78rem', color: gscResult.startsWith('Erro') ? '#dc2626' : '#166534', fontWeight: 500 }}>{gscResult}</span>}
-            <button className={s.btnSecundario} onClick={exportarBuscaRegional} disabled={kwFiltradas.length === 0}>📤 Exportar CSV</button>
+            <button className={s.btnSecundario} onClick={exportarBuscaRegional} disabled={kwFiltradas.length === 0}><Upload size={14} color="#3b82f6" /> Exportar CSV</button>
             <input ref={fileRef} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={importarCSV} />
             <input
               className={s.searchInput}
@@ -1109,7 +1114,7 @@ export default function AdminEstudoMercado() {
                   <tr><td colSpan={9} className={s.loading}>Carregando…</td></tr>
                 )}
                 {!loadingKw && kwFiltradas.length === 0 && (
-                  <tr><td colSpan={9} className={s.empty}><span className={s.emptyIcon}>📭</span>Nenhuma keyword cadastrada para este recorte. Importe termos para liberar o cruzamento entre demanda e vendas.</td></tr>
+                  <tr><td colSpan={9} className={s.empty}><span className={s.emptyIcon}><MailX size={28} color="#94a3b8" /></span>Nenhuma keyword cadastrada para este recorte. Importe termos para liberar o cruzamento entre demanda e vendas.</td></tr>
                 )}
                 {kwFiltradas.map(k => (
                   <tr key={k.id}>
@@ -1135,7 +1140,7 @@ export default function AdminEstudoMercado() {
                     <td>
                       <div className={s.tdAcoes}>
                         <button className={s.btnSecundario} style={{ padding: '3px 8px', fontSize: '0.75rem' }}
-                          onClick={() => abrirForm(k)}>✏️</button>
+                          onClick={() => abrirForm(k)}><Pencil size={14} color="#64748b" /></button>
                         <button className={s.btnDanger} onClick={() => excluirKeyword(k.id)}>✕</button>
                       </div>
                     </td>
@@ -1173,10 +1178,10 @@ export default function AdminEstudoMercado() {
 
             <button className={s.btnPrimario} onClick={() => fileRefExt.current?.click()} disabled={importandoExt}
               style={{ marginTop: 18 }}>
-              {importandoExt ? 'Importando…' : '📥 Importar Google KP / CSV'}
+              {importandoExt ? 'Importando…' : <><Download size={14} color="#fff" /> Importar Google KP / CSV</>}
             </button>
             <button className={s.btnSecundario} onClick={exportarExternas} disabled={kwExternas.length === 0}
-              style={{ marginTop: 18 }}>📤 Exportar CSV</button>
+              style={{ marginTop: 18 }}><Upload size={14} color="#3b82f6" /> Exportar CSV</button>
             <input ref={fileRefExt} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={importarGKP} />
 
             <div style={{ width: 1, height: 32, background: '#d0d7de', margin: '0 4px', alignSelf: 'flex-end', marginBottom: 2 }} />
@@ -1205,7 +1210,7 @@ export default function AdminEstudoMercado() {
 
           {kwExternas.length === 0 ? (
             <div className={s.empty} style={{ padding: 40 }}>
-              <span className={s.emptyIcon}>📭</span>
+              <span className={s.emptyIcon}><MailX size={28} color="#94a3b8" /></span>
               <strong>Nenhum dado externo cadastrado.</strong><br /><br />
               Importe um CSV do Google Keyword Planner ou no formato estendido:<br />
               <code style={{ fontSize: '0.75rem', color: '#555' }}>
@@ -1275,10 +1280,10 @@ export default function AdminEstudoMercado() {
                           </td>
                           <td style={{ fontSize: '0.78rem', color: '#555' }}>
                             {r.vendas === 0
-                              ? '🟢 Demanda externa sem presença comercial'
+                              ? <><CircleDot size={14} color="#22c55e" /> Demanda externa sem presença comercial</>
                               : r.score > 60
-                                ? '🟡 Alta demanda, presença parcial'
-                                : '🔵 Mercado com cobertura comercial'}
+                                ? <><CircleDot size={14} color="#eab308" /> Alta demanda, presença parcial</>
+                                : <><CircleDot size={14} color="#3b82f6" /> Mercado com cobertura comercial</>}
                           </td>
                         </tr>
                       ))}
@@ -1377,10 +1382,10 @@ export default function AdminEstudoMercado() {
         <>
           <div className={s.section}>
             <div className={s.sectionTitle}>Busca Regional × Vendas Pousinox® por UF <span>(normalizado 0–100)</span>
-              {crossing.length > 0 && <button className={s.btnSecundario} onClick={exportarCruzamento} style={{ marginLeft: 'auto', fontSize: '0.78rem', padding: '4px 12px' }}>📤 Exportar CSV</button>}
+              {crossing.length > 0 && <button className={s.btnSecundario} onClick={exportarCruzamento} style={{ marginLeft: 'auto', fontSize: '0.78rem', padding: '4px 12px' }}><Upload size={14} color="#3b82f6" /> Exportar CSV</button>}
             </div>
             {crossing.length === 0 ? (
-              <div className={s.empty}><span className={s.emptyIcon}>📭</span>Importe keywords com UF preenchida para ativar o cruzamento entre demanda de busca e histórico de vendas.</div>
+              <div className={s.empty}><span className={s.emptyIcon}><MailX size={28} color="#94a3b8" /></span>Importe keywords com UF preenchida para ativar o cruzamento entre demanda de busca e histórico de vendas.</div>
             ) : (
               <>
                 <div className={s.chartCard} style={{ marginBottom: 24 }}>
@@ -1428,10 +1433,10 @@ export default function AdminEstudoMercado() {
                             </td>
                             <td>
                               {{
-                                oportunidade: '🟢 Oportunidade',
-                                validado: '🔵 Validado',
-                                relacionamento: '🟡 Relacionamento',
-                                baixa: '⚪ Baixa prioridade',
+                                oportunidade: <><CircleDot size={14} color="#22c55e" /> Oportunidade</>,
+                                validado: <><CircleDot size={14} color="#3b82f6" /> Validado</>,
+                                relacionamento: <><CircleDot size={14} color="#eab308" /> Relacionamento</>,
+                                baixa: <><Circle size={14} color="#94a3b8" /> Baixa prioridade</>,
                               }[r.quadrant]}
                             </td>
                           </tr>
@@ -1453,7 +1458,7 @@ export default function AdminEstudoMercado() {
             <div className={s.sectionTitle}>Recomendações acionáveis <span>{recomendacoes.length} insights gerados</span></div>
             {recomendacoes.length === 0 ? (
               <div className={s.empty}>
-                <span className={s.emptyIcon}>📭</span>
+                <span className={s.emptyIcon}><MailX size={28} color="#94a3b8" /></span>
                 Importe keywords com UF e segmento preenchidos para gerar recomendações automáticas de prospecção, conteúdo e priorização comercial.
               </div>
             ) : (
@@ -1461,17 +1466,17 @@ export default function AdminEstudoMercado() {
                 {recomendacoes.map((r, i) => (
                   <div key={i} className={`${s.recomCard} ${s[`recom-${r.tipo}`]}`}>
                     <span className={s.recomIcone}>{
-                      r.tipo === 'oportunidade' ? '🚀'
-                      : r.tipo === 'validado' ? '✅'
-                      : r.tipo === 'atencao' ? '⚠️'
-                      : '➖'
+                      r.tipo === 'oportunidade' ? <Rocket size={18} color="#22c55e" />
+                      : r.tipo === 'validado' ? <CheckCircle2 size={18} color="#3b82f6" />
+                      : r.tipo === 'atencao' ? <AlertTriangle size={18} color="#eab308" />
+                      : <Minus size={18} color="#94a3b8" />
                     }</span>
                     <div className={s.recomContent}>
                       <span className={s.recomTipo}>{
-                        r.tipo === 'oportunidade' ? '🟢 Oportunidade'
-                        : r.tipo === 'validado' ? '🔵 Mercado validado'
-                        : r.tipo === 'atencao' ? '🟡 Atenção'
-                        : '⚪ Baixa prioridade'
+                        r.tipo === 'oportunidade' ? <><CircleDot size={14} color="#22c55e" /> Oportunidade</>
+                        : r.tipo === 'validado' ? <><CircleDot size={14} color="#3b82f6" /> Mercado validado</>
+                        : r.tipo === 'atencao' ? <><CircleDot size={14} color="#eab308" /> Atenção</>
+                        : <><Circle size={14} color="#94a3b8" /> Baixa prioridade</>
                       }</span>
                       <span className={s.recomTexto}>{r.titulo}</span>
                       <span className={s.recomSub}>{r.sub}</span>
@@ -1491,13 +1496,13 @@ export default function AdminEstudoMercado() {
         <>
           {loadingConc && <div className={s.loading}>Carregando concorrentes…</div>}
           {!loadingConc && concorrentes.length === 0 && (
-            <div className={s.empty}><span className={s.emptyIcon}>🏢</span>Nenhum concorrente identificado na base de prospecção.</div>
+            <div className={s.empty}><span className={s.emptyIcon}><Building2 size={28} color="#94a3b8" /></span>Nenhum concorrente identificado na base de prospecção.</div>
           )}
           {!loadingConc && concorrentes.length > 0 && (
             <>
               {/* Resumo explicativo */}
               <div className={s.resumoCard}>
-                <span className={s.resumoIcone}>🏢</span>
+                <span className={s.resumoIcone}><Building2 size={22} color="#3b82f6" /></span>
                 <p className={s.resumoTexto}>
                   Concorrentes identificados automaticamente na base de 800K empresas por termos como "inox", "metalúrgica", "cozinha industrial" e "fixador" no nome.
                   Compare a presença deles com seu faturamento por UF para encontrar mercados onde você domina, disputa ou tem risco.
@@ -1595,10 +1600,10 @@ export default function AdminEstudoMercado() {
               <div className={s.section}>
                 <div className={s.sectionTitle}>Comparativo por UF <span>{comparativoUF.length} UFs</span></div>
                 <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: 12, lineHeight: 1.6 }}>
-                  🟢 <strong>Dominante</strong> = você vende e tem poucos concorrentes — proteger.{' '}
-                  🟡 <strong>Disputado</strong> = muitos concorrentes e você também vende — diferenciar.{' '}
-                  🔴 <strong>Risco</strong> = muitos concorrentes e você não vende — investigar.{' '}
-                  ⚪ <strong>Livre</strong> = poucos concorrentes e pouca venda — avaliar demanda real.
+                  <CircleDot size={14} color="#22c55e" /> <strong>Dominante</strong> = você vende e tem poucos concorrentes — proteger.{' '}
+                  <CircleDot size={14} color="#eab308" /> <strong>Disputado</strong> = muitos concorrentes e você também vende — diferenciar.{' '}
+                  <CircleDot size={14} color="#ef4444" /> <strong>Risco</strong> = muitos concorrentes e você não vende — investigar.{' '}
+                  <Circle size={14} color="#94a3b8" /> <strong>Livre</strong> = poucos concorrentes e pouca venda — avaliar demanda real.
                 </p>
                 <div className={s.tableWrap}>
                   <table>
@@ -1672,7 +1677,7 @@ export default function AdminEstudoMercado() {
                     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
                     const url = URL.createObjectURL(blob)
                     const a = document.createElement('a'); a.href = url; a.download = 'concorrentes.csv'; a.click(); URL.revokeObjectURL(url)
-                  }}>📥 Exportar CSV</button>
+                  }}><Download size={14} color="#3b82f6" /> Exportar CSV</button>
                 </div>
                 <div className={s.tableWrap}>
                   <table>

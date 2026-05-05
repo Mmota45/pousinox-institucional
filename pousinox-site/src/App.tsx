@@ -67,6 +67,7 @@ import AdminConfiguracaoFinanceiro from './pages/AdminConfiguracaoFinanceiro'
 import AdminFeatureFlags from './pages/AdminFeatureFlags'
 import AdminFixadores from './pages/AdminFixadores'
 import AdminAssistente from './pages/AdminAssistente'
+import AdminBancoImagens from './pages/AdminBancoImagens'
 import AdminUso from './pages/AdminUso'
 // AdminKnowledge unificado no AdminAssistente
 import AdminPortfolio from './pages/AdminPortfolio'
@@ -193,6 +194,7 @@ function App() {
             <Route path="fixadores"           element={<AdminFixadores />} />
             <Route path="portfolio"          element={<AdminPortfolio />} />
             <Route path="assistente"          element={<AdminAssistente />} />
+            <Route path="banco-imagens"      element={<AdminBancoImagens />} />
             <Route path="uso"                element={<AdminUso />} />
             <Route path="knowledge"          element={<Navigate to="/admin/assistente" replace />} />
             <Route path="site"               element={<AdminSite />} />

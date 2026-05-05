@@ -1,23 +1,32 @@
+/* ── AdminVendas — Design-UI Standard ─────────────────────────────────────── */
+
 .wrap {
   display: flex;
   flex-direction: column;
   gap: 32px;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
+  color: var(--azul-escuro, #1a2332);
 }
 
 .form {
   background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   padding: 28px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  transition: box-shadow 0.2s ease;
 }
 
 .formTitle {
   font-size: 1rem;
   font-weight: 700;
-  color: var(--color-heading);
+  color: var(--azul-escuro, #1a2332);
   margin: 0 0 4px;
 }
 
@@ -47,27 +56,28 @@
 }
 
 .field label {
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: var(--color-text);
+  color: #64748b;
 }
 
 .input {
   width: 100%;
   padding: 9px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 0.9rem;
-  font-family: var(--font-family);
-  color: var(--color-text);
+  font-family: 'Inter', sans-serif;
+  color: var(--azul-escuro, #1a2332);
   background: #fff;
   box-sizing: border-box;
-  transition: border-color 0.15s;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--azul-accent, #2563eb);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
 }
 
 .formActions {
@@ -92,21 +102,22 @@
   border-collapse: collapse;
   font-size: 0.88rem;
   background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .tabela th {
-  background: var(--color-bg);
-  padding: 10px 14px;
+  background: #f8fafc;
+  padding: 12px 16px;
   text-align: left;
   font-size: 0.78rem;
   font-weight: 700;
-  color: var(--color-text-light);
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .sortable {
@@ -116,13 +127,13 @@
 }
 
 .sortable:hover {
-  color: var(--color-primary);
+  color: var(--azul-accent, #2563eb);
 }
 
 .tabela td {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text);
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  color: var(--azul-escuro, #1a2332);
   vertical-align: middle;
 }
 
@@ -131,7 +142,7 @@
 }
 
 .tabela tr:hover td {
-  background: #fafafa;
+  background: #f8fafc;
 }
 
 .valor {
@@ -141,18 +152,18 @@
 }
 
 .obs {
-  color: var(--color-text-light);
+  color: #64748b;
   font-size: 0.82rem;
   max-width: 160px;
 }
 
 .vazio {
-  color: var(--color-text-light);
+  color: #64748b;
   font-size: 0.9rem;
   padding: 16px 0;
 }
 
-/* Indicadores */
+/* ── Indicadores ─────────────────────────────────────────────────────────── */
 .indicadores {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -161,18 +172,20 @@
 
 .indicador {
   background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: box-shadow 0.2s ease;
 }
 
 .indicador span {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--color-text-light);
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -180,16 +193,16 @@
 .indicador strong {
   font-size: 1.6rem;
   font-weight: 800;
-  color: var(--color-heading);
+  color: var(--azul-escuro, #1a2332);
   line-height: 1;
 }
 
-/* Badges */
+/* ── Badges ──────────────────────────────────────────────────────────────── */
 .badgeOk {
   background: #dcfce7;
   color: #166534;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -197,8 +210,8 @@
 .badgeUltima {
   background: #fff7ed;
   color: #c2410c;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   padding: 2px 8px;
   border-radius: 4px;
 }
@@ -206,75 +219,81 @@
 .badgeVendido {
   background: #f3f4f6;
   color: #6b7280;
-  font-size: 0.75rem;
-  font-weight: 700;
+  font-size: 0.7rem;
+  font-weight: 600;
   padding: 2px 8px;
   border-radius: 4px;
 }
 
-/* Botões */
+/* ── Botões ──────────────────────────────────────────────────────────────── */
 .btnPrimary {
   padding: 10px 24px;
-  background: var(--color-primary);
+  background: var(--azul-accent, #2563eb);
   color: #fff;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.btnPrimary:hover { background: var(--color-primary-light); }
+.btnPrimary:hover { background: #1d4ed8; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 .btnPrimary:disabled { background: #9ca3af; cursor: not-allowed; }
 
 .btnSecondary {
   padding: 8px 16px;
-  background: #f3f4f6;
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  background: #f8fafc;
+  color: var(--azul-escuro, #1a2332);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.btnSecondary:hover { background: #e5e7eb; }
+.btnSecondary:hover { background: #e2e8f0; }
 
-/* ── Recebimento toggle ────────────────────────────────────────────────────── */
+/* ── Recebimento toggle ──────────────────────────────────────────────────── */
 .recebimentoToggle {
   display: flex;
   gap: 8px;
 }
 .recebBtn {
   padding: 8px 18px;
-  border: 2px solid var(--color-border);
-  border-radius: var(--radius);
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
   background: #f8fafc;
   font-size: 0.88rem;
   font-weight: 600;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
-  color: var(--color-text-light);
-  transition: all 0.15s;
+  color: #64748b;
+  transition: all 0.2s ease;
 }
 .recebBtnAtivo       { background: #dcfce7; color: #166534; border-color: #16a34a; }
 .recebBtnAtivoAlerta { background: #fef9c3; color: #854d0e; border-color: #d97706; }
 
-/* ── Badges de vencimento ──────────────────────────────────────────────────── */
-.badgeVista   { font-size: 0.74rem; font-weight: 700; color: #166534; background: #dcfce7; padding: 2px 8px; border-radius: 4px; }
-.badgePrazo   { font-size: 0.74rem; font-weight: 700; color: #854d0e; background: #fef9c3; padding: 2px 8px; border-radius: 4px; }
-.badgeVencido { font-size: 0.74rem; font-weight: 700; color: #991b1b; background: #fee2e2; padding: 2px 8px; border-radius: 4px; }
+/* ── Badges de vencimento ────────────────────────────────────────────────── */
+.badgeVista   { font-size: 0.7rem; font-weight: 600; color: #166534; background: #dcfce7; padding: 2px 8px; border-radius: 4px; }
+.badgePrazo   { font-size: 0.7rem; font-weight: 600; color: #854d0e; background: #fef9c3; padding: 2px 8px; border-radius: 4px; }
+.badgeVencido { font-size: 0.7rem; font-weight: 600; color: #991b1b; background: #fee2e2; padding: 2px 8px; border-radius: 4px; }
 
-/* ── Botões de recebimento ─────────────────────────────────────────────────── */
+/* ── Botões de recebimento ───────────────────────────────────────────────── */
 .btnReceberPrazo {
   padding: 4px 10px;
   background: #fef9c3;
   color: #854d0e;
   border: 1px solid #fde68a;
-  border-radius: var(--radius);
+  border-radius: 8px;
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 .btnReceberPrazo:hover { background: #fef08a; }
 
@@ -283,10 +302,12 @@
   background: #fee2e2;
   color: #991b1b;
   border: 1px solid #fca5a5;
-  border-radius: var(--radius);
+  border-radius: 8px;
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 .btnReceberAlerta:hover { background: #fecaca; }
 
@@ -294,10 +315,10 @@
 
 .inputSmall {
   padding: 4px 8px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 0.82rem;
-  font-family: var(--font-family);
+  font-family: 'Inter', sans-serif;
 }
 
 .btnBaixar {
@@ -305,21 +326,25 @@
   background: #16a34a;
   color: #fff;
   border: none;
-  border-radius: var(--radius);
+  border-radius: 8px;
   font-size: 0.82rem;
-  font-weight: 700;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 .btnBaixar:disabled { opacity: 0.6; }
 
 .btnCancelarBaixa {
   padding: 4px 8px;
-  background: #f3f4f6;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   font-size: 0.82rem;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
-  color: var(--color-text-light);
+  color: #64748b;
+  transition: background 0.2s ease;
 }
 
 .btnVincular {
@@ -327,10 +352,12 @@
   background: #eff6ff;
   color: #1d4ed8;
   border: 1px solid #bfdbfe;
-  border-radius: var(--radius);
+  border-radius: 8px;
   font-size: 0.78rem;
   font-weight: 600;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 .btnVincular:hover { background: #dbeafe; }
 
@@ -339,15 +366,17 @@
   background: #fee2e2;
   color: #dc2626;
   border: 1px solid #fca5a5;
-  border-radius: var(--radius);
+  border-radius: 8px;
   font-size: 0.78rem;
   font-weight: 600;
+  font-family: 'Inter', sans-serif;
   cursor: pointer;
+  transition: background 0.2s ease;
 }
 
 .msg {
   padding: 12px 16px;
-  border-radius: var(--radius);
+  border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
 }
@@ -355,7 +384,7 @@
 .msgOk { background: #dcfce7; color: #166534; }
 .msgErro { background: #fee2e2; color: #991b1b; }
 
-/* ── Mobile-first: base = mobile ── */
+/* ── Mobile-first: base = mobile ─────────────────────────────────────────── */
 .row  { grid-template-columns: 1fr; }
 .row3 { grid-template-columns: 1fr; }
 .grid2col { grid-template-columns: 1fr; }
@@ -375,7 +404,7 @@
 .recebimentoToggle { flex-wrap: wrap; }
 .recebBtn { flex: 1; min-height: 44px; }
 
-/* ── Tablet/Desktop (640px+) ── */
+/* ── Tablet/Desktop (640px+) ─────────────────────────────────────────────── */
 @media (min-width: 640px) {
   .row  { grid-template-columns: 1fr 1fr; }
   .row3 { grid-template-columns: 1fr 1fr 1fr; }

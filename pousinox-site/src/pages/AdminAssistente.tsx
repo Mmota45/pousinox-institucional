@@ -42,18 +42,32 @@ const icoSave      = svgI('M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 0
    Markdown → Structured Blocks parser
    ════════════════════════════════════════════════════════════ */
 interface Block {
-  type: 'title' | 'table' | 'bullets' | 'text' | 'chart' | 'highlights'
+  type: 'title' | 'table' | 'bullets' | 'text' | 'chart' | 'highlights' | 'images'
   content: string
   rows?: string[][]
   align?: string[]
   chart?: ChartConfig
   items?: string[]
+  imageUrls?: { url: string; alt: string }[]
 }
 
 function parseBlocks(text: string): Block[] {
+  // Pré-processar: extrair imagens ![alt](url) agrupadas
+  const imagePlaceholders: Record<string, { url: string; alt: string }[]> = {}
+  let imgProcessed = text.replace(/(?:!\[([^\]]*)\]\(([^)]+)\)\s*\n?)+/g, (match) => {
+    const imgs: { url: string; alt: string }[] = []
+    const imgRe = /!\[([^\]]*)\]\(([^)]+)\)/g
+    let im: RegExpExecArray | null
+    while ((im = imgRe.exec(match)) !== null) imgs.push({ alt: im[1], url: im[2] })
+    if (imgs.length === 0) return match
+    const id = `__IMG_${Object.keys(imagePlaceholders).length}__`
+    imagePlaceholders[id] = imgs
+    return id + '\n'
+  })
+
   // Pré-processar: extrair blocos ```chart``` antes do parse linha a linha
   const chartPlaceholders: Record<string, ChartConfig> = {}
-  let processedText = text.replace(/```chart\s*\n([\s\S]*?)```/g, (_, json) => {
+  let processedText = imgProcessed.replace(/```chart\s*\n([\s\S]*?)```/g, (_, json) => {
     try {
       const config = JSON.parse(json.trim()) as ChartConfig
       const id = `__CHART_${Object.keys(chartPlaceholders).length}__`
@@ -80,6 +94,12 @@ function parseBlocks(text: string): Block[] {
       blocks.push({ type: 'chart', content: '', chart: chartPlaceholders[t] })
       continue
     }
+    // Detectar image placeholder
+    if (t.startsWith('__IMG_') && t.endsWith('__') && imagePlaceholders[t]) {
+      flushB(); flushT(); flushTbl()
+      blocks.push({ type: 'images', content: '', imageUrls: imagePlaceholders[t] })
+      continue
+    }
     if (t.startsWith('|') && t.endsWith('|')) {
       flushB(); flushT()
       const cells = t.slice(1, -1).split('|').map(c => c.trim())
@@ -102,13 +122,14 @@ function parseBlocks(text: string): Block[] {
 /* ── Inline formatter (bold + code + links) ── */
 function fmt(t: string): React.ReactNode {
   const parts: React.ReactNode[] = []
-  const re = /(\*\*(.+?)\*\*|`(.+?)`|\[([^\]]+)\]\(([^)]+)\))/g
+  const re = /(\*\*(.+?)\*\*|`(.+?)`|!\[([^\]]*)\]\(([^)]+)\)|\[([^\]]+)\]\(([^)]+)\))/g
   let last = 0, m: RegExpExecArray | null
   while ((m = re.exec(t)) !== null) {
     if (m.index > last) parts.push(t.slice(last, m.index))
     if (m[2]) parts.push(<strong key={m.index}>{m[2]}</strong>)
     else if (m[3]) parts.push(<code key={m.index}>{m[3]}</code>)
-    else if (m[4] && m[5]) parts.push(<a key={m.index} href={m[5]} target="_blank" rel="noopener noreferrer" style={{ color: '#2C5F8A', textDecoration: 'underline' }}>{m[4]}</a>)
+    else if (m[5]) parts.push(<img key={m.index} src={m[5]} alt={m[4] || ''} style={{ maxWidth: '100%', borderRadius: 8, margin: '8px 0' }} loading="lazy" />)
+    else if (m[6] && m[7]) parts.push(<a key={m.index} href={m[7]} target="_blank" rel="noopener noreferrer" style={{ color: '#2C5F8A', textDecoration: 'underline' }}>{m[6]}</a>)
     last = m.index + m[0].length
   }
   if (last < t.length) parts.push(t.slice(last))
@@ -317,6 +338,17 @@ function RenderResponse({ text, onFollowUp }: { text: string; onFollowUp?: (q: s
 
       {blocks.filter(b => b.type === 'chart' && b.chart).map((b, i) => (
         <ChartRenderer key={`chart-${i}`} config={b.chart!} />
+      ))}
+
+      {blocks.filter(b => b.type === 'images' && b.imageUrls?.length).map((b, i) => (
+        <div key={`imgs-${i}`} className={s.imageGrid}>
+          {b.imageUrls!.map((img, j) => (
+            <a key={j} href={img.url} target="_blank" rel="noopener noreferrer" className={s.imageCard}>
+              <img src={img.url} alt={img.alt || 'Imagem'} loading="lazy" />
+              {img.alt && <span className={s.imageCaption}>{img.alt}</span>}
+            </a>
+          ))}
+        </div>
       ))}
 
       {(bullets.length > 0 || texts.length > 0) && (

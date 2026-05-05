@@ -56,6 +56,7 @@ const ROTA_PERMISSAO: Record<string, string> = {
   portfolio: 'portfolio',
   'feature-flags': 'feature-flags',
   assistente: 'assistente',
+  'banco-imagens': 'portfolio',
   site: 'site',
   'central-vendas': 'central-vendas',
   ia: 'ia',
@@ -73,6 +74,7 @@ interface NavItem {
   badge?: string
   section?: string  // quando definido, renderiza separador com esse título antes do item
   icon: React.ReactNode
+  children?: NavItem[]  // sub-itens agrupados sob este pai
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -177,6 +179,18 @@ const NAV_ITEMS: NavItem[] = [
         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
       </svg>
     ),
+    children: [
+      {
+        to: '/admin/banco-imagens',
+        label: 'Banco de Imagens',
+        permissao: 'portfolio',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+          </svg>
+        ),
+      },
+    ],
   },
   {
     to: '/admin/vendas',
@@ -226,36 +240,38 @@ const NAV_ITEMS: NavItem[] = [
   // ── Marketing ────────────────────────────────────────────────────────────────
   {
     section: 'Marketing',
-    to: '/admin/campanhas',
-    label: 'Campanhas WPP',
-    permissao: 'campanhas',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
-      </svg>
-    ),
-  },
-  {
-    to: '/admin/analytics',
-    label: 'Analytics',
-    permissao: 'analytics',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-        <polyline points="22 12 18 16 14 12"/>
-      </svg>
-    ),
-  },
-  {
     to: '/admin/conteudo',
-    label: 'Conteúdo do Site',
+    label: 'Conteúdo',
     permissao: 'conteudo',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
       </svg>
     ),
+    children: [
+      {
+        to: '/admin/campanhas',
+        label: 'Campanhas WPP',
+        permissao: 'campanhas',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+          </svg>
+        ),
+      },
+      {
+        to: '/admin/analytics',
+        label: 'Analytics',
+        permissao: 'analytics',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+            <line x1="6" y1="20" x2="6" y2="14"/>
+            <polyline points="22 12 18 16 14 12"/>
+          </svg>
+        ),
+      },
+    ],
   },
 
   // ── Catálogo ─────────────────────────────────────────────────────────────────
@@ -361,39 +377,41 @@ const NAV_ITEMS: NavItem[] = [
         <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
       </svg>
     ),
-  },
-  {
-    to: '/admin/estoque-mp',
-    label: 'Matéria-Prima',
-    permissao: 'estoque-mp',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
-        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-        <line x1="12" y1="22.08" x2="12" y2="12"/>
-      </svg>
-    ),
-  },
-  {
-    to: '/admin/estoque-pa',
-    label: 'Produto Acabado',
-    permissao: 'estoque-pa',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-      </svg>
-    ),
-  },
-  {
-    to: '/admin/inventario',
-    label: 'Inventário',
-    permissao: 'inventario',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="9 11 12 14 22 4"/>
-        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-      </svg>
-    ),
+    children: [
+      {
+        to: '/admin/estoque-mp',
+        label: 'Matéria-Prima',
+        permissao: 'estoque-mp',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+            <line x1="12" y1="22.08" x2="12" y2="12"/>
+          </svg>
+        ),
+      },
+      {
+        to: '/admin/estoque-pa',
+        label: 'Produto Acabado',
+        permissao: 'estoque-pa',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+        ),
+      },
+      {
+        to: '/admin/inventario',
+        label: 'Inventário',
+        permissao: 'inventario',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 11 12 14 22 4"/>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          </svg>
+        ),
+      },
+    ],
   },
 
   // ── Operação ─────────────────────────────────────────────────────────────────
@@ -408,30 +426,32 @@ const NAV_ITEMS: NavItem[] = [
         <path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/>
       </svg>
     ),
-  },
-  {
-    to: '/admin/producao',
-    label: 'Produção / PCP',
-    permissao: 'producao',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="7" width="20" height="14" rx="2"/>
-        <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-        <line x1="12" y1="12" x2="12" y2="16"/>
-        <line x1="10" y1="14" x2="14" y2="14"/>
-      </svg>
-    ),
-  },
-  {
-    to: '/admin/qualidade',
-    label: 'Qualidade',
-    permissao: 'qualidade',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 11l3 3L22 4"/>
-        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-      </svg>
-    ),
+    children: [
+      {
+        to: '/admin/producao',
+        label: 'Produção / PCP',
+        permissao: 'producao',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="7" width="20" height="14" rx="2"/>
+            <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+            <line x1="12" y1="12" x2="12" y2="16"/>
+            <line x1="10" y1="14" x2="14" y2="14"/>
+          </svg>
+        ),
+      },
+      {
+        to: '/admin/qualidade',
+        label: 'Qualidade',
+        permissao: 'qualidade',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          </svg>
+        ),
+      },
+    ],
   },
   {
     to: '/admin/manutencao',
@@ -511,17 +531,19 @@ const NAV_ITEMS: NavItem[] = [
         <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
       </svg>
     ),
-  },
-  {
-    to: '/admin/conciliacao',
-    label: 'Conciliação',
-    permissao: 'conciliacao',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="9 11 12 14 22 4"/>
-        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-      </svg>
-    ),
+    children: [
+      {
+        to: '/admin/conciliacao',
+        label: 'Conciliação',
+        permissao: 'conciliacao',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 11 12 14 22 4"/>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          </svg>
+        ),
+      },
+    ],
   },
 
   // ── Relatórios ───────────────────────────────────────────────────────────────
@@ -553,16 +575,6 @@ const NAV_ITEMS: NavItem[] = [
     ),
   },
   {
-    to: '/admin/feature-flags',
-    label: 'Feature Flags',
-    permissao: 'feature-flags',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
-      </svg>
-    ),
-  },
-  {
     to: '/admin/assistente',
     label: 'Hub IA',
     permissao: 'assistente',
@@ -571,17 +583,6 @@ const NAV_ITEMS: NavItem[] = [
         <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/>
         <path d="M8 14h8a4 4 0 0 1 4 4v2H4v-2a4 4 0 0 1 4-4z"/>
         <circle cx="9" cy="7" r="0.5" fill="currentColor"/><circle cx="15" cy="7" r="0.5" fill="currentColor"/>
-      </svg>
-    ),
-  },
-  // Hub de IA unificado no Assistente
-  {
-    to: '/admin/uso',
-    label: 'Uso e Custos',
-    permissao: 'uso',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 20V10M12 20V4M6 20v-6"/>
       </svg>
     ),
   },
@@ -595,7 +596,6 @@ const NAV_ITEMS: NavItem[] = [
       </svg>
     ),
   },
-  // Base de Conhecimento unificada no Assistente
   {
     to: '/admin/usuarios',
     label: 'Usuários',
@@ -607,6 +607,28 @@ const NAV_ITEMS: NavItem[] = [
         <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
       </svg>
     ),
+    children: [
+      {
+        to: '/admin/feature-flags',
+        label: 'Feature Flags',
+        permissao: 'feature-flags',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>
+          </svg>
+        ),
+      },
+      {
+        to: '/admin/uso',
+        label: 'Uso e Custos',
+        permissao: 'uso',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 20V10M12 20V4M6 20v-6"/>
+          </svg>
+        ),
+      },
+    ],
   },
 ]
 
@@ -703,6 +725,22 @@ export default function AdminLayout() {
       return salvo ? new Set(JSON.parse(salvo)) : new Set()
     } catch { return new Set() }
   })
+
+  const [expandedParents, setExpandedParents] = useState<Set<string>>(() => {
+    try {
+      const salvo = localStorage.getItem('pousinox_nav_expanded')
+      return salvo ? new Set(JSON.parse(salvo)) : new Set()
+    } catch { return new Set() }
+  })
+
+  function toggleParent(to: string) {
+    setExpandedParents(prev => {
+      const next = new Set(prev)
+      if (next.has(to)) next.delete(to); else next.add(to)
+      localStorage.setItem('pousinox_nav_expanded', JSON.stringify([...next]))
+      return next
+    })
+  }
 
   // Login
   const [email, setEmail] = useState('')
@@ -1152,11 +1190,22 @@ export default function AdminLayout() {
     )
   }
 
-  const navFiltrado = NAV_ITEMS.filter(item => !item.permissao || perfil.permissoes.includes(item.permissao))
-    .map(item => item.to === '/admin/pedidos-outlet' && pedidosPendentes > 0
-      ? { ...item, badge: String(pedidosPendentes) }
-      : item
-    )
+  const navFiltrado = NAV_ITEMS
+    .filter(item => {
+      // Pai visível se ele tem permissão OU qualquer child tem permissão
+      const selfOk = !item.permissao || perfil.permissoes.includes(item.permissao)
+      const childOk = item.children?.some(c => !c.permissao || perfil.permissoes.includes(c.permissao))
+      return selfOk || childOk
+    })
+    .map(item => {
+      // Filtrar children por permissão
+      const filtered = item.children
+        ? { ...item, children: item.children.filter(c => !c.permissao || perfil.permissoes.includes(c.permissao)) }
+        : item
+      return filtered.to === '/admin/pedidos-outlet' && pedidosPendentes > 0
+        ? { ...filtered, badge: String(pedidosPendentes) }
+        : filtered
+    })
 
   const navVisivel = editNav ? applyCustomOrder(navFiltrado) : applyCustomOrder(navFiltrado)
 
@@ -1270,13 +1319,42 @@ export default function AdminLayout() {
                         </button>
                       )}
                       {!recolhida && (
-                        <SortableNavItem
-                          item={item}
-                          isActive={location.pathname === item.to || (item.end ? false : location.pathname.startsWith(item.to + '/'))}
-                          collapsed={collapsed}
-                          onDrawerClose={() => setDrawerOpen(false)}
-                          editMode={editNav}
-                        />
+                        <>
+                          <div className={styles.navParentRow}>
+                            <SortableNavItem
+                              item={item}
+                              isActive={location.pathname === item.to || (item.end ? false : location.pathname.startsWith(item.to + '/')) || (item.children?.some(c => location.pathname === c.to || location.pathname.startsWith(c.to + '/')) ?? false)}
+                              collapsed={collapsed}
+                              onDrawerClose={() => setDrawerOpen(false)}
+                              editMode={editNav}
+                            />
+                            {item.children && item.children.length > 0 && !collapsed && !editNav && (
+                              <button
+                                className={styles.navChildToggle}
+                                onClick={(e) => { e.stopPropagation(); toggleParent(item.to) }}
+                                title={expandedParents.has(item.to) ? 'Recolher' : 'Expandir'}
+                              >
+                                <span style={{ transform: expandedParents.has(item.to) ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.15s', display: 'inline-block', fontSize: 10 }}>▾</span>
+                              </button>
+                            )}
+                          </div>
+                          {item.children && expandedParents.has(item.to) && !collapsed && !editNav && (
+                            <div className={styles.navChildren}>
+                              {item.children.map(child => (
+                                <NavLink
+                                  key={child.to}
+                                  to={child.to}
+                                  onClick={() => setDrawerOpen(false)}
+                                  className={`${styles.navItem} ${styles.navChildItem} ${location.pathname === child.to || location.pathname.startsWith(child.to + '/') ? styles.navItemActive : ''}`}
+                                >
+                                  <span className={styles.navIcon}>{child.icon}</span>
+                                  <span className={styles.navLabel}>{child.label}</span>
+                                  {child.badge && <span className={styles.navBadge}>{child.badge}</span>}
+                                </NavLink>
+                              ))}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   )

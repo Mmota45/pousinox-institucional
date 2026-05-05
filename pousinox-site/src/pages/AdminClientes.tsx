@@ -5,6 +5,7 @@ import AdminLoading from '../components/AdminLoading/AdminLoading'
 import { useLoadingProgress } from '../hooks/useLoadingProgress'
 import AiActionButton from '../components/assistente/AiActionButton'
 import { aiChat } from '../lib/aiHelper'
+import { CheckCircle2, Users, BarChart3, ClipboardList, Package, RefreshCw, Tag, Loader2, Lightbulb, Clock } from 'lucide-react'
 
 // ── Utilitários de parsing ────────────────────────────────────────────────────
 
@@ -772,10 +773,10 @@ export default function AdminClientes() {
           ↑ Importar NFs
         </button>
         <button className={`${styles.aba} ${aba === 'clientes' ? styles.abaAtiva : ''}`} onClick={() => { setAba('clientes'); if (!buscado) buscarClientes() }}>
-          👥 Clientes
+          <Users size={14} /> Clientes
         </button>
         <button className={`${styles.aba} ${aba === 'rfm' ? styles.abaAtiva : ''}`} onClick={() => { setAba('rfm'); if (!rfmBuscado) buscarClientesRFM() }}>
-          📊 RFM
+          <BarChart3 size={14} color="#0ea5e9" /> RFM
         </button>
         <button className={`${styles.aba} ${aba === 'recebidas' ? styles.abaAtiva : ''}`} onClick={() => { setAba('recebidas'); if (!nfsCarregadas) carregarNfsRecebidas() }}>
           ↓ NFs Recebidas
@@ -798,7 +799,7 @@ export default function AdminClientes() {
             >
               <input ref={refCab} type="file" accept=".csv" style={{ display: 'none' }}
                 onChange={e => setArquivoCab(e.target.files?.[0] ?? null)} />
-              <div className={styles.uploadIcon}>📋</div>
+              <div className={styles.uploadIcon}><ClipboardList size={24} color="#3b82f6" /></div>
               <div className={styles.uploadTitulo}>Relatório de NFs</div>
               <div className={styles.uploadSub}>
                 {arquivoCab ? arquivoCab.name : 'Clique para selecionar o CSV de notas fiscais'}
@@ -813,7 +814,7 @@ export default function AdminClientes() {
             >
               <input ref={refItens} type="file" accept=".csv" style={{ display: 'none' }}
                 onChange={e => setArquivoItens(e.target.files?.[0] ?? null)} />
-              <div className={styles.uploadIcon}>📦</div>
+              <div className={styles.uploadIcon}><Package size={24} color="#f59e0b" /></div>
               <div className={styles.uploadTitulo}>Relatório de Itens</div>
               <div className={styles.uploadSub}>
                 {arquivoItens ? arquivoItens.name : 'Clique para selecionar o CSV de itens'}
@@ -836,7 +837,7 @@ export default function AdminClientes() {
 
           {resultado && (
             <div className={styles.resultado}>
-              <div className={styles.resultTitulo}>✅ Importação concluída</div>
+              <div className={styles.resultTitulo}><CheckCircle2 size={16} color="#16a34a" style={{ verticalAlign: 'middle', marginRight: 4 }} /> Importação concluída</div>
               <div className={styles.resultGrid}>
                 {arquivoCab && (
                   <div className={styles.resultCard}>
@@ -884,10 +885,10 @@ export default function AdminClientes() {
               {loadingCli ? 'Buscando...' : 'Buscar'}
             </button>
             <button className={styles.buscarBtn} onClick={enriquecerClientes} disabled={enriquecendo} style={{ marginLeft: 8, background: '#059669' }}>
-              {enriquecendo ? '⏳ Enriquecendo...' : '🔄 Enriquecer cadastros'}
+              {enriquecendo ? <><Loader2 size={14} className="spin" /> Enriquecendo...</> : <><RefreshCw size={14} /> Enriquecer cadastros</>}
             </button>
             <button className={styles.buscarBtn} onClick={normalizarSegmentos} disabled={normalizando} style={{ marginLeft: 8, background: '#7c3aed' }}>
-              {normalizando ? '⏳ Normalizando...' : '🏷 Normalizar segmentos'}
+              {normalizando ? <><Loader2 size={14} className="spin" /> Normalizando...</> : <><Tag size={14} color="#8b5cf6" /> Normalizar segmentos</>}
             </button>
           </div>
           {enriqProgresso && (
@@ -1084,7 +1085,7 @@ export default function AdminClientes() {
           </div>
 
           <div className={styles.infoConciliacao}>
-            💡 <strong>Fluxo:</strong> NF importada → despesa <em>pendente</em> no financeiro → extrato bancário confirma → status muda para <em>pago</em>
+            <Lightbulb size={14} color="#d97706" style={{ verticalAlign: 'middle', marginRight: 4 }} /> <strong>Fluxo:</strong> NF importada → despesa <em>pendente</em> no financeiro → extrato bancário confirma → status muda para <em>pago</em>
           </div>
 
           <div className={styles.uploadRow}>
@@ -1094,7 +1095,7 @@ export default function AdminClientes() {
             >
               <input ref={refRecCab} type="file" accept=".csv" style={{ display: 'none' }}
                 onChange={e => setArquivoRecCab(e.target.files?.[0] ?? null)} />
-              <div className={styles.uploadIcon}>📋</div>
+              <div className={styles.uploadIcon}><ClipboardList size={24} color="#3b82f6" /></div>
               <div className={styles.uploadTitulo}>Cabeçalho de NFs Recebidas</div>
               <div className={styles.uploadSub}>
                 {arquivoRecCab ? arquivoRecCab.name : 'Clique para selecionar'}
@@ -1108,7 +1109,7 @@ export default function AdminClientes() {
             >
               <input ref={refRecItens} type="file" accept=".csv" style={{ display: 'none' }}
                 onChange={e => setArquivoRecItens(e.target.files?.[0] ?? null)} />
-              <div className={styles.uploadIcon}>📦</div>
+              <div className={styles.uploadIcon}><Package size={24} color="#f59e0b" /></div>
               <div className={styles.uploadTitulo}>Itens de NFs Recebidas</div>
               <div className={styles.uploadSub}>
                 {arquivoRecItens ? arquivoRecItens.name : 'Clique para selecionar'}
@@ -1129,7 +1130,7 @@ export default function AdminClientes() {
 
           {resultadoRec && (
             <div className={styles.resultado}>
-              <div className={styles.resultTitulo}>✅ Importação concluída</div>
+              <div className={styles.resultTitulo}><CheckCircle2 size={16} color="#16a34a" style={{ verticalAlign: 'middle', marginRight: 4 }} /> Importação concluída</div>
               <div className={styles.resultGrid}>
                 <div className={styles.resultCard}>
                   <span className={styles.resultLabel}>NFs importadas</span>
@@ -1231,7 +1232,7 @@ export default function AdminClientes() {
                                 : nf.fin_status === 'pago'
                                   ? <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#16a34a' }}>✓ Pago #{nf.lancamento_id}</span>
                                   : nf.fin_status === 'pendente'
-                                    ? <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#d97706' }}>⏱ Pendente #{nf.lancamento_id}</span>
+                                    ? <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#d97706', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Clock size={12} color="#d97706" /> Pendente #{nf.lancamento_id}</span>
                                     : <span style={{ fontSize: '0.72rem', color: '#64748b' }}>#{nf.lancamento_id}</span>
                               }
                             </td>

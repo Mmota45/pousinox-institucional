@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseAdmin } from '../lib/supabase'
 import { useAdmin } from '../contexts/AdminContext'
@@ -8,6 +8,7 @@ import HistoricoModal from '../components/HistoricoModal/HistoricoModal'
 import ModalIframe from '../components/ModalIframe/ModalIframe'
 import { SearchableSelect } from '../components/SearchableSelect/SearchableSelect'
 import AdminLoading from '../components/AdminLoading/AdminLoading'
+import { Flame, CalendarClock, Smartphone, Paperclip, Mail, BarChart3, Radar, RefreshCw, Search, Phone, CheckCircle2, Loader2, Copy, Check, MessageSquare, FileText, FlaskConical, CreditCard, Link2, Zap, ClipboardList } from 'lucide-react'
 import styles from './AdminCentralVendas.module.css'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -105,14 +106,14 @@ function scoreFrontend(p: any): number {
   return (5 * 0.35 + scoreSegmento(p.segmento) * 0.25 + scorePorte(p.porte) * 0.20 + 8 * 0.20)
 }
 
-const ABAS: { key: Aba; label: string; icon: string }[] = [
-  { key: 'hotlist', label: 'Hot List', icon: '🔥' },
-  { key: 'followups', label: 'Follow-ups', icon: '📅' },
-  { key: 'whatsapp', label: 'WhatsApp', icon: '📱' },
-  { key: 'materiais', label: 'Materiais', icon: '📎' },
-  { key: 'emails', label: 'E-mails', icon: '📧' },
-  { key: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { key: 'radar', label: 'Radar', icon: '📡' },
+const ABAS: { key: Aba; label: string; icon: ReactNode }[] = [
+  { key: 'hotlist', label: 'Hot List', icon: <Flame size={16} color="#ef4444" /> },
+  { key: 'followups', label: 'Follow-ups', icon: <CalendarClock size={16} color="#f59e0b" /> },
+  { key: 'whatsapp', label: 'WhatsApp', icon: <Smartphone size={16} color="#25d366" /> },
+  { key: 'materiais', label: 'Materiais', icon: <Paperclip size={16} color="#8b5cf6" /> },
+  { key: 'emails', label: 'E-mails', icon: <Mail size={16} color="#2563eb" /> },
+  { key: 'dashboard', label: 'Dashboard', icon: <BarChart3 size={16} color="#0ea5e9" /> },
+  { key: 'radar', label: 'Radar', icon: <Radar size={16} color="#10b981" /> },
 ]
 
 // ── Multi-IA Drawer ──────────────────────────────────────────────────────────
@@ -158,7 +159,7 @@ function DrawerMultiIA({ prospect }: { prospect: ProspectScore }) {
         onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.25)'; e.currentTarget.style.transform = 'none' }}
       >
-        {loading ? '⏳ Gerando 3 variações...' : '🧠 Gerar 3 variações IA'}
+        {loading ? '<Loader2 size={14} className="spin" /> Gerando 3 variações...' : '<Zap size={14} color="#8b5cf6" /> Gerar 3 variações IA'}
       </button>
       {results.length > 0 && (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -170,7 +171,7 @@ function DrawerMultiIA({ prospect }: { prospect: ProspectScore }) {
                 </span>
                 {!r.error && (
                   <button onClick={() => copiar(r.response, i)} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>
-                    {copied === i ? '✅ Copiado' : '📋 Copiar'}
+                    {copied === i ? '<Check size={14} color="#16a34a" /> Copiado' : '<Copy size={14} /> Copiar'}
                   </button>
                 )}
               </div>
@@ -1318,7 +1319,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
               showMsg('ok', `✅ ${totalValidos} de ${fila.length} têm WhatsApp`)
               setValidandoWa(false)
             }}>
-              {validandoWa ? `⏳ ${waProg.done}/${waProg.total} (${waProg.validos} ✓)` : '📱 Validar WhatsApp'}
+              {validandoWa ? `⏳ ${waProg.done}/${waProg.total} (${waProg.validos} ✓)` : '<Smartphone size={14} color="#25d366" /> Validar WhatsApp'}
             </button>
           </div>
 
@@ -1437,7 +1438,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
             </select>
             <label className={styles.toggleWa}>
               <input type="checkbox" checked={filtroSoWa} onChange={e => setFiltroSoWa(e.target.checked)} />
-              📱 Só com WhatsApp
+              <Smartphone size={14} color="#25d366" /> Só com WhatsApp
             </label>
           </div>
           {/* Busca + Paginação */}
@@ -1516,7 +1517,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                     <div className={styles.cardActions}>
                       <button className={styles.btnDetalhe} onClick={() => abrirDrawer(ps)} title="Ver detalhe">🔍</button>
                       <button className={styles.btnContactar} onClick={() => marcarContactado(ps)}>Contactei</button>
-                      <button className={styles.btnWpp} onClick={() => abrirWhatsApp(ps.whatsapp || ps.telefone1, nome, ps.segmento || '', ps.cidade)}>{ps.whatsapp ? '📱 WhatsApp' : '📞 WhatsApp'}</button>
+                      <button className={styles.btnWpp} onClick={() => abrirWhatsApp(ps.whatsapp || ps.telefone1, nome, ps.segmento || '', ps.cidade)}>{ps.whatsapp ? '<Smartphone size={14} /> WhatsApp' : '<Phone size={14} /> WhatsApp'}</button>
                     </div>
                   </div>
                 )
@@ -1533,7 +1534,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Validação WhatsApp</h2>
-            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.whatsapp = false; carregarWaTab() }} title="Atualizar">🔄 Atualizar</button>
+            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.whatsapp = false; carregarWaTab() }} title="Atualizar"><RefreshCw size={14} /> Atualizar</button>
             <button className={styles.btnPrimary} disabled={validandoWa || waPendentes.length === 0} onClick={async () => {
               const celulares = waPendentes.filter(h => { const n = (h.telefone1 ?? '').replace(/\D/g, ''); return n.length >= 10 && (n.length === 11 || (n.length === 10 && n[2] === '9') || (n.length >= 12 && n[4] === '9')) })
               const fila = celulares.length > 0 ? celulares : waPendentes
@@ -1562,7 +1563,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
               showMsg('ok', `✅ ${totalValidos} de ${fila.length} têm WhatsApp`)
               setValidandoWa(false)
             }}>
-              {validandoWa ? `⏳ ${waProg.done}/${waProg.total} (${waProg.validos} ✓)` : '📱 Validar Pendentes'}
+              {validandoWa ? `⏳ ${waProg.done}/${waProg.total} (${waProg.validos} ✓)` : '<Smartphone size={14} color="#25d366" /> Validar Pendentes'}
             </button>
           </div>
 
@@ -1593,7 +1594,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
           {/* Painel de acompanhamento */}
           <details className={styles.waSegmento} open>
             <summary className={styles.waSegmentoHeader}>
-              <span>📊 Prospecção Automática</span>
+              <span><BarChart3 size={14} color="#0ea5e9" style={{verticalAlign:'middle'}} /> Prospecção Automática</span>
               <span className={styles.waSegmentoBadge}>{waAutoStats.hoje} hoje</span>
             </summary>
             <div style={{ padding: '16px 20px' }}>
@@ -1657,7 +1658,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
           {/* Config do cron de prospecção */}
           <details className={styles.waSegmento}>
             <summary className={styles.waSegmentoHeader}>
-              <span>⚙️ Prospecção Automática (cron)</span>
+              <span><RefreshCw size={14} color="#64748b" style={{verticalAlign:'middle'}} /> Prospecção Automática (cron)</span>
               <span className={styles.waSegmentoBadge}>
                 {cronConfig.uf.length || cronConfig.mesorregiao.length || cronConfig.cidade.length || cronConfig.segmento.length
                   ? [cronConfig.uf.join(','), cronConfig.mesorregiao.join(','), cronConfig.cidade.join(','), cronConfig.segmento.join(',')].filter(Boolean).join(' · ')
@@ -1752,7 +1753,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   setCronSaving(false)
                   showMsg('ok', '✅ Config salva — próximo cron usará esses filtros')
                 }} style={{ height: 34 }}>
-                  {cronSaving ? '⏳' : '💾 Salvar'}
+                  {cronSaving ? '⏳' : '<Check size={14} /> Salvar'}
                 </button>
               </div>
               {/* Gráfico por segmento */}
@@ -1932,7 +1933,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Materiais de Venda</h2>
-            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.materiais = false; carregarMateriais() }} title="Atualizar">🔄 Atualizar</button>
+            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.materiais = false; carregarMateriais() }} title="Atualizar"><RefreshCw size={14} /> Atualizar</button>
             <button className={styles.btnPrimary} onClick={() => setShowFormMat(!showFormMat)}>
               {showFormMat ? 'Cancelar' : '+ Novo Material'}
             </button>
@@ -2026,7 +2027,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 <div key={m.id} className={styles.matCard}>
                   <div className={styles.matTop}>
                     <span className={styles.matTipo}>
-                      {m.tipo === 'apresentacao' ? '📊' : m.tipo === 'ficha_tecnica' ? '📋' : m.tipo === 'laudo' ? '🔬' : m.tipo === 'cartao' ? '💳' : '📎'}
+                      {m.tipo === 'apresentacao' ? <BarChart3 size={20} color="#0ea5e9" /> : m.tipo === 'ficha_tecnica' ? <ClipboardList size={20} color="#8b5cf6" /> : m.tipo === 'laudo' ? <FlaskConical size={20} color="#10b981" /> : m.tipo === 'cartao' ? <CreditCard size={20} color="#f59e0b" /> : <Paperclip size={20} color="#64748b" />}
                     </span>
                     <span className={styles.matEnvios}>{m.envios} envios</span>
                   </div>
@@ -2054,13 +2055,13 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
       {aba === 'emails' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', color: '#1a3a5c' }}>📧 E-mails Enviados</h3>
-            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.emails = false; carregarEmails() }} title="Atualizar">🔄 Atualizar</button>
+            <h3 style={{ margin: 0, fontSize: '1rem', color: '#1a3a5c' }}><Mail size={18} color="#2563eb" style={{verticalAlign:'middle'}} /> E-mails Enviados</h3>
+            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.emails = false; carregarEmails() }} title="Atualizar"><RefreshCw size={14} /> Atualizar</button>
           </div>
           {emailsLoading ? (
             <div className={styles.loadingBox}>Carregando...</div>
           ) : emailsLog.length === 0 ? (
-            <div className={styles.emptyState}>Nenhum e-mail enviado ainda. Use o botão "📧 Enviar E-mail" no detalhe do prospect.</div>
+            <div className={styles.emptyState}>Nenhum e-mail enviado ainda. Use o botão "<Mail size={14} /> Enviar E-mail" no detalhe do prospect.</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {emailsLog.map((e: any) => {
@@ -2122,7 +2123,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Dashboard Comercial</h2>
-            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.dashboard = false; carregarDashboard() }} title="Atualizar">🔄 Atualizar</button>
+            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.dashboard = false; carregarDashboard() }} title="Atualizar"><RefreshCw size={14} /> Atualizar</button>
             <span className={styles.countLabel}>Últimos 7 dias</span>
           </div>
 
@@ -2200,7 +2201,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2>Radar de Demanda — Google Search Console</h2>
-            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.radar = false; carregarGsc() }} title="Atualizar">🔄 Atualizar</button>
+            <button className={styles.btnSecondary} onClick={() => { tabLoaded.current.radar = false; carregarGsc() }} title="Atualizar"><RefreshCw size={14} /> Atualizar</button>
             <div className={styles.filtros}>
               <select className={styles.input} value={gscDias} onChange={e => setGscDias(Number(e.target.value))}>
                 <option value={7}>Últimos 7 dias</option>
@@ -2210,7 +2211,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 <option value={180}>Últimos 6 meses</option>
               </select>
               <button className={styles.btnPrimary} onClick={atualizarGsc} disabled={gscFetching}>
-                {gscFetching ? 'Buscando...' : '🔄 Atualizar'}
+                {gscFetching ? 'Buscando...' : '<RefreshCw size={14} /> Atualizar'}
               </button>
             </div>
           </div>
@@ -2270,7 +2271,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
               <div className={styles.secaoColapsavel}>
                 <button className={styles.secaoToggle} onClick={() => toggleSecao('kpis')}>
                   <span>{gscSecoes.kpis ? '▼' : '▶'}</span>
-                  <span>📊 Resumo Geral</span>
+                  <span><BarChart3 size={14} color="#0ea5e9" style={{verticalAlign:'middle'}} /> Resumo Geral</span>
                 </button>
                 {gscSecoes.kpis && (
                   <div className={styles.kpiGrid}>
@@ -2313,7 +2314,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
               <div className={styles.secaoColapsavel}>
                 <button className={styles.secaoToggle} onClick={() => toggleSecao('queries')}>
                   <span>{gscSecoes.queries ? '▼' : '▶'}</span>
-                  <span>🔍 Queries — O que as pessoas pesquisam ({gscData.topQueries.length})</span>
+                  <span><Search size={14} color="#f59e0b" style={{verticalAlign:'middle'}} /> Queries — O que as pessoas pesquisam ({gscData.topQueries.length})</span>
                 </button>
                 {gscSecoes.queries && (
                   <div className={styles.radarTabela}>
@@ -2454,7 +2455,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
               <div className={styles.secaoColapsavel}>
                 <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('contato')}>
                   <span>{drawerSecoes.contato ? '▼' : '▶'}</span>
-                  <span>📞 Contato & Pesquisa</span>
+                  <span><Phone size={14} color="#10b981" style={{verticalAlign:'middle'}} /> Contato & Pesquisa</span>
                 </button>
                 {drawerSecoes.contato && (
                   <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -2492,12 +2493,12 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                             else showMsg('erro', data?.erro || 'Erro ao enviar')
                           } catch (e: any) { showMsg('erro', e.message || 'Erro ao enviar e-mail') }
                           setEnviandoEmail(false)
-                        }}>{enviandoEmail ? '⏳ Enviando...' : '📧 Enviar E-mail'}</button>
+                        }}>{enviandoEmail ? '⏳ Enviando...' : '<Mail size={14} /> Enviar E-mail'}</button>
                       </div>
                     )}
                     {/* WhatsApp dedicado */}
                     <div className={styles.drawerWaRow}>
-                      <label className={styles.drawerWaLabel}>📱 WhatsApp:</label>
+                      <label className={styles.drawerWaLabel}><Smartphone size={14} /> WhatsApp:</label>
                       <input
                         className={styles.drawerWaInput}
                         placeholder="(00) 00000-0000"
@@ -2543,7 +2544,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
 
                     {!drawerPs.telefone1 && !drawerPs.email && !drawerPs.whatsapp && <p className={styles.vazio}>Sem contato cadastrado</p>}
                     <div className={styles.drawerLinks}>
-                      <a href={`https://www.google.com/search?q=${encodeURIComponent(`${drawerPs.razao_social} ${drawerPs.cidade} whatsapp celular telefone`)}`} target="_blank" rel="noreferrer" className={styles.btnSecondary}>🔍 Buscar WhatsApp</a>
+                      <a href={`https://www.google.com/search?q=${encodeURIComponent(`${drawerPs.razao_social} ${drawerPs.cidade} whatsapp celular telefone`)}`} target="_blank" rel="noreferrer" className={styles.btnSecondary}><Search size={14} /> Buscar WhatsApp</a>
                       <a href={`https://www.google.com/search?q=${encodeURIComponent(`${drawerPs.razao_social} ${drawerPs.cidade} instagram`)}`} target="_blank" rel="noreferrer" className={styles.btnSecondary}>📸 Instagram</a>
                       <a href={`https://cnpj.biz/${drawerPs.cnpj?.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className={styles.btnSecondary}>CNPJ.biz</a>
                     </div>
@@ -2555,7 +2556,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
               <div className={styles.secaoColapsavel}>
                 <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('scores')}>
                   <span>{drawerSecoes.scores ? '▼' : '▶'}</span>
-                  <span>📊 Scores ({Number(drawerPs.score_total).toFixed(1)})</span>
+                  <span><BarChart3 size={14} color="#8b5cf6" style={{verticalAlign:'middle'}} /> Scores ({Number(drawerPs.score_total).toFixed(1)})</span>
                 </button>
                 {drawerSecoes.scores && (
                   <div style={{ padding: '12px 20px' }}>
@@ -2722,7 +2723,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 <div className={styles.secaoColapsavel}>
                   <button className={styles.secaoToggle} onClick={() => toggleDrawerSecao('regulatorio')}>
                     <span>{drawerSecoes.regulatorio ? '▼' : '▶'}</span>
-                    <span>⚡ Regulatório — {drawerPs.segmento}</span>
+                    <span><Zap size={14} color="#ef4444" style={{verticalAlign:'middle'}} /> Regulatório — {drawerPs.segmento}</span>
                     {drawerNormas.length > 0 && (
                       <span className={`${styles.urgBadge} ${styles[`urg${calcularUrgencia(drawerNormas).charAt(0).toUpperCase() + calcularUrgencia(drawerNormas).slice(1)}`]}`} style={{ marginLeft: 'auto', flexShrink: 0 }}>
                         {calcularUrgencia(drawerNormas) === 'critico' ? '🔴 Crítico' :
@@ -2736,7 +2737,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                       {/* Sub-seção: Normas */}
                       {drawerNormas.length > 0 && (
                         <div>
-                          <h4 style={{ margin: '0 0 8px', fontSize: 13, color: '#64748b' }}>📋 NORMAS ({drawerNormas.length})</h4>
+                          <h4 style={{ margin: '0 0 8px', fontSize: 13, color: '#64748b' }}><ClipboardList size={14} color="#1d4ed8" style={{verticalAlign:'middle'}} /> NORMAS ({drawerNormas.length})</h4>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {drawerNormas.map((n: any) => (
                               <div key={n.id} className={styles.normaItem}>
@@ -2777,7 +2778,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                           <div className={styles.regMsgBox}>
                             <p className={styles.regMsgText}>{msgRegulatoria}</p>
                             <div className={styles.regMsgActions}>
-                              <button onClick={() => { navigator.clipboard.writeText(msgRegulatoria); showMsg('ok', 'Mensagem copiada!') }}>📋 Copiar</button>
+                              <button onClick={() => { navigator.clipboard.writeText(msgRegulatoria); showMsg('ok', 'Mensagem copiada!') }}><Copy size={14} /> Copiar</button>
                               <button onClick={() => {
                                 const tel = drawerPs.whatsapp || drawerPs.telefone1
                                 if (!tel) { showMsg('erro', 'Sem telefone'); return }
@@ -2945,7 +2946,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                         <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 10, padding: 12, fontSize: '0.82rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                           {iaAnalise}
                           <button style={{ display: 'block', marginTop: 8, background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '0.78rem' }}
-                            onClick={() => { navigator.clipboard.writeText(iaAnalise); showMsg('ok', 'Copiado!') }}>📋 Copiar</button>
+                            onClick={() => { navigator.clipboard.writeText(iaAnalise); showMsg('ok', 'Copiado!') }}><Copy size={14} /> Copiar</button>
                         </div>
                       )}
                     </div>
@@ -2963,7 +2964,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                         <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: 12, fontSize: '0.82rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                           {iaResumo}
                           <button style={{ display: 'block', marginTop: 8, background: 'none', border: 'none', color: '#15803d', cursor: 'pointer', fontSize: '0.78rem' }}
-                            onClick={() => { navigator.clipboard.writeText(iaResumo); showMsg('ok', 'Copiado!') }}>📋 Copiar</button>
+                            onClick={() => { navigator.clipboard.writeText(iaResumo); showMsg('ok', 'Copiado!') }}><Copy size={14} /> Copiar</button>
                         </div>
                       )}
                     </div>
@@ -2985,7 +2986,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                         <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: 12, fontSize: '0.82rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                           {iaObjecao}
                           <button style={{ display: 'block', marginTop: 8, background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: '0.78rem' }}
-                            onClick={() => { navigator.clipboard.writeText(iaObjecao); showMsg('ok', 'Copiado!') }}>📋 Copiar</button>
+                            onClick={() => { navigator.clipboard.writeText(iaObjecao); showMsg('ok', 'Copiado!') }}><Copy size={14} /> Copiar</button>
                         </div>
                       )}
                     </div>
@@ -3009,7 +3010,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                           {iaConsultor}
                           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                             <button style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontSize: '0.78rem' }}
-                              onClick={() => { navigator.clipboard.writeText(iaConsultor); showMsg('ok', 'Copiado!') }}>📋 Copiar</button>
+                              onClick={() => { navigator.clipboard.writeText(iaConsultor); showMsg('ok', 'Copiado!') }}><Copy size={14} /> Copiar</button>
                             <button style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontSize: '0.78rem' }}
                               onClick={() => {
                                 const tel = drawerPs.whatsapp || drawerPs.telefone1
@@ -3036,7 +3037,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                           {iaComparativo}
                           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                             <button style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.78rem' }}
-                              onClick={() => { navigator.clipboard.writeText(iaComparativo); showMsg('ok', 'Copiado!') }}>📋 Copiar</button>
+                              onClick={() => { navigator.clipboard.writeText(iaComparativo); showMsg('ok', 'Copiado!') }}><Copy size={14} /> Copiar</button>
                             <button style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: '0.78rem' }}
                               onClick={() => {
                                 const tel = drawerPs.whatsapp || drawerPs.telefone1
@@ -3088,7 +3089,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   {iaProposta}
                   <div style={{ display: 'flex', gap: 8, marginTop: 10, borderTop: '1px solid #e9d5ff', paddingTop: 8 }}>
                     <button style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}
-                      onClick={() => { navigator.clipboard.writeText(iaProposta); showMsg('ok', 'Proposta copiada!') }}>📋 Copiar</button>
+                      onClick={() => { navigator.clipboard.writeText(iaProposta); showMsg('ok', 'Proposta copiada!') }}><Copy size={14} /> Copiar</button>
                     <button style={{ background: 'none', border: 'none', color: '#7c3aed', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600 }}
                       onClick={() => {
                         const tel = drawerPs.whatsapp || drawerPs.telefone1
