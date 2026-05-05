@@ -1,0 +1,348 @@
+/* ── CockpitWidgets — mobile-first ──────────────────────────────────────── */
+
+.widget {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.widgetLoading {
+  padding: 24px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.widgetSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.widgetSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.widgetSectionTitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1a2332;
+  margin: 0;
+  flex: 1;
+}
+
+.widgetLink {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  white-space: nowrap;
+  min-height: 44px;
+  padding: 0 4px;
+}
+
+.widgetLink:hover { text-decoration: underline; }
+
+/* ── Lists ── */
+.listCompact {
+  display: flex;
+  flex-direction: column;
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 1px solid #f8fafc;
+  border-left: 3px solid transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  cursor: default;
+  background: none;
+  border-right: none;
+  border-top: none;
+  text-align: left;
+  width: 100%;
+  min-height: 44px;
+  transition: background 0.1s;
+}
+
+button.listItem { cursor: pointer; }
+button.listItem:hover { background: #f8fafc; }
+
+.listItem:last-child { border-bottom: none; }
+
+.listPos {
+  font-weight: 800;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.listItemIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.listInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.listNome {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1a2332;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.listMeta {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.listValor {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #16a34a;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.scoreBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.vazio {
+  padding: 12px 4px;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+/* ── Bar chart ── */
+.barList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.barItem {
+  display: grid;
+  grid-template-columns: 30px 1fr 40px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+}
+
+.barLabel {
+  font-weight: 700;
+  color: #64748b;
+  font-size: 0.72rem;
+}
+
+.barTrack {
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.barValue {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* ── Kanban 3 colunas ── */
+.kanban3 {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.kanbanCol {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.kanbanHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 4px;
+}
+
+/* ── Funnel bar ── */
+.funnelBar {
+  display: flex;
+  height: 28px;
+  border-radius: 6px;
+  overflow: hidden;
+  gap: 2px;
+}
+
+.funnelSegment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: flex 0.3s ease;
+  min-width: 24px;
+}
+
+.funnelLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.funnelLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.funnelLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.funnelDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Status pills ── */
+.statusPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.statusPill {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Mini KPIs ── */
+.miniKpis {
+  display: flex;
+  gap: 10px;
+}
+
+.miniKpi {
+  flex: 1;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+}
+
+.miniKpiLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.miniKpiValor {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1a2332;
+  line-height: 1;
+}
+
+.miniKpiSub {
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+/* ── Alerta inline ── */
+.alertaInline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fef9c3;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #854d0e;
+  min-height: 44px;
+}
+
+/* ── Tablet (640px+) ── */
+@media (min-width: 640px) {
+  .kanban3 {
+    flex-direction: row;
+  }
+
+  .kanbanCol {
+    flex: 1;
+    min-width: 0;
+  }
+}

@@ -159,7 +159,7 @@ function DrawerMultiIA({ prospect }: { prospect: ProspectScore }) {
         onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 14px rgba(99,102,241,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
         onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(99,102,241,0.25)'; e.currentTarget.style.transform = 'none' }}
       >
-        {loading ? '<Loader2 size={14} className="spin" /> Gerando 3 variações...' : '<Zap size={14} color="#8b5cf6" /> Gerar 3 variações IA'}
+        {loading ? <><Loader2 size={14} className="spin" /> Gerando 3 variações...</> : <><Zap size={14} color="#8b5cf6" /> Gerar 3 variações IA</>}
       </button>
       {results.length > 0 && (
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -171,7 +171,7 @@ function DrawerMultiIA({ prospect }: { prospect: ProspectScore }) {
                 </span>
                 {!r.error && (
                   <button onClick={() => copiar(r.response, i)} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>
-                    {copied === i ? '<Check size={14} color="#16a34a" /> Copiado' : '<Copy size={14} /> Copiar'}
+                    {copied === i ? <><Check size={14} color="#16a34a" /> Copiado</> : <><Copy size={14} /> Copiar</>}
                   </button>
                 )}
               </div>
@@ -1319,7 +1319,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
               showMsg('ok', `✅ ${totalValidos} de ${fila.length} têm WhatsApp`)
               setValidandoWa(false)
             }}>
-              {validandoWa ? `⏳ ${waProg.done}/${waProg.total} (${waProg.validos} ✓)` : '<Smartphone size={14} color="#25d366" /> Validar WhatsApp'}
+              {validandoWa ? `⏳ ${waProg.done}/${waProg.total} (${waProg.validos} ✓)` : <><Smartphone size={14} color="#25d366" /> Validar WhatsApp</>}
             </button>
           </div>
 
@@ -1517,7 +1517,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                     <div className={styles.cardActions}>
                       <button className={styles.btnDetalhe} onClick={() => abrirDrawer(ps)} title="Ver detalhe">🔍</button>
                       <button className={styles.btnContactar} onClick={() => marcarContactado(ps)}>Contactei</button>
-                      <button className={styles.btnWpp} onClick={() => abrirWhatsApp(ps.whatsapp || ps.telefone1, nome, ps.segmento || '', ps.cidade)}>{ps.whatsapp ? '<Smartphone size={14} /> WhatsApp' : '<Phone size={14} /> WhatsApp'}</button>
+                      <button className={styles.btnWpp} onClick={() => abrirWhatsApp(ps.whatsapp || ps.telefone1, nome, ps.segmento || '', ps.cidade)}>{ps.whatsapp ? <><Smartphone size={14} /> WhatsApp</> : <><Phone size={14} /> WhatsApp</>}</button>
                     </div>
                   </div>
                 )
@@ -1563,7 +1563,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
               showMsg('ok', `✅ ${totalValidos} de ${fila.length} têm WhatsApp`)
               setValidandoWa(false)
             }}>
-              {validandoWa ? `⏳ ${waProg.done}/${waProg.total} (${waProg.validos} ✓)` : '<Smartphone size={14} color="#25d366" /> Validar Pendentes'}
+              {validandoWa ? `⏳ ${waProg.done}/${waProg.total} (${waProg.validos} ✓)` : <><Smartphone size={14} color="#25d366" /> Validar Pendentes</>}
             </button>
           </div>
 
@@ -1753,7 +1753,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                   setCronSaving(false)
                   showMsg('ok', '✅ Config salva — próximo cron usará esses filtros')
                 }} style={{ height: 34 }}>
-                  {cronSaving ? '⏳' : '<Check size={14} /> Salvar'}
+                  {cronSaving ? '⏳' : <><Check size={14} /> Salvar</>}
                 </button>
               </div>
               {/* Gráfico por segmento */}
@@ -2211,7 +2211,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                 <option value={180}>Últimos 6 meses</option>
               </select>
               <button className={styles.btnPrimary} onClick={atualizarGsc} disabled={gscFetching}>
-                {gscFetching ? 'Buscando...' : '<RefreshCw size={14} /> Atualizar'}
+                {gscFetching ? 'Buscando...' : <><RefreshCw size={14} /> Atualizar</>}
               </button>
             </div>
           </div>
@@ -2493,7 +2493,7 @@ NUNCA invente preços, prazos ou certificações que não foram fornecidos.`
                             else showMsg('erro', data?.erro || 'Erro ao enviar')
                           } catch (e: any) { showMsg('erro', e.message || 'Erro ao enviar e-mail') }
                           setEnviandoEmail(false)
-                        }}>{enviandoEmail ? '⏳ Enviando...' : '<Mail size={14} /> Enviar E-mail'}</button>
+                        }}>{enviandoEmail ? '⏳ Enviando...' : <><Mail size={14} /> Enviar E-mail</>}</button>
                       </div>
                     )}
                     {/* WhatsApp dedicado */}

@@ -65,6 +65,7 @@ Rotas `/admin/*` com layout próprio (`AdminLayout`). Todos os módulos usam `su
 
 | Rota | Componente | Seção | Status |
 |---|---|---|---|
+| `/admin/cockpit` | `AdminCockpit` | Cockpit | ✅ tela unificada 8 etapas (Radar→Pós-venda), IA contextual, briefing, alertas, notícias, automações, insights, busca global CNPJ |
 | `/admin` | `AdminDashboard` | — | ✅ |
 | `/admin/prospeccao` | `AdminProspeccao` | Comercial | ✅ 800K CNPJs, mapa Leaflet, drawer de detalhe com histórico de compras e criação de deal |
 | `/admin/pipeline` | `AdminPipeline` | Comercial | ✅ deals, estágios, recebível |

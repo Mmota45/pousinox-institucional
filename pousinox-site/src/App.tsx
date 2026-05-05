@@ -19,6 +19,7 @@ import Obrigado from './pages/Obrigado'
 import LaudoAcesso from './pages/LaudoAcesso'
 import PropostaAcesso from './pages/PropostaAcesso'
 import AdminLayout from './components/AdminLayout/AdminLayout'
+import AdminCockpit from './pages/AdminCockpit'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminOutlet from './pages/AdminOutlet'
 import AdminEstoque from './pages/AdminEstoque'
@@ -152,6 +153,7 @@ function App() {
           <Route path="/produto/:id" element={<ProdutoDetalhe />} />
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
+            <Route path="cockpit" element={<AdminCockpit />} />
             <Route path="outlet" element={<AdminOutlet />} />
             <Route path="estoque" element={<AdminEstoque />} />
             <Route path="vendas" element={<AdminVendas />} />

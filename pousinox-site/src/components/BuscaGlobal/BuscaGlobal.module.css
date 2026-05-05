@@ -1,0 +1,243 @@
+/* ── BuscaGlobal — mobile-first ─────────────────────────────────────────── */
+
+.wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* ── Input ── */
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 12px;
+  pointer-events: none;
+}
+
+.input {
+  width: 100%;
+  padding: 10px 36px 10px 38px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-family: 'Inter', sans-serif;
+  color: #1a2332;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.input::placeholder { color: #94a3b8; }
+
+.inputClear {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
+}
+
+/* ── Dropdown ── */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  z-index: 50;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
+  min-height: 44px;
+}
+
+.item:last-child { border-bottom: none; }
+.item:hover { background: #f8fafc; }
+
+.itemIcon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.itemNome {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1a2332;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemMeta {
+  font-size: 0.74rem;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemTipo {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.itemTipo[data-tipo="prospect"] {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.itemTipo[data-tipo="cliente"] {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.vazio {
+  padding: 16px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+/* ── Badge empresa selecionada ── */
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-height: 44px;
+  flex-wrap: wrap;
+}
+
+.badgeNome {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1a2332;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.badgeCnpj {
+  font-size: 0.74rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.badgeTipo {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.badgeTipo[data-tipo="prospect"] {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badgeTipo[data-tipo="cliente"] {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badgeLimpar,
+.badgeBuscar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.badgeLimpar:hover { background: #fee2e2; color: #dc2626; }
+.badgeBuscar:hover { background: #e0e7ff; color: #2563eb; }
+
+/* ── Mobile fullscreen ── */
+@media (max-width: 639px) {
+  .dropdown {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 0;
+    max-height: none;
+    z-index: 100;
+    padding-top: 60px;
+  }
+
+  .badgeNome { max-width: 120px; }
+  .badgeCnpj { display: none; }
+}
+
+/* ── Desktop ── */
+@media (min-width: 640px) {
+  .input { font-size: 0.9rem; }
+  .badgeNome { max-width: 300px; }
+}
